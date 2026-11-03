@@ -141,3 +141,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Problema:** na sessão real, o `engajar` ofereceu "Descrever em Other" como opção de múltipla escolha, e a descrição da tarefa se perdeu. O banner também dizia que o setup cria o config do usuário, mas o setup não grava nada quando o usuário mantém os padrões.
 - **Decisão:** as escolhas (modo Git, retomada, preflight) continuam juntas numa pergunta. A missão, quando ainda não foi dada, é pedida em texto livre no mesmo turno, nunca como opção de menu. O banner passa a dizer "ausente (valem os padrões do crew.yaml; só é criado se algo diferir)".
 - **Por que não é bug:** config do usuário ausente é o estado normal de quem usa os padrões (a D17 guarda só as diferenças).
+
+### F1-12: O setup sempre cria o config do usuário (revisa a F1-11, parte do banner)
+- **Problema:** a F1-11 tratou "config do usuário ausente" como o estado normal de quem mantém os padrões. A seção 5.2 do plano diz que a primeira execução do setup **cria** o config do usuário, e o critério de aceite pede "grava os dois configs". A sessão real de aceite expôs a contradição.
+- **Decisão:** sem diferenças, o setup grava `{"schemaVersion": 1}` pelo validador. O banner volta a mandar rodar o `/starcode:setup` quando o arquivo falta. A parte da F1-11 sobre a missão em texto livre continua valendo.
+- **Motivo:** o arquivo marca a máquina como configurada e fixa a versão do schema. A D17 continua valendo: `crew` guarda só o que difere do `crew.yaml`.
+- **Por que não é bug:** um config com só `schemaVersion` é válido e não muda nenhum padrão.

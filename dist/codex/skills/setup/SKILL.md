@@ -65,8 +65,11 @@ Only on the first run on this machine, or when the user asks:
    `outputLanguage` (pt-BR | en), `qStrategy` (opencode-subagent, orca-worker, self-verified),
    `fleet.maxBatch` (1–10), `fleet.timeoutMinutes`. Field reference:
    `<plugin-root>/schemas/config.md`.
+   If nothing differs, the file is still created with only `{"schemaVersion": 1}` (plan 5.2: the
+   first run creates the user config; it marks the machine as set up and pins the schema version).
 4. Show the JSON, confirm, and write through the validator:
    `validate_config.py --kind user --write "<home>/.starcode/config.json" --from <file>`.
+   "Keep the defaults" is not a reason to skip this step.
 
 ## 5. Competing skills (D31)
 Run `python "<plugin-root>/scripts/conflicts.py" --project .` and show the report exactly. It lists
