@@ -1,0 +1,19 @@
+$ orca linear search --help   # orca 1.4.247
+orca linear search
+
+Usage: orca linear search <query> [--limit <n>] [--workspace <id>|all] [--json]
+
+Search connected Linear workspaces
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --limit <n>            Maximum number of rows to return
+  --workspace <id|all>  Connected Linear workspace id, or all
+  --query <text>        Text to search across Linear issues
+
+Examples:
+  $ orca linear search "auth bug"
+  $ orca linear search ENG --workspace all --json

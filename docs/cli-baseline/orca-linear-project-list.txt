@@ -1,0 +1,19 @@
+$ orca linear project list --help   # orca 1.4.247
+orca linear project list
+
+Usage: orca linear project list [--query <text>] [--limit <n>] [--workspace <id>|all] [--json]
+
+List connected Linear projects
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --query <text>        Search text for matching refs
+  --limit <n>            Maximum number of rows to return
+  --workspace <id>      Connected Linear workspace id
+
+Examples:
+  $ orca linear project list --query launch --json
+  $ orca linear project list --workspace all --json

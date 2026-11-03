@@ -1,0 +1,26 @@
+$ orca linear comment add --help   # orca 1.4.247
+orca linear comment add
+
+Usage: orca linear comment add [<id>] [--current] (--body <text> | --body-file <path|->) [--reply-to <commentId>] [--write-id <uuid>] [--workspace <id>] [--json]
+
+Add a comment to a Linear issue
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --current              Use the current Orca worktree linked Linear issue
+  --body <text>         Linear comment or issue body
+  --body-file <path|->  Read Linear body from a file or stdin
+  --reply-to <id>       Comment id to reply to
+  --write-id <uuid>     Retry id from linear_write_unconfirmed
+  --workspace <id>      Connected Linear workspace id
+  --id <id>             Identifier for a target item or permission
+
+Notes:
+  Use --body-file - to read multiline comment bodies from stdin.
+
+Examples:
+  $ orca linear comment add ENG-123 --body "Implementation is ready for review."
+  $ orca linear comment add --current --body-file - --json

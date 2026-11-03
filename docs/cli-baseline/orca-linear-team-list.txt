@@ -1,0 +1,16 @@
+$ orca linear team list --help   # orca 1.4.247
+orca linear team list
+
+Usage: orca linear team list [--workspace <id>|all] [--json]
+
+List connected Linear teams
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --workspace <id>      Connected Linear workspace id
+
+Examples:
+  $ orca linear team list --workspace all --json

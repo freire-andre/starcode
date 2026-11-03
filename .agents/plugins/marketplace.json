@@ -1,0 +1,15 @@
+{
+  "name": "starcode",
+  "interface": {
+    "displayName": "StarCode"
+  },
+  "plugins": [
+    {
+      "name": "starcode-hello",
+      "source": {
+        "source": "local",
+        "path": "./dist/codex"
+      }
+    }
+  ]
+}

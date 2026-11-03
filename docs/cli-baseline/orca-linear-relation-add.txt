@@ -1,0 +1,21 @@
+$ orca linear relation add --help   # orca 1.4.247
+orca linear relation add
+
+Usage: orca linear relation add [<id>] [--current] --related <issue> --type blocks|blocked-by|related|duplicate-of [--workspace <id>] [--json]
+
+Add a Linear issue relation
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --current              Use the current Orca worktree linked Linear issue
+  --related
+  --type
+  --workspace <id>      Connected Linear workspace id
+  --id <id>             Identifier for a target item or permission
+
+Examples:
+  $ orca linear relation add ENG-1 --related ENG-2 --type blocks --json
+  $ orca linear relation add --current --related ENG-2 --type blocked-by --json

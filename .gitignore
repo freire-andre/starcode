@@ -1,0 +1,13 @@
+# Material de referência de terceiros (zips grandes, não redistribuir)
+docs/reference/*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

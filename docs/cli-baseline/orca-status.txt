@@ -1,0 +1,19 @@
+$ orca status --help   # orca 1.4.247
+orca status
+
+Usage: orca status [--json]
+
+Show app/runtime/graph readiness
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+
+Notes:
+  caller.orcaSessionId is this agent's Orca session ID, as Orca resolved it, when the agent runs as an Orca session; otherwise caller is omitted.
+
+Examples:
+  $ orca status
+  $ orca status --json

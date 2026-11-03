@@ -1,0 +1,11 @@
+Python
+Rust
+Typescript
+Tauri
+Flask
+
+
+Bancos
+PostgreSQL
+MySQL
+

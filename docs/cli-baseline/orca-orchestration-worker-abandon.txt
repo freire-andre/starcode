@@ -1,0 +1,18 @@
+$ orca orchestration worker-abandon --help   # orca 1.4.247
+orca orchestration worker-abandon
+
+Usage: orca orchestration worker-abandon --dispatch <dispatch_id> [--retry-request <id>] [--json] [--full]
+
+Fence a worker without claiming its process stopped
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --dispatch
+  --retry-request
+  --full                 Print the full record Orca returned instead of the concise view
+
+Notes:
+  Retains all possibly-live resources and performs no process or filesystem action.

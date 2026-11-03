@@ -1,0 +1,22 @@
+$ orca linear attach --help   # orca 1.4.247
+orca linear attach
+
+Usage: orca linear attach [<id>] [--current] --url <url> [--title <title>] [--write-id <uuid>] [--workspace <id>] [--json]
+
+Attach a link to a Linear issue
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --current              Use the current Orca worktree linked Linear issue
+  --url <url>           Absolute http(s) link to attach
+  --title <text>        Attachment title
+  --write-id <uuid>     Retry id from linear_write_unconfirmed
+  --workspace <id>      Connected Linear workspace id
+  --id <id>             Identifier for a target item or permission
+
+Examples:
+  $ orca linear attach ENG-123 --url https://example.com/review/123 --title "PR/MR link"
+  $ orca linear attach --current --url https://example.com/review/123 --json

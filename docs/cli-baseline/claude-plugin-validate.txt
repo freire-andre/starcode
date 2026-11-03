@@ -1,0 +1,21 @@
+$ claude plugin validate --help
+Usage: claude plugin validate [options] <path>
+
+Validate a plugin or marketplace manifest, or the skills, agents, and commands
+in a directory
+
+Options:
+  -h, --help        Display help for command
+  --json            Output the validation report as JSON (same exit codes)
+  --profile <name>  Also exit 1 when the plugin directory (the catalog that
+                    plugins are submitted to) would refuse a submission of the
+                    plugin on a check this command runs, such as a missing
+                    README, or when such a check could not be made: plugin.json
+                    lists more than 16 files for MCP servers or for hooks (16 of
+                    each are checked), or an MCP or hooks file is one these
+                    checks cannot use, such as one that is not valid JSON. With
+                    --strict, also fail on its warnings. The directory runs more
+                    checks. (choices: "directory")
+  --strict          Treat warnings as errors (exit 1). Use in CI to fail on
+                    unrecognized fields, missing metadata, and other issues that
+                    the runtime tolerates.

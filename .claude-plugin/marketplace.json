@@ -1,0 +1,14 @@
+{
+  "name": "starcode",
+  "description": "StarCode private marketplace.",
+  "owner": {
+    "name": "Andre Freire"
+  },
+  "plugins": [
+    {
+      "name": "starcode-hello",
+      "source": "./dist/claude",
+      "description": "StarCode Phase 0 probe plugin (format and compatibility tests)."
+    }
+  ]
+}

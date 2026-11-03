@@ -1,0 +1,17 @@
+$ orca linear team states --help   # orca 1.4.247
+orca linear team states
+
+Usage: orca linear team states --team <key|id> [--workspace <id>] [--json]
+
+List Linear team workflow states
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --team
+  --workspace <id>      Connected Linear workspace id
+
+Examples:
+  $ orca linear team states --team ENG --json

@@ -1,0 +1,20 @@
+$ orca linear status set --help   # orca 1.4.247
+orca linear status set
+
+Usage: orca linear status set [<id>] [--current] --to <state> [--workspace <id>] [--json]
+
+Set a Linear issue status
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --current              Use the current Orca worktree linked Linear issue
+  --to <state>          Exact Linear workflow state name
+  --workspace <id>      Connected Linear workspace id
+  --id <id>             Identifier for a target item or permission
+
+Examples:
+  $ orca linear status set ENG-123 --to "In Review"
+  $ orca linear status set --current --to Done --json

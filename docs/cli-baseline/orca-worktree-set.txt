@@ -1,0 +1,36 @@
+$ orca worktree set --help   # orca 1.4.247
+orca worktree set
+
+Usage: orca worktree set --worktree <selector> [--display-name <name>] [--issue <number|null>] [--pr <number|null>] [--linear-issue <identifier-or-url|null>] [--gitlab-issue <number-or-url|null>] [--gitlab-mr <number-or-url|null>] [--comment <text>] [--workspace-status <id>] [--unread|--read] [--parent-worktree <selector>|--no-parent] [--json]
+
+Update Orca metadata for a worktree
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --worktree <selector>  Worktree selector such as identity:<identity>, id:<repo-id>::<path>, name:<displayName>, branch:<branch>, issue:<number>, path:<path>, or active/current
+  --display-name <name>  Override the Orca display name
+  --issue <number|null>  Linked GitHub issue number
+  --pr <number|null>     Linked GitHub pull request number; null clears on set
+  --linear-issue <id|url|null> Linked Linear issue identifier or URL; null clears on set
+  --gitlab-issue <number|url|null> Linked GitLab issue number or URL; null clears on set
+  --gitlab-mr <number|url|null> Linked GitLab merge request number or URL; null clears on set
+  --comment <text>       Comment stored in Orca metadata
+  --workspace-status <id> Board status id (defaults: todo, in-progress, in-review, completed)
+  --unread               Mark the workspace unread in the sidebar
+  --read                 Mark the workspace read, clearing the unread dot
+  --parent-worktree <selector> Parent worktree selector such as identity:<identity>, id:<repo-id>::<path>, branch:<branch>, issue:<number>, path:<path>, or active/current
+  --no-parent            Force no parent lineage for unrelated work
+
+Notes:
+  Workspace status ids match the board columns (defaults: todo, in-progress, in-review, completed); custom statuses use their configured id.
+  Pass --linear-issue null to clear the Linear issue link.
+  Pass --pr null, --gitlab-issue null, or --gitlab-mr null to clear only the matching link.
+  Each link flag updates its own field and leaves unrelated links unchanged. GitLab URLs must match the stored source project or remote; they cannot select a foreign project.
+
+Examples:
+  $ orca worktree set --worktree active --linear-issue STA-335 --json
+  $ orca worktree set --worktree active --linear-issue null --json
+  $ orca worktree set --worktree active --workspace-status in-review --unread --json

@@ -1,0 +1,27 @@
+$ orca linear issue --help   # orca 1.4.247
+orca linear issue
+
+Usage: orca linear issue [<id>] [--current] [--comments] [--children] [--depth <n>] [--attachments] [--relations] [--activity] [--full] [--workspace <id>] [--json]
+
+Read Linear issue context for agents
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --current              Use the current Orca worktree linked Linear issue
+  --comments             Include threaded Linear comments
+  --children             Include recursive child issues
+  --depth <n>            Child issue depth for --children/--full
+  --attachments          Include attachment metadata and URLs
+  --relations            Include blocking, related, and duplicate links
+  --activity             Include issue field-change history
+  --full                 Include all supported V1 issue context within caps
+  --workspace <id>      Connected Linear workspace id
+  --id <id>             Linear issue key, id, or URL
+
+Examples:
+  $ orca linear issue ENG-123
+  $ orca linear issue --current --comments
+  $ orca linear issue https://linear.app/acme/issue/ENG-123 --full --json

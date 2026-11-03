@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python F:/Projetos/StarCode/dist/codex/hooks/scripts/hello_banner.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python F:/Projetos/StarCode/dist/codex/hooks/scripts/hello_guard.py"
+          }
+        ]
+      }
+    ]
+  }
+}

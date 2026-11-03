@@ -1,0 +1,24 @@
+$ orca linear comment edit --help   # orca 1.4.247
+orca linear comment edit
+
+Usage: orca linear comment edit <commentId> (--body <text> | --body-file <path|->) [--workspace <id>] [--json]
+
+Replace the body of a Linear comment
+
+Options:
+  --help                 Show this help message
+  --json                 Emit machine-readable JSON
+  --pairing-code <code>  Run against a remote Orca server using an orca://pair?... code
+  --environment <selector> Run against a saved paired Orca server (id or name); terminal handles belong to the server that issued them
+  --body <text>         Linear comment or issue body
+  --body-file <path|->  Read Linear body from a file or stdin
+  --workspace <id>      Connected Linear workspace id
+  --id <commentId>      Linear comment id (a UUID)
+
+Notes:
+  Comment ids come from `comment add` output or `orca linear issue <id> --comments --json`.
+  Linear only lets a comment be edited by its author.
+
+Examples:
+  $ orca linear comment edit <commentId> --body "Updated: ready for review."
+  $ orca linear comment edit <commentId> --body-file - --json
