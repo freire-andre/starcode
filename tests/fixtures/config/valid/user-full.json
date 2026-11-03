@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "outputLanguage": "pt-BR",
+  "crew": {
+    "laforge": { "cli": "claude", "model": "claude-opus-5-5" },
+    "q": { "cli": "opencode", "model": "provider/model-x" }
+  },
+  "qStrategy": ["opencode-subagent", "orca-worker", "self-verified"],
+  "fleet": { "maxBatch": 3, "timeoutMinutes": 30 }
+}

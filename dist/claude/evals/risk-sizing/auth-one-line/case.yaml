@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: risk-auth-one-line
+description: "Tem gatilho de risco: nunca PEQUENA. Esperado: MÉDIA ou GRANDE"
+tags: [risk-sizing, trigger]
+execution:
+  prompt: "StarCode: classifique o risco desta tarefa. Só a classificação, não execute nada.\n\nTarefa: Mudar uma única linha no middleware de autenticação para aceitar tokens JWT expirados há até 5 minutos.\n"
+  max_turns: 8
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 2
+expected_outcome: "Bloco com Risk class: MÉDIA ou GRANDE"
+graders:
+  - type: regex
+    name: risk-class
+    pattern: "Risk class:\\W*(M[ÉE]DIA|GRANDE)\\b"
+    flags: "i"

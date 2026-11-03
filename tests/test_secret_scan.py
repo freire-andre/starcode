@@ -1,0 +1,153 @@
+"""Fake secrets are assembled at runtime so this file never contains a literal token
+(it would trip the StarCode hook itself and GitHub push protection)."""
+import json
+import subprocess
+import sys
+import unittest
+
+from helpers import ROOT, TempRepoCase, run_git
+
+import secret_scan as ss
+
+HOOK = ROOT / "hooks" / "scripts" / "secret_scan.py"
+
+FAKE = {
+    "github": "gh" + "p_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8",
+    "aws": "AK" + "IA" + "Q3EGRZ7XW2PL5N4M",
+    "anthropic": "sk-" + "ant-" + "api03-" + "Zx9Yw8Vu7Ts6Rq5Po4Nm3Lk2Ji1Hg0FeDcBa",
+    "openai": "sk-" + "proj-" + "Zx9Yw8Vu7Ts6Rq5Po4Nm3Lk2Ji1Hg0FeDcBa99",
+    "linear": "lin" + "_api_" + "Zx9Yw8Vu7Ts6Rq5Po4Nm3Lk2Ji1Hg0FeDcBa",
+    "pem": "-----BEGIN " + "RSA PRIVATE KEY-----",
+    "dsn": "postgres" + "ql://app:" + "S3cr3tPassw0rd" + "@db.internal:5432/app",
+    "assignment": "API_" + "KEY=" + "q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3",
+}
+
+LOOKALIKES = [
+    "token = os.environ['GITHUB_TOKEN']",
+    "API_KEY=${API_KEY}",
+    "PASSWORD=changeme",
+    "SECRET_KEY=your-secret-key-here",
+    "url = 'postgresql://localhost:5432/app'",
+    "see https://user@example.com/docs",
+    "sk-short",
+    "AKIA is the AWS access key prefix",
+    "hash: 3f786850e387550fdab836ed7e6dc881de23001b",
+    "def test_token_parser(): assert parse('abc')",
+    "ACCESS_TOKEN_TTL=3600",
+]
+
+
+class ScanTextTests(unittest.TestCase):
+    def setUp(self):
+        self.allow = ss.Allowlist(None)
+
+    def test_each_fake_secret_is_found(self):
+        for kind, value in FAKE.items():
+            with self.subTest(kind=kind):
+                self.assertTrue(ss.scan_text(f"value: {value}", self.allow), kind)
+
+    def test_lookalikes_pass(self):
+        for text in LOOKALIKES:
+            with self.subTest(text=text):
+                self.assertEqual(ss.scan_text(text, self.allow), [], text)
+
+    def test_secret_is_masked(self):
+        findings = ss.scan_text(FAKE["github"], self.allow)
+        self.assertNotIn(FAKE["github"], findings[0][2])
+
+    def test_anthropic_key_reported_once(self):
+        self.assertEqual(len(ss.scan_text(FAKE["anthropic"], self.allow)), 1)
+
+
+class CommitTests(TempRepoCase):
+    def stage(self, name, text):
+        path = self.repo / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        run_git(self.repo, "add", name)
+
+    def test_staged_secret_blocks_commit(self):
+        self.stage("app/config.py", f"TOKEN = '{FAKE['github']}'\n")
+        findings = ss.evaluate("git commit -m 'add config'", str(self.repo))
+        self.assertEqual(len(findings), 1)
+        self.assertIn("app/config.py:1", findings[0])
+        self.assertIn("token do GitHub", findings[0])
+
+    def test_clean_commit_passes(self):
+        self.stage("app/main.py", "print('hello')\nAPI_KEY = os.environ['API_KEY']\n")
+        self.assertEqual(ss.evaluate("git commit -m 'feat: hello'", str(self.repo)), [])
+
+    def test_env_file_blocks(self):
+        self.stage(".env", "DEBUG=1\n")
+        self.assertIn(".env", ss.evaluate("git commit -m x", str(self.repo))[0])
+
+    def test_env_example_passes(self):
+        self.stage(".env.example", "API_KEY=\n")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [])
+
+    def test_lockfile_ignored(self):
+        self.stage("package-lock.json", f'{{"integrity": "{FAKE["aws"]}"}}\n')
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [])
+
+    def test_commit_all_scans_unstaged_tracked_changes(self):
+        (self.repo / "README.md").write_text(f"key {FAKE['aws']}\n", encoding="utf-8")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [])
+        self.assertTrue(ss.evaluate("git commit -am x", str(self.repo)))
+
+    def test_removed_lines_are_not_scanned(self):
+        self.stage("old.txt", f"{FAKE['aws']}\n")
+        run_git(self.repo, "-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "legacy")
+        (self.repo / "old.txt").write_text("clean\n", encoding="utf-8")
+        run_git(self.repo, "add", "old.txt")
+        self.assertEqual(ss.evaluate("git commit -m 'remove key'", str(self.repo)), [])
+
+    def test_allowlist_path_and_hash(self):
+        self.stage("tests/fixtures/keys.txt", f"{FAKE['aws']}\n")
+        self.stage("docs/example.md", f"{FAKE['github']}\n")
+        allow = self.repo / ".starcode" / "secret-allowlist"
+        allow.parent.mkdir(parents=True)
+        allow.write_text(f"path:tests/fixtures/*\nsha256:{ss.sha(FAKE['github'])}\n", encoding="utf-8")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [])
+
+    def test_secret_in_commit_message(self):
+        self.assertTrue(ss.evaluate(f"git commit -m 'oops {FAKE['linear']}'", str(self.repo)))
+
+
+class TextTargetsTests(TempRepoCase):
+    def test_orca_linear_comment(self):
+        cmd = f"orca linear comment add SC-8 --body 'deploy key {FAKE['anthropic']}'"
+        self.assertTrue(ss.evaluate(cmd, str(self.repo)))
+
+    def test_orca_linear_body_file(self):
+        (self.repo / "body.md").write_text(f"conn {FAKE['dsn']}\n", encoding="utf-8")
+        self.assertTrue(ss.evaluate("orca linear create --team SC --title t --body-file body.md", str(self.repo)))
+
+    def test_gh_pr_body(self):
+        self.assertTrue(ss.evaluate(f"gh pr create --title t --body '{FAKE['openai']}'", str(self.repo)))
+
+    def test_normal_flow_commands_pass(self):
+        for cmd in ("orca linear comment add SC-8 --body 'Gates verdes; commit abc1234'",
+                    "orca linear status set SC-8 --state 'In Progress'",
+                    "gh pr create --title 'feat: x' --body 'Refs: SC-8'",
+                    "git status", "ls -la"):
+            with self.subTest(cmd=cmd):
+                self.assertEqual(ss.evaluate(cmd, str(self.repo)), [])
+
+
+class HookProtocolTests(TempRepoCase):
+    def test_deny_json_exit_0_and_no_secret_echo(self):
+        payload = {"tool_input": {"command": f"gh pr create --body '{FAKE['github']}'"}, "cwd": str(self.repo)}
+        res = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True,
+                             text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0)
+        out = json.loads(res.stdout)["hookSpecificOutput"]
+        self.assertEqual(out["permissionDecision"], "deny")
+        self.assertNotIn(FAKE["github"], res.stdout)
+
+    def test_hash_helper(self):
+        res = subprocess.run([sys.executable, str(HOOK), "--hash", "abc"], capture_output=True, text=True)
+        self.assertEqual(res.stdout.strip(), "sha256:" + ss.sha("abc"))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-engajar-resume
+description: "Deve disparar a skill starcode:engajar."
+tags: [routing, positive]
+execution:
+  prompt: "Engaje a tripulação do StarCode para retomarmos a missão de ontem."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-engajar
+    tool: Skill
+    input_match: "starcode:engajar"
+    min: 1

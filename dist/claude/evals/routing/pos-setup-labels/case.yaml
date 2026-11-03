@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-setup-labels
+description: "Deve disparar a skill starcode:setup."
+tags: [routing, positive]
+execution:
+  prompt: "Crie as labels crew do StarCode no time do Linear."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-setup
+    tool: Skill
+    input_match: "starcode:setup"
+    min: 1
