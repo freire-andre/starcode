@@ -29,11 +29,11 @@ Versões: Claude Code 2.1.317, Orca 1.4.247, Python 3.14.8. Plugin `starcode` 0.
 | Hooks no Claude real | ✅ | `claude -p --plugin-dir dist/claude` num repo temporário: `git reset --hard` negado pelo hook, mesmo com `--allowedTools`; `git commit` com token falso negado pelo `secret_scan`; `git push` negado no modo 2; banner "Diário do Capitão" recebido no início da sessão |
 | Validador recusa config inválido com mensagem clara e nunca grava parcial | ✅ | `tests/test_validate_config.py`: 8 fixtures inválidas, cada uma com a mensagem esperada; `--write` não cria nem altera o arquivo quando o conteúdo é inválido |
 | Setup aponta uma skill concorrente plantada | ✅ (script) | `tests/test_support.ConflictsTests`: skill `to-spec` plantada → "disputa com Spock" + ação para desativar; skills `orca-*` e de outros domínios não são apontadas; a descrição de terceiros nunca é ecoada |
-| `setup` grava os dois configs válidos (sessão real) | ⏳ | depende de sessão interativa com o usuário (labels no Linear via MCP pedem confirmação) |
-| `engajar` pergunta o modo, lista time e estados e roteia (sessão real) | ⏳ parcial | roteamento e dimensionamento comprovados pelos evals; falta a sessão interativa completa |
+| `setup` grava os dois configs válidos (sessão real) | ✅ | Sessão de 2026-11-03: `map-states` sem ambiguidade (SC: Todo / In Progress / Done; review e blocked nulos); `.starcode/config.json` e `~/.starcode/config.json` (`{"schemaVersion": 1}`) gravados via `validate_config.py --write` → "OK"; 12 labels `crew:*` criadas no time SC pelo Linear MCP após busca de duplicatas (time e workspace) e confirmação, `missing-labels` → `[]`; `conflicts.py` → "Nenhuma skill ou plugin concorrente encontrado"; banner → ambos os configs "✅ válido" |
+| `engajar` pergunta o modo, lista time e estados e roteia (sessão real) | ✅ | Mesma sessão: banner completo, preflight (config ausente → recomenda setup), pergunta do modo com as 4 opções (modo 2 gravado por `git_mode.py set 2`), tabela de time e estados, dimensionamento da SC-9 (GRANDE) e parada correta: regra de avanço não cumprida e Troi/Spock/Data não instalados, sem fazer o trabalho deles |
 
 Suíte completa: `python -m unittest discover -s tests` (stdlib).
 
-## Pendências para fechar o aceite
-1. Instalar o plugin `starcode` (no lugar do `starcode-hello`) e rodar `/starcode:setup` neste repositório: grava `.starcode/config.json` e `~/.starcode/config.json`, cria as 12 labels `crew:*` no time SC (com confirmação) e aponta concorrentes.
-2. Rodar `/starcode:engajar` numa sessão nova: banner completo, pergunta do modo, time e estados, dimensionamento e roteamento.
+## Observações da sessão real
+1. Com "manter padrões", o passo 4 do setup não grava `~/.starcode/config.json` (só guarda diferenças) e o banner continua "ausente". O arquivo mínimo foi gravado à parte. Ajuste sugerido: gravar `{"schemaVersion": 1}` quando não houver diferenças.
+2. O config do repositório foi recusado no setup e gravado depois, no preflight do engajar, sempre pelo validador.
