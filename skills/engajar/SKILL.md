@@ -50,7 +50,12 @@ of the breaker exits) before anything else.
 ### 3. Ask the Git mode (every session)
 Read `references/git-modes.md`. Ask the mode **every session**, even if one is recorded. Put every
 pending decision in the same message (mode, resume, anything from preflight), each with a
-recommendation. If an AskUserQuestion-style tool exists, use it.
+recommendation. If an AskUserQuestion-style tool exists, use it **for these choices only**.
+
+The task itself is never a menu option. If the user has not described the mission yet (in the
+command arguments or earlier in the conversation), ask for it in plain text after the choices, in
+the same turn: "Qual é a missão? Uma frase, uma issue do Linear (ex.: SC-9) ou uma fase do plano."
+Never offer "describe it in Other" as an option: the text typed there can get lost.
 
 After the answer, record it (a failure here stops the flow until it works):
 

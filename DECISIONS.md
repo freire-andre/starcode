@@ -136,3 +136,8 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Problema:** o `claude plugin eval` procura os casos abaixo da pasta do plugin.
 - **Decisão:** a fonte fica em `evals/`, e o build copia para `dist/claude/evals/`. Os resultados ficam fora do Git e do `build --check`.
 - **Por que não é bug:** são arquivos pequenos de texto, sem efeito no uso do plugin.
+
+### F1-11: A missão é perguntada em texto livre (ajuste após a sessão real de aceite)
+- **Problema:** na sessão real, o `engajar` ofereceu "Descrever em Other" como opção de múltipla escolha, e a descrição da tarefa se perdeu. O banner também dizia que o setup cria o config do usuário, mas o setup não grava nada quando o usuário mantém os padrões.
+- **Decisão:** as escolhas (modo Git, retomada, preflight) continuam juntas numa pergunta. A missão, quando ainda não foi dada, é pedida em texto livre no mesmo turno, nunca como opção de menu. O banner passa a dizer "ausente (valem os padrões do crew.yaml; só é criado se algo diferir)".
+- **Por que não é bug:** config do usuário ausente é o estado normal de quem usa os padrões (a D17 guarda só as diferenças).

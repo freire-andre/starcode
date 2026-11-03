@@ -148,7 +148,7 @@ def build_banner(cwd: str, full: bool) -> tuple[str, str, bool]:
         summary.append(f"modo Git {mode}" if mode else "modo Git não definido")
 
     if not sc.user_config_path().exists():
-        lines.append("Config do usuário: ausente (padrões do crew.yaml; /starcode:setup cria)")
+        lines.append("Config do usuário: ausente (valem os padrões do crew.yaml; só é criado se algo diferir)")
     elif user_err:
         lines.append("Config do usuário: ❌ INVÁLIDO, não aplicado: " + "; ".join(user_err))
         summary.append("config do usuário inválido")

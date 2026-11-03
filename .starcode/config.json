@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "linear": {
+    "workspace": "1af3b62a-a414-4a29-a6f6-9fe718ef1675",
+    "team": "SC",
+    "states": {
+      "unstarted": "Todo",
+      "started": "In Progress",
+      "review": null,
+      "completed": "Done",
+      "blocked": null,
+      "verifiedAt": "2026-11-03"
+    }
+  },
+  "baseBranch": "main"
+}
