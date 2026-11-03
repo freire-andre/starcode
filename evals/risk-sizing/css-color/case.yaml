@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: risk-css-color
+description: "Sem gatilho: PEQUENA. Esperado: PEQUENA"
+tags: [risk-sizing, no-trigger]
+execution:
+  prompt: "StarCode: classifique o risco desta tarefa. Só a classificação, não execute nada.\n\nTarefa: Trocar a cor do botão primário de azul para verde no arquivo theme.css.\n"
+  max_turns: 8
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 2
+expected_outcome: "Bloco com Risk class: PEQUENA"
+graders:
+  - type: regex
+    name: risk-class
+    pattern: "Risk class:\\W*(PEQUENA)\\b"
+    flags: "i"

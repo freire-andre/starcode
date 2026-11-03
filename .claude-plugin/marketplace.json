@@ -6,9 +6,10 @@
   },
   "plugins": [
     {
-      "name": "starcode-hello",
+      "name": "starcode",
       "source": "./dist/claude",
-      "description": "StarCode Phase 0 probe plugin (format and compatibility tests)."
+      "description": "StarCode: spec-driven development with a Star Trek crew (Picard, Spock, Troi, Data, LaForge, McCoy, Q) for Orca IDE and Linear.",
+      "version": "0.1.0"
     }
   ]
 }

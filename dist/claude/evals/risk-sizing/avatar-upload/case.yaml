@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: risk-avatar-upload
+description: "Tem gatilho de risco: nunca PEQUENA. Esperado: GRANDE ou COMPLEXA"
+tags: [risk-sizing, trigger]
+execution:
+  prompt: "StarCode: classifique o risco desta tarefa. Só a classificação, não execute nada.\n\nTarefa: Permitir que o usuário envie uma foto de perfil: upload do arquivo, validação do tipo, armazenamento no S3 e URL salva na tabela users.\n"
+  max_turns: 8
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 2
+expected_outcome: "Bloco com Risk class: GRANDE ou COMPLEXA"
+graders:
+  - type: regex
+    name: risk-class
+    pattern: "Risk class:\\W*(GRANDE|COMPLEXA)\\b"
+    flags: "i"

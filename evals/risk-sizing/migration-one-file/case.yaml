@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: risk-migration-one-file
+description: "Tem gatilho de risco: nunca PEQUENA. Esperado: MÉDIA ou GRANDE"
+tags: [risk-sizing, trigger]
+execution:
+  prompt: "StarCode: classifique o risco desta tarefa. Só a classificação, não execute nada.\n\nTarefa: Adicionar uma migração Alembic que renomeia a coluna email para email_address na tabela users. É um arquivo só.\n"
+  max_turns: 8
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 2
+expected_outcome: "Bloco com Risk class: MÉDIA ou GRANDE"
+graders:
+  - type: regex
+    name: risk-class
+    pattern: "Risk class:\\W*(M[ÉE]DIA|GRANDE)\\b"
+    flags: "i"

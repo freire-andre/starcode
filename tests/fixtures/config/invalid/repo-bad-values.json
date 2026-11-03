@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "linear": {
+    "workspace": "w", "team": "",
+    "states": { "unstarted": "Todo", "started": "In Progress", "review": 3, "completed": "Done", "blocked": null, "verifiedAt": "03/11/2026" }
+  },
+  "baseBranch": "feature..x",
+  "stack": ["java"]
+}

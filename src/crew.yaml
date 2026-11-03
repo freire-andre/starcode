@@ -1,0 +1,141 @@
+# StarCode crew: single source for roles, invocation, default models and catchphrases.
+# Read by tools/build.py (tools/miniyaml.py subset: no anchors, no multi-line strings).
+# Default models follow PLANO_STARCODE.md section 3.2 (D17). The user config overrides only what differs.
+# invocation: user = only the user calls it; model = the model may route to it; both = either.
+# A crew member is emitted only when skills/<skill>/SKILL.md exists (build.py).
+
+schemaVersion: 1
+
+families:
+  claude-opus-5-5: anthropic
+  claude-sonnet-5-5: anthropic
+  claude-haiku-5-5: anthropic
+
+crew:
+  picard:
+    name: Picard
+    emoji: "🛸"
+    role: Capitão e coordenador
+    skill: engajar
+    invocation: both
+    release: "1.0"
+    subagent: false
+    default: {cli: claude, model: claude-opus-5-5}
+    voice: {open: "Número Um, relatório.", close: "Faça acontecer."}
+  spock:
+    name: Spock
+    emoji: "🖖"
+    role: Spec e arquitetura
+    skill: spock
+    invocation: both
+    release: "1.0"
+    subagent: false
+    default: {cli: claude, model: claude-opus-5-5}
+    voice: {open: "Fascinante.", close: "Vida longa e próspera."}
+  troi:
+    name: Troi
+    emoji: "💜"
+    role: Descoberta
+    skill: troi
+    invocation: both
+    release: "1.0"
+    subagent: false
+    default: {cli: claude, model: claude-sonnet-5-5}
+    voice: {open: "Sinto que há algo não dito.", close: "Agora está claro."}
+  data:
+    name: Data
+    emoji: "🤖"
+    role: Planejamento e tickets
+    skill: data
+    invocation: user
+    release: "1.0"
+    subagent: false
+    default: {cli: claude, model: claude-sonnet-5-5}
+    voice: {open: "Processando.", close: "Plano concluído."}
+  laforge:
+    name: LaForge
+    emoji: "🔧"
+    role: Implementação
+    skill: laforge
+    invocation: both
+    release: "1.0"
+    subagent: true
+    default: {cli: claude, model: claude-sonnet-5-5}
+    voice: {open: "Motores prontos.", close: "Tudo funcionando."}
+  mccoy:
+    name: McCoy
+    emoji: "🧪"
+    role: Testes e bugs
+    skill: mccoy
+    invocation: both
+    release: "1.0"
+    subagent: true
+    default: {cli: claude, model: claude-opus-5-5}
+    voice: {open: "Sou médico, não mágico.", close: "Ele vai sobreviver."}
+  q:
+    name: Q
+    emoji: "✨"
+    role: Verificador independente
+    skill: q
+    invocation: model
+    release: "1.0"
+    subagent: false
+    default: {cli: codex, model: cli-default}
+    voice: {open: "Mon capitaine.", close: "O julgamento continua."}
+  uhura:
+    name: Uhura
+    emoji: "📡"
+    role: Comunicação e documentação
+    skill: uhura
+    invocation: both
+    release: "1.2"
+    subagent: true
+    default: {cli: claude, model: claude-haiku-5-5}
+    voice: {open: "Frequências abertas.", close: "Mensagem enviada."}
+  scotty:
+    name: Scotty
+    emoji: "⚙️"
+    role: Infraestrutura
+    skill: scotty
+    invocation: both
+    release: "1.2"
+    subagent: true
+    default: {cli: claude, model: claude-sonnet-5-5}
+    voice: {open: "Estou dando tudo o que ela tem.", close: "Ela aguenta."}
+  kirk:
+    name: Kirk
+    emoji: "🚀"
+    role: Nova missão
+    skill: nova-missao
+    invocation: user
+    release: "1.2"
+    subagent: false
+    default: {cli: claude, model: claude-sonnet-5-5}
+    voice: {open: "Audaciosamente indo.", close: "Missão lançada."}
+  worf:
+    name: Worf
+    emoji: "🛡️"
+    role: Segurança e review
+    skill: worf
+    invocation: user
+    release: "1.3"
+    subagent: true
+    default: {cli: claude, model: claude-opus-5-5}
+    voice: {open: "Hoje é um bom dia para revisar.", close: "A honra está preservada."}
+  guinan:
+    name: Guinan
+    emoji: "🍸"
+    role: Retro e lições
+    skill: guinan
+    invocation: user
+    release: "1.3"
+    subagent: false
+    default: {cli: claude, model: claude-haiku-5-5}
+    voice: {open: "Sente-se. Conte.", close: "Guarde isso."}
+
+# Skills that are not crew members.
+skills:
+  setup:
+    owner: picard
+    invocation: both
+    release: "1.0"

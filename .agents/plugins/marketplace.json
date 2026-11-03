@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "starcode-hello",
+      "name": "starcode",
       "source": {
         "source": "local",
         "path": "./dist/codex"

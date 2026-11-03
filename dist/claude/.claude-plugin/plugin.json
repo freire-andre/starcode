@@ -1,7 +1,7 @@
 {
-  "name": "starcode-hello",
-  "version": "0.0.1",
-  "description": "StarCode Phase 0 probe plugin (format and compatibility tests).",
+  "name": "starcode",
+  "version": "0.1.0",
+  "description": "StarCode: spec-driven development with a Star Trek crew (Picard, Spock, Troi, Data, LaForge, McCoy, Q) for Orca IDE and Linear.",
   "author": {
     "name": "Andre Freire"
   }

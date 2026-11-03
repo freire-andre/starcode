@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "fleet": { "maxBatch": 0, "timeoutMinutes": "30" }, "qStrategy": ["orca-worker", "orca-worker"] }

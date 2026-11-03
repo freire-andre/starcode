@@ -83,3 +83,56 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o gerador escreve `dist/antigravity` no formato nativo: `plugin.json` na raiz, `hooks.json` com hooks nomeados, `--agy` nos scripts de hook e banner por `injectSteps` com `ephemeralMessage`.
 - **Motivo:** teste da Fase 0 e documentação oficial (antigravity.google/docs/hooks).
 - **Por que não é bug:** o caminho dos scripts no `hooks.json` é absoluto para a cópia instalada (`~/.gemini/config/plugins/<nome>`) até haver uma variável de raiz confirmada.
+
+## Decisões da Fase 1 (2026-11-03, SC-8)
+
+### F1-1: Modo Git gravado por worktree, dentro do diretório Git
+- **Problema:** o `git_guard` precisa saber o modo da sessão, e cada worker roda no próprio worktree.
+- **Decisão:** o Picard grava o modo com `scripts/git_mode.py set N` em `<git-dir>/starcode/session.json`. O hook aplica o último modo gravado naquele worktree. O SessionStart não apaga o modo.
+- **Motivo:** o arquivo fica fora do Git (nunca é commitado) e é separado por worktree. Na Fase 3, o Picard grava o modo no worktree do ticket antes do despacho.
+- **Por que não é bug:** o modo continua sendo perguntado a cada sessão pelo `engajar` (D11). Manter o último modo no hook até a nova resposta é o lado seguro, e o banner mostra quando ele foi gravado.
+
+### F1-2: Fora de um repo com StarCode ativo, o hook só barra o que é sempre perigoso
+- **Problema:** o plugin é instalado no nível do usuário e roda em qualquer repositório.
+- **Decisão:** as regras de modo e de ramo base valem só quando há modo gravado ou `.starcode/config.json`. A lista "sempre bloqueado" (push forçado, exclusão de branch remota, `reset --hard`, `branch -D`, `clean -f`, `checkout -- .`/`restore .`) vale em qualquer repo.
+- **Motivo:** não mudar o comportamento do Git em projetos que não usam o StarCode.
+- **Por que não é bug:** `git push origin main` passar num repo sem StarCode é intencional.
+
+### F1-3: Autorização de merge no ramo base registrada com validade
+- **Problema:** o hook precisa distinguir merge/push no ramo base autorizado do acidental.
+- **Decisão:** depois da autorização explícita do usuário, o Picard roda `git_mode.py authorize-merge <ramo>` (vale 10 minutos; trocar o modo revoga).
+- **Motivo:** a autorização fica registrada e expira sozinha.
+- **Por que não é bug:** o hook é uma rede contra acidente, não contra um agente mal-intencionado. Registrar uma autorização que o usuário não deu é proibido pelas skills.
+
+### F1-4: `engajar` e `setup` podem ser acionadas pelo modelo
+- **Problema:** a tabela da seção 3 marca o Picard como "usuário", mas a Fase 1 exige evals de roteamento por frase.
+- **Decisão:** as duas skills ficam com `invocation: both`, com descrições estreitas (só disparam quando a frase cita o StarCode ou a tripulação). Os evals negativos garantem que pedidos comuns não disparam nada.
+- **Motivo:** `disable-model-invocation` impediria "StarCode, vamos começar..." de funcionar.
+- **Por que não é bug:** as escritas continuam com confirmação. Roteamento: 10/10 (5 positivos e 5 negativos).
+
+### F1-5: `crew.yaml` lido por um parser YAML mínimo
+- **Problema:** o gerador usa só a stdlib, que não lê YAML.
+- **Decisão:** `tools/miniyaml.py` lê um subconjunto (mapas, listas, listas e mapas em linha, comentários). O build grava `crew.json` em cada pasta de `dist/`, e os scripts em tempo de execução nunca leem YAML.
+- **Por que não é bug:** sintaxe fora do subconjunto (âncoras, `|`, tabs) gera erro com o número da linha, nunca uma leitura errada em silêncio.
+
+### F1-6: Caminhos das skills com o marcador `<plugin-root>`
+- **Problema:** as skills chamam scripts do plugin, e cada CLI expõe o caminho de um jeito.
+- **Decisão:** a fonte usa o texto literal `<plugin-root>` e uma linha de declaração em cada SKILL.md, preenchida pelo build: no Claude, `${CLAUDE_SKILL_DIR}/../..` (substituído pelo Claude Code ao carregar a skill); nos outros CLIs, "duas pastas acima da pasta da skill".
+- **Por que não é bug:** as referências (`references/*.md`) não recebem substituição em nenhum CLI. Por isso usam o marcador, e o build recusa `{{PLUGIN_ROOT}}` fora do SKILL.md.
+
+### F1-7: Hooks só registrados no adaptador do Claude; plugin renomeado
+- **Decisão:** em `dist/codex`, `dist/antigravity` e `dist/opencode`, os scripts vão junto, mas sem registro de hook (Fase 5). O plugin de teste `starcode-hello` saiu, e o plugin agora se chama `starcode` (instalação: `starcode@starcode`).
+- **Por que não é bug:** ausência de `hooks.json` nos outros CLIs é a ordem de entrega (D21), não esquecimento. Quem instalou o `starcode-hello` precisa desinstalá-lo e instalar o `starcode`.
+
+### F1-8: Labels `crew:*` dos 12 tripulantes criadas de uma vez
+- **Decisão:** o setup cria as labels de toda a tripulação, inclusive dos que entram depois da v1.0.
+- **Por que não é bug:** evita rodar o setup de novo a cada release. Label sem uso não tem custo.
+
+### F1-9: Banner leve no SessionStart, completo no `engajar`
+- **Decisão:** no SessionStart, sem rede além do `orca status` (com tempo-limite). A checagem do Linear (`team list`/`team states`) só roda com `--full`, chamado pelo `engajar`. Em repo sem StarCode, uma linha de contexto e nenhuma mensagem na tela.
+- **Por que não é bug:** o início da sessão não pode travar por causa da rede, e repositórios sem StarCode não devem ganhar ruído.
+
+### F1-10: Evals dentro de `dist/claude/evals`
+- **Problema:** o `claude plugin eval` procura os casos abaixo da pasta do plugin.
+- **Decisão:** a fonte fica em `evals/`, e o build copia para `dist/claude/evals/`. Os resultados ficam fora do Git e do `build --check`.
+- **Por que não é bug:** são arquivos pequenos de texto, sem efeito no uso do plugin.
