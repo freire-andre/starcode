@@ -176,3 +176,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 ### F2-6: Requisitos aceitam SHALL ou DEVE
 - **Decisão:** o template usa as palavras-chave EARS em inglês (`WHEN … THEN the system SHALL …`) com o resto em PT-BR, e o gate também aceita `DEVE`/`QUANDO`/`SE`.
 - **Por que não é bug:** a D16 deixa a prosa em PT-BR. Aceitar as duas formas evita que uma spec correta fique vermelha só pela língua do verbo.
+
+### F2-7: Commit dos artefatos de planejamento nos marcos aprovados
+- **Problema:** na sessão real de aceite, no modo 2, o `.specs/` ficou primeiro sem commit; depois, o Picard fez commits no ramo base por conta própria, sem `Refs:` e deixando de fora uma revisão aprovada.
+- **Decisão:** nos modos 2–4, o Picard faz commit só de `.specs/` (e `.starcode/` quando mudou) em cada marco aprovado: MÉDIA depois da aprovação da spec e do vínculo da issue; GRANDE/COMPLEXA depois da publicação no Linear; cada reaprovação de revisão ganha um commit próprio. Mensagem `docs(specs): … (<slug>)` com `Refs:` das issues da feature, conferida pelo `check_commit.py`. Modo 1: sem commit.
+- **Motivo:** a D6 faz do `.specs/` a fonte da verdade no repositório, e a retomada usa o Git como evidência (4.2).
+- **Por que não é bug:** o commit vai para o ramo atual, que antes do ramo de integração é o ramo base. É commit local e permitido no modo 2. Push continua só nos modos 3/4, com confirmação.

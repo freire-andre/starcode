@@ -47,6 +47,21 @@ in the artifact; the Handoff gets the new phase), each Linear write (IDs), each 
 sending), each integration, each Q finding and its closure. **If the write fails, tell the user and do
 not move to the next step.**
 
+## Committing the planning artifacts (modes 2–4, F2-7)
+
+The Picard commits the feature's `.specs/` files (and `.specs/STATE.md`, `.starcode/config.json` when
+they changed) at each approved milestone, in the same turn as the Handoff update:
+- MEDIUM: after the spec approval and the issue link (`**Linear**:` written in the spec).
+- LARGE/COMPLEX: after the Linear publication (or after approval 2 when the user declined publishing).
+- Any re-approval of a spec or tasks (revision) gets its own commit.
+
+Rules: only `.specs/` and `.starcode/` paths, never code; current branch (before the integration branch
+exists, that is the base branch: a local commit, never pushed outside modes 3/4); message
+`docs(specs): <what was approved> (<slug>)` with the footer `Refs: <issue IDs of the feature>` (the MEDIUM
+issue, or the LARGE issues comma-separated), checked with
+`python "<plugin-root>/scripts/gates/check_commit.py" --message "<msg>"`. Mode 1: no commit; the files
+stay in the working tree and the Handoff says so.
+
 ## Approvals
 
 Written in the artifact by its author, right after the user's message:

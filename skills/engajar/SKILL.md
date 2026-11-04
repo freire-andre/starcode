@@ -95,7 +95,8 @@ You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` 
 (the most advanced artifact: tasks.md > spec.md > context.md) and the resume table:
 `references/state-format.md`. Record in the same turn: each user answer, each approval (exact words, in
 the artifact), each Linear write, each dispatch (before sending), each integration, each Q finding and
-its closure. Markers read by the banner: `**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
+its closure. In modes 2–4, commit the planning artifacts at each approved milestone (F2-7, same
+reference). Markers read by the banner: `**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
 
 ## Stops
 Only for the reasons in the closed list (STARCODE.md, D29). Every stop: options + recommendation with
