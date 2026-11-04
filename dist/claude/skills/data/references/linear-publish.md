@@ -4,7 +4,7 @@ Rules from `<plugin-root>/skills/engajar/references/linear-contract.md` apply. T
 exact state names come from `.starcode/config.json` (`linear.team`, `linear.workspace`,
 `linear.states.unstarted`). If the repo config is missing, stop and recommend `/starcode:setup`.
 
-## 1. Plan and confirmation (one message)
+## 1. Plan, shown with the tasks (one message, F2-9)
 
     python "<plugin-root>/scripts/gates/tasks_export.py" plan <slug>
 
@@ -14,10 +14,11 @@ any write, check duplicates:
   Linear MCP project search).
 - Issues: `orca linear search "<feature name>" --workspace <workspace> --json`.
 
-Show the user, in one message: the Project name and team, the Document title (`Spec: <feature>`), each
-issue title with its state (`linear.states.unstarted`) and label `crew:data`, the `blocks` relations,
-and any duplicate found (with the recommendation: reuse it). Ask for **one explicit confirmation**. No
-answer, or anything but a yes, means nothing is written.
+The plan goes in the **same message** as the tasks summary (Data skill, step 3): Project name and team,
+Document title (`Spec: <feature>`), issue count with state (`linear.states.unstarted`) and label
+`crew:data`, the number of `blocks` relations, and any duplicate found (recommendation: reuse it). The
+single question "Aprovo as tasks e publico no Linear? (sim / só aprovar / ajustes)" covers approval 2
+and this confirmation. No answer, "só aprovar", or anything but a yes means nothing is written.
 
 ## 2. Writes, in order (only after the yes)
 

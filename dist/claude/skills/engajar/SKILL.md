@@ -14,7 +14,8 @@ Before anything else, read these files:
 - `<plugin-root>/context/STARCODE.md` (core rules: language, facts, Linear, Git, state, stops)
 - `references/crew-voice.md` (persona in chat only, no flattery)
 
-Catchphrases (chat only, one line each): open with "Número Um, relatório.", close with "Faça acontecer.".
+Catchphrases (chat only, one line each): "Número Um, relatório." once when a mission starts, "Faça acontecer." once
+when it ends or pauses for good. Never on a turn that ends with a question (F2-10).
 
 ## A. Sizing-only request
 If the user only asks to size or classify a task ("qual o tamanho/risco disto?", "classifique"):
@@ -67,21 +68,24 @@ completed.
 
 ### 4. Size by risk
 Read `references/risk-sizing.md`. If the task is not clear enough to size, ask one round of
-questions (ambiguity is itself a trigger). Print the output block.
+questions first (at most 4, in the Git-mode message when possible). Ambiguity counts as a trigger only
+if it is still open after that round; "public contract" only if someone outside the repo consumes it
+(F2-8). Print the output block.
 
 ### 5. Route
 | Class | Next |
 |---|---|
 | PEQUENA | LaForge with inline checks (≤5 steps; more than that → reclassify) |
 | MÉDIA | short Troi → Spock (brief spec with `## Checks`) → approval → LaForge |
-| GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → approval 2 → Linear writes (confirmed) → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket |
+| GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → one question: approval 2 + publication → Linear writes → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket |
 
 Issue for PEQUENA/MÉDIA: the issue linked to the worktree (`orca linear issue --current`); if there is
-none, offer to create one without a project, with confirmation (PEQUENA: now; MÉDIA: after the spec
-approval). Linear rules: `references/linear-contract.md`.
+none, offer to create one without a project, with confirmation (PEQUENA: now; MÉDIA: inside the spec approval
+question, F2-9). Linear rules: `references/linear-contract.md`.
 
 Before handing off, propose the feature slug (lowercase-hyphen, e.g. `export-csv`) and record the
-Handoff (`**Phase:** discovery`, size, Git mode, next step) as soon as the first artifact exists.
+Handoff (`**Phase:** discovery`, size, Git mode, next step) as soon as the first artifact exists, with
+`python "<plugin-root>/scripts/handoff.py" set <slug> --phase discovery --size <S> --git-mode <N> --next "<...>"`.
 
 Invoke the next crew member's skill by name (`troi`, `spock`, `data`, `laforge`). Each one returns to
 you after its step; you then record the Handoff and invoke the next. Gates are run with
@@ -95,8 +99,15 @@ You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` 
 (the most advanced artifact: tasks.md > spec.md > context.md) and the resume table:
 `references/state-format.md`. Record in the same turn: each user answer, each approval (exact words, in
 the artifact), each Linear write, each dispatch (before sending), each integration, each Q finding and
-its closure. In modes 2–4, commit the planning artifacts at each approved milestone (F2-7, same
-reference). Markers read by the banner: `**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
+its closure. Always through `scripts/handoff.py set` (it moves the section and prints one line); never
+edit the Handoff by hand and never show it or its diff in the chat. In modes 2–4, commit the planning
+artifacts at each approved milestone without asking (F2-7, same reference). Markers read by the banner:
+`**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
+
+### 7. Keep it short (F2-10)
+Each turn: what changed, what is next, the question if any. At most ~15 lines; tables only when the user
+must choose between them. Tool output, gate reports, diffs and the Handoff stay out of the chat; quote a
+line only when it is the reason for a stop. Records happen silently in the same turn.
 
 ## Stops
 Only for the reasons in the closed list (STARCODE.md, D29). Every stop: options + recommendation with

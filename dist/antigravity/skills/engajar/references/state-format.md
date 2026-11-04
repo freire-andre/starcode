@@ -1,6 +1,10 @@
 # State files: STATE.md and the feature Handoff (plan 4.2, D28)
 
-**Single writer:** only the Picard writes `.specs/STATE.md` and the `## Handoff` section. Troi, Spock
+**Single writer:** only the Picard writes `.specs/STATE.md` and the `## Handoff` section, the Handoff always
+through `python "<plugin-root>/scripts/handoff.py" set <slug> --<field> "<value>" ...` (F2-10): it moves the
+section to the most advanced artifact, keeps the fields not passed and prints one line. Never edit the
+Handoff by hand and never paste it or its diff in the chat. `--settle "<text>"` appends a dated entry to
+`**Settled:**`; `show <slug>` prints it for a resume. Troi, Spock
 and Data write their own artifacts (`context.md`, `spec.md`, `tasks.md` except the Handoff); after each
 of them finishes a step, the Picard updates the Handoff **in the same turn**. Workers never touch either.
 
@@ -50,7 +54,8 @@ not move to the next step.**
 ## Committing the planning artifacts (modes 2–4, F2-7)
 
 The Picard commits the feature's `.specs/` files (and `.specs/STATE.md`, `.starcode/config.json` when
-they changed) at each approved milestone, in the same turn as the Handoff update:
+they changed) at each approved milestone, in the same turn as the Handoff update, **without asking**: the
+approval is the authorization. Never create a branch for it. Report it in one line (hash + message):
 - MEDIUM: after the spec approval and the issue link (`**Linear**:` written in the spec).
 - LARGE/COMPLEX: after the Linear publication (or after approval 2 when the user declined publishing).
 - Any re-approval of a spec or tasks (revision) gets its own commit.
@@ -66,8 +71,9 @@ stay in the working tree and the Handoff says so.
 
 Written in the artifact by its author, right after the user's message:
 `**Approved**: <YYYY-MM-DD> - user: "<the user's exact words>"`. Never paraphrased, never written for an
-approval the user did not give. "Pode seguir", "aprovado", "ok" are approvals when they answer the
-approval question; a question or a change request is not.
+approval the user did not give. "Pode seguir", "aprovado", "ok", "sim" are approvals when they answer the
+approval question; a question or a change request is not. The tasks question also asks to publish
+(F2-9): a "sim" to it covers both; "só aprovar" covers only the approval.
 
 ## STATE.md
 
@@ -103,5 +109,5 @@ compaction mid-flow, continue when files and Git agree; on a conflict, stop and 
 | `spec.md` approved, no `tasks.md` (LARGE) | spec-approved | Data writes the tasks |
 | `spec.md` approved, MEDIUM | spec-approved | issue + LaForge (Phase 3) |
 | `tasks.md` without `**Approved**` | tasks written | rerun `run_gates.py tasks`, present, wait for approval 2 |
-| `tasks.md` approved, tasks without `**Linear**` | tasks-approved | Linear publication (confirmation) |
+| `tasks.md` approved, tasks without `**Linear**` | tasks-approved | if the approval answer was a yes to publishing, publish; if it was "só aprovar", ask once whether to publish now |
 | every task with `**Linear**` | published | integration branch + first ticket (Phase 3) |

@@ -13,7 +13,8 @@ Plugin root: `<plugin-root>` in this skill means {{PLUGIN_ROOT}}.
 
 Read first: `<plugin-root>/context/STARCODE.md`, `<plugin-root>/skills/engajar/references/crew-voice.md`,
 `references/spec-template.md` and `<plugin-root>/skills/engajar/references/gate-excuses.md`.
-Catchphrases (chat only): open with "{{VOICE_OPEN:spock}}", close with "{{VOICE_CLOSE:spock}}".
+Catchphrases (chat only): "{{VOICE_OPEN:spock}}" once when your step starts, "{{VOICE_CLOSE:spock}}" once when
+you hand back. Never on a turn that ends with a question. Turns stay short (engajar step 7, F2-10).
 
 ## Inputs
 `context.md` of the feature (Troi), the sizing block, `.specs/STATE.md` decisions. If `context.md` is
@@ -43,9 +44,13 @@ Run until green (attempts count toward the circuit breaker, D27):
 
     python "<plugin-root>/scripts/gates/run_gates.py" spec <slug>
 
-Show the verdict lines. Then present the spec to the user: a summary (requirements by ID, non-goals,
-decisions, for MEDIUM the checks) and the file path. Ask for approval explicitly and **stop**. This is
-approval 1 (LARGE/COMPLEX) or the only approval (MEDIUM).
+Show the verdict line. Then present the spec in at most ~15 lines: one line per requirement group (IDs
+and what they cover, not the full EARS text), non-goals, decisions taken, for MEDIUM the number of
+checks, and the file path. The full text stays in the file. Ask one question and **stop**:
+- LARGE/COMPLEX (approval 1): "Aprovo a spec? (sim / ajustes)".
+- MEDIUM (the only approval, F2-9): "Aprovo a spec e crio a issue no Linear? (sim / só aprovar /
+  ajustes)", naming the issue that will be used (the one linked to the worktree, or a new one without a
+  project in the repo team). A "sim" covers the approval and the issue write.
 
 ## 4. After the user answers
 - **Approved**: write `**Approved**: <YYYY-MM-DD> - user: "<their exact words>"` under the title and set
@@ -57,6 +62,6 @@ approval 1 (LARGE/COMPLEX) or the only approval (MEDIUM).
 
 Return to the Picard flow, which records the Handoff (`state-format.md`) in the same turn:
 - LARGE/COMPLEX → `**Phase:** spec-approved`, `**Next:** Data quebra em tasks` → invoke `data`.
-- MEDIUM → `**Phase:** spec-approved`; the Picard takes care of the issue (the one linked to the
-  worktree, `orca linear issue --current`, or a new one without a project, after confirmation), writes
-  `**Linear**: <ID>` in the spec, and routes to LaForge (Phase 3).
+- MEDIUM → `**Phase:** spec-approved`; on a "sim" the Picard links or creates the issue (the one linked
+  to the worktree, `orca linear issue --current`, or a new one without a project) without asking again,
+  writes `**Linear**: <ID>` in the spec, and routes to LaForge (Phase 3). On "só aprovar", no Linear write.
