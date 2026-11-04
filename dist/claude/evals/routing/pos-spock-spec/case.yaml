@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-spock-spec
+description: "Deve disparar a skill starcode:spock."
+tags: [routing, positive]
+execution:
+  prompt: "Spock, escreva a spec da feature export-csv do StarCode a partir do context.md da Troi."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-spock
+    tool: Skill
+    input_match: "starcode:spock"
+    min: 1

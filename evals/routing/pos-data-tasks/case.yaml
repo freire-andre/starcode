@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-data-tasks
+description: "Deve disparar a skill starcode:data."
+tags: [routing, positive]
+execution:
+  prompt: "Data, quebre a spec aprovada da feature export-csv em tasks e depois publique os tickets no Linear."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-data
+    tool: Skill
+    input_match: "starcode:data"
+    min: 1

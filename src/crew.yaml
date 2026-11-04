@@ -47,7 +47,7 @@ crew:
     emoji: "🤖"
     role: Planejamento e tickets
     skill: data
-    invocation: user
+    invocation: both
     release: "1.0"
     subagent: false
     default: {cli: claude, model: claude-sonnet-5-5}

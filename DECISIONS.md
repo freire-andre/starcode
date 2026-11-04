@@ -147,3 +147,32 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** sem diferenças, o setup grava `{"schemaVersion": 1}` pelo validador. O banner volta a mandar rodar o `/starcode:setup` quando o arquivo falta. A parte da F1-11 sobre a missão em texto livre continua valendo.
 - **Motivo:** o arquivo marca a máquina como configurada e fixa a versão do schema. A D17 continua valendo: `crew` guarda só o que difere do `crew.yaml`.
 - **Por que não é bug:** um config com só `schemaVersion` é válido e não muda nenhum padrão.
+
+## Decisões da Fase 2 (2026-11-03, SC-9)
+
+### F2-1: Gates adaptados do tlc com marcador de tamanho
+- **Problema:** o tlc não marca o tamanho na spec, então o gate não sabe se cobra o template completo ou o breve.
+- **Decisão:** a spec traz `**Size**: MEDIUM | LARGE | COMPLEX`. MEDIUM usa o template breve com `## Checks`; LARGE/COMPLEX, o completo, e os checks ficam só no `tasks.md` (D24). Detalhes no ADR-0002.
+- **Por que não é bug:** `**Size**: SMALL` é recusado de propósito: a tarefa PEQUENA não tem spec.
+
+### F2-2: Diagrama de execução do tlc removido
+- **Decisão:** dependências só pelo `**Depends on**`. Ciclo e dependência inexistente são erro. Tarefas sem caminho de dependência entre si não podem compartilhar caminho em `May change`.
+- **Por que não é bug:** o diagrama repetia o `Depends on` e as relações `blocks` do Linear saem dele. A regra de arquivo vale mesmo no modo sequencial, porque a Frota (v1.1) vai despachar essas tarefas juntas.
+
+### F2-3: Handoff no artefato mais avançado
+- **Problema:** o plano põe o Handoff em `tasks.md`, mas a feature MÉDIA não tem `tasks.md`, e a GRANDE só ganha um depois da spec. Sem Handoff nessas fases, uma interrupção não tem de onde retomar.
+- **Decisão:** o Handoff fica em `tasks.md`, ou `spec.md`, ou `context.md`, o que estiver mais adiante. O Picard o move quando nasce um artefato novo. O banner lê os três, nessa ordem. Formato e tabela de retomada em `skills/engajar/references/state-format.md`.
+- **Por que não é bug:** continua um escritor só (D28) e um Handoff só por feature.
+
+### F2-4: Data acionável pelo modelo
+- **Problema:** o `crew.yaml` marcava o Data como `invocation: user`, que vira `disable-model-invocation` no Claude. O Picard não conseguiria chamar o Data depois da aprovação da spec.
+- **Decisão:** `invocation: both`, como Troi e Spock.
+- **Por que não é bug:** as escritas no Linear continuam atrás de uma confirmação explícita, e o gate `validate_spec --approved` impede o Data de começar sem a aprovação 1.
+
+### F2-5: `tasks_export.py` não chama o Linear
+- **Decisão:** o script só gera o corpo das issues, as relações e grava os IDs de volta (`record`). Quem roda `orca linear create`/`relation add` e o MCP é o Data, depois da confirmação.
+- **Por que não é bug:** escrita no Linear exige confirmação na conversa e leitura do `--help` (seção 5.0); um script que escreve sozinho pularia as duas.
+
+### F2-6: Requisitos aceitam SHALL ou DEVE
+- **Decisão:** o template usa as palavras-chave EARS em inglês (`WHEN … THEN the system SHALL …`) com o resto em PT-BR, e o gate também aceita `DEVE`/`QUANDO`/`SE`.
+- **Por que não é bug:** a D16 deixa a prosa em PT-BR. Aceitar as duas formas evita que uma spec correta fique vermelha só pela língua do verbo.

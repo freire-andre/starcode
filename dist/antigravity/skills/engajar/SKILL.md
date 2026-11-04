@@ -43,9 +43,10 @@ Then check, in this order:
 
 ### 2. Resume (plan 4.2)
 If the banner shows work in progress, an open circuit breaker or a degraded verification: read
-`.specs/STATE.md`, the feature files (`context.md`, `spec.md`, `tasks.md ## Handoff`), `git log` and
-the Linear issue. **If they disagree, Git evidence wins.** Propose the next step (continue, or one
-of the breaker exits) before anything else.
+`.specs/STATE.md`, the feature files (`context.md`, `spec.md`, `tasks.md`, their approval lines and the
+`## Handoff`), `git log` and the Linear issues. Use the resume table in `references/state-format.md`.
+**If they disagree, Git evidence wins; an approval line beats a Handoff that says it is pending.**
+Propose the next step (continue, or one of the breaker exits) before anything else.
 
 ### 3. Ask the Git mode (every session)
 Read `references/git-modes.md`. Ask the mode **every session**, even if one is recorded. Put every
@@ -79,15 +80,22 @@ Issue for PEQUENA/MÉDIA: the issue linked to the worktree (`orca linear issue -
 none, offer to create one without a project, with confirmation (PEQUENA: now; MÉDIA: after the spec
 approval). Linear rules: `references/linear-contract.md`.
 
-Invoke the next crew member's skill by name (`troi`, `spock`, `data`, `laforge`). **If that skill is
-not installed in this StarCode version**, say which crew member would take it and that it arrives in a
-later phase, show the sizing block, and stop there. Never do that member's job yourself.
+Before handing off, propose the feature slug (lowercase-hyphen, e.g. `export-csv`) and record the
+Handoff (`**Phase:** discovery`, size, Git mode, next step) as soon as the first artifact exists.
+
+Invoke the next crew member's skill by name (`troi`, `spock`, `data`, `laforge`). Each one returns to
+you after its step; you then record the Handoff and invoke the next. Gates are run with
+`python "<plugin-root>/scripts/gates/run_gates.py" <stage> <slug>` (excuses table:
+`references/gate-excuses.md`). **If the next skill is not installed in this StarCode version**, say which
+crew member would take it and that it arrives in a later phase, record the Handoff with that next step,
+and stop there. Never do that member's job yourself.
 
 ### 6. Records
-You are the **single writer** of `.specs/STATE.md` and `tasks.md ## Handoff` (D28). Record in the same
-turn: each user answer, each approval (exact words), each dispatch (before sending), each integration,
-each Q finding and its closure. Handoff markers read by the banner: `**Phase:** <phase>` and
-`**Breaker:** open (<error-id>)`.
+You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` (D28). Format, location
+(the most advanced artifact: tasks.md > spec.md > context.md) and the resume table:
+`references/state-format.md`. Record in the same turn: each user answer, each approval (exact words, in
+the artifact), each Linear write, each dispatch (before sending), each integration, each Q finding and
+its closure. Markers read by the banner: `**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
 
 ## Stops
 Only for the reasons in the closed list (STARCODE.md, D29). Every stop: options + recommendation with

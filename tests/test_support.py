@@ -154,6 +154,22 @@ class BannerTests(TempRepoCase):
         self.assertIn("Verificação degradada: login", text)
         self.assertIn("disjuntor aberto", line)
 
+    def test_handoff_in_spec_or_context_before_tasks(self):
+        self.write_repo_config()
+        base = self.repo / ".specs" / "features"
+        (base / "csv").mkdir(parents=True)
+        (base / "csv" / "spec.md").write_text("# Spec\n\n## Handoff\n**Phase:** spec\n", encoding="utf-8")
+        (base / "dark").mkdir()
+        (base / "dark" / "context.md").write_text("# C\n\n## Handoff\n**Phase:** discovery\n", encoding="utf-8")
+        (base / "moved").mkdir()
+        (base / "moved" / "spec.md").write_text("## Handoff\n**Phase:** spec-approved\n", encoding="utf-8")
+        (base / "moved" / "tasks.md").write_text("## Handoff\n**Phase:** tasks\n", encoding="utf-8")
+        text, _, _ = self.build()
+        self.assertIn("csv (fase: spec)", text)
+        self.assertIn("dark (fase: discovery)", text)
+        self.assertIn("moved (fase: tasks)", text)
+        self.assertNotIn("spec-approved", text)
+
     def test_user_override_shown(self):
         self.write_repo_config()
         home = Path(os.environ["STARCODE_HOME"])
