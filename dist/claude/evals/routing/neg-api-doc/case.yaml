@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-api-doc
+description: "Não deve disparar nenhuma skill do StarCode."
+tags: [routing, negative]
+execution:
+  prompt: "Escreva no README uma seção documentando os parâmetros da função parse_date."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-starcode-skill
+    tool: Skill
+    input_match: "starcode:"
+    min: 0
+    max: 0

@@ -91,9 +91,14 @@ def work_in_progress(root: Path) -> tuple[list[str], list[str], list[str]]:
     if not features.is_dir():
         return wip, degraded, breaker
     for feat in sorted(p for p in features.iterdir() if p.is_dir()):
-        tasks = feat / "tasks.md"
-        text = tasks.read_text(encoding="utf-8", errors="replace") if tasks.exists() else ""
-        handoff = text.split("## Handoff", 1)[1] if "## Handoff" in text else ""
+        # The Handoff lives in the most advanced artifact (tasks.md > spec.md > context.md, F2-3).
+        handoff = ""
+        for name in ("tasks.md", "spec.md", "context.md"):
+            art = feat / name
+            text = art.read_text(encoding="utf-8", errors="replace") if art.exists() else ""
+            if "## Handoff" in text:
+                handoff = text.split("## Handoff", 1)[1]
+                break
         phase = re.search(r"\*\*Phase:\*\*\s*(.+)", handoff)
         if phase and phase.group(1).strip().lower() not in ("done", "concluída", "concluido", "concluída."):
             wip.append(f"{feat.name} (fase: {phase.group(1).strip()})")

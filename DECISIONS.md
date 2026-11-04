@@ -147,3 +147,63 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** sem diferenças, o setup grava `{"schemaVersion": 1}` pelo validador. O banner volta a mandar rodar o `/starcode:setup` quando o arquivo falta. A parte da F1-11 sobre a missão em texto livre continua valendo.
 - **Motivo:** o arquivo marca a máquina como configurada e fixa a versão do schema. A D17 continua valendo: `crew` guarda só o que difere do `crew.yaml`.
 - **Por que não é bug:** um config com só `schemaVersion` é válido e não muda nenhum padrão.
+
+## Decisões da Fase 2 (2026-11-03, SC-9)
+
+### F2-1: Gates adaptados do tlc com marcador de tamanho
+- **Problema:** o tlc não marca o tamanho na spec, então o gate não sabe se cobra o template completo ou o breve.
+- **Decisão:** a spec traz `**Size**: MEDIUM | LARGE | COMPLEX`. MEDIUM usa o template breve com `## Checks`; LARGE/COMPLEX, o completo, e os checks ficam só no `tasks.md` (D24). Detalhes no ADR-0002.
+- **Por que não é bug:** `**Size**: SMALL` é recusado de propósito: a tarefa PEQUENA não tem spec.
+
+### F2-2: Diagrama de execução do tlc removido
+- **Decisão:** dependências só pelo `**Depends on**`. Ciclo e dependência inexistente são erro. Tarefas sem caminho de dependência entre si não podem compartilhar caminho em `May change`.
+- **Por que não é bug:** o diagrama repetia o `Depends on` e as relações `blocks` do Linear saem dele. A regra de arquivo vale mesmo no modo sequencial, porque a Frota (v1.1) vai despachar essas tarefas juntas.
+
+### F2-3: Handoff no artefato mais avançado
+- **Problema:** o plano põe o Handoff em `tasks.md`, mas a feature MÉDIA não tem `tasks.md`, e a GRANDE só ganha um depois da spec. Sem Handoff nessas fases, uma interrupção não tem de onde retomar.
+- **Decisão:** o Handoff fica em `tasks.md`, ou `spec.md`, ou `context.md`, o que estiver mais adiante. O Picard o move quando nasce um artefato novo. O banner lê os três, nessa ordem. Formato e tabela de retomada em `skills/engajar/references/state-format.md`.
+- **Por que não é bug:** continua um escritor só (D28) e um Handoff só por feature.
+
+### F2-4: Data acionável pelo modelo
+- **Problema:** o `crew.yaml` marcava o Data como `invocation: user`, que vira `disable-model-invocation` no Claude. O Picard não conseguiria chamar o Data depois da aprovação da spec.
+- **Decisão:** `invocation: both`, como Troi e Spock.
+- **Por que não é bug:** as escritas no Linear continuam atrás de uma confirmação explícita, e o gate `validate_spec --approved` impede o Data de começar sem a aprovação 1.
+
+### F2-5: `tasks_export.py` não chama o Linear
+- **Decisão:** o script só gera o corpo das issues, as relações e grava os IDs de volta (`record`). Quem roda `orca linear create`/`relation add` e o MCP é o Data, depois da confirmação.
+- **Por que não é bug:** escrita no Linear exige confirmação na conversa e leitura do `--help` (seção 5.0); um script que escreve sozinho pularia as duas.
+
+### F2-6: Requisitos aceitam SHALL ou DEVE
+- **Decisão:** o template usa as palavras-chave EARS em inglês (`WHEN … THEN the system SHALL …`) com o resto em PT-BR, e o gate também aceita `DEVE`/`QUANDO`/`SE`.
+- **Por que não é bug:** a D16 deixa a prosa em PT-BR. Aceitar as duas formas evita que uma spec correta fique vermelha só pela língua do verbo.
+
+### F2-7: Commit dos artefatos de planejamento nos marcos aprovados
+- **Problema:** na sessão real de aceite, no modo 2, o `.specs/` ficou primeiro sem commit; depois, o Picard fez commits no ramo base por conta própria, sem `Refs:` e deixando de fora uma revisão aprovada.
+- **Decisão:** nos modos 2–4, o Picard faz commit só de `.specs/` (e `.starcode/` quando mudou) em cada marco aprovado: MÉDIA depois da aprovação da spec e do vínculo da issue; GRANDE/COMPLEXA depois da publicação no Linear; cada reaprovação de revisão ganha um commit próprio. Mensagem `docs(specs): … (<slug>)` com `Refs:` das issues da feature, conferida pelo `check_commit.py`. Modo 1: sem commit.
+- **Motivo:** a D6 faz do `.specs/` a fonte da verdade no repositório, e a retomada usa o Git como evidência (4.2).
+- **Por que não é bug:** o commit vai para o ramo atual, que antes do ramo de integração é o ramo base. É commit local e permitido no modo 2. Push continua só nos modos 3/4, com confirmação.
+
+### F2-8: Gatilhos "contrato público" e "ambiguidade" contados com rigor
+- **Problema:** na sessão real de aceite, uma CLI que só o dono usa contou como "contrato público", e "ambiguidade" contou mesmo depois que as perguntas resolveram tudo. Com dois gatilhos, quase toda feature virava GRANDE e a MÉDIA nunca aparecia.
+- **Decisão:** "contrato público" só quando alguém fora do repositório consome o formato ou a interface. "Ambiguidade" só quando sobra depois de uma rodada de perguntas (no máximo 4), feita antes de classificar. Regra em `skills/engajar/references/risk-sizing.md`.
+- **Por que não é bug:** os outros gatilhos não mudam, e a regra "na dúvida, a classe mais alta" continua valendo depois da rodada de perguntas.
+
+### F2-9: Uma pergunta só para aprovar e publicar
+- **Problema:** a aprovação 2 e a confirmação da publicação no Linear eram duas paradas seguidas sobre a mesma coisa. Na MÉDIA, a aprovação da spec e a criação da issue também.
+- **Decisão:** o Data monta o plano de publicação e confere duplicatas antes de perguntar, e faz uma pergunta só: "Aprovo as tasks e publico no Linear? (sim / só aprovar / ajustes)". Na MÉDIA, o Spock pergunta "Aprovo a spec e crio a issue no Linear?". Um "sim" vale pelas duas coisas.
+- **Por que não é bug:** a escrita no Linear continua atrás de uma confirmação explícita na conversa (seção 5.0). A pergunta mostra tudo o que será criado e tem a opção "só aprovar".
+
+### F2-10: Turnos curtos, Handoff por script e bordão fora das perguntas
+- **Problema:** cada atualização do Handoff despejava o diff no chat, as apresentações traziam tabelas inteiras e o bordão vinha depois da pergunta de aprovação. Numa sessão real, a aprovação foi respondida com o próprio bordão do Picard.
+- **Decisão:** o Handoff é gravado só pelo `scripts/handoff.py set`, que move a seção para o artefato mais avançado e imprime uma linha. Turnos de até ~15 linhas, com resumo e caminho do arquivo, sem relatório de gate, diff ou Handoff no chat. Bordão só quando um passo começa e quando devolve, nunca num turno que termina em pergunta. O commit da F2-7 é feito sem perguntar, porque a aprovação já é a autorização.
+- **Por que não é bug:** o Picard continua sendo o único escritor do Handoff (D28); o script é a ferramenta dele. O formato da seção não muda, e o banner lê o que o script grava (teste em `tests/test_handoff.py`).
+
+### F2-11: Troi com limite de rodadas
+- **Problema:** em GRANDE, a Troi não tinha limite de rodadas e perguntava coisas que não mudam o comportamento (14 rodadas de áreas cinzentas na sessão de aceite).
+- **Decisão:** no máximo 1 rodada em MÉDIA, 2 em GRANDE e 3 em COMPLEXA. Só se pergunta o que muda comportamento visível e não tem padrão seguro. O resto vira padrão registrado (`default (não perguntado)`), listado numa linha do resumo para o usuário poder mudar na aprovação da spec.
+- **Por que não é bug:** a varredura de requisitos implícitos continua completa em GRANDE; só deixa de virar pergunta. A aprovação da spec é onde o usuário confere esses padrões.
+
+### F2-12: Handoff só pelo script, Settled só depois da aprovação e retomada sem perguntas
+- **Problema:** na sessão de aceite da MÉDIA, mesmo com a F2-10, o Handoff foi gravado com `cat >>` e scripts inline, e o diff apareceu no chat. O `**Settled:**` recebeu respostas de antes da aprovação (modo Git, retomada). O Picard também perguntou sobre features paradas esperando o LaForge e sobre um commit de artefato já aprovado.
+- **Decisão:** a Troi, o Spock e o Data trazem o comando exato do `handoff.py` no fechamento do passo. Editar o Handoff à mão fica proibido de forma explícita. `**Settled:**` só recebe respostas depois da aprovação da spec. Na retomada, a feature que espera um tripulante ainda não instalado vira uma linha no relatório, sem pergunta. Um artefato aprovado sem commit é commitado (F2-7) e informado numa linha.
+- **Por que não é bug:** breaker aberto e conflito entre Git e anotações continuam sendo perguntas (4.2, D29). O commit automático vale só para `.specs/` sem outras mudanças misturadas.

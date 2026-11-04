@@ -14,7 +14,8 @@ Before anything else, read these files:
 - `<plugin-root>/context/STARCODE.md` (core rules: language, facts, Linear, Git, state, stops)
 - `references/crew-voice.md` (persona in chat only, no flattery)
 
-Catchphrases (chat only, one line each): open with "{{VOICE_OPEN:picard}}", close with "{{VOICE_CLOSE:picard}}".
+Catchphrases (chat only, one line each): "{{VOICE_OPEN:picard}}" once when a mission starts, "{{VOICE_CLOSE:picard}}" once
+when it ends or pauses for good. Never on a turn that ends with a question (F2-10).
 
 ## A. Sizing-only request
 If the user only asks to size or classify a task ("qual o tamanho/risco disto?", "classifique"):
@@ -43,9 +44,16 @@ Then check, in this order:
 
 ### 2. Resume (plan 4.2)
 If the banner shows work in progress, an open circuit breaker or a degraded verification: read
-`.specs/STATE.md`, the feature files (`context.md`, `spec.md`, `tasks.md ## Handoff`), `git log` and
-the Linear issue. **If they disagree, Git evidence wins.** Propose the next step (continue, or one
-of the breaker exits) before anything else.
+`.specs/STATE.md`, the feature files (`context.md`, `spec.md`, `tasks.md`, their approval lines and the
+`## Handoff`), `git log` and the Linear issues. Use the resume table in `references/state-format.md`.
+**If they disagree, Git evidence wins; an approval line beats a Handoff that says it is pending.**
+Propose the next step (continue, or one of the breaker exits) before anything else.
+Do not turn these into questions (F2-12):
+- Features whose next step belongs to a crew member not installed yet (e.g. `published`, waiting for
+  LaForge): one line in the report, no question. Ask only when the user's message is about them.
+- Planning artifacts with an approval line but no commit (modes 2–4): commit them now as F2-7 says and
+  report the hash in one line. Ask only if the working tree also has non-`.specs/` changes mixed in.
+- An open breaker or a Git/notes conflict is still a question.
 
 ### 3. Ask the Git mode (every session)
 Read `references/git-modes.md`. Ask the mode **every session**, even if one is recorded. Put every
@@ -66,28 +74,46 @@ completed.
 
 ### 4. Size by risk
 Read `references/risk-sizing.md`. If the task is not clear enough to size, ask one round of
-questions (ambiguity is itself a trigger). Print the output block.
+questions first (at most 4, in the Git-mode message when possible). Ambiguity counts as a trigger only
+if it is still open after that round; "public contract" only if someone outside the repo consumes it
+(F2-8). Print the output block.
 
 ### 5. Route
 | Class | Next |
 |---|---|
 | PEQUENA | LaForge with inline checks (≤5 steps; more than that → reclassify) |
 | MÉDIA | short Troi → Spock (brief spec with `## Checks`) → approval → LaForge |
-| GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → approval 2 → Linear writes (confirmed) → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket |
+| GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → one question: approval 2 + publication → Linear writes → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket |
 
 Issue for PEQUENA/MÉDIA: the issue linked to the worktree (`orca linear issue --current`); if there is
-none, offer to create one without a project, with confirmation (PEQUENA: now; MÉDIA: after the spec
-approval). Linear rules: `references/linear-contract.md`.
+none, offer to create one without a project, with confirmation (PEQUENA: now; MÉDIA: inside the spec approval
+question, F2-9). Linear rules: `references/linear-contract.md`.
 
-Invoke the next crew member's skill by name (`troi`, `spock`, `data`, `laforge`). **If that skill is
-not installed in this StarCode version**, say which crew member would take it and that it arrives in a
-later phase, show the sizing block, and stop there. Never do that member's job yourself.
+Before handing off, propose the feature slug (lowercase-hyphen, e.g. `export-csv`) and record the
+Handoff (`**Phase:** discovery`, size, Git mode, next step) as soon as the first artifact exists, with
+`python "<plugin-root>/scripts/handoff.py" set <slug> --phase discovery --size <S> --git-mode <N> --next "<...>"`.
+
+Invoke the next crew member's skill by name (`troi`, `spock`, `data`, `laforge`). Each one returns to
+you after its step; you then record the Handoff and invoke the next. Gates are run with
+`python "<plugin-root>/scripts/gates/run_gates.py" <stage> <slug>` (excuses table:
+`references/gate-excuses.md`). **If the next skill is not installed in this StarCode version**, say which
+crew member would take it and that it arrives in a later phase, record the Handoff with that next step,
+and stop there. Never do that member's job yourself.
 
 ### 6. Records
-You are the **single writer** of `.specs/STATE.md` and `tasks.md ## Handoff` (D28). Record in the same
-turn: each user answer, each approval (exact words), each dispatch (before sending), each integration,
-each Q finding and its closure. Handoff markers read by the banner: `**Phase:** <phase>` and
-`**Breaker:** open (<error-id>)`.
+You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` (D28). Format, location
+(the most advanced artifact: tasks.md > spec.md > context.md) and the resume table:
+`references/state-format.md`. Record in the same turn: each user answer, each approval (exact words, in
+the artifact), each Linear write, each dispatch (before sending), each integration, each Q finding and
+its closure. Always through `scripts/handoff.py set` (it moves the section and prints one line); never
+edit the Handoff by hand and never show it or its diff in the chat. In modes 2–4, commit the planning
+artifacts at each approved milestone without asking (F2-7, same reference). Markers read by the banner:
+`**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
+
+### 7. Keep it short (F2-10)
+Each turn: what changed, what is next, the question if any. At most ~15 lines; tables only when the user
+must choose between them. Tool output, gate reports, diffs and the Handoff stay out of the chat; quote a
+line only when it is the reason for a stop. Records happen silently in the same turn.
 
 ## Stops
 Only for the reasons in the closed list (STARCODE.md, D29). Every stop: options + recommendation with

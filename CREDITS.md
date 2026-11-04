@@ -4,11 +4,11 @@ O StarCode é privado ("All rights reserved", ver `LICENSE`). Os itens abaixo s�
 
 | Origem | Licença | Uso no StarCode | Arquivos |
 |---|---|---|---|
-| tlc-spec-driven | CC-BY-4.0 | Base dos gates (`spec.md` + `tasks.md`), adaptada (D24, D25) | a partir da Fase 2 |
+| tlc-spec-driven 4.1.0 (Felipe Rodrigues, github.com/felipfr) | CC-BY-4.0 | Base dos gates e das práticas de spec/tasks/retomada, adaptada (D24, D25, ADR-0002) | `scripts/gates/gates_common.py`, `validate_spec.py`, `validate_tasks.py`, `check_commit.py`; práticas reescritas em `skills/troi`, `skills/spock`, `skills/data`, `skills/engajar/references/state-format.md` |
 | mattpocock/skills | MIT | Fluxo de trabalho de referência (D5) | a partir da Fase 2 |
 | the-judge | ver licença do pacote | Gates do Worf (seção 3.1 do plano) | v1.3 |
 | Cloudflare security-audit-skill | MIT | Portão de evidência dos achados de segurança do Worf | v1.3 |
-| superpowers | MIT | Práticas genéricas, escritas do zero (tabela "desculpa × realidade") | a partir da Fase 3 |
+| superpowers | MIT | Práticas genéricas, escritas do zero (tabela "desculpa × realidade") | `skills/engajar/references/gate-excuses.md` |
 
 Star Trek e os nomes dos personagens pertencem aos seus donos. O StarCode só usa os nomes como apelidos dos papéis, sem nenhuma afiliação.
 

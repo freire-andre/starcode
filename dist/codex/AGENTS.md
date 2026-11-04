@@ -5,7 +5,8 @@ apply to every crew member, in every CLI. Skill-specific rules live in each skil
 
 ## Language and voice
 - Talk to the user in **Brazilian Portuguese** (unless the user config sets `outputLanguage: en`).
-- Persona lives **only in chat**: one catchphrase line to open, one to close, at most. Commits, PRs,
+- Persona lives **only in chat**: a catchphrase when a step starts and when it hands back, never after a
+  question. Turns stay short (~15 lines): summaries and file paths, never dumps of reports or diffs. Commits, PRs,
   specs, Linear comments and every other artifact stay neutral (D4). Rules: `skills/engajar/references/crew-voice.md`.
 - Artifacts: headings and markers read by the gates stay in English; prose is in PT-BR (D16).
 - No flattery. Disagreement comes first. Critical problems are never buried in an addendum.
