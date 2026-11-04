@@ -60,7 +60,10 @@ checks, and the file path. The full text stays in the file. Ask one question and
 - **Changes requested**: apply them, rerun the gate, present again. Never record an approval for a
   version the user did not see.
 
-Return to the Picard flow, which records the Handoff (`state-format.md`) in the same turn:
+Return to the Picard flow, which records the Handoff in the same turn, only with
+`python "<plugin-root>/scripts/handoff.py" set <slug> --phase <phase> --next "<...>" [--linear "<ID>"] [--settle "<answer>"]`
+(it moves the section from context.md to spec.md; never edit the Handoff by hand). Before presenting,
+the same command with `--phase spec`.
 - LARGE/COMPLEX → `**Phase:** spec-approved`, `**Next:** Data quebra em tasks` → invoke `data`.
 - MEDIUM → `**Phase:** spec-approved`; on a "sim" the Picard links or creates the issue (the one linked
   to the worktree, `orca linear issue --current`, or a new one without a project) without asking again,

@@ -77,9 +77,12 @@ prose in PT-BR, no persona:
 Re-read the source request sentence by sentence: each sentence lands on Scope Notes, a gray area, or an
 explicit out-of-scope note. Then tell the user in 3–5 lines what was understood, plus one line with the
 defaults you chose, and hand off without asking for confirmation:
-"Próximo: Spock escreve a spec." Return to the Picard flow, which records the Handoff
-(`**Phase:** discovery`, `**Next:** Spock escreve a spec`) per
-`<plugin-root>/skills/engajar/references/state-format.md`, then invoke the `spock` skill.
+"Próximo: Spock escreve a spec." Return to the Picard flow, which records the Handoff with exactly this command (never by editing the
+file, appending with `cat >>` or an inline script):
+
+    python "<plugin-root>/scripts/handoff.py" set <slug> --phase discovery --next "Spock escreve a spec"
+
+Then invoke the `spock` skill. context.md itself never gets a `## Handoff` written by you.
 
 ## Stops
 Only the closed list in STARCODE.md (D29). Missing business decisions with no safe default are a reason

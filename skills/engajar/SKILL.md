@@ -48,6 +48,12 @@ If the banner shows work in progress, an open circuit breaker or a degraded veri
 `## Handoff`), `git log` and the Linear issues. Use the resume table in `references/state-format.md`.
 **If they disagree, Git evidence wins; an approval line beats a Handoff that says it is pending.**
 Propose the next step (continue, or one of the breaker exits) before anything else.
+Do not turn these into questions (F2-12):
+- Features whose next step belongs to a crew member not installed yet (e.g. `published`, waiting for
+  LaForge): one line in the report, no question. Ask only when the user's message is about them.
+- Planning artifacts with an approval line but no commit (modes 2–4): commit them now as F2-7 says and
+  report the hash in one line. Ask only if the working tree also has non-`.specs/` changes mixed in.
+- An open breaker or a Git/notes conflict is still a question.
 
 ### 3. Ask the Git mode (every session)
 Read `references/git-modes.md`. Ask the mode **every session**, even if one is recorded. Put every

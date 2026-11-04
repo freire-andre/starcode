@@ -42,9 +42,12 @@ it from the older file) in the same turn. The banner reads all three.
 **Integration branch:** <feature/<slug> | n/a (mode 1) | not created>
 **Last integrated:** <commit | none>
 **Dispatched:** <worker, dispatch id, HEAD, written BEFORE sending | none>
-**Settled:** <each user answer after the spec approval, dated, in their words | none>
+**Settled:** <each user answer AFTER the spec approval, dated, in their words | none>
 **Breaker:** closed | open (<error-id>, attempts 3/3)
 ```
+
+`**Settled:**` starts empty. Before the spec approval, answers go where they belong (Git mode in its own
+field, discovery answers in context.md, decisions in the spec), never in Settled (F2-12).
 
 Events that must be recorded in the same turn: each user answer, each approval (the approval line goes
 in the artifact; the Handoff gets the new phase), each Linear write (IDs), each dispatch (before

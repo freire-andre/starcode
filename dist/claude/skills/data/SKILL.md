@@ -71,5 +71,7 @@ report the result once (section 5).
 
 ## 5. Hand back
 Report in at most 5 lines: tasks created, Linear IDs, gate verdicts, anything pending. Return to the
-Picard flow, which records the Handoff (`**Phase:** published`, `**Next:** ramo de integração e primeiro
-ticket`) and continues (integration branch and LaForge arrive in Phase 3).
+Picard flow, which records the Handoff only with
+`python "<plugin-root>/scripts/handoff.py" set <slug> --phase published --linear "<project URL + IDs>" --next "ramo de integração e primeiro ticket"`
+(the first call after tasks.md exists moves the section there) and continues (integration branch and
+LaForge arrive in Phase 3).
