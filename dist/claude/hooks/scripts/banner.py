@@ -5,10 +5,12 @@ Checks: Orca, Linear (--full), both configs, Git mode, work in progress, degrade
 open circuit breakers, competing skills; shows the crew with cli/model.
 Never fails the session start: any error becomes a line in the banner.
 
-Usage: python banner.py [--full] [--text] [--agy] [--cwd DIR]
+Usage: python banner.py [--full] [--text] [--agy] [--cwd DIR] [--cli CLI]
   default: reads the SessionStart payload on stdin, prints hook JSON (additionalContext + systemMessage)
   --text:  prints the plain banner (for the skill)
   --agy:   Antigravity format (injectSteps/ephemeralMessage, Phase 5)
+  --cli:   adds `CLI: <cli>` and the extras unavailable in that CLI (default claude when given without value;
+           without the flag the Phase 3 output is unchanged)
 """
 from __future__ import annotations
 
@@ -110,9 +112,28 @@ def work_in_progress(root: Path) -> tuple[list[str], list[str], list[str]]:
         ver = feat / "verification.md"
         if ver.exists():
             vtext = ver.read_text(encoding="utf-8", errors="replace")
-            if re.search(r"self-verified|\*\*Verification:\*\*\s*degraded", vtext, re.I):
+            # Only a line that STARTS with the marker counts; a table row may merely cite `self-verified`.
+            if re.search(r"^\*\*Verification:\*\*[ 	]*(degraded|self-verified)", vtext, re.I | re.M):
                 degraded.append(feat.name)
     return wip, degraded, breaker
+
+
+def unavailable_extras(cli: str) -> list[str]:
+    """`Indisponível neste CLI: <extra> → <fallback>` lines: capabilities.json beside the plugin
+    (dist), else that CLI's section of src/capabilities.yaml (source tree)."""
+    generated = sc.PLUGIN_ROOT / "capabilities.json"
+    try:
+        if generated.exists():
+            extras = json.loads(generated.read_text(encoding="utf-8")).get("extras", {})
+        else:
+            sys.path.insert(0, str(sc.PLUGIN_ROOT / "tools"))
+            import miniyaml  # noqa: PLC0415
+            doc = miniyaml.loads((sc.PLUGIN_ROOT / "src" / "capabilities.yaml").read_text(encoding="utf-8"))
+            extras = doc.get(cli) or {}
+    except Exception as exc:  # noqa: BLE001
+        return [f"Capacidades: ⚠️ não foi possível ler a matriz ({exc})"]
+    return [f"Indisponível neste CLI: {name} → {info.get('fallback', '')}"
+            for name, info in extras.items() if isinstance(info, dict) and info.get("status") == "unavailable"]
 
 
 def crew_lines(user_cfg: dict | None) -> list[str]:
@@ -132,7 +153,7 @@ def crew_lines(user_cfg: dict | None) -> list[str]:
     return ["Tripulação ativa: " + ("; ".join(parts) if parts else "nenhuma")]
 
 
-def build_banner(cwd: str, full: bool) -> tuple[str, str, bool]:
+def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str, bool]:
     """Return (banner text, one-line summary, starcode_active)."""
     root = sc.repo_root(cwd)
     user_cfg, user_err = sc.load_user_config()
@@ -200,6 +221,10 @@ def build_banner(cwd: str, full: bool) -> tuple[str, str, bool]:
     else:
         lines.append("Este repositório ainda não usa o StarCode. /starcode:setup configura; /starcode:engajar inicia.")
 
+    if cli:
+        lines.append(f"CLI: {cli}")
+        lines.extend(unavailable_extras(cli))
+
     one_line = "🖖 StarCode: " + (" · ".join(summary) if summary else "pronto")
     return "\n".join(lines), one_line, active
 
@@ -209,6 +234,10 @@ def main() -> int:
     argv = sys.argv[1:]
     full, text_mode, agy = "--full" in argv, "--text" in argv, "--agy" in argv
     cwd = None
+    cli = None
+    if "--cli" in argv:
+        i = argv.index("--cli") + 1
+        cli = argv[i] if i < len(argv) and not argv[i].startswith("--") else "claude"
     if "--cwd" in argv and argv.index("--cwd") + 1 < len(argv):
         cwd = argv[argv.index("--cwd") + 1]
     if not text_mode:
@@ -219,7 +248,7 @@ def main() -> int:
             pass
     cwd = cwd or str(Path.cwd())
     try:
-        banner, one_line, active = build_banner(cwd, full)
+        banner, one_line, active = build_banner(cwd, full, cli)
     except Exception as exc:  # noqa: BLE001 - never break the session start
         banner, one_line, active = f"🖖 StarCode: banner indisponível ({exc})", "", False
     if text_mode:
