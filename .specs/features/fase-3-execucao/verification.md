@@ -46,10 +46,11 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C1/R1: `check_proofs.py` ignora uma linha `Run` sem `Proof` associado, contrariando a execução de cada Run. | `scripts/gates/check_proofs.py:108`; probe: Run declarado sem referência produziu `PROBE1 ok= True declared_run_output_present= False result= 1 pass, 0 fail` | Executar cada comando `Run` declarado uma vez e incluir sua saída no `proofs.md`, mesmo sem referência em Proof. | |
-| C7/R6: a prova não testa o caso de padrão de pasta com `/` apesar de fazer parte do claim. | `tests/test_check_scope.py:39` cobre `docs/*.md`, sem padrão `app/` | Adicionar caso com `May change: app/` e arquivo `app/child.py`. | |
-| C14/R30: a prova não testa o valor `degraded` do marcador; só testa `self-verified`. | `tests/test_banner.py:38` | Cobrir ambos os valores (`degraded` e `self-verified`) e confirmar a linha completa do banner. | |
-| Assertions mais frouxas: C13 verifica substrings (`assertIn`) em vez da linha completa `Disjuntor aberto: <slug> (<id>)`; C14 também verifica só substrings; C32 aceita qualquer hash hexadecimal de 7 caracteres como evidência, sem verificar que é commit do roteiro. | `tests/test_banner.py:27,40`; `tests/test_acceptance_doc.py:26` | Comparar o valor completo do banner e validar a evidência citada contra o resultado do roteiro. | |
+| C1/R1: `check_proofs.py` ignora uma linha `Run` sem `Proof` associado, contrariando a execução de cada Run. | `scripts/gates/check_proofs.py:108`; probe: Run declarado sem referência produziu `PROBE1 ok= True declared_run_output_present= False result= 1 pass, 0 fail` | Executar cada comando `Run` declarado uma vez e incluir sua saída no `proofs.md`, mesmo sem referência em Proof. | 888306d |
+| C7/R6: a prova não testa o caso de padrão de pasta com `/` apesar de fazer parte do claim. | `tests/test_check_scope.py:39` cobre `docs/*.md`, sem padrão `app/` | Adicionar caso com `May change: app/` e arquivo `app/child.py`. | 96a6b9a |
+| C14/R30: a prova não testa o valor `degraded` do marcador; só testa `self-verified`. | `tests/test_banner.py:38` | Cobrir ambos os valores (`degraded` e `self-verified`) e confirmar a linha completa do banner. | 87ce77c |
+| Assertions mais frouxas: C13 verifica substrings (`assertIn`) em vez da linha completa `Disjuntor aberto: <slug> (<id>)`; C14 também verifica só substrings; C32 aceita qualquer hash hexadecimal de 7 caracteres como evidência, sem verificar que é commit do roteiro. | `tests/test_banner.py:27,40`; `tests/test_acceptance_doc.py:26` | Comparar o valor completo do banner e validar a evidência citada contra o resultado do roteiro. | 87ce77c, 98f9451 |
+| Coordenador: o relatório do Q no Codex (Windows) veio com mojibake e `` `n`n `` literal do PowerShell. | `verification.md` antes de cade294 | Regra de UTF-8 sem BOM e quebras reais em `src/briefs/q-verify.md`. | 3dd3e38 |
 
 ## Limits
 
