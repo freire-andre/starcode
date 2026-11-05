@@ -220,6 +220,16 @@ class TasksTests(GateCase):
         self.assertEqual(text.count("**Linear**:"), 2)
         self.assertEqual(tasks_export.record("export-csv", self.large, ["T9=SC-1"])[1], 1)
 
+    def test_publish_stage_passes_with_ids_and_no_project(self):
+        # parent-issue path (R16): tasks.md carries only `**Linear**: <ID>` per task, no Project anywhere
+        msg, code = tasks_export.record("export-csv", self.large, ["T1=SC-20", "T2=SC-21"])
+        self.assertEqual(code, 0, msg)
+        text = (self.lf / "tasks.md").read_text(encoding="utf-8")
+        self.assertNotIn("Projeto", text)
+        self.assertNotIn("Project", text)
+        out, rc = run_gates.render("publish", run_gates.run_stage("publish", "export-csv", self.large))
+        self.assertEqual(rc, 0, out)
+
 
 class ExportTests(GateCase):
     def test_plan_bodies_and_relations(self):
