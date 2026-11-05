@@ -257,3 +257,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `handoff.py set --breaker closed` sobre um disjuntor aberto zera o contador do identificador que o abriu; os outros identificadores ficam como estavam.
 - **Motivo:** a escolha do usuário (repensar ou voltar ao último commit integrado) é um recomeço daquele erro; sem o zero, a saída escolhida não teria nenhuma tentativa.
 - **Por que não é bug:** as 3 falhas seguidas continuam abrindo o disjuntor; só o recomeço depois da decisão do usuário passa a contar do zero.
+
+### F3-9: `check_proofs` roda todo `Run` declarado
+- **Problema:** o Q da fase 3 achou que um `**Run <nome>**:` que nenhum `Proof:` cita era ignorado, e o `proofs.md` não registrava a saída dele, contra o R1.
+- **Decisão:** cada `Run` declarado em `## Checks` roda uma vez, citado ou não, e a saída vai para `## Output`; um `Run` não citado que falha deixa as provas vermelhas.
+- **Motivo:** um comando declarado nos checks faz parte da evidência; ignorá-lo esconderia uma suíte vermelha.
+- **Por que não é bug:** as provas citadas continuam julgadas pela linha esperada; só deixou de existir o comando declarado e não executado.

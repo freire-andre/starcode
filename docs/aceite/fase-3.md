@@ -133,3 +133,7 @@ Feature MÉDIA `limpar-concluidas` (PROJ-10), num único worktree (`tp-mode1`), 
    recusou. Corrigido em `fb3dc61`: o gate cumpriu o papel dele.
 8. Para MÉDIA, o `dispatch.py brief` não monta o briefing a partir do `## Checks` da spec (só a partir do
    `tasks.md`). O briefing foi montado à mão, como diz o `execute.md` seção 8. Pendência para a próxima fase.
+9. O Q da própria fase 3 (Codex) deu FAIL com 4 achados: Run declarado sem Proof ignorado, casos `app/` e
+   `degraded` sem teste, e asserções frouxas em C13, C14 e C32. Uma rodada única de LaForge corrigiu tudo
+   (`888306d`, `96a6b9a`, `87ce77c`, `98f9451`; F3-9). O relatório do Q veio com mojibake e `` `n`n `` do
+   PowerShell; o briefing do Q agora exige UTF-8 sem BOM (`3dd3e38`).
