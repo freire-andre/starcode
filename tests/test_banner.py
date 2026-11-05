@@ -45,6 +45,18 @@ class BannerExecutionTests(TempRepoCase):
         text, _, _ = self.build()
         self.assertNotIn("Disjuntor aberto", text)
 
+    def test_markers_in_prose_before_handoff_are_ignored(self):
+        # tasks.md prose may quote `## Handoff`, `**Phase:**` and `**Breaker:** open (<id>)`;
+        # only the real `## Handoff` heading section counts.
+        feat = self.feature()
+        (feat / "tasks.md").write_text(
+            "# Tasks\n\nNunca altere a seção `## Handoff`; o banner lê `**Phase:**` e "
+            "`**Breaker:** open (<id>)`.\n", encoding="utf-8")
+        handoff.set_handoff("task-priority", self.repo, {"phase": "execute"})
+        text, _, _ = self.build()
+        self.assertIn("task-priority (fase: execute)", text)
+        self.assertNotIn("Disjuntor aberto", text)
+
 
 if __name__ == "__main__":
     unittest.main()

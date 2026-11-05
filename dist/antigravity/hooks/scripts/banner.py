@@ -96,8 +96,10 @@ def work_in_progress(root: Path) -> tuple[list[str], list[str], list[str]]:
         for name in ("tasks.md", "spec.md", "context.md"):
             art = feat / name
             text = art.read_text(encoding="utf-8", errors="replace") if art.exists() else ""
-            if "## Handoff" in text:
-                handoff = text.split("## Handoff", 1)[1]
+            # Only the real heading counts: prose may quote `## Handoff` and its markers.
+            head = re.search(r"^## Handoff[ \t]*$", text, re.M)
+            if head:
+                handoff = re.split(r"^## ", text[head.end():], maxsplit=1, flags=re.M)[0]
                 break
         phase = re.search(r"\*\*Phase:\*\*\s*(.+)", handoff)
         if phase and phase.group(1).strip().lower() not in ("done", "concluída", "concluido", "concluída."):
