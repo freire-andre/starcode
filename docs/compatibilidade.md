@@ -24,6 +24,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | `orca worktree create --agent <id> --linear-issue` | ✅ | ✅ | ✅ | ✅ |
 | `orca orchestration worker-start` (`--spec-file`, resultado, modelo) | ✅ ⁸ | ✅ ⁵ | ✅ ⁸ | não testado ⁹ |
 | MCP do Linear disponível | ✅ | ⏳ ¹⁰ | ⚠️ ¹⁰ | ❌ ¹⁰ |
+| Fluxo StarCode completo (aceite da Fase 4) | ✅ ¹¹ | ✅ ¹¹ | ⏳ | ⏳ |
 
 ## Notas
 
@@ -57,6 +58,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
     - Antigravity: `linear` configurado via `mcp-remote`; o login não foi verificado.
     - OpenCode: sem MCP.
     - O StarCode usa o `orca linear` para quase tudo (D2).
+11. **Aceite da Fase 4, Codex**: aprovado em 2026-11-05 (`docs/aceite/fase-4.md`, seção Codex). Picard e equipe em `gpt-6-luna`, Q no Antigravity; `run_gates.py done` deu VEREDITO VERDE e PROJ-11 a PROJ-13 foram publicadas pelo `orca linear` (o MCP do Linear do Codex segue sem login). Claude: aceite da Fase 3 (`docs/aceite/fase-3.md`).
 
 ## Procedimentos (por célula)
 
