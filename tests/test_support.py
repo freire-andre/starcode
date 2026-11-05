@@ -151,7 +151,7 @@ class BannerTests(TempRepoCase):
         self.assertIn("login (fase: execute T2)", text)
         self.assertNotIn("old (fase", text)
         self.assertIn("Disjuntor aberto: login (gate-pytest-T2)", text)
-        self.assertIn("Verificação degradada: login", text)
+        self.assertIn("Verificação: degradada (login)", text)
         self.assertIn("disjuntor aberto", line)
 
     def test_handoff_in_spec_or_context_before_tasks(self):

@@ -6,6 +6,10 @@ prints one line. The agent never pastes the Handoff or its diff in the chat.
 
     python handoff.py set <slug> --phase spec --next "Spock apresenta a spec" [--root .]
     python handoff.py set <slug> --settle "limite de 10 MB"     # appends "<date>: <text>" to Settled
+    python handoff.py set <slug> --dispatched "T1 · PROJ-7 · base abc1234" --integration-branch feature/x
+    python handoff.py set <slug> --report "T1: 3 arquivos, gates verdes, 2 commits"  # appends to Reports
+    python handoff.py set <slug> --attempt worker-T1=fail       # counts per error id; 3rd fail opens the breaker
+    python handoff.py set <slug> --attempt worker-T1=ok         # a success resets that id
     python handoff.py show <slug>                               # one line per field
 
 Exit codes: 0 written / shown, 1 feature or artifact not found, 2 usage error. Python stdlib only.
@@ -29,8 +33,12 @@ FIELDS = (  # (option, marker, default)
     ("last_integrated", "Last integrated", "none"),
     ("dispatched", "Dispatched", "none"),
     ("settled", "Settled", "none"),
+    ("attempts", "Attempts", "none"),
+    ("reports", "Reports", "none"),
     ("breaker", "Breaker", "closed"),
 )
+BREAKER_LIMIT = 3  # D27: the 3rd failure of the same error id opens the breaker
+ATTEMPT_RE = re.compile(r"^([\w.:/-]+)=(fail|ok)$")
 PHASES = ("discovery", "spec", "spec-approved", "tasks", "tasks-approved", "published", "execute",
           "review", "done")
 FIELD_RE = re.compile(r"^\*\*([^*]+?):\*\*\s*(.*)$")
@@ -83,8 +91,40 @@ def feature_dir(slug: str, root: Path) -> Path:
     return root / ".specs" / "features" / slug
 
 
+def parse_attempts(value: str) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for item in (value or "").split(","):
+        name, _, n = item.strip().partition("=")
+        if name and n.strip().isdigit():
+            out[name.strip()] = int(n)
+    return out
+
+
+def apply_attempt(values: dict[str, str], attempt: str) -> None:
+    """Count a failure (or reset on success) for a stable error id; open the breaker on the 3rd failure."""
+    m = ATTEMPT_RE.match(attempt.strip())
+    if not m:
+        raise ValueError(f"tentativa inválida {attempt!r}: use <id-do-erro>=fail ou <id-do-erro>=ok")
+    eid, outcome = m.group(1), m.group(2)
+    counts = parse_attempts(values.get("attempts", ""))
+    if outcome == "ok":
+        counts.pop(eid, None)
+    else:
+        counts[eid] = counts.get(eid, 0) + 1
+        if counts[eid] >= BREAKER_LIMIT:
+            values["breaker"] = f"open ({eid}, attempts {counts[eid]}/{BREAKER_LIMIT})"
+    values["attempts"] = ", ".join(f"{k}={v}" for k, v in counts.items()) or "none"
+
+
+def append_item(values: dict[str, str], key: str, text: str, today: str | None) -> None:
+    stamp = f"{today or dt.date.today().isoformat()}: {text}"
+    old = values.get(key, "")
+    values[key] = stamp if old in ("", "none") else f"{old}; {stamp}"
+
+
 def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | None = None,
-                today: str | None = None) -> tuple[Path, dict[str, str]]:
+                today: str | None = None, report: str | None = None,
+                attempt: str | None = None) -> tuple[Path, dict[str, str]]:
     fdir = feature_dir(slug, root)
     present = [fdir / a for a in ARTIFACTS if (fdir / a).is_file()]
     if not present:
@@ -104,9 +144,11 @@ def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | No
         if updates.get(option) is not None:
             values[marker.lower()] = updates[option]
     if settle:
-        stamp = f"{today or dt.date.today().isoformat()}: {settle}"
-        old = values.get("settled", "")
-        values["settled"] = stamp if old in ("", "none") else f"{old}; {stamp}"
+        append_item(values, "settled", settle, today)
+    if report:
+        append_item(values, "reports", report, today)
+    if attempt:
+        apply_attempt(values, attempt)
     for art, lines in texts.items():
         if art == target:
             lines = lines + [""] + render(values)
@@ -121,8 +163,12 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("feature")
     ps.add_argument("--root", default=".")
     for option, marker, _ in FIELDS:
+        if option in ("attempts", "reports"):
+            continue  # written through --attempt and --report
         ps.add_argument("--" + option.replace("_", "-"), dest=option, help=f"**{marker}:**")
     ps.add_argument("--settle", help="acrescenta '<data>: <texto>' ao Settled")
+    ps.add_argument("--report", help="acrescenta '<data>: <relatório do worker>' ao Reports")
+    ps.add_argument("--attempt", help="<id-do-erro>=fail|ok: conta a tentativa; a 3ª falha abre o disjuntor")
     pv = sub.add_parser("show")
     pv.add_argument("feature")
     pv.add_argument("--root", default=".")
@@ -147,12 +193,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.phase and args.phase not in PHASES:
         print(f"ERRO: fase inválida {args.phase!r}; use uma de: {', '.join(PHASES)}", file=sys.stderr)
         return 2
-    updates = {option: getattr(args, option) for option, _, _ in FIELDS}
+    updates = {option: getattr(args, option, None) for option, _, _ in FIELDS}
     try:
-        target, values = set_handoff(args.feature, root, updates, args.settle)
+        target, values = set_handoff(args.feature, root, updates, args.settle, report=args.report,
+                                     attempt=args.attempt)
+    except ValueError as exc:
+        print(f"ERRO: {exc}", file=sys.stderr)
+        return 2
     except LookupError as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 1
+    if values.get("breaker", "closed").startswith("open"):
+        print(f"DISJUNTOR ABERTO: {values['breaker']} (D27): pare e ofereça as duas saídas")
     print(f"Handoff gravado em {target.name}: {values.get('phase', 'discovery')} · próximo: "
           f"{values.get('next', 'none yet')}")
     return 0

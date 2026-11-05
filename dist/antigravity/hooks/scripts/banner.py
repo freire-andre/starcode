@@ -102,9 +102,9 @@ def work_in_progress(root: Path) -> tuple[list[str], list[str], list[str]]:
         phase = re.search(r"\*\*Phase:\*\*\s*(.+)", handoff)
         if phase and phase.group(1).strip().lower() not in ("done", "concluída", "concluido", "concluída."):
             wip.append(f"{feat.name} (fase: {phase.group(1).strip()})")
-        brk = re.search(r"\*\*Breaker:\*\*\s*open\b(.*)", handoff, re.I)
+        brk = re.search(r"\*\*Breaker:\*\*\s*open\b\s*\(?\s*([^,)\s]*)", handoff, re.I)
         if brk:
-            breaker.append(f"{feat.name}{brk.group(1).rstrip()}")
+            breaker.append(f"{feat.name} ({brk.group(1)})" if brk.group(1) else feat.name)
         ver = feat / "verification.md"
         if ver.exists():
             vtext = ver.read_text(encoding="utf-8", errors="replace")
@@ -179,11 +179,13 @@ def build_banner(cwd: str, full: bool) -> tuple[str, str, bool]:
                 lines.append("Trabalho em andamento: " + "; ".join(wip) + " (o Picard propõe retomar)")
                 summary.append(f"{len(wip)} feature(s) em andamento")
             for d in degraded:
-                lines.append(f"⚠️ Verificação degradada: {d}")
+                lines.append(f"⚠️ Verificação: degradada ({d})")
             for b in breaker:
                 lines.append(f"⚠️ Disjuntor aberto: {b}")
             if breaker:
                 summary.append("disjuntor aberto")
+            if degraded:
+                summary.append("verificação degradada")
         try:
             found = conflicts.scan(Path.home(), root)
         except Exception as exc:  # noqa: BLE001
