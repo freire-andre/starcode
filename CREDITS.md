@@ -4,7 +4,7 @@ O StarCode é privado ("All rights reserved", ver `LICENSE`). Os itens abaixo s�
 
 | Origem | Licença | Uso no StarCode | Arquivos |
 |---|---|---|---|
-| tlc-spec-driven 4.1.0 (Felipe Rodrigues, github.com/felipfr) | CC-BY-4.0 | Base dos gates e das práticas de spec/tasks/retomada, adaptada (D24, D25, ADR-0002) | `scripts/gates/gates_common.py`, `validate_spec.py`, `validate_tasks.py`, `check_commit.py`; práticas reescritas em `skills/troi`, `skills/spock`, `skills/data`, `skills/engajar/references/state-format.md` |
+| tlc-spec-driven 4.1.0 (Felipe Rodrigues, github.com/felipfr) | CC-BY-4.0 | Base dos gates e das práticas de spec/tasks/retomada, adaptada (D24, D25, ADR-0002) | `scripts/gates/gates_common.py`, `validate_spec.py`, `validate_tasks.py`, `check_commit.py`, `check_proofs.py`, `validate_verification.py` (Fase 3); práticas reescritas em `skills/troi`, `skills/spock`, `skills/data`, `skills/q`, `src/briefs/q-verify.md` (a partir do `references/validate.md`), `skills/engajar/references/state-format.md` |
 | mattpocock/skills | MIT | Fluxo de trabalho de referência (D5) | a partir da Fase 2 |
 | the-judge | ver licença do pacote | Gates do Worf (seção 3.1 do plano) | v1.3 |
 | Cloudflare security-audit-skill | MIT | Portão de evidência dos achados de segurança do Worf | v1.3 |

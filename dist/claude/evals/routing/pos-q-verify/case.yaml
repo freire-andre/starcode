@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-q-verify
+description: "Deve disparar a skill starcode:q."
+tags: [routing, positive]
+execution:
+  prompt: "Q, faça a verificação independente da feature task-priority do StarCode e escreva o verification.md."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-q
+    tool: Skill
+    input_match: "starcode:q"
+    min: 1

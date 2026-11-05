@@ -61,7 +61,9 @@ class BuildTests(unittest.TestCase):
     def test_crew_json_lists_only_available(self):
         build.build(self.src, self.out)
         crew = json.loads((self.out / "dist" / "claude" / "crew.json").read_text(encoding="utf-8"))
-        self.assertEqual(crew["available"], ["picard", "spock", "troi", "data"])
+        self.assertEqual(crew["available"][:4], ["picard", "spock", "troi", "data"])
+        self.assertIn("q", crew["available"])  # Phase 3: skills/q exists
+        self.assertNotIn("uhura", crew["available"])  # no skills/uhura yet
         self.assertEqual(crew["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
 
     def test_claude_hooks_use_plugin_root(self):
@@ -103,6 +105,27 @@ class BuildTests(unittest.TestCase):
         text = build.claude_frontmatter("---\nname: x\ndescription: y\n---\n\nbody\n", "user")
         self.assertIn("disable-model-invocation: true\n---\n", text)
         self.assertEqual(build.claude_frontmatter("---\nname: x\n---\n", "both"), "---\nname: x\n---\n")
+
+    def test_build_emits_execution_skills(self):
+        build.build(self.src, self.out)
+        claude = self.out / "dist" / "claude"
+        for skill in ("laforge", "mccoy", "q"):
+            text = (claude / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn(f"name: {skill}", text)
+            self.assertNotIn("{{", text.split("---", 2)[2].replace("{{spec}}", ""))
+        brief = (claude / "briefs" / "q-verify.md").read_text(encoding="utf-8")
+        self.assertIn("{{output}}", brief)  # filled at dispatch time by scripts/dispatch.py
+        self.assertTrue((claude / "scripts" / "dispatch.py").is_file())
+        self.assertTrue((claude / "skills" / "engajar" / "references" / "execute.md").is_file())
+
+    def test_routing_and_decisions_cover_phase3(self):
+        routing = ROOT / "evals" / "routing"
+        for skill, case in (("laforge", "pos-laforge-ticket"), ("mccoy", "pos-mccoy-bug"), ("q", "pos-q-verify")):
+            text = (routing / case / "case.yaml").read_text(encoding="utf-8")
+            self.assertIn(f'input_match: "starcode:{skill}"', text)
+        decisions = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        self.assertIn("## Decisões da Fase 3", decisions)
+        self.assertIn("### F3-1:", decisions)
 
 
 if __name__ == "__main__":

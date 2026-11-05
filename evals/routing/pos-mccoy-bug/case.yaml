@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-mccoy-bug
+description: "Deve disparar a skill starcode:mccoy."
+tags: [routing, positive]
+execution:
+  prompt: "McCoy, o teste test_import_replace falha de novo com o mesmo erro no ticket do StarCode; diagnostique antes de corrigir."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-mccoy
+    tool: Skill
+    input_match: "starcode:mccoy"
+    min: 1

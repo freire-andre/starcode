@@ -6,7 +6,7 @@ pasta para `dist/claude/evals/`; os resultados ficam em `dist/claude/evals/resul
 | Suíte | Casos | Aceite (Fase 1) |
 |---|---|---|
 | `risk-sizing/` | 12 tarefas com a classe esperada (tag `trigger`: 8 com gatilho de risco; `no-trigger`: 4) | 100% dos casos `trigger` (nunca PEQUENA) e ≥90% no total |
-| `routing/` | 15 frases: 8 que devem disparar `engajar`/`setup`/`troi`/`spock`/`data` e 7 que não devem disparar nenhuma skill do StarCode | todas passam (Fases 1 e 2) |
+| `routing/` | 18 frases: 11 que devem disparar `engajar`/`setup`/`troi`/`spock`/`data`/`laforge`/`mccoy`/`q` e 7 que não devem disparar nenhuma skill do StarCode | todas passam (Fases 1, 2 e 3) |
 
 ```
 python tools/build.py

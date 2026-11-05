@@ -4,13 +4,20 @@
   "families": {
     "claude-opus-5-5": "anthropic",
     "claude-sonnet-5-5": "anthropic",
-    "claude-haiku-5-5": "anthropic"
+    "claude-haiku-5-5": "anthropic",
+    "gpt-6-luna": "openai",
+    "gemini-3.8-flash-high": "google",
+    "gemini-3.8-flash-medium": "google",
+    "gemini-3.8-flash-low": "google"
   },
   "available": [
     "picard",
     "spock",
     "troi",
-    "data"
+    "data",
+    "laforge",
+    "mccoy",
+    "q"
   ],
   "crew": {
     "picard": {

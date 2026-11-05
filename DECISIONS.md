@@ -207,3 +207,59 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Problema:** na sessão de aceite da MÉDIA, mesmo com a F2-10, o Handoff foi gravado com `cat >>` e scripts inline, e o diff apareceu no chat. O `**Settled:**` recebeu respostas de antes da aprovação (modo Git, retomada). O Picard também perguntou sobre features paradas esperando o LaForge e sobre um commit de artefato já aprovado.
 - **Decisão:** a Troi, o Spock e o Data trazem o comando exato do `handoff.py` no fechamento do passo. Editar o Handoff à mão fica proibido de forma explícita. `**Settled:**` só recebe respostas depois da aprovação da spec. Na retomada, a feature que espera um tripulante ainda não instalado vira uma linha no relatório, sem pergunta. Um artefato aprovado sem commit é commitado (F2-7) e informado numa linha.
 - **Por que não é bug:** breaker aberto e conflito entre Git e anotações continuam sendo perguntas (4.2, D29). O commit automático vale só para `.specs/` sem outras mudanças misturadas.
+
+## Decisões da Fase 3 (2026-11-04, SC-10)
+
+### F3-1: `dist/` regenerado em todo commit que muda a fonte
+- **Problema:** o `tasks.md` da fase deixava a regeneração do `dist/` só para a T9, mas `test_repo_dist_is_up_to_date` exige o `dist/` atualizado em todo commit que muda `skills/`, `scripts/` ou `hooks/`.
+- **Decisão:** cada commit de código regenera o `dist/` (`python tools/build.py`) e o inclui. No StarCode, `dist/` é saída gerada, não arquivo de ticket.
+- **Motivo:** o primeiro commit da T1 deixou a suíte vermelha até o `dist/` ser regenerado (`43e387e`).
+- **Por que não é bug:** com a Frota (v1.1), dois tickets do próprio StarCode tocariam `dist/` ao mesmo tempo; o Data deve tratar `dist/` como arquivo sensível (`Runs alone`) nesse caso.
+
+### F3-2: Integração e próximo ticket lidos do Git
+- **Problema:** o Handoff guarda só o último commit integrado; uma retomada precisa saber quais tickets já entraram no ramo da feature.
+- **Decisão:** `dispatch.py next` considera integrado o ticket cujo ID do Linear aparece num rodapé `Refs:` de `<base>..feature/<slug>`, ou cujo merge diz `integra T<n>`. Um `**Dispatched:**` sem integração bloqueia novo despacho (saída 3).
+- **Motivo:** a evidência do Git vence a anotação (plano 4.2).
+- **Por que não é bug:** um commit de outro ticket que cite o ID por engano marcaria o ticket como integrado; o `check_scope` e o `Refs` esperado da etapa `ticket` reduzem esse risco.
+
+### F3-3: Provas continuam válidas após commits só em `.specs/`
+- **Problema:** commitar o `proofs.md` e o `verification.md` muda o HEAD, e o gate do tlc reprova provas de outro commit.
+- **Decisão:** `validate_verification.py` aceita provas de um commit anterior quando todos os commits depois dele só mudam `.specs/`.
+- **Motivo:** sem isso, a feature nunca fecha no modo 2.
+- **Por que não é bug:** qualquer mudança de código depois das provas continua reprovando.
+
+### F3-4: Modo 1 fecha só como verificação degradada
+- **Problema:** no modo 1 não há commits, então as provas rodam em árvore suja e os achados não têm commit de fechamento.
+- **Decisão:** `check_proofs.py` grava `**Tree**: dirty (modo 1)` e sai com 1; `validate_verification.py` aceita a árvore suja e o `Closed` com `degradada (modo 1)` só quando o `verification.md` tem `**Verification:** degraded`, e mesmo assim avisa (vermelho com `--strict`).
+- **Motivo:** D11 e plano 4.3: modo 1 é sempre verificação degradada.
+- **Por que não é bug:** a issue nunca vai para concluído no modo 1; o gate só deixa o resultado visível.
+
+### F3-5: Escritor único conferido por `check_scope.py`
+- **Problema:** a regra de que só o Picard escreve `STATE.md` e o Handoff (D28) dependia só do briefing.
+- **Decisão:** antes de integrar, `run_gates.py ticket` roda `check_scope.py`, que reprova arquivo fora do `May change`, mudança em `.specs/STATE.md` ou na seção `## Handoff`, e intervalo sem commit. Um padrão com `*` em `May change` também cobre subpastas (`fnmatch`).
+- **Motivo:** aceite da Fase 3 ("conferido pelo diff de cada ticket").
+- **Por que não é bug:** o Q não passa pelo `check_scope`; a escrita extra dele é descartada pelo Picard (R23).
+
+### F3-6: McCoy dentro do worker do LaForge e Q com cascata de CLIs
+- **Problema:** o plano não dizia onde o McCoy roda, nem o que fazer quando o Codex não sobe.
+- **Decisão:** o McCoy é uma skill acionada pelo LaForge na 2ª falha do mesmo erro, na mesma sessão do worker. O Q tenta `codex`, depois `antigravity` com modelo Gemini, e por fim um subagente de contexto limpo marcado `self-verified`.
+- **Motivo:** padrões aprovados com a spec da fase (2026-11-04, user: "sim").
+- **Por que não é bug:** o subagente `self-verified` aparece como degradado no Linear e no banner (D7).
+
+### F3-7: Sub-issues de fase do StarCode concluídas ao terminar
+- **Problema:** a regra de "concluído só com confirmação" (R31) vale para as features que o StarCode executa; as sub-issues da própria fase (SC-20 a SC-29) são tarefas de desenvolvimento do plugin.
+- **Decisão:** cada sub-issue da fase vai para Done quando seu commit passa na suíte completa, com comentário do commit e dos checks. A SC-10 só fecha depois do aceite e do merge.
+- **Motivo:** o usuário pediu o Linear sempre atualizado.
+- **Por que não é bug:** o aceite da fase (T10) continua sendo a evidência que fecha a SC-10.
+
+### F3-8: Fechar o disjuntor dá tentativas novas ao erro
+- **Problema:** no aceite (roteiro 4), depois de o usuário escolher uma saída e o Picard gravar `--breaker closed`, a primeira falha do mesmo erro reabria o disjuntor (`attempts 4/3`), porque o contador ficava em 3.
+- **Decisão:** `handoff.py set --breaker closed` sobre um disjuntor aberto zera o contador do identificador que o abriu; os outros identificadores ficam como estavam.
+- **Motivo:** a escolha do usuário (repensar ou voltar ao último commit integrado) é um recomeço daquele erro; sem o zero, a saída escolhida não teria nenhuma tentativa.
+- **Por que não é bug:** as 3 falhas seguidas continuam abrindo o disjuntor; só o recomeço depois da decisão do usuário passa a contar do zero.
+
+### F3-9: `check_proofs` roda todo `Run` declarado
+- **Problema:** o Q da fase 3 achou que um `**Run <nome>**:` que nenhum `Proof:` cita era ignorado, e o `proofs.md` não registrava a saída dele, contra o R1.
+- **Decisão:** cada `Run` declarado em `## Checks` roda uma vez, citado ou não, e a saída vai para `## Output`; um `Run` não citado que falha deixa as provas vermelhas.
+- **Motivo:** um comando declarado nos checks faz parte da evidência; ignorá-lo esconderia uma suíte vermelha.
+- **Por que não é bug:** as provas citadas continuam julgadas pela linha esperada; só deixou de existir o comando declarado e não executado.

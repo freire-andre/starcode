@@ -89,6 +89,64 @@ class HandoffTest(unittest.TestCase):
         self.assertTrue(any("dark-mode" in w for w in wip))
         self.assertTrue(any("dark-mode" in b for b in breaker))
 
+    def tasks(self) -> None:
+        (self.feat / "tasks.md").write_text("# Dark mode: Tasks\n\n## Tasks\n", encoding="utf-8")
+
+    def test_handoff_execution_fields(self):
+        self.tasks()
+        code, _ = self.run_cli("set", "dark-mode", "--phase", "execute", "--integration-branch", "feature/dark-mode",
+                               "--dispatched", "T1 · SC-7 · base abc1234 · dispatch d-1 · model claude-sonnet-5-5")
+        self.assertEqual(code, 0)
+        self.run_cli("set", "dark-mode", "--last-integrated", "def5678", "--report", "T1: 2 arquivos, gates verdes")
+        self.run_cli("set", "dark-mode", "--report", "T2: 1 arquivo")
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Integration branch:** feature/dark-mode", text)
+        self.assertIn("**Dispatched:** T1 · SC-7 · base abc1234 · dispatch d-1", text)
+        self.assertIn("**Last integrated:** def5678", text)
+        self.assertRegex(text, r"\*\*Reports:\*\* \d{4}-\d{2}-\d{2}: T1: 2 arquivos, gates verdes; \d{4}-\d{2}-\d{2}: T2: 1 arquivo")
+        self.assertIn("**Phase:** execute", text)  # fields not passed are kept
+
+    def test_attempts_count_and_reset(self):
+        self.tasks()
+        self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.run_cli("set", "dark-mode", "--attempt", "worker-T2=fail")
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Attempts:** gate-T1=2, worker-T2=1", text)
+        self.run_cli("set", "dark-mode", "--attempt", "gate-T1=ok")
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Attempts:** worker-T2=1", text)
+        self.assertIn("**Breaker:** closed", text)
+        code, _ = self.run_cli("set", "dark-mode", "--attempt", "gate-T1")
+        self.assertEqual(code, 2)
+
+    def test_third_failure_opens_breaker(self):
+        self.tasks()
+        for _ in range(2):
+            self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        code, out = self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.assertEqual(code, 0)
+        self.assertIn("DISJUNTOR ABERTO", out)
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Breaker:** open (gate-T1, attempts 3/3)", text)
+        self.run_cli("set", "dark-mode", "--breaker", "closed", "--attempt", "gate-T1=ok")
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Breaker:** closed", text)
+
+    def test_closing_breaker_resets_its_counter(self):
+        # After the user picks an exit, `--breaker closed` alone must give the id 3 fresh attempts.
+        self.tasks()
+        for _ in range(3):
+            self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.run_cli("set", "dark-mode", "--attempt", "worker-T2=fail")
+        self.run_cli("set", "dark-mode", "--breaker", "closed")
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Attempts:** worker-T2=1", text)
+        code, out = self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.assertNotIn("DISJUNTOR ABERTO", out)
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Breaker:** closed", text)
+
 
 if __name__ == "__main__":
     unittest.main()
