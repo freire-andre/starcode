@@ -10,7 +10,8 @@
     "picard",
     "spock",
     "troi",
-    "data"
+    "data",
+    "q"
   ],
   "crew": {
     "picard": {

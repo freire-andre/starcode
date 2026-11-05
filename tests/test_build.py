@@ -61,7 +61,9 @@ class BuildTests(unittest.TestCase):
     def test_crew_json_lists_only_available(self):
         build.build(self.src, self.out)
         crew = json.loads((self.out / "dist" / "claude" / "crew.json").read_text(encoding="utf-8"))
-        self.assertEqual(crew["available"], ["picard", "spock", "troi", "data"])
+        self.assertEqual(crew["available"][:4], ["picard", "spock", "troi", "data"])
+        self.assertIn("q", crew["available"])  # Phase 3: skills/q exists
+        self.assertNotIn("uhura", crew["available"])  # no skills/uhura yet
         self.assertEqual(crew["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
 
     def test_claude_hooks_use_plugin_root(self):
