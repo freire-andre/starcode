@@ -2,7 +2,7 @@
 
 Rules from `<plugin-root>/skills/engajar/references/linear-contract.md` apply. Team, workspace and the
 exact state names come from `.starcode/config.json` (`linear.team`, `linear.workspace`,
-`linear.states.unstarted`). If the repo config is missing, stop and recommend `/starcode:setup`.
+`linear.states.unstarted`). If the repo config is missing, stop and recommend `a skill `setup` do StarCode`.
 
 ## 1. Plan, shown with the tasks (one message, F2-9)
 
@@ -52,4 +52,4 @@ and this confirmation. No answer, "só aprovar", or anything but a yes means not
   unconfirmed write: retry with it, never with a fresh create.
 - MCP not available for the Project: show the fields for the user to create it by hand and continue
   with the issues without a project, after saying so.
-- A state name rejected by the CLI: stop and recommend `/starcode:setup` (the mapping is stale).
+- A state name rejected by the CLI: stop and recommend `a skill `setup` do StarCode` (the mapping is stale).
