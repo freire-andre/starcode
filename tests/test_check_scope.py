@@ -67,6 +67,19 @@ class CheckScopeTests(TempRepoCase):
         self.assertIn("`.specs/STATE.md` alterado", errs)
         self.assertIn("`## Handoff` alterado em .specs/features/demo/tasks.md", errs)
 
+    def test_directory_entry_with_trailing_slash(self):
+        # C7/R6: `May change: app/` allows files under app/ and refuses a sibling that only shares the prefix.
+        (self.fdir / "tasks.md").write_text(TASKS.replace("`app/store.py`, `tests/`, `docs/*.md`", "`app/`"),
+                                            encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "scope")
+        base = run_git(self.repo, "rev-parse", "HEAD")
+        head = self.commit({"app/child.py": "x\n", "apps/x.py": "y\n"})
+        res = check_scope.evaluate("demo", "T1", f"{base}..{head}", self.repo)
+        errs = "\n".join(res.errors)
+        self.assertIn("apps/x.py: fora do `May change`", errs)
+        self.assertNotIn("app/child.py: fora", errs)
+
     def test_no_commit_is_an_error(self):
         res = check_scope.evaluate("demo", "T1", f"{self.base}..{self.base}", self.repo)
         self.assertTrue(any("nenhum commit" in e for e in res.errors), res.report())
