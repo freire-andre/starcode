@@ -33,18 +33,27 @@ Roteiro `docs/aceite/roteiros-fase-4/codex.md`: feature `vencimento-tarefas` (`a
 
 ## Antigravity
 
-**Resultado**: reprovado (falha do núcleo comum na instalação, R29). O roteiro `docs/aceite/roteiros-fase-4/antigravity.md` não rodou, porque o plugin não instala.
+**Resultado**: aprovado (tentativa 2).
 
-Versões: Orca 1.4.248, Antigravity CLI (`agy`) 1.5.1 (a matriz da Fase 0 foi feita com a 1.4.12), plugin `starcode` de `dist/antigravity` (worktree `f4-t10`, base `eca7324`).
+**Histórico**:
+- **Tentativa 1: reprovado (instalação)**, base `eca7324`. `agy plugin validate dist/antigravity --strict` (agy 1.5.1) falhou com `rules/starcode.md: no valid trigger in the frontmatter, so the rule never applies. Set trigger to always_on, model_decision, glob, manual`. O roteiro não rodou. A correção saiu no SC-41 (`3b0348c`, `trigger: always_on`).
+- **Tentativa 2: aprovado** (esta seção).
+
+Versões: Orca 1.4.248, Antigravity CLI (`agy`) 1.5.1, plugin `starcode` 0.1.0 instalado de `dist/antigravity` (worktree `f4-integ`, commit `39c0813`).
+Roteiro `docs/aceite/roteiros-fase-4/antigravity.md`: feature `buscar-tarefas` (`buscar TERMO`), modo Git 2.
 
 **Evidência**:
-- **Instalação**: `python tools/install_local.py --cli antigravity` saiu com erro no primeiro passo, `agy plugin validate dist/antigravity --strict`, e o `agy plugin install` nem rodou. Linha exata do erro: `✗ rules/starcode.md: no valid trigger in the frontmatter, so the rule never applies. Set trigger to always_on, model_decision, glob, manual`. Resumo do `agy`: `skills 8 · agents 0 · rules 0 · hooks 0 · mcpServers 0 · sidecars 0` e `Error: validation failed: 1 error, 0 warnings`.
-- **Sem `--strict`**: `agy plugin validate dist/antigravity` dá o mesmo erro. Não há contorno pelas flags.
-- **Causa provável (não corrigida aqui)**: `dist/antigravity/rules/starcode.md` começa direto em `# StarCode core rules...`, sem frontmatter com `trigger:`. O `agy` 1.5.1 passou a exigir o campo. O aviso de logo (`plugin.json: no logo`) segue sendo só aviso.
-- **Não rodou**: setup, engajar, Linear (PROJ), tickets, `run_gates.py done` e os modelos efetivos. Não criei worktree no sandbox nem issue no Linear, porque sem o plugin instalado o worker não teria o fluxo StarCode.
-- **Limites do ticket**: `dist/`, `tools/` e `scripts/` estão fora do `May change`, então não corrigi a regra. Nenhum `--dangerously-skip-permissions` foi usado.
+- **Instalação**: `python tools/install_local.py --cli antigravity` passou. `validate --strict` deu `skills 8 · agents 0 · rules 1 · hooks 0 · mcpServers 0 · sidecars 0` e `Validation passed` (só o aviso de logo). `agy plugin install` instalou 8 skills e 1 regra em `~/.gemini/config/plugins/starcode`.
+- **Despacho**: Picard do Antigravity como worker da Orca (`worker-start --agent antigravity --model gemini-3.8-flash-high`, dispatch `ctx_a006af4a40fa`) em worktree novo do sandbox, criado de `main` (`f4-antigravity-aceite`). Aninhamento: eu (1), Picard (2), LaForge e Q dele (3). Sem `--dangerously-skip-permissions` e sem `--dangerously-bypass-hook-trust`.
+- **Setup e engajar**: o `setup` gravou `.starcode/config.json` (time PROJ; Todo/In Progress/Done; sem estado de revisão) e o `engajar` passou, ambos com a aprovação pré-gravada do roteiro (`roteiro pré-aprovado em 2026-11-05`).
+- **Linear (PROJ)**: PROJ-14 (mãe), PROJ-15 (T1) e PROJ-16 (T2). Caminho: issue-mãe pelo `orca linear`, porque o MCP do Linear não está disponível no Antigravity.
+- **Commits** (ramo `feature/buscar-tarefas`, sem push): T1 (PROJ-15) `ca78587`; T2 (PROJ-16) `532e192`; provas `17d1a30`; verificação do Q `650cfec`; correção do achado do Q `1b01009`; fechamento `d335920`; HEAD `f9bbb6c`.
+- **Gates**: `run_gates.py done buscar-tarefas` em `f9bbb6c`: `VEREDITO: VERDE (etapa done, 1 gate(s))` (reexecutado por mim). `python -m unittest`: 13 testes OK.
+- **Q**: codex, de outra família (pedido `cli-default`, efetivo `gpt-6-luna`). O achado único (R1: `lower()` não trata `ß` ≈ `SS`) foi corrigido com `casefold()` em `1b01009` e marcado como fechado. O cabeçalho de `verification.md` ainda mostra `Verdict: FAIL`, escrito antes da correção; o gate `validate_verification` passa com 0 erro.
+- **Modelos efetivos**: Picard e LaForge `antigravity · gemini-3.8-flash-high` (terminal: "Gemini 3.8 Flash · high"); Troi, Spock e Data rodaram no Picard, no mesmo modelo.
 
 **Achados** (vão para o ciclo de correção):
-1. O adaptador do Antigravity gera `rules/starcode.md` sem `trigger` no frontmatter, e o `agy plugin validate --strict` (1.5.1) reprova. Correção sugerida: o gerador em `src/` emitir `trigger: always_on` (a regra vale para toda a tripulação) e `dist/antigravity` ser regenerado. Depois, repetir este aceite.
-2. O mesmo validador contou `agents 0 · rules 0 · hooks 0`, embora `dist/antigravity` tenha hooks e a regra. Confirmar, depois do ajuste, se o `agy` 1.5.1 ainda lê o layout de agentes e hooks, ou se o manifesto mudou.
-3. A matriz da Fase 0 foi medida no `agy` 1.4.12. Com a 1.5.1 a instalação mudou de passa para falha: reexecutar a coluna Antigravity depois da correção.
+1. O `agy` 1.5.1 contou `agents 0 · hooks 0` para `dist/antigravity`, que tem `hooks/scripts` e `crew.json` mas nenhum `hooks.json` na raiz. Sem os hooks nativos, o banner e o bloqueio de comandos do StarCode não funcionam no Antigravity. O fluxo funcionou por fallback (o `engajar` faz o preflight sozinho). Gerar o `hooks.json` no adaptador e reexecutar a célula de hook e banner.
+2. O MCP do Linear não ficou disponível; o `orca linear` cobriu a publicação.
+3. O plugin de teste `starcode-hello` (Fase 0) continua instalado no `agy` junto com o `starcode`. Desinstalar depois do aceite.
+4. Divergência de estado: `verification.md` com `Verdict: FAIL` e achado fechado. O Q deveria regravar o veredito depois do fechamento.
