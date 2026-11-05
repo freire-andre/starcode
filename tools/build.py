@@ -274,7 +274,9 @@ def build_antigravity(src: dict, out: Path, root: Path) -> None:
                {"name": NAME, "version": src["version"], "description": DESC, "author": AUTHOR["name"]})
     emit_skills(src, "antigravity", out)
     emit_common(src, out, root, "antigravity")
-    write(out / "rules" / "starcode.md", (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
+    # agy exige frontmatter com trigger válido; sem ele a regra nunca se aplica.
+    write(out / "rules" / "starcode.md",
+          "---\ntrigger: always_on\n---\n" + (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
 
 
 def build_opencode(src: dict, out: Path, root: Path) -> None:

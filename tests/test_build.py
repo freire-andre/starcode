@@ -48,6 +48,13 @@ class BuildTests(unittest.TestCase):
         self.assertFalse((dist / "claude" / "plugin.json").exists())
         self.assertFalse((dist / "antigravity" / ".claude-plugin").exists())
 
+    def test_antigravity_rule_has_always_on_trigger(self):
+        build.build(self.src, self.out)
+        rule = (self.out / "dist" / "antigravity" / "rules" / "starcode.md").read_text(encoding="utf-8")
+        self.assertTrue(rule.startswith("---\ntrigger: always_on\n---\n"), rule[:80])
+        body = (self.src / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8")
+        self.assertTrue(rule.endswith(body))
+
     def test_placeholders_rendered_per_cli(self):
         build.build(self.src, self.out)
         claude = (self.out / "dist" / "claude" / "skills" / "engajar" / "SKILL.md").read_text(encoding="utf-8")
