@@ -102,7 +102,8 @@ class DispatchTests(TempRepoCase):
         self.assertIn("May change: `app/cli.py`", text)
         self.assertIn("Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`", text)
         self.assertIn("Relatório final (até 5 linhas)", text)
-        self.assertIn("run_gates.py ticket demo T2", text)
+        self.assertIn("run_gates.py\" ticket demo T2", text)
+        self.assertIn("/scripts/gates/run_gates.py", text)  # absolute plugin path: works without the skill
         self.assertNotIn("T1: Modelo", text)
 
     def test_q_brief_fills_placeholders(self):

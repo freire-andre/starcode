@@ -44,8 +44,8 @@ WORKER_RULES = """## Regras fixas do worker (StarCode)
 - Implemente só este ticket e altere só os arquivos de `May change`. Precisa de outro arquivo? Pare e
   diga qual e por quê.
 - Nunca escreva `.specs/STATE.md` nem a seção `## Handoff` de nenhum artefato: só o Picard escreve nelas.
-- Antes de terminar: `run_gates.py ticket {slug} {ticket} <base>..HEAD` verde (base = commit de partida
-  deste worktree).
+- Antes de terminar: `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde
+  (base = commit de partida deste worktree).
 - Falhas: identificador estável por erro; na 2ª falha do mesmo erro, use a skill `mccoy`; na 3ª, pare.
 - Relatório final (até 5 linhas): o que mudou, gates executados com resultado, commits, pendências,
   tentativas do disjuntor (`<id>=<n>` ou `none`).
@@ -119,7 +119,7 @@ def worker_brief(slug: str, ticket: str, root: Path) -> str:
         raise LookupError(f"ticket {ticket} não existe em {fdir / 'tasks.md'}")
     body = tasks_export.briefing(task, fdir.name)
     head = f"# Ticket {task.tid}: {task.title}\n\nIssue: {linear_id(task) or 'sem issue'}\n\n"
-    return head + body + "\n" + WORKER_RULES.format(slug=fdir.name, ticket=task.tid)
+    return head + body + "\n" + WORKER_RULES.format(slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
 
 
 def brief_template() -> Path:
