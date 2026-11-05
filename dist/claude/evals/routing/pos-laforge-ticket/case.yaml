@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-laforge-ticket
+description: "Deve disparar a skill starcode:laforge."
+tags: [routing, positive]
+execution:
+  prompt: "LaForge, implemente o ticket T2 da feature task-priority do StarCode seguindo o briefing do worktree."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-laforge
+    tool: Skill
+    input_match: "starcode:laforge"
+    min: 1

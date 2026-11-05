@@ -4,7 +4,7 @@ Python stdlib only. Nothing in dist/ is edited by hand.
   python tools/build.py           regenerate dist/ and the marketplace manifests
   python tools/build.py --check   build into a temp dir and fail (exit 1) if dist/ is out of date
 
-Source: skills/, hooks/scripts/, scripts/, src/crew.yaml, src/context/STARCODE.md, schemas/, evals/, VERSION.
+Source: skills/, hooks/scripts/, scripts/, src/crew.yaml, src/context/STARCODE.md, src/briefs/, schemas/, evals/, VERSION.
 Only crew members whose skill exists are emitted (crew.json "available"); plugin validation passes at
 every phase. Hooks are registered only for Claude in Phase 1 (other CLIs: Phase 5).
 
@@ -178,6 +178,8 @@ def emit_common(src: dict, out: Path, root: Path) -> None:
     copy_tree(root / "hooks" / "scripts", out / "hooks" / "scripts")
     write(out / "context" / "STARCODE.md", (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
     copy_tree(root / "schemas", out / "schemas")
+    if (root / "src" / "briefs").is_dir():  # worker briefs (q-verify.md), read by scripts/dispatch.py
+        copy_tree(root / "src" / "briefs", out / "briefs")
     crew_json = {
         "schemaVersion": src["crew_doc"].get("schemaVersion", 1),
         "version": src["version"],
