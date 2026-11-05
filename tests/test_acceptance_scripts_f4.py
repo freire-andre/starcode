@@ -9,9 +9,9 @@ from helpers import ROOT
 DIR = ROOT / "docs" / "aceite" / "roteiros-fase-4"
 SECTIONS = ("Missão", "Respostas", "Aprovações", "Tripulação", "Relatório esperado")
 EXPECT = {
-    "codex": ("add --vence AAAA-MM-DD", "gpt-6-luna", "gemini-3.8-flash-high"),
-    "antigravity": ("buscar TERMO", "gemini-3.8-flash-high", "Q no codex"),
-    "opencode": ("exportar-md ARQ", "openrouter/deepseek/deepseek-v4-pro", "Q no codex"),
+    "codex": ("add --vence AAAA-MM-DD", "gpt-6-luna", "Q: no antigravity, modelo `gemini-3.8-flash-high`"),
+    "antigravity": ("buscar TERMO", "gemini-3.8-flash-high", "Q: no codex"),
+    "opencode": ("exportar-md ARQ", "openrouter/deepseek/deepseek-v4-pro", "Q: no codex"),
 }
 
 
