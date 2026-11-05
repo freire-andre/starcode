@@ -24,7 +24,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | `orca worktree create --agent <id> --linear-issue` | ✅ | ✅ | ✅ | ✅ |
 | `orca orchestration worker-start` (`--spec-file`, resultado, modelo) | ✅ ⁸ | ✅ ⁵ | ✅ ⁸ | não testado ⁹ |
 | MCP do Linear disponível | ✅ | ⏳ ¹⁰ | ⚠️ ¹⁰ | ❌ ¹⁰ |
-| Fluxo StarCode completo (aceite da Fase 4) | ✅ ¹¹ | ✅ ¹¹ | ⏳ | ⏳ |
+| Fluxo StarCode completo (aceite da Fase 4) | ✅ ¹¹ | ✅ ¹¹ | ❌ ¹² | ⏳ |
 
 ## Notas
 
@@ -59,6 +59,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
     - OpenCode: sem MCP.
     - O StarCode usa o `orca linear` para quase tudo (D2).
 11. **Aceite da Fase 4, Codex**: aprovado em 2026-11-05 (`docs/aceite/fase-4.md`, seção Codex). Picard e equipe em `gpt-6-luna`, Q no Antigravity; `run_gates.py done` deu VEREDITO VERDE e PROJ-11 a PROJ-13 foram publicadas pelo `orca linear` (o MCP do Linear do Codex segue sem login). Claude: aceite da Fase 3 (`docs/aceite/fase-3.md`).
+12. **Aceite da Fase 4, Antigravity**: reprovado em 2026-11-05 (`docs/aceite/fase-4.md`, seção Antigravity). Com o `agy` 1.5.1, `tools/install_local.py --cli antigravity` falha em `agy plugin validate dist/antigravity --strict`: `rules/starcode.md: no valid trigger in the frontmatter, so the rule never applies. Set trigger to always_on, model_decision, glob, manual`. O roteiro não rodou. As outras linhas da coluna são da Fase 0 (`agy` 1.4.12) e precisam ser reexecutadas depois da correção da regra.
 
 ## Procedimentos (por célula)
 
