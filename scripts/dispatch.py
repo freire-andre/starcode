@@ -18,6 +18,7 @@ Python stdlib only.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -35,7 +36,9 @@ import tasks_export  # noqa: E402
 import validate_tasks as vt  # noqa: E402
 
 PREFIX_FAMILIES = (("claude", "anthropic"), ("gpt", "openai"), ("o1", "openai"), ("o3", "openai"),
-                   ("o4", "openai"), ("codex", "openai"), ("gemini", "google"))
+                   ("o4", "openai"), ("codex", "openai"), ("gemini", "google"), ("deepseek", "deepseek"))
+VENDOR_FAMILIES = {"anthropic": "anthropic", "openai": "openai", "google": "google", "deepseek": "deepseek"}
+Q_CLI_ORDER = ("codex", "antigravity", "opencode")
 CLI_FAMILIES = {"claude": "anthropic", "codex": "openai", "antigravity": "google", "agy": "google"}
 
 WORKER_RULES = """## Regras fixas do worker (StarCode)
@@ -111,7 +114,29 @@ def next_ticket(slug: str, root: Path, branch: str | None = None,
     return 1, "todos os tickets integrados"
 
 
+def spec_brief(slug: str, ticket: str, root: Path) -> str:
+    """MEDIUM feature (no tasks.md): the briefing comes from spec.md (R23, R24)."""
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    lines = gc.read_lines(fdir / "spec.md")
+    checks = gc.section(lines, "Checks")
+    if not checks or not gc.meaningful(checks):
+        raise LookupError("spec sem ## Checks: não há o que entregar ao worker")
+    title = next((ln[2:].strip() for ln in lines if ln.startswith("# ")), fdir.name)
+    m = re.search(r"^\*\*Linear\*\*:[ \t]*(.*)$", "\n".join(lines), re.M)
+    ids = gc.LINEAR_ID_RE.findall(m.group(1)) if m else []
+    out = [f"# {title}", "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
+           f"Feature: `{fdir.name}` · Ticket {ticket}", ""]
+    for name in ("Scope", "Requirements", "Checks"):
+        body = gc.section(lines, name) or []
+        out += [f"## {name}", *body, ""]
+    return "\n".join(out).rstrip() + "\n\n" + WORKER_RULES.format(
+        slug=fdir.name, ticket=ticket, plugin=sc.PLUGIN_ROOT.as_posix())
+
+
 def worker_brief(slug: str, ticket: str, root: Path) -> str:
+    fdir0 = gc.resolve_feature(slug, root, "spec.md")
+    if not (fdir0 / "tasks.md").exists():
+        return spec_brief(slug, ticket, root)
     fdir, tasks = load_tasks(slug, root)
     want = ticket.upper()
     task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
@@ -147,8 +172,11 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
 
 def family(spec: str) -> str:
     """Family of `cli:model`, `model` or `cli`; 'unknown' when it cannot be told."""
-    cli, _, model = spec.partition(":") if ":" in spec else ("", "", spec)
+    cli, _, model = spec.partition(":") if ":" in spec and not spec.lower().startswith("openrouter/")         else ("", "", spec)
     model = model.strip().lower()
+    if model.startswith("openrouter/"):
+        parts = model.split("/")
+        return VENDOR_FAMILIES.get(parts[1], "unknown") if len(parts) >= 3 else "unknown"
     fams = {k.lower(): v for k, v in (sc.load_crew().get("families") or {}).items()}
     if model in fams:
         return fams[model]
@@ -166,6 +194,43 @@ def compare(a: str, b: str) -> str:
     if "unknown" in (fa, fb):
         return "unknown"
     return "same" if fa == fb else "different"
+
+
+def _orca_worker_ok(cli: str, caps_dir: Path | None) -> bool:
+    dirs = [caps_dir] if caps_dir else [sc.PLUGIN_ROOT.parent, sc.PLUGIN_ROOT / "dist"]
+    for d in dirs:
+        f = d / cli / "capabilities.json"
+        if f.is_file():
+            try:
+                extras = json.loads(f.read_text(encoding="utf-8")).get("extras", {})
+            except (OSError, ValueError):
+                return False
+            return (extras.get("orca_worker") or {}).get("status") == "ok"
+    own = sc.PLUGIN_ROOT / "capabilities.json"
+    if not caps_dir and own.is_file():
+        try:
+            doc = json.loads(own.read_text(encoding="utf-8"))
+            if doc.get("cli") == cli:
+                return (doc.get("extras", {}).get("orca_worker") or {}).get("status") == "ok"
+        except (OSError, ValueError):
+            pass
+    return False
+
+
+def q_cli(laforge: str, configured: str | None = None, caps_dir: Path | None = None) -> str | None:
+    """First CLI of (configured, codex, antigravity, opencode) whose family differs from the LaForge's
+    and whose `orca_worker` extra is ok (R18); None means self-verified (R19)."""
+    lf = family(laforge)
+    seen: list[str] = []
+    for spec in ([configured] if configured else []) + list(Q_CLI_ORDER):
+        if spec in seen:
+            continue
+        seen.append(spec)
+        cli = spec.partition(":")[0]
+        fam = family(spec)
+        if fam != "unknown" and lf != "unknown" and fam != lf and _orca_worker_ok(cli, caps_dir):
+            return spec
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -191,6 +256,10 @@ def main(argv: list[str] | None = None) -> int:
     pf = sub.add_parser("family")
     pf.add_argument("spec")
     pf.add_argument("--compare")
+    pc = sub.add_parser("q-cli")
+    pc.add_argument("--laforge", required=True)
+    pc.add_argument("--configured")
+    pc.add_argument("--caps-dir")
     a = p.parse_args(argv)
     try:
         if a.cmd == "next":
@@ -205,6 +274,10 @@ def main(argv: list[str] | None = None) -> int:
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")
             return 0
+        if a.cmd == "q-cli":
+            pick = q_cli(a.laforge, a.configured, Path(a.caps_dir) if a.caps_dir else None)
+            print(pick or "self-verified")
+            return 0 if pick else 1
         if a.compare:
             print(compare(a.spec, a.compare))
         else:
