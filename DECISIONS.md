@@ -251,3 +251,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** cada sub-issue da fase vai para Done quando seu commit passa na suíte completa, com comentário do commit e dos checks. A SC-10 só fecha depois do aceite e do merge.
 - **Motivo:** o usuário pediu o Linear sempre atualizado.
 - **Por que não é bug:** o aceite da fase (T10) continua sendo a evidência que fecha a SC-10.
+
+### F3-8: Fechar o disjuntor dá tentativas novas ao erro
+- **Problema:** no aceite (roteiro 4), depois de o usuário escolher uma saída e o Picard gravar `--breaker closed`, a primeira falha do mesmo erro reabria o disjuntor (`attempts 4/3`), porque o contador ficava em 3.
+- **Decisão:** `handoff.py set --breaker closed` sobre um disjuntor aberto zera o contador do identificador que o abriu; os outros identificadores ficam como estavam.
+- **Motivo:** a escolha do usuário (repensar ou voltar ao último commit integrado) é um recomeço daquele erro; sem o zero, a saída escolhida não teria nenhuma tentativa.
+- **Por que não é bug:** as 3 falhas seguidas continuam abrindo o disjuntor; só o recomeço depois da decisão do usuário passa a contar do zero.
