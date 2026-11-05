@@ -391,13 +391,15 @@ Proof: run unit | test_acceptance_doc_has_all_scripts ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** execute
 **Size:** LARGE
 **Git mode:** 2
-**Next:** Implementar T1 (SC-20) na sessão (LaForge ainda não existe), depois T4
+**Next:** T10 (SC-29): roteiros de aceite no sandbox com task-priority (aguarda confirmação do custo dos workers)
 **Linear:** SC-10 (pai); T1..T10 = SC-20..SC-29 (Todo, crew:data, blocks), publicado em 2026-11-04 após user: "sim"
 **Integration branch:** not created
-**Last integrated:** none
+**Last integrated:** ea4f973
 **Dispatched:** none
 **Settled:** none
+**Attempts:** none
+**Reports:** 2026-11-04: T1..T9 implementados na sessão (bootstrap, LaForge ainda não existia): 70fd351, 43e387e, 7a0d379, 06c3f4a, 822a6a0, e6f00b8, ca881af, 33a4869, 2f3604f, 496c5ac; suíte completa OK
 **Breaker:** closed
