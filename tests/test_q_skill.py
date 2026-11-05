@@ -22,6 +22,12 @@ class QBriefTests(unittest.TestCase):
         for heading in ("**Verdict**:", "**Proofs**:", "**HEAD**:", "## Checks", "## Findings", "| Closed |"):
             self.assertIn(heading, BRIEF)
         self.assertIn("at most 5 lines", BRIEF)
+        # the file is written as UTF-8 without BOM, with real line breaks, through a file-editing tool
+        self.assertIn("UTF-8 without BOM", BRIEF)
+        self.assertIn("real line breaks", BRIEF)
+        self.assertIn("Set-Content", BRIEF)
+        self.assertIn("Out-File", BRIEF)
+        self.assertIn("-Encoding utf8", BRIEF)
         self.assertNotIn("Handoff", BRIEF)  # the author's reasoning never reaches the verifier
 
     def test_q_skill_records_model_and_head(self):
