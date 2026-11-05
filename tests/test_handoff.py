@@ -133,6 +133,20 @@ class HandoffTest(unittest.TestCase):
         text = (self.feat / "tasks.md").read_text(encoding="utf-8")
         self.assertIn("**Breaker:** closed", text)
 
+    def test_closing_breaker_resets_its_counter(self):
+        # After the user picks an exit, `--breaker closed` alone must give the id 3 fresh attempts.
+        self.tasks()
+        for _ in range(3):
+            self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.run_cli("set", "dark-mode", "--attempt", "worker-T2=fail")
+        self.run_cli("set", "dark-mode", "--breaker", "closed")
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Attempts:** worker-T2=1", text)
+        code, out = self.run_cli("set", "dark-mode", "--attempt", "gate-T1=fail")
+        self.assertNotIn("DISJUNTOR ABERTO", out)
+        text = (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertIn("**Breaker:** closed", text)
+
 
 if __name__ == "__main__":
     unittest.main()

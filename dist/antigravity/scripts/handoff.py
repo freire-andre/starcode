@@ -140,9 +140,15 @@ def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | No
             texts[art] = strip_section(lines, bounds)
         elif art == target:
             texts[art] = lines
+    was_open = re.match(r"open\s*\(\s*([^,)\s]+)", values.get("breaker", ""))
     for option, marker, _ in FIELDS:
         if updates.get(option) is not None:
             values[marker.lower()] = updates[option]
+    if was_open and values.get("breaker", "").startswith("closed"):
+        # Closing after the user's choice gives that error id a fresh count (D27).
+        counts = parse_attempts(values.get("attempts", ""))
+        counts.pop(was_open.group(1), None)
+        values["attempts"] = ", ".join(f"{k}={v}" for k, v in counts.items()) or "none"
     if settle:
         append_item(values, "settled", settle, today)
     if report:
