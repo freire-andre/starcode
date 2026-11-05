@@ -28,7 +28,7 @@ class BannerExecutionTests(TempRepoCase):
         for _ in range(3):
             handoff.set_handoff("task-priority", self.repo, {"phase": "execute"}, attempt="worker-T2=fail")
         text, line, _ = self.build()
-        self.assertIn("Disjuntor aberto: task-priority (worker-T2)", text)
+        self.assertIn("\n⚠️ Disjuntor aberto: task-priority (worker-T2)\n", "\n" + text + "\n")
         self.assertIn("disjuntor aberto", line)
 
     def test_banner_shows_degraded_verification(self):
@@ -36,7 +36,17 @@ class BannerExecutionTests(TempRepoCase):
         handoff.set_handoff("task-priority", self.repo, {"phase": "review"})
         (feat / "verification.md").write_text("# v\n\n**Verification:** self-verified\n", encoding="utf-8")
         text, line, _ = self.build()
-        self.assertIn("Verificação: degradada (task-priority)", text)
+        self.assertIn("\n⚠️ Verificação: degradada (task-priority)\n", "\n" + text + "\n")
+        self.assertIn("verificação degradada", line)
+
+    def test_banner_shows_degraded_verification_marker(self):
+        # C14/R30: the `**Verification:** degraded (<reason>)` marker counts as much as `self-verified`.
+        feat = self.feature()
+        handoff.set_handoff("task-priority", self.repo, {"phase": "review"})
+        (feat / "verification.md").write_text(
+            "# v\n\n**Verification:** degraded (Q na mesma família: claude)\n", encoding="utf-8")
+        text, line, _ = self.build()
+        self.assertIn("\n⚠️ Verificação: degradada (task-priority)\n", "\n" + text + "\n")
         self.assertIn("verificação degradada", line)
 
     def test_no_breaker_line_when_closed(self):
