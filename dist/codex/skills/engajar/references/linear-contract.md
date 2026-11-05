@@ -40,6 +40,13 @@
 | Criteria met + delivery authorized | `completed` (never in mode 1) | Picard, with confirmation |
 | Blocked, worker stopped or abandoned | `blocked` if it exists; otherwise a comment | anyone |
 
+## Execution comments (Phase 3, neutral text)
+- Dispatch: none (the state change to `started` and `crew:laforge` say it).
+- Worker failure: one line with the reason and the attempt (`worker-T2`, 2/3).
+- Integration: "integrado em `feature/<slug>`" + short hash.
+- Review: "pronto para revisão" + HEAD, proofs result and the Q verdict (CLI and models).
+- Degraded: "verificação degradada" + reason (self-verified, same family, or Git mode 1).
+
 ## Structure
 - One Linear **Project per feature**; one issue per slice, with `blocks` relations; labels
   `crew:<member>` (e.g. `crew:laforge`) for who holds the ticket.

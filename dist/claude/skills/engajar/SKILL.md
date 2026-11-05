@@ -49,8 +49,9 @@ If the banner shows work in progress, an open circuit breaker or a degraded veri
 **If they disagree, Git evidence wins; an approval line beats a Handoff that says it is pending.**
 Propose the next step (continue, or one of the breaker exits) before anything else.
 Do not turn these into questions (F2-12):
-- Features whose next step belongs to a crew member not installed yet (e.g. `published`, waiting for
-  LaForge): one line in the report, no question. Ask only when the user's message is about them.
+- Features whose next step belongs to a crew member not installed in this version: one line in the
+  report, no question. Ask only when the user's message is about them.
+- Other features in progress that the user's message is not about: one line each, no question.
 - Planning artifacts with an approval line but no commit (modes 2–4): commit them now as F2-7 says and
   report the hash in one line. Ask only if the working tree also has non-`.specs/` changes mixed in.
 - An open breaker or a Git/notes conflict is still a question.
@@ -93,12 +94,21 @@ Before handing off, propose the feature slug (lowercase-hyphen, e.g. `export-csv
 Handoff (`**Phase:** discovery`, size, Git mode, next step) as soon as the first artifact exists, with
 `python "<plugin-root>/scripts/handoff.py" set <slug> --phase discovery --size <S> --git-mode <N> --next "<...>"`.
 
-Invoke the next crew member's skill by name (`troi`, `spock`, `data`, `laforge`). Each one returns to
-you after its step; you then record the Handoff and invoke the next. Gates are run with
+Invoke the next crew member's skill by name (`troi`, `spock`, `data`). Each one returns to you after
+its step; you then record the Handoff and invoke the next. From `published` on (and for PEQUENA/MÉDIA
+after the approval), go to step 5b: LaForge and Q are **workers**, never skills you run yourself. Gates are run with
 `python "<plugin-root>/scripts/gates/run_gates.py" <stage> <slug>` (excuses table:
 `references/gate-excuses.md`). **If the next skill is not installed in this StarCode version**, say which
 crew member would take it and that it arrives in a later phase, record the Handoff with that next step,
 and stop there. Never do that member's job yourself.
+
+### 5b. Execute (Phase 3)
+Follow `references/execute.md`: integration branch `feature/<slug>`, one LaForge worker per ticket via
+`orca orchestration worker-start` (brief from `scripts/dispatch.py brief`), `orca worktree set
+--linear-issue`, wait for `worker_done`, `run_gates.py ticket` then `git merge --no-ff` into the
+integration branch, next ticket without asking; after the last one `run_gates.py proofs`, the Q worker in
+another model family (codex → antigravity → self-verified), the single post-Q fix pass, `run_gates.py
+done`, Linear states and comments. Git mode 1 and the circuit breaker: same reference, sections 6–7.
 
 ### 6. Records
 You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` (D28). Format, location
@@ -108,7 +118,9 @@ the artifact), each Linear write, each dispatch (before sending), each integrati
 its closure. Always through `scripts/handoff.py set` (it moves the section and prints one line); never
 edit the Handoff by hand and never show it or its diff in the chat. In modes 2–4, commit the planning
 artifacts at each approved milestone without asking (F2-7, same reference). Markers read by the banner:
-`**Phase:** <phase>` and `**Breaker:** open (<error-id>)`.
+`**Phase:** <phase>` and `**Breaker:** open (<error-id>)`. Execution fields: `--dispatched`,
+`--integration-branch`, `--last-integrated`, `--report` and `--attempt <error-id>=fail|ok` (the 3rd
+failure of the same id opens the breaker and the script says so).
 
 ### 7. Keep it short (F2-10)
 Each turn: what changed, what is next, the question if any. At most ~15 lines; tables only when the user
