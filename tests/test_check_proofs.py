@@ -72,6 +72,22 @@ class CheckProofsTests(TempRepoCase):
         self.assertTrue(check_proofs.sees("a test_x b ... c ok", "test_x ... ok"))
         self.assertFalse(check_proofs.sees("test_x\n... ok", "test_x ... ok"))
 
+    def test_declared_run_without_proof_still_runs_and_is_recorded(self):
+        # C1/R1: a `**Run <nome>**:` that no `Proof:` cites must run once and appear in `## Output`.
+        fdir = self.make_feature("**C1** - alpha (R1)\nProof: run unit | test_alpha ... ok\n")
+        tasks = fdir / "tasks.md"
+        extra = f'**Run extra**: `"{PY}" -c "import sys; print(\'extra-ran\'); sys.exit(3)"`\n'
+        tasks.write_text(tasks.read_text(encoding="utf-8").replace("**Run unit**:", extra + "**Run unit**:"),
+                         encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "extra")
+        res = check_proofs.evaluate("demo", self.repo)
+        text = (fdir / "proofs.md").read_text(encoding="utf-8")
+        self.assertIn("`Run extra` - exit 3", text)
+        self.assertIn("extra-ran", text)
+        self.assertRegex(text, r"\| Run extra \| .* \| fail - exit 3 \|")
+        self.assertFalse(res.ok)
+
     def test_dirty_tree_marks_mode1_and_fails(self):
         fdir = self.make_feature("**C1** - alpha (R1)\nProof: run unit | test_alpha ... ok\n")
         (self.repo / "novo.py").write_text("x = 1\n", encoding="utf-8")

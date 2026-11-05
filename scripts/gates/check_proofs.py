@@ -143,6 +143,9 @@ def evaluate(feature: str | None, root: Path, write: bool = True) -> gc.Result:
                     used_runs.append(m.group(1))
             elif proof and proof not in lone:
                 lone.append(proof)
+    for name in runs:  # a declared Run no Proof cites still runs once and is recorded
+        if name not in used_runs:
+            used_runs.append(name)
     results: dict[str, tuple[int, str]] = {}
     for name in used_runs:
         results.setdefault(runs[name], run(proj, runs[name], bash))
