@@ -64,10 +64,14 @@ give its path. Ask exactly one question and **stop**:
   approval for a version the user did not see.
 
 ## 4. Linear publication (after the "sim")
-Follow `references/linear-publish.md`, step 2: Project (Linear MCP), Document with the spec (Linear
+Read `<plugin-root>/capabilities.json` first. If `extras.linear_mcp.status` is `unavailable` (e.g. Codex
+without the MCP login), follow `references/linear-publish.md`, section 2b: a parent issue (issue-mãe) with
+the spec as body, each ticket as a sub-issue (`--parent`), `blocks` relations, `tasks_export.py record`,
+`run_gates.py publish`. Otherwise follow section 2: Project (Linear MCP), Document with the spec (Linear
 MCP), issues and `blocks` relations (`orca linear`), record the IDs back with `tasks_export.py record`,
 and run `python "<plugin-root>/scripts/gates/run_gates.py" publish <slug>`. Do not narrate each write;
-report the result once (section 5).
+report the result once (section 5), including one line with the path used: "Projeto e Documento pelo MCP" or
+"issue-mãe pelo orca linear, MCP indisponível neste CLI".
 
 ## 5. Hand back
 Report in at most 5 lines: tasks created, Linear IDs, gate verdicts, anything pending. Return to the
