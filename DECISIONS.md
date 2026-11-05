@@ -263,3 +263,29 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** cada `Run` declarado em `## Checks` roda uma vez, citado ou não, e a saída vai para `## Output`; um `Run` não citado que falha deixa as provas vermelhas.
 - **Motivo:** um comando declarado nos checks faz parte da evidência; ignorá-lo esconderia uma suíte vermelha.
 - **Por que não é bug:** as provas citadas continuam julgadas pela linha esperada; só deixou de existir o comando declarado e não executado.
+
+## Decisões da Fase 4 (2026-11-05, SC-30)
+
+### F4-1: Matriz de recursos por CLI com `fallback` obrigatório
+- **Problema:** hooks, banner por hook, MCP do Linear, modelo de subagente e worker da Orca existem de forma diferente em cada CLI, e o Claude era o único caso tratado.
+- **Decisão:** `src/capabilities.yaml` lista cada extra por CLI com `status` (`ok` ou `unavailable`); `tools/build.py` grava `capabilities.json` por `dist/<cli>` e falha com `BuildError` se um extra `unavailable` não tiver `fallback`. O banner imprime `Indisponível neste CLI: <extra> → <fallback>`.
+- **Motivo:** o núcleo comum roda em todo CLI; o que falta vira aviso com caminho alternativo, não falha silenciosa.
+- **Por que não é bug:** um passo do núcleo que falha reprova o CLI no aceite (R29); ele nunca é marcado como extra indisponível.
+
+### F4-2: Issue-mãe quando o CLI não tem o MCP do Linear
+- **Problema:** o Data publicava com Projeto e Documento pelo MCP, que nem todo CLI tem.
+- **Decisão:** com `linear_mcp` `unavailable`, o Data cria com `orca linear create` uma issue-mãe (título da feature, spec na descrição) e cada ticket como sub-issue (`--parent`), com as relações `blocks` e os IDs gravados por `tasks_export.py record`; `run_gates.py publish` aceita a issue-mãe no lugar do Projeto.
+- **Motivo:** mantém a publicação e o vínculo ticket↔worktree sem depender do MCP.
+- **Por que não é bug:** o Data diz em uma linha qual caminho usou (R17); o caminho do MCP continua o padrão onde existe.
+
+### F4-3: Limite de aninhamento da Orca
+- **Problema:** com o Picard como worker do CLI testado, o LaForge e o Q ficam um nível abaixo, e o limite padrão da Orca barrava o `worker-start` (`nested_worker_depth_exceeded`).
+- **Decisão:** o usuário configurou o limite em 3 em 2026-11-05 (Settings → Orchestration). O fluxo precisa de no mínimo 2 (Picard worker → LaForge/Q). Ao receber `nested_worker_depth_exceeded`, o Picard para e avisa que o limite precisa ser 2 ou mais, sem contar tentativa do disjuntor (R22).
+- **Motivo:** resposta do usuário na spec ("Subir o limite para 2"), superada pela configuração em 3, que cobre o mínimo.
+- **Por que não é bug:** o valor 3 é folga da configuração local; a exigência do fluxo continua sendo 2.
+
+### F4-4: Worktree de integração do Picard
+- **Problema:** o Handoff, o `proofs.md` e o `verification.md` eram gravados no checkout de quem chamou, e um Picard rodando como worker não tem o ramo `feature/<slug>` à mão.
+- **Decisão:** ao criar ou reutilizar o ramo de integração `I`, o Picard cria ou reutiliza um worktree da Orca para `I` e grava ali esses três artefatos (R21). No OpenCode, o worktree do ticket sai antes, com `--base-branch feature/<slug>` (R20).
+- **Motivo:** um único lugar para o estado da feature, no mesmo ramo que recebe os merges dos tickets.
+- **Por que não é bug:** o escritor único continua sendo o Picard (F3-5); só mudou onde ele escreve.
