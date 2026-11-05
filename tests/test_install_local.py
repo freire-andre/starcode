@@ -71,12 +71,12 @@ class InstallLocalTests(unittest.TestCase):
 
     def test_opencode_preserves_keys_and_copies_commands(self):  # C11
         self.conf.parent.mkdir(parents=True)
-        self.conf.write_text(json.dumps({"theme": "dark", "skills": {"paths": ["/x"]}}), encoding="utf-8")
+        self.conf.write_text(json.dumps({"theme": "dark", "skills": {"paths": [str(self.tmp / "x")]}}), encoding="utf-8")
         rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         data = json.loads(self.conf.read_text(encoding="utf-8"))
         self.assertEqual(data["theme"], "dark")
-        self.assertEqual(data["skills"]["paths"][0], "/x")
+        self.assertEqual(data["skills"]["paths"][0], str(self.tmp / "x"))
         self.assertEqual(len(data["skills"]["paths"]), 3)
         self.assertTrue(all(Path(p).is_absolute() for p in data["skills"]["paths"]))
         self.assertTrue((self.home / ".config/opencode/commands/sc-q.md").exists())
