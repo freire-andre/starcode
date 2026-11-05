@@ -21,7 +21,7 @@
 - Run `orca skills get orca-linear` and the command's `--help` before writing. Never invent flags.
 - Resolve workspace and team without ambiguity before any write (from `.starcode/config.json`).
 - `status set` needs the **exact state name**: take it from `linear.states` in the repo config, never
-  from a guess. If the CLI says a state does not exist, stop and offer to rerun `/starcode:setup`.
+  from a guess. If the CLI says a state does not exist, stop and offer to rerun `{{CMD:setup}}`.
 - Map states by meaning (category), never by literal name. If two states are equally plausible, ask.
 - If Orca's optional auto-sync already moved the issue, check the current state before moving it again.
 - Every MCP write: search for duplicates, show the fields and the target, and get explicit confirmation.
