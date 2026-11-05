@@ -30,3 +30,21 @@ Roteiro `docs/aceite/roteiros-fase-4/codex.md`: feature `vencimento-tarefas` (`a
 1. `tools/install_local.py --cli codex` não trata um marketplace já existente com outra fonte. Saída exata: `Error: marketplace 'starcode' is already added from a different source; remove it before adding this source`. O passo seguinte do script (`plugin add`) nem roda. Contorno: `codex plugin marketplace remove starcode` e rodar de novo. Sugestão: o script detectar a fonte atual e pedir/oferecer a troca.
 2. `dispatch.py q-cli` respondeu `self-verified` por falta de capability record do Codex, embora o worker do Antigravity tenha sido usado explicitamente e a verificação tenha de fato rodado em outra família.
 3. O marketplace `starcode` do Codex ficou apontando para o worktree `f4-integ` (que some depois do PR). O Picard deve re-apontá-lo para `F:\Projetos\StarCode` depois do merge.
+
+## Antigravity
+
+**Resultado**: reprovado (falha do núcleo comum na instalação, R29). O roteiro `docs/aceite/roteiros-fase-4/antigravity.md` não rodou, porque o plugin não instala.
+
+Versões: Orca 1.4.248, Antigravity CLI (`agy`) 1.5.1 (a matriz da Fase 0 foi feita com a 1.4.12), plugin `starcode` de `dist/antigravity` (worktree `f4-t10`, base `eca7324`).
+
+**Evidência**:
+- **Instalação**: `python tools/install_local.py --cli antigravity` saiu com erro no primeiro passo, `agy plugin validate dist/antigravity --strict`, e o `agy plugin install` nem rodou. Linha exata do erro: `✗ rules/starcode.md: no valid trigger in the frontmatter, so the rule never applies. Set trigger to always_on, model_decision, glob, manual`. Resumo do `agy`: `skills 8 · agents 0 · rules 0 · hooks 0 · mcpServers 0 · sidecars 0` e `Error: validation failed: 1 error, 0 warnings`.
+- **Sem `--strict`**: `agy plugin validate dist/antigravity` dá o mesmo erro. Não há contorno pelas flags.
+- **Causa provável (não corrigida aqui)**: `dist/antigravity/rules/starcode.md` começa direto em `# StarCode core rules...`, sem frontmatter com `trigger:`. O `agy` 1.5.1 passou a exigir o campo. O aviso de logo (`plugin.json: no logo`) segue sendo só aviso.
+- **Não rodou**: setup, engajar, Linear (PROJ), tickets, `run_gates.py done` e os modelos efetivos. Não criei worktree no sandbox nem issue no Linear, porque sem o plugin instalado o worker não teria o fluxo StarCode.
+- **Limites do ticket**: `dist/`, `tools/` e `scripts/` estão fora do `May change`, então não corrigi a regra. Nenhum `--dangerously-skip-permissions` foi usado.
+
+**Achados** (vão para o ciclo de correção):
+1. O adaptador do Antigravity gera `rules/starcode.md` sem `trigger` no frontmatter, e o `agy plugin validate --strict` (1.5.1) reprova. Correção sugerida: o gerador em `src/` emitir `trigger: always_on` (a regra vale para toda a tripulação) e `dist/antigravity` ser regenerado. Depois, repetir este aceite.
+2. O mesmo validador contou `agents 0 · rules 0 · hooks 0`, embora `dist/antigravity` tenha hooks e a regra. Confirmar, depois do ajuste, se o `agy` 1.5.1 ainda lê o layout de agentes e hooks, ou se o manifesto mudou.
+3. A matriz da Fase 0 foi medida no `agy` 1.4.12. Com a 1.5.1 a instalação mudou de passa para falha: reexecutar a coluna Antigravity depois da correção.
