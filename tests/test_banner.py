@@ -200,3 +200,46 @@ class BannerCodexTrustTests(TempRepoCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BannerCommandFormatTests(TempRepoCase):  # R19
+    EXPECTED_SETUP = {
+        None: "/starcode:setup",
+        "claude": "/starcode:setup",
+        "opencode": "/sc-setup",
+        "codex": "a skill `setup` do StarCode",
+        "antigravity": "a skill `setup` do StarCode",
+    }
+
+    def text(self, cli, full):
+        with mock.patch.object(banner, "check_orca", return_value="Orca: ✅ disponível"), \
+             mock.patch.object(banner, "check_linear", return_value=[]), \
+             mock.patch.object(banner.conflicts, "scan", return_value=[]):
+            return banner.build_banner(str(self.repo), full, cli)[0]
+
+    def test_banner_setup_command_per_cli(self):
+        for cli, expected in self.EXPECTED_SETUP.items():
+            for full in (False, True):  # sem StarCode no repositório / config de repositório ausente
+                with self.subTest(cli=cli, full=full):
+                    text = self.text(cli, full)
+                    self.assertIn(expected, text)
+                    if cli not in (None, "claude"):
+                        self.assertNotIn("/starcode:", text)
+                    if cli == "codex" or cli == "antigravity":
+                        self.assertNotIn("/sc-", text)
+
+    def test_banner_engajar_command_matches_cmd_ref(self):
+        import build
+        for cli in ("claude", "opencode", "codex", "antigravity"):
+            with self.subTest(cli=cli):
+                self.assertEqual(banner.cmd_ref(cli, "engajar"), build.cmd_ref(cli, "engajar"))
+                self.assertEqual(banner.cmd_ref(cli, "setup"), build.cmd_ref(cli, "setup"))
+                self.assertIn(build.cmd_ref(cli, "engajar"), self.text(cli, False))
+        self.assertEqual(banner.cmd_ref(None, "engajar"), build.cmd_ref("claude", "engajar"))
+
+    def test_banner_linear_missing_states_uses_cli_format(self):
+        cfg = {"linear": {"team": "SC", "workspace": "w", "states": {"a": "X"}}}
+        outs = [(0, "{}"), (0, json.dumps({"states": []}))]
+        with mock.patch.object(banner, "_run", side_effect=outs):
+            lines = banner.check_linear(cfg, "opencode")
+        self.assertTrue(any("/sc-setup" in l for l in lines))
