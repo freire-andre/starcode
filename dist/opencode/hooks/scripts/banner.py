@@ -15,10 +15,12 @@ Usage: python banner.py [--full] [--text] [--agy] [--cwd DIR] [--cli CLI]
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -136,6 +138,25 @@ def unavailable_extras(cli: str) -> list[str]:
             for name, info in extras.items() if isinstance(info, dict) and info.get("status") == "unavailable"]
 
 
+def codex_trust_warning() -> list[str]:
+    """Warn when the StarCode hooks are not trusted in Codex (R16): no `[hooks.state."starcode@starcode:..."]`
+    key with `trusted_hash`, or any of them with `enabled = false`. Missing/unreadable file counts as no trust.
+    Home: STARCODE_HOME (tests) or the user's home."""
+    warning = ["Hooks do Codex sem trust: aprove em /hooks"]
+    home = Path(os.environ.get("STARCODE_HOME") or Path.home())
+    try:
+        with open(home / ".codex" / "config.toml", "rb") as fh:
+            doc = tomllib.load(fh)
+        state = doc.get("hooks", {}).get("state", {})
+        mine = [v for k, v in state.items()
+                if k.startswith("starcode@starcode:hooks/hooks.json:") and isinstance(v, dict)]
+    except Exception:  # noqa: BLE001 - never break the banner
+        return warning
+    if not any(v.get("trusted_hash") for v in mine) or any(v.get("enabled") is False for v in mine):
+        return warning
+    return []
+
+
 def crew_lines(user_cfg: dict | None) -> list[str]:
     try:
         doc = sc.load_crew()
@@ -224,9 +245,23 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
     if cli:
         lines.append(f"CLI: {cli}")
         lines.extend(unavailable_extras(cli))
+        if cli == "codex":
+            lines.extend(codex_trust_warning())
 
     one_line = "🖖 StarCode: " + (" · ".join(summary) if summary else "pronto")
     return "\n".join(lines), one_line, active
+
+
+def _payload_cwd(payload) -> str | None:
+    """cwd of the SessionStart payload; Antigravity may omit it and send workspacePaths (as git_guard.extract)."""
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("cwd"), str) and payload["cwd"]:
+        return payload["cwd"]
+    paths = payload.get("workspacePaths")
+    if isinstance(paths, list):
+        return next((p for p in paths if isinstance(p, str) and p), None)
+    return None
 
 
 def main() -> int:
@@ -243,7 +278,7 @@ def main() -> int:
     if not text_mode:
         try:
             payload = json.load(sys.stdin)
-            cwd = cwd or (payload.get("cwd") if isinstance(payload, dict) else None)
+            cwd = cwd or _payload_cwd(payload)
         except Exception:
             pass
     cwd = cwd or str(Path.cwd())

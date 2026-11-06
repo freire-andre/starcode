@@ -53,7 +53,7 @@ PLACEHOLDER = re.compile(r"(?i)^(x+|\*+|<.*>|\$\{.*\}|\$[A-Z_]+|changeme|example
 LOCKFILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "uv.lock",
              "Cargo.lock", "Pipfile.lock", "composer.lock", "Gemfile.lock", "bun.lockb", "go.sum"}
 BODY_FILE_FLAGS = {"--body-file", "--description-file", "-F", "--file"}
-MAX_BYTES = 2_000_000
+MAX_DIFF_BYTES = 64_000_000  # staged diff per file: above this the hook denies (never skips silently)
 
 
 def entropy(s: str) -> float:
@@ -143,7 +143,12 @@ def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist) -> list[str]:
                                  timeout=sc.GIT_TIMEOUT)
         except (OSError, subprocess.SubprocessError):
             continue
-        diff = res.stdout[:MAX_BYTES]
+        diff = res.stdout
+        if len(diff) > MAX_DIFF_BYTES:
+            out.append(f"{path}: diff grande demais para verificar ({len(diff)} caracteres; limite "
+                       f"{MAX_DIFF_BYTES}). Divida o commit ou aprove o arquivo em .starcode/secret-allowlist "
+                       "(path:<glob>).")
+            continue
         if "Binary files" in diff or _is_binary(diff):
             continue
         new_line = 0
@@ -208,8 +213,11 @@ def _body_files(args: list[str], cwd: str, allow: Allowlist) -> list[str]:
             p = Path(value)
             p = p if p.is_absolute() else Path(cwd) / p
             try:
-                text = p.read_text(encoding="utf-8", errors="replace")[:MAX_BYTES]
+                text = p.read_text(encoding="utf-8", errors="replace")
             except OSError:
+                continue
+            if len(text) > MAX_DIFF_BYTES:
+                out.append(f"arquivo {value}: grande demais para verificar ({len(text)} caracteres)")
                 continue
             out += text_findings(f"arquivo {value}", text, allow)
     return out
@@ -223,15 +231,18 @@ def main() -> int:
         return 0
     agy = "--agy" in argv
     try:
-        payload = json.load(sys.stdin)
-    except Exception:
-        return 0
-    from git_guard import deny_json  # noqa: PLC0415
+        from git_guard import deny_json  # noqa: PLC0415
 
-    command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
-    if not command:
+        payload = json.load(sys.stdin)
+        command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
+        if not command:
+            return 0
+        findings = evaluate(command, cwd)
+    except Exception as exc:  # noqa: BLE001
+        line = " ".join(f"{type(exc).__name__}: {exc}".split())[:300]
+        sys.stderr.write(f"StarCode hook: secret_scan não avaliou o comando ({line}); o comando segue "
+                         "sem verificação.\n")
         return 0
-    findings = evaluate(command, cwd)
     if findings:
         shown = "\n".join(f"- {f}" for f in findings[:10])
         more = f"\n(+{len(findings) - 10} achados)" if len(findings) > 10 else ""

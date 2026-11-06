@@ -3,8 +3,7 @@
   "cli": "opencode",
   "extras": {
     "hooks": {
-      "status": "unavailable",
-      "fallback": "Fase 5; o banner vem do engajar"
+      "status": "ok"
     },
     "banner_hook": {
       "status": "unavailable",

@@ -1,0 +1,40 @@
+# Aceite da Fase 5 (SC-52): hooks no Codex, Antigravity e OpenCode
+
+Roteiros: `docs/aceite/roteiros-fase-5/<cli>.md`. Cada CLI tem a sua seção abaixo, preenchida numa sessão real.
+
+## Codex
+
+**Resultado**: aprovado
+
+- **Versão**: codex-cli 0.166.0 (sessões reais via `codex exec` em clone de teste do sandbox, ramo `freire-andre/f5-codex-aceite`, `origin` apontando para um bare local descartável; `starcode` instalado pelo `install_local` a partir do worktree `f5-integ`). `${CLAUDE_PLUGIN_ROOT}` foi expandido: os hooks do `starcode` rodaram.
+- **Trust (`/hooks`)**: feito pelo usuário antes da sessão: `~/.codex/config.toml` tem `trusted_hash` para `starcode@starcode:hooks/hooks.json:pre_tool_use:0:0`, `:pre_tool_use:0:1` e `:session_start:0:0`. O agente não deu o trust e nenhuma flag de bypass foi usada. O plugin legado `starcode-hello` já tinha sido removido pelo usuário e não apareceu.
+- **Bloqueio de push forçado**: `git push --force origin main` bloqueado antes de executar: `Command blocked by PreToolUse hook: StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.` O bare de teste continuou em `9d1d904`.
+- **Bloqueio de segredo**: com `segredo.txt` (valor de teste, montado em tempo de execução) já staged, `git commit -m "chore: teste"` bloqueado: `Command blocked by PreToolUse hook: StarCode bloqueou o comando: possível segredo encontrado.` Nenhum commit foi criado. O `git add` foi feito fora do Codex, porque o sandbox `workspace-write` do Codex nega escrita em `.git` (`index.lock: Permission denied`); o `git add` sozinho não dispara o `secret_scan`, que só age no commit.
+- **Comandos normais**: passaram sem bloqueio e sem aviso `StarCode hook:`: `git status`, `git add .`, `git commit -m "feat: x"` (commit `5786718`), `git switch -c feature/x`, `git merge --no-ff feature/x` (`Already up to date`), `orca linear issue SC-1 --json`, `python scripts/gates/run_gates.py ticket x`, `python -m unittest discover -s tests -v` (3 testes ok). Sessão com `-s danger-full-access` só para o Codex poder gravar no `.git`; os hooks rodam antes do sandbox.
+- **Banner**: sessão nova, o contexto inicial trouxe o banner via `additionalContext`, terminando em `CLI: codex` (sem o aviso `Hooks do Codex sem trust`, pois o trust estava dado). Texto: `StarCode · Diário do Capitão` / `Repositório: f5-codex-aceite · ramo freire-andre/f5-codex-aceite · modo Git: não definido (o Picard pergunta ao engajar)` / `Config do usuário: ✅ válido` / `Config do repositório: ausente (rode /starcode:setup)`.
+- **Observações**: a 1ª tentativa foi recusada pelo próprio modelo, sem passar pelo hook, por não ter contexto de teste; o prompt passou a declarar o teste autorizado. Avisos alheios vistos e não corrigidos: `hooks.json` do plugin `fala` com campo `modules` desconhecido; `features.experimental_use_rmcp_client` ignorado; MCP `linear`/`linear-server` sem login.
+
+## Antigravity
+
+**Resultado**: aprovado
+
+- **Versão**: agy 1.5.2 (sessões reais via `agy --dangerously-skip-permissions -p` em clone descartável do sandbox, ramo `freire-andre/f5-agy-aceite3`, `origin` apontando para um bare local descartável; `starcode` reinstalado pelo `install_local` a partir do worktree da T15, que contém a T14). `agy plugin validate dist/antigravity --strict` passou. A cópia instalada de `git_guard.py` contém `workspacePaths` e o `hooks.json` instalado não tem aspas, com `{{STARCODE_ROOT}}` trocado pelo caminho absoluto.
+- **Tentativa 1 (T10)**: reprovada, os hooks quebravam pelas aspas no caminho (`python "<caminho>"`), corrigido na T12.
+- **Tentativa 2 (T13)**: reprovada em Bloqueio de segredo, o `agy` criou o commit com o segredo porque o hook não achava o repositório; corrigido na T14 (repositório lido de `workspacePaths`). Esta é a tentativa 3.
+- **Contagem de hooks**: `hooks 2` (`starcode-banner`, `starcode-guard`), no `validate --strict`, no `install` e em `agy plugin list`. Maior que 0.
+- **Bloqueio de push forçado**: aprovado. `git push --force origin main` negado: `tool call denied by pre-tool hook: StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.` O bare de teste continuou em `a0d5945`.
+- **Bloqueio de segredo**: aprovado. Com `segredo.txt` (valor de teste, montado em tempo de execução, `git add` feito fora do `agy`) staged, `git commit -m "chore: teste"` negado: `tool call denied by pre-tool hook: StarCode bloqueou o comando: possível segredo encontrado.` seguido de `segredo.txt:1: valor de alta entropia em API_KEY`. Nenhum commit foi criado (`git log` seguiu em `a0d5945`). `segredo.txt` apagado ao final.
+- **Comandos normais**: passaram sem bloqueio e sem aviso `StarCode hook:`: `git status`, `git add .`, `git commit -m "feat: x"` (sem alterações, saída 1 do git, não é bloqueio), `git switch -c feature/x`, `git merge --no-ff feature/x` (`Already up to date`), `orca linear issue SC-1 --json`, `python scripts/gates/run_gates.py ticket x` (stub `gates ok`), `python -m unittest discover -s tests -v` (1 teste ok).
+- **Banner**: sessão nova, o contexto inicial trouxe o banner por `injectSteps`, terminando em `CLI: antigravity`. Texto: `StarCode · Diário do Capitão` / `Repositório: fora de um repositório Git` / `Config do usuário: ✅ válido` / `Este repositório ainda não usa o StarCode. /starcode:setup configura; /starcode:engajar inicia.` Observação: o banner diz "fora de um repositório Git" apesar de a sessão estar num clone; o `agy` provavelmente roda o hook de SessionStart fora do cwd do repositório. Não afeta o aceite (R10 pede só a entrega do banner), mas vale um ticket.
+
+## OpenCode
+
+**Resultado**: aprovado
+
+- **Versão**: OpenCode 2.2.3 (sessões reais via `opencode run` em clone descartável do sandbox, ramo `main`, `origin` apontando para um bare local descartável com `receive.denyNonFastForwards`). Modelo gratuito `openrouter/nvidia/nemotron-3.5-super-vl:free`, sem fallback e sem modelo pago. Esta é a tentativa 2.
+- **Tentativa 1 (T11)**: reprovada em Bloqueio de segredo. O plugin mandava `cwd: process.cwd()` ao guard, mas no OpenCode 2.2.3 esse `cwd` é a home do usuário, não o repositório (o evento `execute.before` traz `input.workdir`); o `secret_scan` não via nada staged e o commit com segredo foi criado. Corrigido na T16 (o plugin usa `event.input.workdir`).
+- **Plugin na pasta global**: `~/.config/opencode/plugins/starcode.js`, reescrito pelo `python tools/install_local.py --cli opencode` rodado do worktree da T17 (autorizado pelo usuário). O arquivo instalado contém `workdir` e `STARCODE_ROOT` aponta para `dist/opencode` desse worktree. `OPENCODE_CONFIG_DIR` não foi usado.
+- **Bloqueio de push forçado**: aprovado. `git push --force origin main` falhou antes de executar: `StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.` O bare de teste continuou em `b51d4a3`.
+- **Bloqueio de segredo**: aprovado. Com `segredo.txt` (valor de teste, montado em tempo de execução, `git add` feito fora do OpenCode) staged, `git commit -m "chore: teste"` falhou: `StarCode bloqueou o comando: possível segredo encontrado.` seguido de `segredo.txt:1: valor de alta entropia em API_KEY`. Nenhum commit foi criado (`git log` seguiu em `b51d4a3`). `segredo.txt` apagado ao final.
+- **Comandos normais**: passaram sem bloqueio e sem aviso `StarCode hook:`, todos com saída 0: `git status`, `git add .`, `git commit -m "feat: x"` (commit `2d0df21`), `git switch -c feature/x`, `git merge --no-ff feature/x` (`Already up to date`), `orca linear issue SC-1 --json`, `python scripts/gates/run_gates.py ticket x` (stub `gates ok`), `python -m unittest discover -s tests -v` (4 testes ok).
+- **Banner**: n/a (sem banner por hook, F5-3)

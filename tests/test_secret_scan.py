@@ -5,7 +5,7 @@ import subprocess
 import sys
 import unittest
 
-from helpers import ROOT, TempRepoCase, run_git
+from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 
 import secret_scan as ss
 
@@ -72,6 +72,26 @@ class CommitTests(TempRepoCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("app/config.py:1", findings[0])
         self.assertIn("token do GitHub", findings[0])
+
+    def test_secret_after_2mb_of_staged_diff_is_found(self):  # Q: segredo depois de 2 MB
+        secret = "gh" + "p_" + "".join(chr(65 + i % 26) + str(i % 10) for i in range(20))
+        self.stage("big.txt", ("x" * 99 + "\n") * 20_100 + f"TOKEN = '{secret}'\n")
+        self.assertGreater((self.repo / "big.txt").stat().st_size, 2_000_000)
+        findings = ss.evaluate("git commit -m safe", str(self.repo))
+        self.assertEqual(len(findings), 1, findings)
+        self.assertIn("token do GitHub", findings[0])
+
+    def test_diff_over_hard_limit_denies_instead_of_skipping(self):
+        self.stage("big.txt", ("x" * 99 + "\n") * 2_000)
+        old = ss.MAX_DIFF_BYTES
+        ss.MAX_DIFF_BYTES = 10_000
+        try:
+            findings = ss.evaluate("git commit -m safe", str(self.repo))
+        finally:
+            ss.MAX_DIFF_BYTES = old
+        self.assertEqual(len(findings), 1, findings)
+        self.assertIn("grande demais para verificar", findings[0])
+        self.assertIn("big.txt", findings[0])
 
     def test_clean_commit_passes(self):
         self.stage("app/main.py", "print('hello')\nAPI_KEY = os.environ['API_KEY']\n")
@@ -142,6 +162,44 @@ class HookProtocolTests(TempRepoCase):
         self.assertEqual(res.returncode, 0)
         out = json.loads(res.stdout)["hookSpecificOutput"]
         self.assertEqual(out["permissionDecision"], "deny")
+        self.assertNotIn(FAKE["github"], res.stdout)
+
+    def test_secret_commit_denied_codex_and_antigravity_payloads(self):
+        path = self.repo / "app" / "config.py"
+        path.parent.mkdir()
+        path.write_text(f"TOKEN = '{FAKE['github']}'\n", encoding="utf-8")
+        run_git(self.repo, "add", "app/config.py")
+        cwd = str(self.repo)
+        cases = [
+            ("codex", [], {"tool_input": {"command": "git commit -m 'add config'"}, "cwd": cwd}),
+            ("antigravity", ["--agy"],
+             {"toolCall": {"args": {"CommandLine": "git commit -m 'add config'", "Cwd": cwd}}}),
+        ]
+        for name, args, payload in cases:
+            with self.subTest(cli=name):
+                res = subprocess.run([sys.executable, str(HOOK), *args], input=json.dumps(payload),
+                                     capture_output=True, text=True, encoding="utf-8")
+                self.assertEqual(res.returncode, 0)
+                out = json.loads(res.stdout)
+                decision = out["decision"] if args else out["hookSpecificOutput"]["permissionDecision"]
+                self.assertEqual(decision, "deny")
+                self.assertNotIn(FAKE["github"], res.stdout)
+
+    def test_agy_real_commit_payload_denies_staged_secret(self):
+        # Payload real do agy 1.5.2 (sem Cwd/cwd; o repositório vem em workspacePaths) e o hook
+        # rodando fora do repositório, na pasta do plugin, como na sessão real (SC-57).
+        payload = json.loads((FIXTURES / "agy-pretooluse-commit.json").read_text(encoding="utf-8"))
+        payload["workspacePaths"] = [str(self.repo).replace("\\", "/")]
+        path = self.repo / "app" / "config.py"
+        path.parent.mkdir()
+        path.write_text(f"TOKEN = '{FAKE['github']}'\n", encoding="utf-8")
+        run_git(self.repo, "add", "app/config.py")
+        outside = self.tmp / "plugin"
+        outside.mkdir()
+        res = subprocess.run([sys.executable, str(HOOK), "--agy"], input=json.dumps(payload), cwd=outside,
+                             capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertEqual(json.loads(res.stdout or "{}").get("decision"), "deny", res.stderr)
         self.assertNotIn(FAKE["github"], res.stdout)
 
     def test_hash_helper(self):

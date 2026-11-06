@@ -11,7 +11,8 @@ When StarCode is active in the worktree (a Git mode was recorded or .starcode/co
   separate authorization, recorded with `git_mode.py authorize-merge <branch>`.
 
 Output: PreToolUse JSON deny on stdout, exit 0 (never exit 2; see DECISIONS F0-5).
-`--agy`: Antigravity format ({"decision": "deny"}), input in toolCall.args.CommandLine (Phase 5).
+`--agy`: Antigravity format ({"decision": "deny"}), input in toolCall.args.CommandLine; repo dir from
+toolCall.args.Cwd, payload cwd or the first workspacePaths entry (Phase 5, SC-57).
 Known limit: commands built at runtime (variables, eval, aliases, scripts) are not seen.
 """
 from __future__ import annotations
@@ -285,6 +286,12 @@ def extract(payload: dict, agy: bool) -> tuple[str | None, str | None]:
         args = (payload.get("toolCall") or {}).get("args") or {}
         command = args.get("CommandLine") if isinstance(args, dict) else None
         cwd = (args.get("Cwd") if isinstance(args, dict) else None) or payload.get("cwd")
+        if not cwd:
+            # agy 1.5.2 não manda Cwd: o repositório vem em workspacePaths e o processo do hook roda
+            # na pasta do plugin (SC-57; tests/fixtures/agy-pretooluse-commit.json).
+            paths = payload.get("workspacePaths")
+            if isinstance(paths, list):
+                cwd = next((p for p in paths if isinstance(p, str) and p), None)
     else:
         tool_input = payload.get("tool_input") or {}
         command = tool_input.get("command") if isinstance(tool_input, dict) else None
@@ -292,17 +299,25 @@ def extract(payload: dict, agy: bool) -> tuple[str | None, str | None]:
     return (command if isinstance(command, str) else None), cwd
 
 
+def warn(detail: str) -> None:
+    """Fail-open: avisa em stderr (uma linha) e deixa o comando passar."""
+    line = " ".join(str(detail).split())[:300]
+    sys.stderr.write(f"StarCode hook: git_guard não avaliou o comando ({line}); o comando segue sem "
+                     "verificação.\n")
+
+
 def main() -> int:
     sc.utf8_stdio()
     agy = "--agy" in sys.argv[1:]
     try:
         payload = json.load(sys.stdin)
-    except Exception:
+        command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
+        if not command:
+            return 0
+        reason = Guard(cwd).evaluate(command)
+    except Exception as exc:  # noqa: BLE001
+        warn(f"{type(exc).__name__}: {exc}")
         return 0
-    command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
-    if not command:
-        return 0
-    reason = Guard(cwd).evaluate(command)
     if reason:
         sys.stdout.write(deny_json(reason, agy))
     return 0

@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -42,9 +43,10 @@ class BuildTests(unittest.TestCase):
         self.assertTrue((dist / "codex" / ".codex-plugin" / "plugin.json").exists())
         self.assertTrue((dist / "antigravity" / "plugin.json").exists())
         self.assertTrue((dist / "opencode" / "commands" / "sc-engajar.md").exists())
-        # Hooks are registered only for Claude in Phase 1; no CLI gets another CLI's files.
-        self.assertFalse((dist / "codex" / "hooks" / "hooks.json").exists())
-        self.assertFalse((dist / "antigravity" / "hooks.json").exists())
+        # Fase 5: Codex e Antigravity têm hooks próprios; OpenCode não tem hooks.json.
+        self.assertTrue((dist / "codex" / "hooks" / "hooks.json").exists())
+        self.assertTrue((dist / "antigravity" / "hooks.json").exists())
+        self.assertFalse((dist / "opencode" / "hooks.json").exists())
         self.assertFalse((dist / "claude" / "plugin.json").exists())
         self.assertFalse((dist / "antigravity" / ".claude-plugin").exists())
 
@@ -80,6 +82,84 @@ class BuildTests(unittest.TestCase):
         self.assertTrue(all("${CLAUDE_PLUGIN_ROOT}" in c for c in cmds))
         self.assertTrue(any("git_guard.py" in c for c in cmds) and any("secret_scan.py" in c for c in cmds))
 
+    # --- Fase 5 T1: hooks.json do Codex e do Antigravity ---
+
+    def _hooks_json(self, *parts):
+        return json.loads(self.out.joinpath("dist", *parts).read_text(encoding="utf-8"))
+
+    def test_codex_hooks_json_registers_guards_and_banner(self):  # C1
+        build.build(self.src, self.out)
+        hooks = self._hooks_json("codex", "hooks", "hooks.json")["hooks"]
+        pre = hooks["PreToolUse"]
+        self.assertEqual([e["matcher"] for e in pre], ["Bash"])
+        cmds = [(h["command"], h["timeout"]) for h in pre[0]["hooks"]]
+        self.assertEqual(cmds, [
+            ('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/git_guard.py"', 15),
+            ('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/secret_scan.py"', 30)])
+        start = hooks["SessionStart"]
+        self.assertEqual(start[0]["matcher"], "startup|resume|clear|compact")
+        self.assertEqual([(h["command"], h["timeout"]) for h in start[0]["hooks"]],
+                         [('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/banner.py" --full --cli codex', 30)])
+
+    def test_antigravity_hooks_json_native_format(self):  # C2
+        build.build(self.src, self.out)
+        data = self._hooks_json("antigravity", "hooks.json")
+        root = "{{STARCODE_ROOT}}/hooks/scripts"
+        guard = data["starcode-guard"]["PreToolUse"]
+        self.assertEqual([e["matcher"] for e in guard], ["run_command"])
+        self.assertEqual([h["command"] for h in guard[0]["hooks"]], [
+            f"python {root}/git_guard.py --agy", f"python {root}/secret_scan.py --agy"])
+        banner = data["starcode-banner"]["SessionStart"]
+        self.assertEqual([h["command"] for h in banner], [f"python {root}/banner.py --agy --full --cli antigravity"])
+        self.assertTrue(all(h["type"] == "command" for h in guard[0]["hooks"] + banner))
+
+    def test_antigravity_hook_commands_without_quotes(self):  # C27
+        build.build(self.src, self.out)
+        text = (self.out / "dist" / "antigravity" / "hooks.json").read_text(encoding="utf-8")
+        data = json.loads(text)
+        cmds = [h["command"] for h in data["starcode-guard"]["PreToolUse"][0]["hooks"]]
+        cmds += [h["command"] for h in data["starcode-banner"]["SessionStart"]]
+        self.assertEqual(len(cmds), 3)
+        for c in cmds:
+            self.assertNotIn('"', c)
+            self.assertTrue(c.startswith("python {{STARCODE_ROOT}}/hooks/scripts/"))
+
+    def test_dist_has_no_machine_absolute_paths(self):  # C3
+        build.build(self.src, self.out)
+        bad = re.compile(r"(?<![\w\\])[A-Za-z]:[\\/]|/home/|/Users/")
+        for path in (self.out / "dist").rglob("*"):
+            if path.is_file() and path.suffix in {".json", ".md", ".py", ".yaml", ".yml", ".toml", ".js", ".txt"}:
+                m = bad.search(path.read_text(encoding="utf-8", errors="ignore"))
+                self.assertIsNone(m, f"{path.relative_to(self.out)}: {m and m.group(0)}")
+
+    def test_session_start_banner_runs_in_hook_mode(self):  # C4
+        build.build(self.src, self.out)
+        codex = self._hooks_json("codex", "hooks", "hooks.json")["hooks"]["SessionStart"][0]["hooks"]
+        agy = self._hooks_json("antigravity", "hooks.json")["starcode-banner"]["SessionStart"]
+        for h in codex + agy:
+            self.assertIn("banner.py", h["command"])
+            self.assertIn("--full", h["command"])
+            self.assertNotIn("--text", h["command"])
+
+    def test_banner_hook_mode_matches_text_per_cli(self):  # C16 (R10: hook = --full --text)
+        script = ROOT / "hooks" / "scripts" / "banner.py"
+        def run(*args, payload="{}", cwd_args=("--cwd", str(ROOT)), cwd=None):
+            r = subprocess.run([sys.executable, str(script), *args, *cwd_args], input=payload, cwd=cwd,
+                               capture_output=True, text=True, encoding="utf-8", timeout=60)
+            return json.loads(r.stdout) if "--text" not in args else r.stdout.strip()
+        text = run("--full", "--text", "--cli", "codex")
+        ctx = run("--full", "--cli", "codex")["hookSpecificOutput"]["additionalContext"]
+        self.assertEqual(ctx.strip(), text)
+        text = run("--full", "--text", "--cli", "antigravity")
+        msg = run("--agy", "--full", "--cli", "antigravity")["injectSteps"][0]["ephemeralMessage"]
+        self.assertEqual(msg.strip(), text)
+        # Antigravity sem cwd no payload: workspacePaths[0] é o repositório
+        payload = json.dumps({"workspacePaths": [str(ROOT)]})
+        msg = run("--agy", "--full", "--cli", "antigravity", payload=payload, cwd_args=(),
+                  cwd=tempfile.gettempdir())["injectSteps"][0]["ephemeralMessage"]
+        self.assertNotIn("fora de um repositório Git", msg)
+        self.assertEqual(msg.strip(), text)
+
     def test_unknown_placeholder_fails(self):
         skill = self.src / "skills" / "setup" / "SKILL.md"
         skill.write_text(skill.read_text(encoding="utf-8") + "\n{{NOPE}}\n", encoding="utf-8")
@@ -112,7 +192,7 @@ class BuildTests(unittest.TestCase):
         self.assertTrue(all(e["status"] == "ok" for e in claude["extras"].values()))
         codex = self._caps("codex")
         self.assertEqual(codex["extras"]["orca_worker"]["status"], "ok")
-        self.assertEqual(codex["extras"]["hooks"]["status"], "unavailable")
+        self.assertEqual(codex["extras"]["hooks"]["status"], "ok")
         self.assertIn("sem evento", self._caps("opencode")["extras"]["banner_hook"]["fallback"])
 
     def test_unavailable_extra_without_fallback_fails(self):  # C2

@@ -68,11 +68,28 @@ Fonte: `src/capabilities.yaml` (gera `dist/<cli>/capabilities.json` e a linha `I
 
 | Extra | claude | codex | antigravity | opencode |
 |---|---|---|---|---|
-| `hooks` | ok | unavailable: Fase 5 | unavailable: Fase 5 | unavailable: Fase 5 |
-| `banner_hook` | ok | unavailable: o banner vem do engajar | unavailable: o banner vem do engajar | unavailable: sem evento de início de sessão; o banner vem do engajar |
+| `hooks` | ok | ok | ok | ok |
+| `banner_hook` | ok | ok | ok | unavailable: sem evento de início de sessão; o banner vem do engajar |
 | `linear_mcp` | ok | unavailable: issue-mãe pelo `orca linear` | unavailable: issue-mãe pelo `orca linear` | unavailable: issue-mãe pelo `orca linear` |
 | `subagent_model` | ok | unavailable: Q por worker da Orca | unavailable: Q por worker da Orca | unavailable: Q por worker da Orca |
 | `orca_worker` | ok | ok | ok | ok |
+
+## Fase 5: hooks no Codex, Antigravity e OpenCode
+
+Fonte: `docs/aceite/fase-5.md` (uma seção por CLI, sessões reais). A tabela de extras acima já reflete esses resultados (`src/capabilities.yaml`, R18).
+
+| CLI | Resultado | Hooks | Banner por hook |
+|---|---|---|---|
+| Codex 0.166.0 | aprovado (T9) | push forçado e segredo bloqueados, 8 comandos normais passam | ok, `additionalContext` (exige trust em `/hooks`) |
+| Antigravity `agy` 1.5.2 | aprovado na tentativa 3 (T15) | `hooks 2`, push forçado e segredo bloqueados | ok, `injectSteps` |
+| OpenCode 2.2.3 | aprovado na tentativa 2 (T17) | push forçado e segredo bloqueados, 8 comandos normais passam | n/a, `unavailable` (sem evento de início de sessão) |
+
+Achados registrados, sem correção nesta fase:
+
+- **Antigravity, `cwd`**: o payload do `agy` não traz `cwd` e os guards usavam o diretório do processo; a T14 passou a ler o repositório de `workspacePaths`. A tentativa 2 reprovou por isso (o commit com segredo foi criado).
+- **Antigravity, banner**: o banner diz "fora de um repositório Git" mesmo numa sessão dentro de um clone; o `SessionStart` do `agy` parece rodar fora do repositório.
+- **Codex, banner**: sem config do repositório, o banner sugere `/starcode:setup` (`Config do repositório: ausente`).
+- **OpenCode, `cwd`**: na tentativa 1 (T11) o plugin usava `process.cwd()`, que no OpenCode 2.2.3 é a home do usuário, e o `secret_scan` deixou o commit com segredo passar (reprovado). A T16 passou a usar `event.input.workdir` e a tentativa 2 (T17) foi aprovada.
 
 ## Procedimentos (por célula)
 

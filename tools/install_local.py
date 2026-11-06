@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BINARIES = {"codex": "codex", "antigravity": "agy", "opencode": "opencode"}
 PLUGIN = "starcode"
+PLACEHOLDER = "{{STARCODE_ROOT}}"
 STALE_SOURCE_RE = re.compile(r"already added from a different source", re.I)
 
 
@@ -49,17 +50,31 @@ def _codex(binary, root, dry, runner):
     return 1 if _run(install, runner)[0] != 0 else 0
 
 
-def _antigravity(binary, root, dry, runner):
+def _antigravity(binary, root, home, dry, runner):
     target = (root / "dist" / "antigravity").resolve()
     validate = [binary, "plugin", "validate", "dist/antigravity", "--strict"]
     install = [binary, "plugin", "install", str(target)]
+    installed = home / ".gemini" / "config" / "plugins" / PLUGIN
+    hooks = installed / "hooks.json"
+    if " " in installed.as_posix():
+        print(f"Caminho de instalação com espaço: o Antigravity não aceita aspas no comando do hook ({installed.as_posix()})",
+              file=sys.stderr)
+        return 2
     if dry:
         print("[dry-run] " + " ".join(validate))
         print("[dry-run] " + " ".join(install))
+        print(f"[dry-run] trocar {PLACEHOLDER} por {installed.as_posix()} em {hooks}")
         return 0
     if _run(validate, runner, cwd=str(root))[0] != 0:
         return 1
-    return 1 if _run(install, runner)[0] != 0 else 0
+    if _run(install, runner)[0] != 0:
+        return 1
+    if not hooks.is_file():
+        print(f"antigravity: {hooks} não encontrado; caminhos dos hooks não gravados", file=sys.stderr)
+        return 1
+    hooks.write_text(hooks.read_text(encoding="utf-8").replace(PLACEHOLDER, installed.as_posix()), encoding="utf-8")
+    print(f"gravado {hooks}")
+    return 0
 
 
 def _opencode(root, home, dry):
@@ -87,7 +102,10 @@ def _opencode(root, home, dry):
     for s in skills:
         if s not in have:
             have.append(s)
+    plugin_src = dist / "plugins" / "starcode.js"
+    plugin_dst = conf_dir / "plugins" / "starcode.js"
     if dry:
+        print(f"[dry-run] gravar plugin {plugin_dst} (com {PLACEHOLDER} = {dist.resolve().as_posix()})")
         print(f"[dry-run] gravar {len(skills)} caminhos de skill em {conf}")
         for c in commands:
             print(f"[dry-run] copiar {c.name} para {conf_dir / 'commands'}")
@@ -99,6 +117,13 @@ def _opencode(root, home, dry):
     for c in commands:
         shutil.copyfile(c, conf_dir / "commands" / c.name)
         print(f"copiado {c.name}")
+    if not plugin_src.is_file():
+        print(f"opencode: {plugin_src} não encontrado", file=sys.stderr)
+        return 2
+    plugin_dst.parent.mkdir(parents=True, exist_ok=True)
+    text = plugin_src.read_text(encoding="utf-8").replace(PLACEHOLDER, dist.resolve().as_posix())
+    plugin_dst.write_text(text, encoding="utf-8")
+    print(f"gravado {plugin_dst}")
     return 0
 
 
@@ -120,7 +145,7 @@ def main(argv=None, runner=subprocess.run, which=shutil.which, root: Path = ROOT
     if cli == "codex":
         return _codex(binary, root, args.dry_run, runner)
     if cli == "antigravity":
-        return _antigravity(binary, root, args.dry_run, runner)
+        return _antigravity(binary, root, home, args.dry_run, runner)
     return _opencode(root, home, args.dry_run)
 
 
