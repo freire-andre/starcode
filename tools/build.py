@@ -304,6 +304,7 @@ def build_antigravity(src: dict, out: Path, root: Path) -> None:
 def build_opencode(src: dict, out: Path, root: Path) -> None:
     emit_skills(src, "opencode", out)
     emit_common(src, out, root, "opencode")
+    write(out / "plugins" / "starcode.js", (root / "hooks" / "opencode" / "starcode.js").read_text(encoding="utf-8"))
     for name in src["skills"]:
         write(out / "commands" / f"sc-{name}.md",
               f"---\ndescription: StarCode {name} (/sc-{name})\n---\n\n"
