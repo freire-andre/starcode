@@ -16,15 +16,15 @@ Roteiros: `docs/aceite/roteiros-fase-5/<cli>.md`. Cada CLI tem a sua seção aba
 
 ## Antigravity
 
-**Resultado**: reprovado (Bloqueio)
+**Resultado**: reprovado (Bloqueio de segredo)
 
-- **Versão**: agy 1.5.1 (sessão real via `agy --dangerously-skip-permissions -p` em clone descartável do sandbox, ramo `freire-andre/f5-agy-aceite`, `origin` apontando para um bare local; `starcode` instalado pelo `install_local` a partir do worktree). `agy plugin validate dist/antigravity --strict` passou.
-- **Contagem de hooks**: `hooks 2` (`starcode-banner`, `starcode-guard`), tanto no `validate --strict` quanto em `agy plugin list`. Maior que 0.
-- **Bloqueio de push forçado**: reprovado. `git push --force origin main` foi barrado, mas pelo hook quebrado, não pela regra: `JSON hook "jsonhook__starcode-guard_PreToolUse_1_0" failed: command failed: exit status 2, stderr: python: can't open file 'C:\Users\freir\.gemini\config\plugins\starcode\"C:\Users\freir\.gemini\config\plugins\starcode\hooks\scripts\git_guard.py"': [Errno 22] Invalid argument`. O motivo do `git_guard` nunca apareceu.
-- **Bloqueio de segredo**: reprovado, mesmo erro no `git commit -m "chore: teste"` com `segredo.txt` (valor de teste, montado em tempo de execução) staged; o `secret_scan` não rodou.
-- **Comandos normais**: não testado (hook quebrado).
-- **Banner**: não testado (hook quebrado); o `banner.py` usa o mesmo formato de comando e deve falhar igual.
-- **Causa**: o `agy` no Windows passa o caminho com aspas literais ao `python`. As aspas vêm do comando gerado em `tools/build.py:256` (`python "{{STARCODE_ROOT}}/hooks/scripts/<hook>.py" --agy`). Correção na T10a; o reaceite será um novo despacho.
+- **Versão**: agy 1.5.2 (sessão real via `agy --dangerously-skip-permissions -p` em clone descartável do sandbox, ramo `freire-andre/f5-agy-aceite2`, `origin` apontando para um bare local descartável; `starcode` reinstalado pelo `install_local` a partir do worktree da T13, com a correção da T12). `agy plugin validate dist/antigravity --strict` passou. O `hooks.json` da cópia instalada não tem aspas e `{{STARCODE_ROOT}}` foi trocado por `C:/Users/freir/.gemini/config/plugins/starcode`.
+- **Tentativa 1 (T10)**: reprovada, os hooks quebravam pelas aspas no caminho (`python "<caminho>"`), corrigido na T12; esta é a tentativa 2.
+- **Contagem de hooks**: `hooks 2` (`starcode-banner`, `starcode-guard`), no `validate --strict`, no `install` e em `agy plugin list`. Maior que 0.
+- **Bloqueio de push forçado**: aprovado. `git push --force origin main` negado pelo hook, agora com o motivo do `git_guard`: `tool call denied by pre-tool hook: StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.` O bare de teste continuou em `b51d4a3`.
+- **Bloqueio de segredo**: reprovado. Com `segredo.txt` (valor de teste, montado em tempo de execução) staged, `git commit -m "chore: teste"` **não foi bloqueado**: o `agy` criou o commit `e7112cd` (desfeito depois, só no clone descartável; nenhum push). Rodado à mão com o payload `toolCall.args` e `--agy`, o `secret_scan.py` da cópia instalada nega com `StarCode bloqueou o comando: possível segredo encontrado.`; então o script está certo e a falha está em como o `agy` o aciona no `git commit`. Investigar a entrega do payload (cwd, comando enviado) antes de novo reaceite.
+- **Comandos normais**: não testado (sessão interrompida pela reprovação do bloqueio de segredo).
+- **Banner**: não testado (sessão interrompida pela reprovação do bloqueio de segredo).
 
 ## OpenCode
 
