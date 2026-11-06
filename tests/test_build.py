@@ -115,14 +115,14 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(codex["extras"]["hooks"]["status"], "unavailable")
         self.assertIn("sem evento", self._caps("opencode")["extras"]["banner_hook"]["fallback"])
 
-    def test_unavailable_without_fallback_fails(self):  # C2
+    def test_unavailable_extra_without_fallback_fails(self):  # C2
         path = self.src / "src" / "capabilities.yaml"
         lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if "fallback:" not in ln]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaises(build.BuildError):
             build.build(self.src, self.out)
 
-    def test_cmd_and_cli_markers_rendered(self):  # C3
+    def test_cmd_and_cli_placeholders_per_cli(self):  # C3
         files = ("skills/setup/SKILL.md", "skills/engajar/references/git-modes.md")
         for rel in files:
             f = self.src / rel

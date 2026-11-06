@@ -57,14 +57,15 @@ class ExecuteReferenceTests(unittest.TestCase):
         self.assertAll(REF, "dispatch.py\" q-cli --laforge <laforge cli:model>", "`self-verified`",
                        "`**Verification:** self-verified`", "never hard-code")
 
-    def test_execute_ref_opencode_laforge(self):  # R20
+    def test_execute_ref_opencode_and_q_cli(self):  # R20
         self.assertAll(REF, "orca worktree create --name <T> --base-branch feature/<slug>",
-                       "orca orchestration worker-start --agent opencode --model <laforge model> --worktree <that worktree>")
+                       "orca orchestration worker-start --agent opencode --model <laforge model> --worktree <that worktree>",
+                       "dispatch.py\" q-cli --laforge <laforge cli:model>")
 
     def test_execute_ref_integration_worktree(self):  # R21
         self.assertAll(REF, "worktree of `I`", "Orca worktree for `I`**", "Handoff, `proofs.md` and `verification.md`")
 
-    def test_execute_ref_nested_depth(self):  # R22
+    def test_execute_ref_nested_depth_stop(self):  # R22
         self.assertAll(REF, "nested_worker_depth_exceeded", "Settings → Orchestration", "2 or more",
                        "does **not** count as an attempt")
 

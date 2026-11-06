@@ -16,7 +16,7 @@ EXPECT = {
 
 
 class AcceptanceScriptsF4Tests(unittest.TestCase):
-    def test_each_script_has_five_sections(self):
+    def test_acceptance_scripts_have_sections(self):
         for cli in EXPECT:
             text = (DIR / f"{cli}.md").read_text(encoding="utf-8")
             headings = re.findall(r"^## (.+?)\s*$", text, flags=re.M)

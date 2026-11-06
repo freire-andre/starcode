@@ -73,7 +73,7 @@ class BannerExecutionTests(TempRepoCase):
 
 
 class BannerDegradedMarkerTests(BannerExecutionTests):
-    def test_table_citing_self_verified_is_not_degraded(self):
+    def test_degraded_only_from_marker_line(self):
         # C8/R5: a table row that merely mentions `self-verified` is not the marker.
         feat = self.feature()
         handoff.set_handoff("task-priority", self.repo, {"phase": "review"})
@@ -100,7 +100,7 @@ class BannerCliTests(TempRepoCase):
     def lines(self, text):
         return text.split("\n")
 
-    def test_cli_line_and_unavailable_extras_from_json(self):
+    def test_banner_lists_unavailable_extras(self):
         root = self.plugin()
         (root / "capabilities.json").write_text(json.dumps({"schemaVersion": 1, "cli": "codex", "extras": {
             "hooks": {"status": "unavailable", "fallback": "Fase 5"},
@@ -110,7 +110,7 @@ class BannerCliTests(TempRepoCase):
         self.assertIn("Indisponível neste CLI: hooks → Fase 5", lines)
         self.assertFalse(any("orca_worker" in l for l in lines))
 
-    def test_without_cli_no_cli_line(self):
+    def test_banner_without_cli_keeps_phase3_output(self):
         text = self.build(None, self.plugin())
         self.assertNotIn("CLI:", text)
         self.assertNotIn("Indisponível", text)
