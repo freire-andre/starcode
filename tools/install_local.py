@@ -56,6 +56,10 @@ def _antigravity(binary, root, home, dry, runner):
     install = [binary, "plugin", "install", str(target)]
     installed = home / ".gemini" / "config" / "plugins" / PLUGIN
     hooks = installed / "hooks.json"
+    if " " in installed.as_posix():
+        print(f"Caminho de instalação com espaço: o Antigravity não aceita aspas no comando do hook ({installed.as_posix()})",
+              file=sys.stderr)
+        return 2
     if dry:
         print("[dry-run] " + " ".join(validate))
         print("[dry-run] " + " ".join(install))

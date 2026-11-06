@@ -253,14 +253,14 @@ def codex_hooks() -> dict:
 
 
 def antigravity_hooks() -> dict:
-    root = "{{STARCODE_ROOT}}/hooks/scripts"  # install_local troca pelo caminho absoluto na cópia instalada
+    root = "{{STARCODE_ROOT}}/hooks/scripts"  # sem aspas (o agy as passa literais ao python); install_local troca pelo caminho absoluto
     return {
         "starcode-guard": {"PreToolUse": [{"matcher": "run_command", "hooks": [
-            {"type": "command", "command": f'python "{root}/git_guard.py" --agy', "timeout": 15},
-            {"type": "command", "command": f'python "{root}/secret_scan.py" --agy', "timeout": 30},
+            {"type": "command", "command": f"python {root}/git_guard.py --agy", "timeout": 15},
+            {"type": "command", "command": f"python {root}/secret_scan.py --agy", "timeout": 30},
         ]}]},
         "starcode-banner": {"SessionStart": [
-            {"type": "command", "command": f'python "{root}/banner.py" --agy --cli antigravity', "timeout": 30},
+            {"type": "command", "command": f"python {root}/banner.py --agy --cli antigravity", "timeout": 30},
         ]},
     }
 

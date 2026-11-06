@@ -64,7 +64,7 @@ class InstallLocalTests(unittest.TestCase):
         (self.root / "dist/opencode/plugins/starcode.js").write_text(
             'const R = "{{STARCODE_ROOT}}"\n', encoding="utf-8")
         self.agy_hooks = self.home / ".gemini/config/plugins/starcode/hooks.json"
-        self.hooks_src = '{"c": "python \\"{{STARCODE_ROOT}}/hooks/scripts/g.py\\""}'
+        self.hooks_src = '{"c": "python {{STARCODE_ROOT}}/hooks/scripts/g.py"}'
 
     def seed_agy_copy(self):
         self.agy_hooks.parent.mkdir(parents=True, exist_ok=True)
@@ -144,6 +144,16 @@ class InstallLocalTests(unittest.TestCase):
         dist = (self.root / "dist/opencode").resolve().as_posix()
         self.assertEqual(js.read_text(encoding="utf-8"), f'const R = "{dist}"\n')
         self.assertIn(str(js), out)
+
+    def test_antigravity_install_refuses_path_with_space(self):  # C28
+        self.home = self.tmp / "home com espaço"
+        self.agy_hooks = self.home / ".gemini/config/plugins/starcode/hooks.json"
+        self.seed_agy_copy()
+        rc, _, err, fake = self.run_cli("--cli", "antigravity", "--home", str(self.home))
+        self.assertEqual(rc, 2)
+        self.assertIn("Caminho de instalação com espaço", err)
+        self.assertIn("home com espaço", err)
+        self.assertIn("{{STARCODE_ROOT}}", self.agy_hooks.read_text(encoding="utf-8"))
 
     def test_install_twice_keeps_single_registration(self):  # C14
         for _ in range(2):

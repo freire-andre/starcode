@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"{{STARCODE_ROOT}}/hooks/scripts/git_guard.py\" --agy",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/git_guard.py --agy",
             "timeout": 15
           },
           {
             "type": "command",
-            "command": "python \"{{STARCODE_ROOT}}/hooks/scripts/secret_scan.py\" --agy",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/secret_scan.py --agy",
             "timeout": 30
           }
         ]
@@ -22,7 +22,7 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "python \"{{STARCODE_ROOT}}/hooks/scripts/banner.py\" --agy --cli antigravity",
+        "command": "python {{STARCODE_ROOT}}/hooks/scripts/banner.py --agy --cli antigravity",
         "timeout": 30
       }
     ]
