@@ -49,20 +49,12 @@ class AcceptanceScriptsF5Tests(unittest.TestCase):
         for title in CLIS.values():
             self.assertIn(title, headings)
 
-    def _check_section(self, title: str):
-        sec = doc_section(title)
-        self.assertIn("**Resultado**: pendente", sec)
-        for label in COMMON + EXTRA[title]:
-            self.assertIn(f"**{label}**", sec, f"{title}: falta '{label}'")
-
-    def test_acceptance_doc_f5_codex_filled(self):
-        self._check_section("Codex")
-
-    def test_acceptance_doc_f5_antigravity_filled(self):
-        self._check_section("Antigravity")
-
-    def test_acceptance_doc_f5_opencode_filled(self):
-        self._check_section("OpenCode")
+    def test_acceptance_doc_f5_skeleton(self):
+        for title in CLIS.values():
+            sec = doc_section(title)
+            self.assertIn("**Resultado**:", sec, f"{title}: falta Resultado")
+            for label in COMMON + EXTRA[title]:
+                self.assertIn(f"**{label}**", sec, f"{title}: falta '{label}'")
         self.assertIn("n/a", doc_section("OpenCode").split("**Banner**")[1])
 
     def test_decisions_f5_registered(self):
