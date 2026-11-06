@@ -328,7 +328,7 @@ Spec: `.specs/features/fase-6-release/spec.md` (R20). Checks: C27.
 Claude Code 2.1.319 e Codex 0.166 nesta máquina. Na Fase 5, o trust do Codex ficou gravado em `~/.codex/config.toml` (`[hooks.state."starcode@starcode:..."]`). Um marketplace de outra fonte exige um novo trust.
 
 #### BOUNDARIES
-May change: `docs/aceite/fase-6.md`, `tests/test_acceptance_doc_f6.py`
+May change: `docs/aceite/fase-6.md`, `tests/test_acceptance_doc_f6.py`, `docs/aceite/roteiros-fase-6/claude.md`, `docs/aceite/roteiros-fase-6/codex.md`
 Do not touch: `tools/`, `hooks/`, `skills/`, `dist/`, `src/`
 
 #### RULES
@@ -508,12 +508,12 @@ Proof: run unit | test_acceptance_doc_f6_mission_day_filled ... ok
 **Phase:** published
 **Size:** LARGE
 **Git mode:** 3
-**Next:** ramo de integração e primeiro ticket
+**Next:** T8: aceite Claude e Codex
 **Linear:** SC-13 (issue-mãe); T1–T10 = SC-62..SC-71; SC-61 relacionada
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/fase-6-release
+**Last integrated:** 9b99f56
 **Dispatched:** none
-**Settled:** 2026-11-06: spec aprovada: "sim"; 2026-11-06: tasks aprovadas e publicação: "sim"
+**Settled:** 2026-11-06: spec aprovada: "sim"; 2026-11-06: tasks aprovadas e publicação: "sim"; 2026-11-06: push do ramo para o aceite: "Sim"
 **Attempts:** none
 **Reports:** none
 **Breaker:** closed
