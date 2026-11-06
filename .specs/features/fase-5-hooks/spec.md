@@ -128,18 +128,3 @@ Defaults técnicos da Troi (não perguntados; o usuário pode mudar nesta aprova
 
 ## Open Questions
 None.
-
-## Handoff
-
-**Phase:** spec-approved
-**Size:** LARGE
-**Git mode:** 3
-**Next:** Data quebra em tasks
-**Linear:** SC-12
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** 2026-11-06: 2026-11-06: spec aprovada: "Sim"
-**Attempts:** none
-**Reports:** none
-**Breaker:** closed
