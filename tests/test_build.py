@@ -108,10 +108,21 @@ class BuildTests(unittest.TestCase):
         guard = data["starcode-guard"]["PreToolUse"]
         self.assertEqual([e["matcher"] for e in guard], ["run_command"])
         self.assertEqual([h["command"] for h in guard[0]["hooks"]], [
-            f'python "{root}/git_guard.py" --agy', f'python "{root}/secret_scan.py" --agy'])
+            f"python {root}/git_guard.py --agy", f"python {root}/secret_scan.py --agy"])
         banner = data["starcode-banner"]["SessionStart"]
-        self.assertEqual([h["command"] for h in banner], [f'python "{root}/banner.py" --agy --cli antigravity'])
+        self.assertEqual([h["command"] for h in banner], [f"python {root}/banner.py --agy --cli antigravity"])
         self.assertTrue(all(h["type"] == "command" for h in guard[0]["hooks"] + banner))
+
+    def test_antigravity_hook_commands_without_quotes(self):  # C27
+        build.build(self.src, self.out)
+        text = (self.out / "dist" / "antigravity" / "hooks.json").read_text(encoding="utf-8")
+        data = json.loads(text)
+        cmds = [h["command"] for h in data["starcode-guard"]["PreToolUse"][0]["hooks"]]
+        cmds += [h["command"] for h in data["starcode-banner"]["SessionStart"]]
+        self.assertEqual(len(cmds), 3)
+        for c in cmds:
+            self.assertNotIn('"', c)
+            self.assertTrue(c.startswith("python {{STARCODE_ROOT}}/hooks/scripts/"))
 
     def test_dist_has_no_machine_absolute_paths(self):  # C3
         build.build(self.src, self.out)
