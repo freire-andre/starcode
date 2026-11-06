@@ -245,6 +245,26 @@ def claude_hooks() -> dict:
     }}
 
 
+def codex_hooks() -> dict:
+    hooks = claude_hooks()
+    root = "${CLAUDE_PLUGIN_ROOT}"
+    hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"] = f'python "{root}/hooks/scripts/banner.py" --cli codex'
+    return hooks
+
+
+def antigravity_hooks() -> dict:
+    root = "{{STARCODE_ROOT}}/hooks/scripts"  # install_local troca pelo caminho absoluto na cópia instalada
+    return {
+        "starcode-guard": {"PreToolUse": [{"matcher": "run_command", "hooks": [
+            {"type": "command", "command": f'python "{root}/git_guard.py" --agy', "timeout": 15},
+            {"type": "command", "command": f'python "{root}/secret_scan.py" --agy', "timeout": 30},
+        ]}]},
+        "starcode-banner": {"SessionStart": [
+            {"type": "command", "command": f'python "{root}/banner.py" --agy --cli antigravity', "timeout": 30},
+        ]},
+    }
+
+
 def build_claude(src: dict, out: Path, root: Path) -> None:
     write_json(out / ".claude-plugin" / "plugin.json",
                {"name": NAME, "version": src["version"], "description": DESC, "author": AUTHOR})
@@ -266,6 +286,7 @@ def build_codex(src: dict, out: Path, root: Path) -> None:
                 "interface": {"displayName": "StarCode", "shortDescription": "SDD com a tripulação"}})
     emit_skills(src, "codex", out)
     emit_common(src, out, root, "codex")
+    write_json(out / "hooks" / "hooks.json", codex_hooks())
     write(out / "AGENTS.md", (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
 
 
@@ -274,6 +295,7 @@ def build_antigravity(src: dict, out: Path, root: Path) -> None:
                {"name": NAME, "version": src["version"], "description": DESC, "author": AUTHOR["name"]})
     emit_skills(src, "antigravity", out)
     emit_common(src, out, root, "antigravity")
+    write_json(out / "hooks.json", antigravity_hooks())
     # agy exige frontmatter com trigger válido; sem ele a regra nunca se aplica.
     write(out / "rules" / "starcode.md",
           "---\ntrigger: always_on\n---\n" + (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
