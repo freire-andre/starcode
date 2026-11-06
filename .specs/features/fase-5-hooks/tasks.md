@@ -368,9 +368,67 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T14: Secret scan no Antigravity com o payload real do agy
+**Linear**: SC-57
+**Depends on**: T13
+**Requirements**: R5, R9
+**Tests**: unit
+**Gate**: full
+
+#### TASK
+Diagnóstico e correção (McCoy). No reaceite (T13), o `agy` 1.5.2 rodou `git commit -m "chore: teste"` com um segredo staged e o hook `secret_scan.py --agy` **não** negou, embora o mesmo script negue quando recebe à mão `{"toolCall":{"args":{"CommandLine":"git commit -m chore","Cwd":"<caminho absoluto do repo>"}}}`. O `git_guard` bloqueou o push forçado na mesma sessão.
+1. Reproduza: num clone descartável do sandbox (`origin` = bare local descartável), registre o payload real que o `agy` entrega ao `PreToolUse` (por exemplo, um hook temporário de captura na cópia instalada, removido no fim) e o diretório de trabalho do processo do hook. Salve o payload, sem segredo, em `tests/fixtures/agy-pretooluse-commit.json`.
+2. Escreva o teste de regressão que falha com esse payload real e corrija a leitura do comando e do diretório do repositório nos guards (`extract()` em `hooks/scripts/git_guard.py`, usado também pelo `secret_scan.py`), sem mudar o que é bloqueado.
+3. Se o payload real não trouxer nenhum sinal do diretório do repositório, **pare** e reporte (a correção exigiria mudar a spec).
+
+#### CONTEXT
+Spec: `.specs/features/fase-5-hooks/spec.md` (R5, R9; formatos em `## Data & Contracts`). Checks: C29.
+Evidência: seção Antigravity de `docs/aceite/fase-5.md` (tentativa 2). `extract()` hoje lê `toolCall.args.CommandLine` e `toolCall.args.Cwd` (ou `payload.cwd`); o `secret_scan` roda `git diff --cached` nesse diretório (`staged_findings`). Hooks instalados em `~/.gemini/config/plugins/starcode/hooks.json` (sem aspas desde a T12). Formato nativo: F0-6.
+
+#### BOUNDARIES
+May change: `hooks/scripts/git_guard.py`, `hooks/scripts/secret_scan.py`, `tests/test_git_guard.py`, `tests/test_secret_scan.py`, `tests/fixtures/agy-pretooluse-commit.json`, `tools/build.py`, `tests/test_build.py`, `dist/`
+Do not touch: `skills/`, `docs/`, `src/`, `tools/install_local.py`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>". Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Remova qualquer hook temporário de captura ao terminar.
+F3-1: regenere o `dist/` (`python tools/build.py`) no mesmo commit.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T15: Reaceite no Antigravity (tentativa 3)
+**Linear**: SC-58
+**Depends on**: T14
+**Requirements**: R5, R7, R8, R10, R19
+**Tests**: unit
+**Gate**: quick
+
+#### TASK
+Reinstalar com `python tools/install_local.py --cli antigravity` a partir do seu worktree (que contém a T14) e repetir `docs/aceite/roteiros-fase-5/antigravity.md` inteiro numa sessão real do `agy` (clone descartável do sandbox, `origin` = bare local descartável; nunca deixar um push forçado acontecer): push forçado, commit com segredo, os 8 comandos normais e o banner. Substituir a seção Antigravity de `docs/aceite/fase-5.md` pela tentativa 3, com `**Resultado**: aprovado` ou `reprovado (<passo>)`, citando em uma linha cada as tentativas 1 (aspas) e 2 (segredo). Manter verde `test_acceptance_doc_f5_antigravity_filled`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-5-hooks/spec.md` (R5, R7, R8, R10, R19). Check: C24.
+Tentativas anteriores na seção Antigravity de `docs/aceite/fase-5.md`; correções na T12 (aspas) e T14 (segredo).
+
+#### BOUNDARIES
+May change: `docs/aceite/fase-5.md`, `tests/test_acceptance_doc_f5.py`
+Do not touch: `hooks/`, `tools/`, `skills/`, `dist/`, `src/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>". Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ### T11: Aceite no OpenCode, matriz e compatibilidade
 **Linear**: SC-55
-**Depends on**: T13
+**Depends on**: T15
 **Requirements**: R5, R6, R7, R12, R18, R19
 **Tests**: unit
 **Gate**: build
@@ -485,17 +543,20 @@ Proof: run unit | test_antigravity_hook_commands_without_quotes ... ok
 **C28** - `install_local --cli antigravity` sai com 2 e a mensagem `Caminho de instalação com espaço` quando o caminho da cópia instalada tem espaço (R8)
 Proof: run unit | test_antigravity_install_refuses_path_with_space ... ok
 
+**C29** - Com o payload real do `agy` para `git commit` (fixture), o `secret_scan.py --agy` nega um segredo staged (R5, R9)
+Proof: run unit | test_agy_real_commit_payload_denies_staged_secret ... ok
+
 ## Handoff
 
 **Phase:** execute
 **Size:** LARGE
 **Git mode:** 3
-**Next:** integrar T10 e seguir a cadeia
-**Linear:** issue-mãe SC-12; T1=SC-45 … T11=SC-55; T12=SC-56 (correção aspas do Antigravity); T13=SC-54 (reaceite Antigravity)
+**Next:** integrar T13 e seguir a cadeia
+**Linear:** issue-mãe SC-12; T1=SC-45 … T11=SC-55; T12=SC-56; T13=SC-54; T14=SC-57 (McCoy, segredo no agy); T15=SC-58 (reaceite 3)
 **Integration branch:** feature/fase-5-hooks
-**Last integrated:** fffd037
-**Dispatched:** T10 · SC-54 · base fffd037 · ctx_e9a90c871f35 · model claude-sonnet-5-5 · worktree osprey
-**Settled:** 2026-11-06: 2026-11-06: spec aprovada: "Sim"; 2026-11-06: 2026-11-06: tasks aprovadas e publicação: "Sim"; 2026-11-06: 2026-11-06: T9: antes do trust dos hooks no Codex, avisar o usuário e guiá-lo passo a passo: "Quando chegar na parte de aprovar os hooks no Codex preciso que você me Avise e me guie no passo a passo"; 2026-11-06: 2026-11-06: T9: usuário autorizou instalar o starcode do worktree f5-integ no Codex e remover o starcode-hello: "Sim, pode instalar e remover o starcode-hello"; marketplace starcode do Codex aponta para f5-integ; restaurar para F:/Projetos/StarCode após o merge; 2026-11-06: 2026-11-06: T9: trust dos 3 hooks do starcode dado pelo usuário em /hooks (trusted_hash gravado: pre_tool_use 0:0 e 0:1, session_start 0:0); avisos do Codex alheios: hooks.json do plugin fala (campo modules), MCP linear sem login, features.experimental_use_rmcp_client ignorado; 2026-11-06: 2026-11-06: T10: reprovar o 1º aceite do Antigravity, criar T10a (hooks sem aspas) e repetir o aceite: "Sim"
-**Attempts:** agy-hook-aspas=1
-**Reports:** 2026-11-06: 2026-11-06: T1: build gera hooks.json do Codex (${CLAUDE_PLUGIN_ROOT}) e do Antigravity ({{STARCODE_ROOT}}); f5b7801; suíte 242 verde; gate ticket verde; 2026-11-06: 2026-11-06: T2: plugin starcode.js do OpenCode (spawnSync nos guards, throw no deny, fail-open StarCode hook:); 0ebbc2f; suíte 246 verde; gate ticket verde (aviso cabeçalho 74 chars); 2026-11-06: 2026-11-06: T3: guards com fail-open 'StarCode hook:' e testes por payload Codex/Antigravity (C9-C12); 767051b; suíte 252 verde; gate ticket verde; 2026-11-06: 2026-11-06: T4: install_local grava caminhos absolutos (Antigravity) e instala starcode.js do OpenCode sem duplicar (C13, C14); 4361c56; suíte 255 verde; gate ticket verde (aviso cabeçalho 83 chars); 2026-11-06: 2026-11-06: T5: banner avisa hooks do Codex sem trust (C15, C16); suíte 257 verde; gate ticket verde; 2026-11-06: 2026-11-06: T6: setup com passos por CLI e conflicts.py lista starcode-hello (C17-C20); bc24fe9; suíte 261 verde; gate ticket verde (aviso cabeçalho 73 chars); 2026-11-06: 2026-11-06: T7: execute.md para em agent-hooks-review-prompt (C21); suíte 262 verde; gate ticket verde; 2026-11-06: 2026-11-06: T8 (1ª): 6bd775e com testes de nome C23-C25 (provas de T9-T11) exigindo Resultado pendente; não integrado, correção no mesmo worktree; 2026-11-06: 2026-11-06: T8: roteiros fase 5, fase-5.md esqueleto, F5-1..F5-3 (C22); 6bd775e + correção f983730; suíte 265 verde; gate ticket verde; 2026-11-06: 2026-11-06: T9: aceite Codex APROVADO (0.166.0): push forçado e segredo bloqueados pelo hook, 8 comandos normais passaram, banner por additionalContext, ${CLAUDE_PLUGIN_ROOT} expandido; 18b5ebe. Achados: sandbox workspace-write nega escrita em .git (git add fora do Codex); banner no Codex sugere '/starcode:setup' (comando do Claude); 2026-11-06: 2026-11-06: T10 (1ª): escalonado: agy 1.5.1 no Windows passa o caminho com aspas literais ao python (tools/build.py:256); hooks PreToolUse quebram (exit 2); install_local e validate --strict ok, hooks 2; nada gravado; dispatch ctx_e9a90c871f35 aberto aguardando decisão
+**Last integrated:** 4b73e54
+**Dispatched:** none
+**Settled:** 2026-11-06: 2026-11-06: spec aprovada: "Sim"; 2026-11-06: 2026-11-06: tasks aprovadas e publicação: "Sim"; 2026-11-06: 2026-11-06: T9: antes do trust dos hooks no Codex, avisar o usuário e guiá-lo passo a passo: "Quando chegar na parte de aprovar os hooks no Codex preciso que você me Avise e me guie no passo a passo"; 2026-11-06: 2026-11-06: T9: usuário autorizou instalar o starcode do worktree f5-integ no Codex e remover o starcode-hello: "Sim, pode instalar e remover o starcode-hello"; marketplace starcode do Codex aponta para f5-integ; restaurar para F:/Projetos/StarCode após o merge; 2026-11-06: 2026-11-06: T9: trust dos 3 hooks do starcode dado pelo usuário em /hooks (trusted_hash gravado: pre_tool_use 0:0 e 0:1, session_start 0:0); avisos do Codex alheios: hooks.json do plugin fala (campo modules), MCP linear sem login, features.experimental_use_rmcp_client ignorado; 2026-11-06: 2026-11-06: T10: reprovar o 1º aceite do Antigravity, criar T10a (hooks sem aspas) e repetir o aceite: "Sim"; 2026-11-06: 2026-11-06: T13 reprovado: criar T14 (McCoy) e T15 (reaceite 3): "Sim"
+**Attempts:** agy-hook-aspas=1, agy-secret-scan=1
+**Reports:** 2026-11-06: 2026-11-06: T1: build gera hooks.json do Codex (${CLAUDE_PLUGIN_ROOT}) e do Antigravity ({{STARCODE_ROOT}}); f5b7801; suíte 242 verde; gate ticket verde; 2026-11-06: 2026-11-06: T2: plugin starcode.js do OpenCode (spawnSync nos guards, throw no deny, fail-open StarCode hook:); 0ebbc2f; suíte 246 verde; gate ticket verde (aviso cabeçalho 74 chars); 2026-11-06: 2026-11-06: T3: guards com fail-open 'StarCode hook:' e testes por payload Codex/Antigravity (C9-C12); 767051b; suíte 252 verde; gate ticket verde; 2026-11-06: 2026-11-06: T4: install_local grava caminhos absolutos (Antigravity) e instala starcode.js do OpenCode sem duplicar (C13, C14); 4361c56; suíte 255 verde; gate ticket verde (aviso cabeçalho 83 chars); 2026-11-06: 2026-11-06: T5: banner avisa hooks do Codex sem trust (C15, C16); suíte 257 verde; gate ticket verde; 2026-11-06: 2026-11-06: T6: setup com passos por CLI e conflicts.py lista starcode-hello (C17-C20); bc24fe9; suíte 261 verde; gate ticket verde (aviso cabeçalho 73 chars); 2026-11-06: 2026-11-06: T7: execute.md para em agent-hooks-review-prompt (C21); suíte 262 verde; gate ticket verde; 2026-11-06: 2026-11-06: T8 (1ª): 6bd775e com testes de nome C23-C25 (provas de T9-T11) exigindo Resultado pendente; não integrado, correção no mesmo worktree; 2026-11-06: 2026-11-06: T8: roteiros fase 5, fase-5.md esqueleto, F5-1..F5-3 (C22); 6bd775e + correção f983730; suíte 265 verde; gate ticket verde; 2026-11-06: 2026-11-06: T9: aceite Codex APROVADO (0.166.0): push forçado e segredo bloqueados pelo hook, 8 comandos normais passaram, banner por additionalContext, ${CLAUDE_PLUGIN_ROOT} expandido; 18b5ebe. Achados: sandbox workspace-write nega escrita em .git (git add fora do Codex); banner no Codex sugere '/starcode:setup' (comando do Claude); 2026-11-06: 2026-11-06: T10 (1ª): escalonado: agy 1.5.1 no Windows passa o caminho com aspas literais ao python (tools/build.py:256); hooks PreToolUse quebram (exit 2); install_local e validate --strict ok, hooks 2; nada gravado; dispatch ctx_e9a90c871f35 aberto aguardando decisão; 2026-11-06: 2026-11-06: T10: aceite Antigravity REPROVADO (Bloqueio) na 1ª: aspas literais no comando do hook; aad42aa; correção na T12 (SC-56), reaceite na T13 (SC-54); 2026-11-06: 2026-11-06: achado Picard: commit de planejamento 36cd1da com 'Refs: SC-56' e T13 reaproveitando SC-54 fazem o dispatch.py next ver T12/T13 como integradas; T12 e T13 despachadas pelo nome (brief); commits de planejamento devem citar só a issue-mãe; 2026-11-06: 2026-11-06: T12: hooks do Antigravity sem aspas; install_local recusa caminho com espaço (C27, C28); 7510a18; suíte 268 verde; gate ticket verde (aviso cabeçalho 75 chars); 2026-11-06: 2026-11-06: T13: reaceite Antigravity REPROVADO (Bloqueio de segredo), agy 1.5.2: push forçado bloqueado pelo git_guard, mas git commit com segredo staged passou; secret_scan instalado nega com payload manual (toolCall.args.Cwd absoluto); suspeita: payload real do agy sem Cwd/cwd do repo; 966fe32 (não integrado ainda)
 **Breaker:** closed
