@@ -11,8 +11,9 @@ function warn(message) {
 }
 
 // Returns the deny reason, or null to let the command through (also when the guard itself fails).
-function runGuard(script, command) {
-  const payload = JSON.stringify({ tool_input: { command }, cwd: process.cwd() })
+function runGuard(script, command, workdir) {
+  const cwd = typeof workdir === "string" && workdir ? workdir : process.cwd()
+  const payload = JSON.stringify({ tool_input: { command }, cwd })
   const res = spawnSync("python", [`${STARCODE_ROOT}/hooks/scripts/${script}`], {
     input: payload, encoding: "utf8", timeout: 30000, windowsHide: true,
   })
@@ -34,7 +35,7 @@ export default {
       const command = event && event.input && event.input.command
       if (typeof command !== "string") return
       for (const script of GUARDS) {
-        const reason = runGuard(script, command)
+        const reason = runGuard(script, command, event.input.workdir)
         if (reason !== null) throw new Error(reason)
       }
     })
