@@ -6,7 +6,12 @@ import unittest
 
 from helpers import ROOT
 
+import miniyaml  # noqa: E402 (helpers puts tools/ on sys.path)
+
 DOC = ROOT / "docs" / "aceite" / "fase-5.md"
+CAPS = ROOT / "src" / "capabilities.yaml"
+COMPAT = ROOT / "docs" / "compatibilidade.md"
+CLIS = {"Codex": "codex", "Antigravity": "antigravity", "OpenCode": "opencode"}
 
 
 def doc_section(name: str) -> str:
@@ -68,6 +73,51 @@ class AcceptanceDocF5Tests(unittest.TestCase):
             self.assertIn("possível segredo", field(sec, "Bloqueio de segredo"))
         else:
             self.assertIn("(Bloqueio", result.group(1), "reprovação deve citar o passo")
+
+    def test_acceptance_doc_f5_opencode_filled(self):
+        sec = doc_section("OpenCode")
+        result = re.search(r"\*\*Resultado\*\*: (.+)", sec)
+        self.assertIsNotNone(result, "OpenCode: sem **Resultado**")
+        self.assertRegex(result.group(1), r"^(aprovado|reprovado \(.+\))", "OpenCode: Resultado inválido")
+        self.assertNotIn("pendente", result.group(1).lower())
+        self.assertRegex(field(sec, "Versão"), r"\d+\.\d+\.\d+", "OpenCode: sem versão do CLI")
+        self.assertIn(".config/opencode/plugins/starcode.js", field(sec, "Plugin na pasta global"))
+        self.assertIn("git push --force origin main", field(sec, "Bloqueio de push forçado"))
+        self.assertIn("StarCode bloqueou", field(sec, "Bloqueio de push forçado"))
+        self.assertIn("segredo", field(sec, "Bloqueio de segredo"))
+        self.assertNotIn("q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3", sec, "o valor de teste do segredo não vai no doc")
+        normal = field(sec, "Comandos normais")
+        for cmd in ("git status", "git add .", "git commit", "git switch -c", "git merge --no-ff",
+                    "orca linear issue", "run_gates.py", "unittest discover"):
+            self.assertIn(cmd, normal, f"Comandos normais sem '{cmd}'")
+        self.assertIn("n/a", field(sec, "Banner"))
+        for label in ("Versão", "Plugin na pasta global", "Bloqueio de push forçado", "Bloqueio de segredo",
+                      "Comandos normais", "Banner"):
+            self.assertNotIn("pendente", field(sec, label).lower(), f"OpenCode: '{label}' pendente")
+        if result.group(1).startswith("reprovado"):
+            self.assertIn("(Bloqueio de segredo", result.group(1), "a reprovação deve citar o passo")
+            self.assertRegex(sec, r"`[^`\n]{8,}`", "reprovado sem a evidência do erro")
+
+    def test_capabilities_match_f5_acceptance(self):
+        # R18: aprovado = hooks ok; reprovado = unavailable com motivo; OpenCode mantém banner_hook unavailable.
+        caps = miniyaml.loads(CAPS.read_text(encoding="utf-8"))
+        text = DOC.read_text(encoding="utf-8")
+        for name, key in CLIS.items():
+            sec = doc_section(name)
+            approved = re.search(r"\*\*Resultado\*\*: (.+)", sec).group(1).startswith("aprovado")
+            hooks = caps[key]["hooks"]
+            if approved:
+                self.assertEqual(hooks["status"], "ok", f"{key}: aprovado, hooks deve ser ok")
+            else:
+                self.assertEqual(hooks["status"], "unavailable", f"{key}: reprovado, hooks deve ser unavailable")
+                self.assertTrue(hooks.get("fallback"), f"{key}: unavailable sem motivo")
+            banner = caps[key]["banner_hook"]["status"]
+            if key == "opencode":
+                self.assertEqual(banner, "unavailable", "OpenCode não tem banner por hook")
+            else:
+                self.assertEqual(banner, "ok" if approved else "unavailable", f"{key}: banner_hook")
+        self.assertIn("Fase 5", COMPAT.read_text(encoding="utf-8"), "docs/compatibilidade.md sem a nota da Fase 5")
+        self.assertTrue(text)
 
 
 if __name__ == "__main__":

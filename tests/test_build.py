@@ -185,7 +185,7 @@ class BuildTests(unittest.TestCase):
         self.assertTrue(all(e["status"] == "ok" for e in claude["extras"].values()))
         codex = self._caps("codex")
         self.assertEqual(codex["extras"]["orca_worker"]["status"], "ok")
-        self.assertEqual(codex["extras"]["hooks"]["status"], "unavailable")
+        self.assertEqual(codex["extras"]["hooks"]["status"], "ok")
         self.assertIn("sem evento", self._caps("opencode")["extras"]["banner_hook"]["fallback"])
 
     def test_unavailable_extra_without_fallback_fails(self):  # C2
