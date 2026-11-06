@@ -57,3 +57,34 @@ Roteiro `docs/aceite/roteiros-fase-4/antigravity.md`: feature `buscar-tarefas` (
 2. O MCP do Linear não ficou disponível; o `orca linear` cobriu a publicação.
 3. O plugin de teste `starcode-hello` (Fase 0) continua instalado no `agy` junto com o `starcode`. Desinstalar depois do aceite.
 4. Divergência de estado: `verification.md` com `Verdict: FAIL` e achado fechado. O Q deveria regravar o veredito depois do fechamento.
+
+## OpenCode
+
+**Resultado**: aprovado (com troca de modelo no meio do aceite).
+
+**Troca de modelo** (pedido do usuário, 2026-11-05): o roteiro `docs/aceite/roteiros-fase-4/opencode.md` pede `openrouter/deepseek/deepseek-v4-pro` (pago). O usuário trocou para o gratuito `openrouter/nvidia/nemotron-3.5-super-vl:free`. O roteiro não foi alterado (fora do escopo do ticket); a divergência fica registrada aqui. Política de fallback pedida pelo usuário, caso o nemotron fosse bloqueado: `opencode/mimo-v2.6-flash-free`, depois `opencode/deepseek-v4.1-flash-free`, depois `opencode/glm-5.3-flash-free`, nunca voltar a modelo pago. Nenhum bloqueio ocorreu, então nenhum fallback foi usado.
+
+**Histórico**:
+- **1ª execução (deepseek-v4-pro), interrompida pelo coordenador**: o Picard fez `setup`, `engajar`, Troi, Spock e Data (PROJ-17, PROJ-18 e PROJ-19), criou o ramo `feature/exportar-md` e despachou o LaForge do T1 (ramo `freire-andre/T1-exportar-md`, commit `da2d7b2`). Parou em `Dispatched: T1 · PROJ-18 · base 9d1d904`, antes de qualquer ticket integrado.
+- **2ª execução (nemotron-3.5-super-vl:free)**: retomou pelo Handoff, sem recriar as issues PROJ.
+
+Versões: Orca 1.4.248, OpenCode v2.2.3, plugin `starcode` 0.1.0 instalado de `dist/opencode` (worktree `f4-integ`, commit `4e97042`).
+Roteiro `docs/aceite/roteiros-fase-4/opencode.md`: feature `exportar-md` (`exportar-md ARQ`), tamanho MÉDIA, modo Git 2.
+
+**Evidência**:
+- **Instalação**: `python tools/install_local.py --cli opencode` gravou 8 caminhos de skill em `~/.config/opencode/opencode.json` (cópia prévia em `opencode.json.bak-f4`; o plugin e o MCP do usuário foram mantidos) e copiou 8 comandos `sc-*.md`.
+- **Formato do campo `skills`** (ponto em aberto da T4): `{"skills":{"paths":[...]}}` está correto no OpenCode v2.2.3. As skills `setup`, `engajar`, `troi`, `spock`, `data`, `laforge`, `mccoy` e `q` apareceram e carregaram, e o fluxo inteiro rodou a partir delas.
+- **Despacho**: Picard do OpenCode como worker da Orca (`worker-start --agent opencode --model openrouter/nvidia/nemotron-3.5-super-vl:free`, dispatch `ctx_6fa7ab922952`; 1ª execução `ctx_36dd7e0df4cb`) em worktree novo do sandbox, criado de `main` (`f4-opencode-aceite`). Aninhamento: eu (1), Picard (2), LaForge e Q dele (3). Sem `--dangerously-skip-permissions` e sem `--dangerously-bypass-hook-trust`.
+- **Setup e engajar**: `.starcode/config.json` (time PROJ; Todo/In Progress/Done; sem estado de revisão; base `main`), commit `9adf82d`; spec, contexto e tasks em `817ff56`. Aprovações pré-gravadas do roteiro (`roteiro pré-aprovado em 2026-11-05`).
+- **Linear (PROJ)**: PROJ-17 (mãe), PROJ-18 (T1) e PROJ-19 (T2), criadas na 1ª execução e reaproveitadas na 2ª. Caminho: `orca linear` (o OpenCode não tem o MCP do Linear).
+- **Commits** (ramo `feature/exportar-md`, sem push): T1 (PROJ-18) `8d61c93`, integrado em `d2a475a`; T2 (PROJ-19) `e055909`, integrado em `79d58ee`; correção do achado do Q `aa59eb5`, integrada em `f36df5e`; HEAD `f36df5e`.
+- **Gates**: `run_gates.py done exportar-md` em `f36df5e`: `VEREDITO: VERDE (etapa done, 1 gate(s))` (reexecutado por mim no worktree `exportar-md`; `validate_verification` 0 erro). `python -m unittest`: 7 testes OK.
+- **Q**: codex, de outra família (modelo efetivo não relatado pelo worker). Veredito final APROVADO. Achado único: o teste de C1 não falsificava a ordenação por ID, corrigido em `aa59eb5`.
+- **Modelos efetivos**: Picard, Troi, Spock, Data e LaForge `opencode · openrouter/nvidia/nemotron-3.5-super-vl:free` (relatado pelo worker e confirmado no rodapé do terminal: "Nemotron 3.5 Super VL (free) OpenRouter"). Q no codex.
+
+**Achados** (vão para o ciclo de correção):
+1. **Artefatos de planejamento fora do ramo de integração (F2-7)**: na 1ª execução, o Picard despachou o LaForge sem commitar `.specs/features/exportar-md/`, e o gate `check_scope` do LaForge falhou com `.specs/features/exportar-md/` ausente (o diretório `.specs/features` nem existia no ramo). Na 2ª execução, o Picard commitou os artefatos (`817ff56`) antes do despacho, depois de um aviso do coordenador. O Picard deveria fazer isso sozinho; reforçar na skill `engajar`/`laforge`.
+2. **Handoff desatualizado**: ao fim, o `## Handoff` de `tasks.md` ainda mostra `Phase: execute` e `Dispatched: T1 · PROJ-18`, sem `Settled` nem `Last integrated`. O Picard não o atualizou depois dos tickets.
+3. **`proofs.md` e `verification.md` sem commit**: ficaram untracked no worktree `exportar-md`; o `run_gates.py done` passa por ler o disco, mas o ramo de integração não os contém.
+4. **Hook e banner não exercitados**: o OpenCode não tem evento de início de sessão (`banner_hook` indisponível) e o hook de bloqueio do `starcode` não foi testado neste aceite (extras ficam como na Fase 0).
+5. **Modelo gratuito**: o aceite passou com o nemotron `:free`, sem 429 nem bloqueio do provedor. Não confirma o mesmo resultado com o `deepseek-v4-pro` do roteiro.
