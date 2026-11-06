@@ -313,9 +313,64 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T12: Hooks do Antigravity sem aspas no caminho
+**Linear**: SC-56
+**Depends on**: T10
+**Requirements**: R2, R8
+**Tests**: unit
+**Gate**: full
+
+#### TASK
+Em `tools/build.py` (`antigravity_hooks()`), gerar os comandos do Antigravity **sem aspas** em volta do caminho: `python {{STARCODE_ROOT}}/hooks/scripts/git_guard.py --agy`, idem `secret_scan.py --agy` e `banner.py --agy --cli antigravity`. Em `tools/install_local.py` (`_antigravity`), antes de trocar `{{STARCODE_ROOT}}`, recusar com saída 2 e a mensagem `Caminho de instalação com espaço: o Antigravity não aceita aspas no comando do hook (<caminho>)` quando o caminho absoluto da cópia instalada tiver espaço. Regenerar o `dist/`. Testes em `tests/test_build.py` e `tests/test_install_local.py`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-5-hooks/spec.md` (R2, R8). Checks: C27, C28.
+Achado do aceite real (T10, SC-54): o `agy` 1.5.1 no Windows passa as aspas literais ao `python` (`python: can't open file '...starcode\"C:\...\git_guard.py"'`, exit 2), então os hooks quebram em vez de rodar o guard. O Codex e o Claude não mudam (as aspas funcionam neles). Os testes atuais de formato nativo ficam em `tests/test_build.py` (`test_antigravity_hooks_json_native_format`).
+
+#### BOUNDARIES
+May change: `tools/build.py`, `tools/install_local.py`, `tests/test_build.py`, `tests/test_install_local.py`, `dist/`
+Do not touch: `hooks/`, `skills/`, `docs/`, `src/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>". Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
+F3-1: regenere o `dist/` (`python tools/build.py`) no mesmo commit.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T13: Reaceite no Antigravity
+**Linear**: SC-54
+**Depends on**: T12
+**Requirements**: R5, R7, R8, R10, R19
+**Tests**: unit
+**Gate**: quick
+
+#### TASK
+Reinstalar com `python tools/install_local.py --cli antigravity` a partir do worktree de integração e repetir `docs/aceite/roteiros-fase-5/antigravity.md` numa sessão real do `agy` (clone descartável do sandbox; nunca deixar um push forçado acontecer). Substituir a seção Antigravity de `docs/aceite/fase-5.md` pela evidência da tentativa 2, com `**Resultado**: aprovado` ou `reprovado (<passo>)`, mantendo uma linha que cite a tentativa 1 reprovada (aspas no caminho). Criar `test_acceptance_doc_f5_antigravity_filled` em `tests/test_acceptance_doc_f5.py`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-5-hooks/spec.md` (R5, R7, R8, R10, R19). Check: C24.
+Tentativa 1 (T10) reprovada: hooks quebravam pelas aspas; corrigido na T12. `agy` 1.5.1; formato nativo F0-6; padrão do teste: `test_acceptance_doc_f5_codex_filled` no mesmo arquivo.
+
+#### BOUNDARIES
+May change: `docs/aceite/fase-5.md`, `tests/test_acceptance_doc_f5.py`
+Do not touch: `hooks/`, `tools/`, `skills/`, `dist/`, `src/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>". Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ### T11: Aceite no OpenCode, matriz e compatibilidade
 **Linear**: SC-55
-**Depends on**: T10
+**Depends on**: T13
 **Requirements**: R5, R6, R7, R12, R18, R19
 **Tests**: unit
 **Gate**: build
@@ -424,17 +479,23 @@ Proof: run unit | test_acceptance_doc_f5_opencode_filled ... ok
 **C26** - `src/capabilities.yaml` bate com os resultados de `fase-5.md`: aprovado = `hooks: ok`; OpenCode mantém `banner_hook: unavailable` (R18)
 Proof: run unit | test_capabilities_match_f5_acceptance ... ok
 
+**C27** - O `hooks.json` do Antigravity gerado pelo build não tem aspas em volta do caminho dos scripts (R2)
+Proof: run unit | test_antigravity_hook_commands_without_quotes ... ok
+
+**C28** - `install_local --cli antigravity` sai com 2 e a mensagem `Caminho de instalação com espaço` quando o caminho da cópia instalada tem espaço (R8)
+Proof: run unit | test_antigravity_install_refuses_path_with_space ... ok
+
 ## Handoff
 
-**Phase:** published
+**Phase:** execute
 **Size:** LARGE
 **Git mode:** 3
-**Next:** ramo de integração e primeiro ticket
-**Linear:** issue-mãe SC-12; T1=SC-45 … T11=SC-55 (Todo, crew:data, blocks em cadeia)
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** 2026-11-06: 2026-11-06: spec aprovada: "Sim"; 2026-11-06: 2026-11-06: tasks aprovadas e publicação: "Sim"
-**Attempts:** none
-**Reports:** none
+**Next:** integrar T10 e seguir a cadeia
+**Linear:** issue-mãe SC-12; T1=SC-45 … T11=SC-55; T12=SC-56 (correção aspas do Antigravity); T13=SC-54 (reaceite Antigravity)
+**Integration branch:** feature/fase-5-hooks
+**Last integrated:** fffd037
+**Dispatched:** T10 · SC-54 · base fffd037 · ctx_e9a90c871f35 · model claude-sonnet-5-5 · worktree osprey
+**Settled:** 2026-11-06: 2026-11-06: spec aprovada: "Sim"; 2026-11-06: 2026-11-06: tasks aprovadas e publicação: "Sim"; 2026-11-06: 2026-11-06: T9: antes do trust dos hooks no Codex, avisar o usuário e guiá-lo passo a passo: "Quando chegar na parte de aprovar os hooks no Codex preciso que você me Avise e me guie no passo a passo"; 2026-11-06: 2026-11-06: T9: usuário autorizou instalar o starcode do worktree f5-integ no Codex e remover o starcode-hello: "Sim, pode instalar e remover o starcode-hello"; marketplace starcode do Codex aponta para f5-integ; restaurar para F:/Projetos/StarCode após o merge; 2026-11-06: 2026-11-06: T9: trust dos 3 hooks do starcode dado pelo usuário em /hooks (trusted_hash gravado: pre_tool_use 0:0 e 0:1, session_start 0:0); avisos do Codex alheios: hooks.json do plugin fala (campo modules), MCP linear sem login, features.experimental_use_rmcp_client ignorado; 2026-11-06: 2026-11-06: T10: reprovar o 1º aceite do Antigravity, criar T10a (hooks sem aspas) e repetir o aceite: "Sim"
+**Attempts:** agy-hook-aspas=1
+**Reports:** 2026-11-06: 2026-11-06: T1: build gera hooks.json do Codex (${CLAUDE_PLUGIN_ROOT}) e do Antigravity ({{STARCODE_ROOT}}); f5b7801; suíte 242 verde; gate ticket verde; 2026-11-06: 2026-11-06: T2: plugin starcode.js do OpenCode (spawnSync nos guards, throw no deny, fail-open StarCode hook:); 0ebbc2f; suíte 246 verde; gate ticket verde (aviso cabeçalho 74 chars); 2026-11-06: 2026-11-06: T3: guards com fail-open 'StarCode hook:' e testes por payload Codex/Antigravity (C9-C12); 767051b; suíte 252 verde; gate ticket verde; 2026-11-06: 2026-11-06: T4: install_local grava caminhos absolutos (Antigravity) e instala starcode.js do OpenCode sem duplicar (C13, C14); 4361c56; suíte 255 verde; gate ticket verde (aviso cabeçalho 83 chars); 2026-11-06: 2026-11-06: T5: banner avisa hooks do Codex sem trust (C15, C16); suíte 257 verde; gate ticket verde; 2026-11-06: 2026-11-06: T6: setup com passos por CLI e conflicts.py lista starcode-hello (C17-C20); bc24fe9; suíte 261 verde; gate ticket verde (aviso cabeçalho 73 chars); 2026-11-06: 2026-11-06: T7: execute.md para em agent-hooks-review-prompt (C21); suíte 262 verde; gate ticket verde; 2026-11-06: 2026-11-06: T8 (1ª): 6bd775e com testes de nome C23-C25 (provas de T9-T11) exigindo Resultado pendente; não integrado, correção no mesmo worktree; 2026-11-06: 2026-11-06: T8: roteiros fase 5, fase-5.md esqueleto, F5-1..F5-3 (C22); 6bd775e + correção f983730; suíte 265 verde; gate ticket verde; 2026-11-06: 2026-11-06: T9: aceite Codex APROVADO (0.166.0): push forçado e segredo bloqueados pelo hook, 8 comandos normais passaram, banner por additionalContext, ${CLAUDE_PLUGIN_ROOT} expandido; 18b5ebe. Achados: sandbox workspace-write nega escrita em .git (git add fora do Codex); banner no Codex sugere '/starcode:setup' (comando do Claude); 2026-11-06: 2026-11-06: T10 (1ª): escalonado: agy 1.5.1 no Windows passa o caminho com aspas literais ao python (tools/build.py:256); hooks PreToolUse quebram (exit 2); install_local e validate --strict ok, hooks 2; nada gravado; dispatch ctx_e9a90c871f35 aberto aguardando decisão
 **Breaker:** closed
