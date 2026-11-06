@@ -60,6 +60,15 @@ class InstallLocalTests(unittest.TestCase):
         (self.root / "dist/opencode/commands/sc-q.md").write_text("q", encoding="utf-8")
         self.home = self.tmp / "home"
         self.conf = self.home / ".config/opencode/opencode.json"
+        (self.root / "dist/opencode/plugins").mkdir()
+        (self.root / "dist/opencode/plugins/starcode.js").write_text(
+            'const R = "{{STARCODE_ROOT}}"\n', encoding="utf-8")
+        self.agy_hooks = self.home / ".gemini/config/plugins/starcode/hooks.json"
+        self.hooks_src = '{"c": "python \\"{{STARCODE_ROOT}}/hooks/scripts/g.py\\""}'
+
+    def seed_agy_copy(self):
+        self.agy_hooks.parent.mkdir(parents=True, exist_ok=True)
+        self.agy_hooks.write_text(self.hooks_src, encoding="utf-8")
 
     def run_cli(self, *argv, fake=None, which=lambda n: "/bin/" + n):
         fake = fake or Fake()
@@ -114,11 +123,48 @@ class InstallLocalTests(unittest.TestCase):
         self.assertIn("marketplace remove starcode", out)
 
     def test_install_antigravity_validates_first(self):  # C10
-        rc, _, _, fake = self.run_cli("--cli", "antigravity")
+        self.seed_agy_copy()
+        rc, _, _, fake = self.run_cli("--cli", "antigravity", "--home", str(self.home))
         self.assertEqual(rc, 0)
         self.assertEqual(fake.calls[0][1:], ["plugin", "validate", "dist/antigravity", "--strict"])
         self.assertEqual(fake.calls[1][1:3], ["plugin", "install"])
         self.assertEqual(Path(fake.calls[1][3]), (self.root / "dist/antigravity").resolve())
+
+    def test_install_writes_absolute_paths_in_installed_copy(self):  # C13
+        self.seed_agy_copy()
+        rc, _, _, _ = self.run_cli("--cli", "antigravity", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        inst = (self.home / ".gemini/config/plugins/starcode").as_posix()
+        text = self.agy_hooks.read_text(encoding="utf-8")
+        self.assertNotIn("{{STARCODE_ROOT}}", text)
+        self.assertIn(inst + "/hooks/scripts/g.py", text)
+        rc, out, _, _ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        js = self.home / ".config/opencode/plugins/starcode.js"
+        dist = (self.root / "dist/opencode").resolve().as_posix()
+        self.assertEqual(js.read_text(encoding="utf-8"), f'const R = "{dist}"\n')
+        self.assertIn(str(js), out)
+
+    def test_install_twice_keeps_single_registration(self):  # C14
+        for _ in range(2):
+            self.seed_agy_copy()
+            self.assertEqual(self.run_cli("--cli", "antigravity", "--home", str(self.home))[0], 0)
+            self.assertEqual(self.run_cli("--cli", "opencode", "--home", str(self.home))[0], 0)
+        # reinstalar sobre a cópia já trocada também não duplica
+        self.assertEqual(self.run_cli("--cli", "antigravity", "--home", str(self.home))[0], 0)
+        text = self.agy_hooks.read_text(encoding="utf-8")
+        self.assertEqual(text.count("/hooks/scripts/g.py"), 1)
+        files = sorted(p.name for p in (self.home / ".config/opencode/plugins").glob("starcode*.js"))
+        self.assertEqual(files, ["starcode.js"])
+
+    def test_dry_run_writes_no_plugin_or_hooks(self):
+        self.seed_agy_copy()
+        self.run_cli("--cli", "antigravity", "--dry-run", "--home", str(self.home))
+        rc, out, _, _ = self.run_cli("--cli", "opencode", "--dry-run", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        self.assertIn("starcode.js", out)
+        self.assertFalse((self.home / ".config/opencode/plugins").exists())
+        self.assertIn("{{STARCODE_ROOT}}", self.agy_hooks.read_text(encoding="utf-8"))
 
     def test_antigravity_validate_failure_skips_install(self):  # C10
         rc, _, _, fake = self.run_cli("--cli", "antigravity", fake=Fake(fail_on="validate"))
