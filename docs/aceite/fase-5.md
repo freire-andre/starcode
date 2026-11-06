@@ -29,11 +29,12 @@ Roteiros: `docs/aceite/roteiros-fase-5/<cli>.md`. Cada CLI tem a sua seção aba
 
 ## OpenCode
 
-**Resultado**: pendente
+**Resultado**: reprovado (Bloqueio de segredo)
 
-- **Versão**: pendente
-- **Plugin na pasta global**: pendente
-- **Bloqueio de push forçado**: pendente
-- **Bloqueio de segredo**: pendente
-- **Comandos normais**: pendente
+- **Versão**: OpenCode 2.2.3 (sessões reais via `opencode run` em clone descartável do sandbox, ramo `main`, `origin` apontando para um bare local descartável). Modelo gratuito `openrouter/nvidia/nemotron-3.5-super-vl:free`, sem fallback e sem modelo pago.
+- **Plugin na pasta global**: `~/.config/opencode/plugins/starcode.js`, copiado pelo `install_local` com a confirmação do usuário (o Picard já tinha instalado; o `install_local` não foi rodado de novo). `STARCODE_ROOT` aponta para `dist/opencode` do worktree `f5-integ`. `OPENCODE_CONFIG_DIR` não foi usado.
+- **Bloqueio de push forçado**: aprovado. `git push --force origin main` falhou antes de executar: `StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.` O bare de teste continuou em `adcbcea`.
+- **Bloqueio de segredo**: reprovado. Com `segredo.txt` (valor de teste, montado em tempo de execução, `git add` feito fora do OpenCode) staged, `git commit -m "chore: teste"` NÃO foi bloqueado e criou o commit: `[main c06bfb3] chore: teste` / `1 file changed, 1 insertion(+)` / `create mode 100644 segredo.txt`. O commit ficou só no clone descartável (o bare não recebeu push); o clone foi desfeito e `segredo.txt` apagado. O `secret_scan.py` chamado à mão com o mesmo comando e o `cwd` do clone nega (`possível segredo encontrado`), então o defeito está no plugin.
+- **Causa**: o plugin manda `cwd: process.cwd()` ao guard, mas no OpenCode 2.2.3 o `process.cwd()` do plugin é a home do usuário, não o repositório. Um plugin de diagnóstico em `.opencode/plugins/` registrou esse `cwd` e o evento `execute.before` trouxe `input: {"command":"git status --short","workdir":"<clone>"}`. Sem repositório, o `secret_scan` não vê nada staged e deixa passar. O `git_guard` não depende do `cwd`, por isso o push forçado foi bloqueado. Correção sugerida (fora do escopo da T11, em `hooks/`): usar `event.input.workdir` como `cwd`.
+- **Comandos normais**: passaram sem bloqueio e sem aviso `StarCode hook:`: `git status`, `git add .`, `git commit -m "feat: x"` (sem alterações, saída 1 do git, não é bloqueio), `git switch -c feature/x`, `git merge --no-ff feature/x` (`Already up to date`), `orca linear issue SC-1 --json`, `python scripts/gates/run_gates.py ticket x` (stub `gates ok`), `python -m unittest discover -s tests -v` (1 teste ok).
 - **Banner**: n/a (sem banner por hook, F5-3)
