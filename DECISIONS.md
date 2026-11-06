@@ -313,3 +313,21 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `openrouter/<vendor>/<modelo>` só ganha família com vendor e modelo não vazios (senão `unknown`); `fallback` precisa ter texto após `strip()`. C15/C16 passam a conferir os comandos da seção 2b da skill Data e a rodar o gate `publish` (recusa sem IDs, aceita com IDs gravados); C27 exige `VEREDITO: VERDE` e a linha "Modelos efetivos" em cada CLI.
 - **Motivo:** uma prova que passa mesmo quando a regra é violada não prova nada (R1, R2, R15–R17, R25, R27).
 - **Por que não é bug:** `unknown` já é o tratamento de família indeterminada (compare devolve `unknown`, o Q cai em `self-verified` só sem outra família).
+
+### F5-1: Raiz do plugin nos hooks de cada CLI
+- **Problema:** o `dist/` não pode ter caminho absoluto de máquina (R4), mas cada CLI resolve a raiz do plugin de um jeito.
+- **Decisão:** no Codex, o comando do hook usa `${CLAUDE_PLUGIN_ROOT}`; no Antigravity e no OpenCode, `tools/install_local.py` grava o caminho absoluto dos scripts na cópia instalada (`hooks.json` e `starcode.js`). Se o aceite mostrar que o Codex não expande a variável, o Codex passa a seguir o mesmo caminho absoluto, como ticket próprio.
+- **Motivo:** o Codex 0.166 expande a variável em plugins de terceiros; os outros dois não têm variável de raiz.
+- **Por que não é bug:** o `dist/` continua sem caminho de máquina; o absoluto só existe na cópia instalada.
+
+### F5-2: Hook falho deixa o comando passar com aviso `StarCode hook:`
+- **Problema:** Python ausente, payload sem comando, JSON inválido ou erro interno poderiam travar o agente.
+- **Decisão:** fail-open: o comando passa e o hook escreve uma linha que começa com `StarCode hook:` (R9, no espírito de F1-2).
+- **Motivo:** um guarda quebrado não pode paralisar o trabalho; o aviso torna a falha visível.
+- **Por que não é bug:** o bloqueio só vale quando o hook roda; sem trust (Codex) ou sem Python, o banner e o setup avisam.
+
+### F5-3: Sem banner por hook no OpenCode
+- **Problema:** o OpenCode aceita hook de ferramenta (`execute.before`), mas não há evento de início de sessão que entregue contexto.
+- **Decisão:** o plugin do OpenCode só bloqueia; `banner_hook` fica `unavailable` e vale o fallback atual (decisão do usuário: "Bloqueio sim, banner não").
+- **Motivo:** não inventar um canal que o CLI não oferece.
+- **Por que não é bug:** o roteiro do OpenCode marca o banner como n/a e o aceite não o cobra.
