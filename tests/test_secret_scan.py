@@ -5,7 +5,7 @@ import subprocess
 import sys
 import unittest
 
-from helpers import ROOT, TempRepoCase, run_git
+from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 
 import secret_scan as ss
 
@@ -164,6 +164,23 @@ class HookProtocolTests(TempRepoCase):
                 decision = out["decision"] if args else out["hookSpecificOutput"]["permissionDecision"]
                 self.assertEqual(decision, "deny")
                 self.assertNotIn(FAKE["github"], res.stdout)
+
+    def test_agy_real_commit_payload_denies_staged_secret(self):
+        # Payload real do agy 1.5.2 (sem Cwd/cwd; o repositório vem em workspacePaths) e o hook
+        # rodando fora do repositório, na pasta do plugin, como na sessão real (SC-57).
+        payload = json.loads((FIXTURES / "agy-pretooluse-commit.json").read_text(encoding="utf-8"))
+        payload["workspacePaths"] = [str(self.repo).replace("\\", "/")]
+        path = self.repo / "app" / "config.py"
+        path.parent.mkdir()
+        path.write_text(f"TOKEN = '{FAKE['github']}'\n", encoding="utf-8")
+        run_git(self.repo, "add", "app/config.py")
+        outside = self.tmp / "plugin"
+        outside.mkdir()
+        res = subprocess.run([sys.executable, str(HOOK), "--agy"], input=json.dumps(payload), cwd=outside,
+                             capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertEqual(json.loads(res.stdout or "{}").get("decision"), "deny", res.stderr)
+        self.assertNotIn(FAKE["github"], res.stdout)
 
     def test_hash_helper(self):
         res = subprocess.run([sys.executable, str(HOOK), "--hash", "abc"], capture_output=True, text=True)
