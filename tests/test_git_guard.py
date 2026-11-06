@@ -197,6 +197,91 @@ class HookProtocolTests(TempRepoCase):
         res = self.run_hook(json.dumps(payload), "--agy")
         self.assertEqual(json.loads(res.stdout)["decision"], "deny")
 
+    # --- payloads por CLI (Codex no formato do Claude; Antigravity com toolCall.args) -------
+    def payloads(self, command):
+        cwd = str(self.repo)
+        return [
+            ("codex", [], {"tool_input": {"command": command}, "cwd": cwd}),
+            ("antigravity", ["--agy"], {"toolCall": {"args": {"CommandLine": command, "Cwd": cwd}}}),
+        ]
+
+    def run_script(self, script, payload, *args):
+        return subprocess.run([sys.executable, str(ROOT / "hooks" / "scripts" / script), *args],
+                              input=payload if isinstance(payload, str) else json.dumps(payload),
+                              capture_output=True, text=True, encoding="utf-8")
+
+    def assert_denied(self, res, agy):
+        self.assertEqual(res.returncode, 0)
+        out = json.loads(res.stdout)
+        decision = out["decision"] if agy else out["hookSpecificOutput"]["permissionDecision"]
+        self.assertEqual(decision, "deny")
+
+    def test_force_push_denied_codex_and_antigravity_payloads(self):
+        for name, args, payload in self.payloads("git push --force origin main"):
+            with self.subTest(cli=name):
+                self.assert_denied(self.run_script("git_guard.py", payload, *args), bool(args))
+
+    def test_normal_flow_commands_pass_all_payloads(self):
+        self.write_repo_config()
+        self.set_mode(2)
+        run_git(self.repo, "checkout", "-q", "-b", "feature/slug")
+        commands = [
+            "git status",
+            "git add .",
+            'git commit -m "feat: x"',
+            "git switch -c feature/x",
+            "git merge --no-ff feature/x",
+            "orca linear issue SC-1 --json",
+            "python scripts/gates/run_gates.py ticket x",
+            "python -m unittest discover -s tests -v",
+        ]
+        for command in commands:
+            for name, args, payload in self.payloads(command):
+                for script in ("git_guard.py", "secret_scan.py"):
+                    with self.subTest(cli=name, script=script, command=command):
+                        res = self.run_script(script, payload, *args)
+                        self.assertEqual((res.returncode, res.stdout, res.stderr), (0, "", ""))
+
+    def test_invalid_payload_fails_open_with_warning(self):
+        for script in ("git_guard.py", "secret_scan.py"):
+            for args in ([], ["--agy"]):
+                with self.subTest(script=script, args=args):
+                    res = self.run_script(script, "not json", *args)
+                    self.assertEqual((res.returncode, res.stdout), (0, ""))
+                    self.assertTrue(res.stderr.startswith("StarCode hook:"), res.stderr)
+
+    def test_evaluation_error_fails_open_with_warning(self):
+        import git_guard
+
+        class Boom:
+            def __init__(self, cwd):
+                pass
+
+            def evaluate(self, command):
+                raise RuntimeError("boom")
+
+        old_guard, old_stdin = git_guard.Guard, sys.stdin
+        old_argv, old_err, old_out = sys.argv, sys.stderr, sys.stdout
+        import io
+        git_guard.Guard = Boom
+        sys.stdin = io.StringIO(json.dumps({"tool_input": {"command": "git status"}}))
+        sys.argv, sys.stderr, sys.stdout = ["git_guard.py"], io.StringIO(), io.StringIO()
+        try:
+            code = git_guard.main()
+            err, out = sys.stderr.getvalue(), sys.stdout.getvalue()
+        finally:
+            git_guard.Guard, sys.stdin = old_guard, old_stdin
+            sys.argv, sys.stderr, sys.stdout = old_argv, old_err, old_out
+        self.assertEqual((code, out), (0, ""))
+        self.assertTrue(err.startswith("StarCode hook:"), err)
+
+    def test_payload_without_command_passes_silently(self):
+        for script in ("git_guard.py", "secret_scan.py"):
+            for payload, args in (({"tool_input": {}}, []), ({"toolCall": {"args": {}}}, ["--agy"])):
+                with self.subTest(script=script, args=args):
+                    res = self.run_script(script, payload, *args)
+                    self.assertEqual((res.returncode, res.stdout, res.stderr), (0, "", ""))
+
 
 if __name__ == "__main__":
     unittest.main()
