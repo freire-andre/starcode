@@ -43,10 +43,10 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C15 e C16 não falsificam o comportamento do Data; alterações que removam a criação/relacionamento/registro ainda passam por conter as palavras esperadas. | `tests/test_data_skill.py:13` e `tests/test_data_skill.py:24` | Exercitar a sequência de comandos via runner falso e afirmar argumentos, IDs, relações blocks e registro; validar também a aceitação pelo gate. | |
-| R1/R2 aceitam fallback composto apenas por espaços, apesar de exigir texto não vazio. | Comando: cópia temporária de `src/capabilities.yaml` com o primeiro fallback `"   "`; `build.load_capabilities` respondeu `whitespace fallback accepted: '   '`. | Validar `fallback.strip()` como não vazio e cobrir fallback em branco/whitespace. | |
-| R25 classifica como `anthropic` um OpenRouter sem nome de modelo. | Comando: `dispatch.family("openrouter/anthropic/")` => `anthropic`. | Exigir vendor e modelo não vazios antes de atribuir família; cobrir segmentos vazios. | |
-| C27 não verifica toda a evidência exigida por R27: o teste passa sem conferir saída VEREDITO VERDE ou modelos efetivos por papel. | `tests/test_acceptance_doc_f4.py:30` | Asserir no relatório de aceite os gates verdes e os modelos efetivos requeridos para cada CLI. | |
+| C15 e C16 não falsificam o comportamento do Data; alterações que removam a criação/relacionamento/registro ainda passam por conter as palavras esperadas. | `tests/test_data_skill.py:13` e `tests/test_data_skill.py:24` | Exercitar a sequência de comandos via runner falso e afirmar argumentos, IDs, relações blocks e registro; validar também a aceitação pelo gate. | 8d59c1e (SC-44) |
+| R1/R2 aceitam fallback composto apenas por espaços, apesar de exigir texto não vazio. | Comando: cópia temporária de `src/capabilities.yaml` com o primeiro fallback `"   "`; `build.load_capabilities` respondeu `whitespace fallback accepted: '   '`. | Validar `fallback.strip()` como não vazio e cobrir fallback em branco/whitespace. | 8d59c1e (SC-44) |
+| R25 classifica como `anthropic` um OpenRouter sem nome de modelo. | Comando: `dispatch.family("openrouter/anthropic/")` => `anthropic`. | Exigir vendor e modelo não vazios antes de atribuir família; cobrir segmentos vazios. | 8d59c1e (SC-44) |
+| C27 não verifica toda a evidência exigida por R27: o teste passa sem conferir saída VEREDITO VERDE ou modelos efetivos por papel. | `tests/test_acceptance_doc_f4.py:30` | Asserir no relatório de aceite os gates verdes e os modelos efetivos requeridos para cada CLI. | 8d59c1e (SC-44) |
 
 ## Limits
 
