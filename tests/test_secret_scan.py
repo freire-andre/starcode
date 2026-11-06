@@ -73,6 +73,26 @@ class CommitTests(TempRepoCase):
         self.assertIn("app/config.py:1", findings[0])
         self.assertIn("token do GitHub", findings[0])
 
+    def test_secret_after_2mb_of_staged_diff_is_found(self):  # Q: segredo depois de 2 MB
+        secret = "gh" + "p_" + "".join(chr(65 + i % 26) + str(i % 10) for i in range(20))
+        self.stage("big.txt", ("x" * 99 + "\n") * 20_100 + f"TOKEN = '{secret}'\n")
+        self.assertGreater((self.repo / "big.txt").stat().st_size, 2_000_000)
+        findings = ss.evaluate("git commit -m safe", str(self.repo))
+        self.assertEqual(len(findings), 1, findings)
+        self.assertIn("token do GitHub", findings[0])
+
+    def test_diff_over_hard_limit_denies_instead_of_skipping(self):
+        self.stage("big.txt", ("x" * 99 + "\n") * 2_000)
+        old = ss.MAX_DIFF_BYTES
+        ss.MAX_DIFF_BYTES = 10_000
+        try:
+            findings = ss.evaluate("git commit -m safe", str(self.repo))
+        finally:
+            ss.MAX_DIFF_BYTES = old
+        self.assertEqual(len(findings), 1, findings)
+        self.assertIn("grande demais para verificar", findings[0])
+        self.assertIn("big.txt", findings[0])
+
     def test_clean_commit_passes(self):
         self.stage("app/main.py", "print('hello')\nAPI_KEY = os.environ['API_KEY']\n")
         self.assertEqual(ss.evaluate("git commit -m 'feat: hello'", str(self.repo)), [])
