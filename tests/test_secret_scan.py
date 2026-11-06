@@ -144,6 +144,27 @@ class HookProtocolTests(TempRepoCase):
         self.assertEqual(out["permissionDecision"], "deny")
         self.assertNotIn(FAKE["github"], res.stdout)
 
+    def test_secret_commit_denied_codex_and_antigravity_payloads(self):
+        path = self.repo / "app" / "config.py"
+        path.parent.mkdir()
+        path.write_text(f"TOKEN = '{FAKE['github']}'\n", encoding="utf-8")
+        run_git(self.repo, "add", "app/config.py")
+        cwd = str(self.repo)
+        cases = [
+            ("codex", [], {"tool_input": {"command": "git commit -m 'add config'"}, "cwd": cwd}),
+            ("antigravity", ["--agy"],
+             {"toolCall": {"args": {"CommandLine": "git commit -m 'add config'", "Cwd": cwd}}}),
+        ]
+        for name, args, payload in cases:
+            with self.subTest(cli=name):
+                res = subprocess.run([sys.executable, str(HOOK), *args], input=json.dumps(payload),
+                                     capture_output=True, text=True, encoding="utf-8")
+                self.assertEqual(res.returncode, 0)
+                out = json.loads(res.stdout)
+                decision = out["decision"] if args else out["hookSpecificOutput"]["permissionDecision"]
+                self.assertEqual(decision, "deny")
+                self.assertNotIn(FAKE["github"], res.stdout)
+
     def test_hash_helper(self):
         res = subprocess.run([sys.executable, str(HOOK), "--hash", "abc"], capture_output=True, text=True)
         self.assertEqual(res.stdout.strip(), "sha256:" + ss.sha("abc"))

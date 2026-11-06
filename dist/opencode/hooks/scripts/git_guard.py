@@ -292,17 +292,25 @@ def extract(payload: dict, agy: bool) -> tuple[str | None, str | None]:
     return (command if isinstance(command, str) else None), cwd
 
 
+def warn(detail: str) -> None:
+    """Fail-open: avisa em stderr (uma linha) e deixa o comando passar."""
+    line = " ".join(str(detail).split())[:300]
+    sys.stderr.write(f"StarCode hook: git_guard não avaliou o comando ({line}); o comando segue sem "
+                     "verificação.\n")
+
+
 def main() -> int:
     sc.utf8_stdio()
     agy = "--agy" in sys.argv[1:]
     try:
         payload = json.load(sys.stdin)
-    except Exception:
+        command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
+        if not command:
+            return 0
+        reason = Guard(cwd).evaluate(command)
+    except Exception as exc:  # noqa: BLE001
+        warn(f"{type(exc).__name__}: {exc}")
         return 0
-    command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
-    if not command:
-        return 0
-    reason = Guard(cwd).evaluate(command)
     if reason:
         sys.stdout.write(deny_json(reason, agy))
     return 0

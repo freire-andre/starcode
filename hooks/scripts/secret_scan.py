@@ -223,15 +223,18 @@ def main() -> int:
         return 0
     agy = "--agy" in argv
     try:
-        payload = json.load(sys.stdin)
-    except Exception:
-        return 0
-    from git_guard import deny_json  # noqa: PLC0415
+        from git_guard import deny_json  # noqa: PLC0415
 
-    command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
-    if not command:
+        payload = json.load(sys.stdin)
+        command, cwd = extract(payload if isinstance(payload, dict) else {}, agy)
+        if not command:
+            return 0
+        findings = evaluate(command, cwd)
+    except Exception as exc:  # noqa: BLE001
+        line = " ".join(f"{type(exc).__name__}: {exc}".split())[:300]
+        sys.stderr.write(f"StarCode hook: secret_scan não avaliou o comando ({line}); o comando segue "
+                         "sem verificação.\n")
         return 0
-    findings = evaluate(command, cwd)
     if findings:
         shown = "\n".join(f"- {f}" for f in findings[:10])
         more = f"\n(+{len(findings) - 10} achados)" if len(findings) > 10 else ""
