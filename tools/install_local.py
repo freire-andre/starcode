@@ -99,14 +99,22 @@ def _opencode(root, home, dry):
         if not isinstance(cur, dict):
             cur = data["skills"] = {}
         have = cur.setdefault("paths", [])
-    for s in skills:
-        if s not in have:
-            have.append(s)
+    suffixes = {("dist", "opencode", "skills", Path(s).name) for s in skills}
+
+    def is_starcode(entry):
+        if not isinstance(entry, str):
+            return False
+        parts = [x for x in re.split(r"[\\/]+", entry) if x]
+        return tuple(parts[-4:]) in suffixes
+
+    kept = [e for e in have if not is_starcode(e)]
+    removed = len(have) - len(kept)
+    have[:] = kept + skills
     plugin_src = dist / "plugins" / "starcode.js"
     plugin_dst = conf_dir / "plugins" / "starcode.js"
     if dry:
         print(f"[dry-run] gravar plugin {plugin_dst} (com {PLACEHOLDER} = {dist.resolve().as_posix()})")
-        print(f"[dry-run] gravar {len(skills)} caminhos de skill em {conf}")
+        print(f"[dry-run] remover {removed} e gravar {len(skills)} caminhos de skill do StarCode em {conf}")
         for c in commands:
             print(f"[dry-run] copiar {c.name} para {conf_dir / 'commands'}")
         return 0

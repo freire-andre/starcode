@@ -201,6 +201,66 @@ class InstallLocalTests(unittest.TestCase):
         self.assertEqual(data["a"], 1)
         self.assertEqual(len(data["skills"]["paths"]), 2)
 
+    def _seed_paths(self, paths, key="dict"):
+        self.conf.parent.mkdir(parents=True, exist_ok=True)
+        skills = {"paths": paths} if key == "dict" else paths
+        self.conf.write_text(json.dumps({"skills": skills}), encoding="utf-8")
+
+    def _other_clone(self, name):
+        root = self.tmp / name
+        for s in ("engajar", "spock"):
+            (root / "dist/opencode/skills" / s).mkdir(parents=True)
+        (root / "dist/opencode/commands").mkdir(parents=True)
+        (root / "dist/opencode/plugins").mkdir(parents=True)
+        (root / "dist/opencode/plugins/starcode.js").write_text("x", encoding="utf-8")
+        return root
+
+    def test_opencode_install_replaces_starcode_skill_paths_from_other_clones(self):  # C1
+        self._seed_paths([
+            r"C:\x\f5-integ\dist\opencode\skills\engajar",
+            "/home/u/other/dist/opencode/skills/spock",
+            "/opt/alheio",
+        ])
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        mine = sorted(str((self.root / "dist/opencode/skills" / s).resolve()) for s in ("engajar", "spock"))
+        self.assertEqual(paths, ["/opt/alheio"] + mine)
+
+    def test_opencode_install_keeps_foreign_skill_paths_in_order(self):  # C2
+        foreign = ["/z/skills/a", r"C:\w\dist\opencode\skills\outra", "/a/b"]
+        self._seed_paths([foreign[0], "/o/dist/opencode/skills/engajar", foreign[1], foreign[2]])
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertEqual([p for p in paths if p in foreign], foreign)
+        self.assertEqual(paths[:3], foreign)
+        self._seed_paths([foreign[0], "/o/dist/opencode/skills/engajar"], key="list")
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        lst = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]
+        self.assertEqual(lst[0], foreign[0])
+        self.assertEqual(len(lst), 3)
+
+    def test_opencode_install_twice_from_two_clones_no_duplicates(self):  # C3
+        other = self._other_clone("clone2")
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = install_local.main(["--cli", "opencode", "--home", str(self.home)],
+                                    runner=Fake(), which=lambda n: "/bin/" + n, root=other)
+        self.assertEqual(rc, 0)
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertEqual(sorted(paths), sorted(str((other / "dist/opencode/skills" / s).resolve())
+                                               for s in ("engajar", "spock")))
+
+    def test_opencode_dry_run_reports_removed_and_written(self):
+        self._seed_paths(["/o/dist/opencode/skills/engajar", "/alheio"])
+        before = self.conf.read_text(encoding="utf-8")
+        rc, out, *_ = self.run_cli("--cli", "opencode", "--dry-run", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        self.assertIn("remover 1", out)
+        self.assertIn("gravar 2", out)
+        self.assertEqual(self.conf.read_text(encoding="utf-8"), before)
+
     def test_install_is_idempotent(self):  # C12
         self.run_cli("--cli", "opencode", "--home", str(self.home))
         first = self.conf.read_text(encoding="utf-8")
