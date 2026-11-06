@@ -6,19 +6,35 @@ Roteiros: `docs/aceite/roteiros-fase-6/<cli>.md` e `dia-de-missao.md`. Cada seç
 
 | Item | Versão |
 | --- | --- |
-| StarCode | pendente |
-| Claude Code | pendente |
-| Codex | pendente |
+| StarCode | 1.0.0 |
+| Claude Code | 2.1.319 |
+| Codex | 0.166.0 |
 | Antigravity (agy) | pendente |
 | OpenCode | pendente |
 
 ## Claude
 
-**Resultado**: pendente
+**Resultado**: aprovado
+
+- **Versão do CLI**: Claude Code 2.1.319 (subcomandos não interativos em `F:\Projetos\starcode-sandbox`; conferências em sessões `claude -p` novas). O usuário autorizou a remoção da instalação anterior (`starcode@starcode` 0.1.0, marketplace de pasta local `F:\Projetos\StarCode`).
+- **Comandos**: `claude plugin uninstall starcode@starcode`; `claude plugin marketplace remove starcode`; `claude plugin marketplace add freire-andre/starcode@feature/fase-6-release` (a sintaxe `@ref` funcionou: clonou `https://github.com/freire-andre/starcode.git` no ref); `claude plugin install starcode@starcode`.
+- **Banner**: sessão nova, o hook de SessionStart entregou o banner: `StarCode · Diário do Capitão` / `Repositório: starcode-sandbox · ramo chore/starcode-specs · modo Git: 2 ...` / `Config do usuário: ✅ válido` / `Config do repositório: ✅ válido (time PROJ, ramo base main)` / `Orca: ✅ disponível` / `Trabalho em andamento: ...` / `Tripulação ativa: ...`. No Claude o banner não traz a linha `CLI: claude` (só `--cli` a imprime, usado pelos outros CLIs); o roteiro foi corrigido.
+- **Skills**: `starcode:data`, `starcode:engajar`, `starcode:laforge`, `starcode:mccoy`, `starcode:q`, `starcode:setup`, `starcode:spock`, `starcode:troi` (8).
+- **Bloqueio de push forçado**: `git push --force origin main` bloqueado antes de executar: `PreToolUse:Bash hook error: StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.`
+- **Versão do plugin**: `claude plugin list` mostra `starcode@starcode` 1.0.0, escopo user, enabled; marketplace `starcode` com fonte `GitHub (freire-andre/starcode@feature/fase-6-release)`.
 
 ## Codex
 
-**Resultado**: pendente
+**Resultado**: aprovado
+
+- **Versão do CLI**: codex-cli 0.166.0 (`codex exec` em `F:\Projetos\starcode-sandbox`, sem flag de bypass). O usuário autorizou a remoção do marketplace `starcode` anterior (apontava para `F:\Projetos\StarCode`); não havia plugin `starcode` instalado.
+- **Comandos**: `codex plugin marketplace remove starcode`; `codex plugin marketplace add freire-andre/starcode --ref feature/fase-6-release` (clonou `https://github.com/freire-andre/starcode.git#feature/fase-6-release`); `codex plugin add starcode@starcode`.
+- **Trust (`/hooks`)**: antes do trust, o SessionStart do `starcode` falhou e nenhum banner chegou. O usuário abriu `/hooks` e aprovou os 3 hooks de `starcode@starcode` (`pre_tool_use:0:0`, `pre_tool_use:0:1`, `session_start:0:0`; `~/.codex/config.toml` ganhou os `trusted_hash` novos). O agente não deu o trust.
+- **Banner**: após o trust, o contexto de SessionStart trouxe: `StarCode · Diário do Capitão` / `Repositório: starcode-sandbox · ramo chore/starcode-specs · modo Git: 2 ...` / `Config do usuário: ✅ válido` / `Config do repositório: ✅ válido (time PROJ, ramo base main)` / `Orca: ✅ disponível` / `Linear: ✅ ...` / `Tripulação ativa: ...` / `CLI: codex` / `Indisponível neste CLI: linear_mcp → issue-mãe pelo orca linear` / `Indisponível neste CLI: subagent_model → Q por worker da Orca`. Sem o aviso `Hooks do Codex sem trust`.
+- **Skills**: `starcode:data`, `starcode:engajar`, `starcode:laforge`, `starcode:mccoy`, `starcode:q`, `starcode:setup`, `starcode:spock`, `starcode:troi` (8).
+- **Bloqueio de push forçado**: `git push --force origin main` bloqueado: `Command blocked by PreToolUse hook: StarCode bloqueou `git push` forçado (--force, -f, --force-with-lease, +refspec ou --mirror). Reescrever o histórico remoto é proibido no fluxo. Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal.`
+- **Versão do plugin**: `codex plugin list` mostra `starcode@starcode` 1.0.0, installed, enabled, fonte `~\.codex\.tmp\marketplaces\starcode\dist\codex`.
+- **Observações**: avisos alheios, não corrigidos: `hooks.json` do plugin `fala` com campo `modules` desconhecido; `features.experimental_use_rmcp_client` ignorado.
 
 ## Antigravity
 

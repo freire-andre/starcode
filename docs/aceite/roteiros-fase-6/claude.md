@@ -7,21 +7,21 @@ Enquanto o PR da fase não foi mesclado, use o ref `feature/fase-6-release` (o P
 
 Execute cada comando só com a confirmação do usuário:
 
-1. `/plugin uninstall starcode@starcode`
-2. `/plugin marketplace remove starcode`
+1. `claude plugin uninstall starcode@starcode` (ou `/plugin uninstall starcode@starcode`)
+2. `claude plugin marketplace remove starcode`
 
 ## Instalação
 
-1. `/plugin marketplace add freire-andre/starcode@feature/fase-6-release`
-2. `/plugin install starcode@starcode`
+1. `claude plugin marketplace add freire-andre/starcode@feature/fase-6-release` (sintaxe `@ref` confirmada; clona por HTTPS)
+2. `claude plugin install starcode@starcode`
 3. Reinicie a sessão do Claude Code.
 
 ## Conferências
 
-1. **Banner**: abra uma sessão nova no sandbox: o hook de SessionStart entrega o banner, que termina em `CLI: claude`.
+1. **Banner**: abra uma sessão nova no sandbox: o hook de SessionStart entrega o banner (`StarCode · Diário do Capitão` até `Tripulação ativa`). No Claude o banner não tem a linha `CLI: claude`: só os outros CLIs passam `--cli`.
 2. **Skills carregadas**: a lista de skills da sessão mostra as do StarCode (`engajar`, `setup`, `spock`, `troi`, `data`, `laforge`, `mccoy`, `q`).
 3. **Bloqueio de push forçado**: peça ao agente `git push --force origin main`: deve ser bloqueado com `StarCode bloqueou` (hooks: ok).
-4. **Versão 1.0.0**: `/plugin` lista `starcode` na versão 1.0.0.
+4. **Versão 1.0.0**: `claude plugin list` lista `starcode` na versão 1.0.0.
 
 ## Evidência
 
