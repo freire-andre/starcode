@@ -248,7 +248,7 @@ def claude_hooks() -> dict:
 def codex_hooks() -> dict:
     hooks = claude_hooks()
     root = "${CLAUDE_PLUGIN_ROOT}"
-    hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"] = f'python "{root}/hooks/scripts/banner.py" --cli codex'
+    hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"] = f'python "{root}/hooks/scripts/banner.py" --full --cli codex'
     return hooks
 
 
@@ -260,7 +260,7 @@ def antigravity_hooks() -> dict:
             {"type": "command", "command": f"python {root}/secret_scan.py --agy", "timeout": 30},
         ]}]},
         "starcode-banner": {"SessionStart": [
-            {"type": "command", "command": f"python {root}/banner.py --agy --cli antigravity", "timeout": 30},
+            {"type": "command", "command": f"python {root}/banner.py --agy --full --cli antigravity", "timeout": 30},
         ]},
     }
 

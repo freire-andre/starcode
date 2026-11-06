@@ -99,7 +99,7 @@ class BuildTests(unittest.TestCase):
         start = hooks["SessionStart"]
         self.assertEqual(start[0]["matcher"], "startup|resume|clear|compact")
         self.assertEqual([(h["command"], h["timeout"]) for h in start[0]["hooks"]],
-                         [('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/banner.py" --cli codex', 30)])
+                         [('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/banner.py" --full --cli codex', 30)])
 
     def test_antigravity_hooks_json_native_format(self):  # C2
         build.build(self.src, self.out)
@@ -110,7 +110,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([h["command"] for h in guard[0]["hooks"]], [
             f"python {root}/git_guard.py --agy", f"python {root}/secret_scan.py --agy"])
         banner = data["starcode-banner"]["SessionStart"]
-        self.assertEqual([h["command"] for h in banner], [f"python {root}/banner.py --agy --cli antigravity"])
+        self.assertEqual([h["command"] for h in banner], [f"python {root}/banner.py --agy --full --cli antigravity"])
         self.assertTrue(all(h["type"] == "command" for h in guard[0]["hooks"] + banner))
 
     def test_antigravity_hook_commands_without_quotes(self):  # C27
@@ -138,19 +138,26 @@ class BuildTests(unittest.TestCase):
         agy = self._hooks_json("antigravity", "hooks.json")["starcode-banner"]["SessionStart"]
         for h in codex + agy:
             self.assertIn("banner.py", h["command"])
+            self.assertIn("--full", h["command"])
             self.assertNotIn("--text", h["command"])
 
-    def test_banner_hook_mode_matches_text_per_cli(self):  # C16
+    def test_banner_hook_mode_matches_text_per_cli(self):  # C16 (R10: hook = --full --text)
         script = ROOT / "hooks" / "scripts" / "banner.py"
-        def run(*args):
-            r = subprocess.run([sys.executable, str(script), *args, "--cwd", str(ROOT)], input="{}",
+        def run(*args, payload="{}", cwd_args=("--cwd", str(ROOT)), cwd=None):
+            r = subprocess.run([sys.executable, str(script), *args, *cwd_args], input=payload, cwd=cwd,
                                capture_output=True, text=True, encoding="utf-8", timeout=60)
             return json.loads(r.stdout) if "--text" not in args else r.stdout.strip()
-        text = run("--text", "--cli", "codex")
-        ctx = run("--cli", "codex")["hookSpecificOutput"]["additionalContext"]
+        text = run("--full", "--text", "--cli", "codex")
+        ctx = run("--full", "--cli", "codex")["hookSpecificOutput"]["additionalContext"]
         self.assertEqual(ctx.strip(), text)
-        text = run("--text", "--cli", "antigravity")
-        msg = run("--agy", "--cli", "antigravity")["injectSteps"][0]["ephemeralMessage"]
+        text = run("--full", "--text", "--cli", "antigravity")
+        msg = run("--agy", "--full", "--cli", "antigravity")["injectSteps"][0]["ephemeralMessage"]
+        self.assertEqual(msg.strip(), text)
+        # Antigravity sem cwd no payload: workspacePaths[0] é o repositório
+        payload = json.dumps({"workspacePaths": [str(ROOT)]})
+        msg = run("--agy", "--full", "--cli", "antigravity", payload=payload, cwd_args=(),
+                  cwd=tempfile.gettempdir())["injectSteps"][0]["ephemeralMessage"]
+        self.assertNotIn("fora de um repositório Git", msg)
         self.assertEqual(msg.strip(), text)
 
     def test_unknown_placeholder_fails(self):

@@ -22,7 +22,7 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "python {{STARCODE_ROOT}}/hooks/scripts/banner.py --agy --cli antigravity",
+        "command": "python {{STARCODE_ROOT}}/hooks/scripts/banner.py --agy --full --cli antigravity",
         "timeout": 30
       }
     ]

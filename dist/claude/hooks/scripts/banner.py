@@ -252,6 +252,18 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
     return "\n".join(lines), one_line, active
 
 
+def _payload_cwd(payload) -> str | None:
+    """cwd of the SessionStart payload; Antigravity may omit it and send workspacePaths (as git_guard.extract)."""
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("cwd"), str) and payload["cwd"]:
+        return payload["cwd"]
+    paths = payload.get("workspacePaths")
+    if isinstance(paths, list):
+        return next((p for p in paths if isinstance(p, str) and p), None)
+    return None
+
+
 def main() -> int:
     sc.utf8_stdio()
     argv = sys.argv[1:]
@@ -266,7 +278,7 @@ def main() -> int:
     if not text_mode:
         try:
             payload = json.load(sys.stdin)
-            cwd = cwd or (payload.get("cwd") if isinstance(payload, dict) else None)
+            cwd = cwd or _payload_cwd(payload)
         except Exception:
             pass
     cwd = cwd or str(Path.cwd())
