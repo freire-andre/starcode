@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import unittest
 
-from helpers import ROOT, TempRepoCase
+from helpers import ROOT, TempRepoCase, run_git
 
 PLUGIN = ROOT / "hooks" / "opencode" / "starcode.js"
 NODE = shutil.which("node")
@@ -16,7 +16,9 @@ const plugin = mod.default
 let handler = null
 await plugin.setup({ tool: { hook: async (name, fn) => { if (name === "execute.before") handler = fn } } })
 let out = { registered: handler !== null, error: null }
-try { await handler({ input: { command: process.argv[3] } }) } catch (e) { out.error = e.message }
+const input = { command: process.argv[3] }
+if (process.argv[4]) input.workdir = process.argv[4]
+try { await handler({ input }) } catch (e) { out.error = e.message }
 console.log(JSON.stringify(out))
 """
 
@@ -32,10 +34,10 @@ class OpenCodePluginTest(TempRepoCase):
         (d / "runner.mjs").write_text(RUNNER, encoding="utf-8")
         return str(d)
 
-    def run_plugin(self, command: str, env: dict | None = None):
+    def run_plugin(self, command: str, env: dict | None = None, workdir: str | None = None, cwd=None):
         d = self.prepare()
-        res = subprocess.run([NODE, os.path.join(d, "runner.mjs"), os.path.join(d, "starcode.js"), command],
-                             capture_output=True, text=True, cwd=self.repo, env=env, stdin=subprocess.DEVNULL)
+        res = subprocess.run([NODE, os.path.join(d, "runner.mjs"), os.path.join(d, "starcode.js"), command, *([workdir] if workdir else [])],
+                             capture_output=True, text=True, cwd=cwd or self.repo, env=env, stdin=subprocess.DEVNULL)
         self.assertEqual(res.returncode, 0, res.stderr)
         return json.loads(res.stdout.strip().splitlines()[-1]), res.stderr
 
@@ -60,6 +62,16 @@ class OpenCodePluginTest(TempRepoCase):
         out, err = self.run_plugin("git status")
         self.assertIsNone(out["error"])
         self.assertNotIn("StarCode hook:", err)
+
+    def test_opencode_plugin_uses_event_workdir(self):
+        secret = "gh" + "p_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"
+        (self.repo / "cfg.py").write_text(f"TOKEN = '{secret}'\n", encoding="utf-8")
+        run_git(self.repo, "add", "cfg.py")
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        out, _ = self.run_plugin("git commit -m x", workdir=str(self.repo), cwd=outside)
+        self.assertIsNotNone(out["error"])
+        self.assertIn("cfg.py", out["error"])
 
     def test_opencode_plugin_fails_open_with_warning(self):
         env = {"PATH": str(self.tmp), "SystemRoot": os.environ.get("SystemRoot", "")}
