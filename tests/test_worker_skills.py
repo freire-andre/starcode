@@ -36,6 +36,16 @@ class WorkerSkillTests(unittest.TestCase):
         for text in (LAFORGE, MCCOY):
             self.assertIn("## Report (at most 5 lines)", text)
 
+    def test_execute_stops_on_codex_hooks_review(self):
+        for cli in ("claude", "codex", "opencode", "antigravity"):
+            text = (ROOT / "dist" / cli / "skills" / "engajar" / "references" / "execute.md").read_text(
+                encoding="utf-8")
+            with self.subTest(cli=cli):
+                self.assertIn("agent-hooks-review-prompt", text)
+                self.assertIn("pending\n   hooks", text)
+                self.assertIn("open `/hooks` in Codex and approve the `starcode` hooks", text)
+                self.assertIn("Do **not** retry, do **not** use\n   `--dangerously-bypass-hook-trust`", text)
+
 
 if __name__ == "__main__":
     unittest.main()

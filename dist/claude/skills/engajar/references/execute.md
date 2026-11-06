@@ -44,6 +44,10 @@ the first dispatch**.
    If `worker-start` fails with `nested_worker_depth_exceeded` (Orca: "Sub-worker dispatch is not permitted at
    depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or more (Settings → Orchestration).
    It does **not** count as an attempt of the breaker and no retry is made.
+   If a Codex worker's `worker-start` fails with `agent-hooks-review-prompt` (or `agent_readiness` with pending
+   hooks, e.g. "Agent startup blocked: agent-hooks-review-prompt"), **stop** the dispatch and show the trust
+   step: open `/hooks` in Codex and approve the `starcode` hooks. Do **not** retry, do **not** use
+   `--dangerously-bypass-hook-trust`, and it does **not** count as an attempt of the breaker.
    Then add the dispatch id and the `model` field of the result to `--dispatched`.
 6. Link the new worktree to the issue: `orca worktree set --worktree <new worktree> --linear-issue <ID>`.
 7. Wait: `orca orchestration check --wait --types worker_done --timeout-ms 3600000 --json`. The
