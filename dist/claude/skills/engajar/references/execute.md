@@ -18,7 +18,10 @@ Variables: `<slug>` the feature, `B` the repo config `baseBranch`, `I` = `featur
 
 ## 1. Integration branch
 Create `I` from `B` **or reuse `I` if it already exists** (Git evidence wins over the Handoff):
-`git branch feature/<slug> <B>` (no checkout needed). Then
+`git branch feature/<slug> <B>` (no checkout needed). Then create **or reuse the Orca worktree for `I`**
+(`orca worktree list --json`; if none has branch `I`, `orca worktree create --name <slug> --branch feature/<slug>
+--base-branch feature/<slug> --json`). Every write of the Handoff, `proofs.md` and `verification.md` happens in
+that worktree of `I`, never in the main worktree (the Handoff stays apart from the proofs). Then
 `python "P/scripts/handoff.py" set <slug> --phase execute --integration-branch feature/<slug>` **before
 the first dispatch**.
 
@@ -35,6 +38,12 @@ the first dispatch**.
          --worktree new-child --base-branch feature/<slug> --spec-file <temp>/<slug>-<T>.md \
          --task-title "<T>: <title>" --json
 
+   If the LaForge CLI is `opencode`, it cannot create the child itself: first
+   `orca worktree create --name <T> --base-branch feature/<slug> --json`, then
+   `orca orchestration worker-start --agent opencode --model <laforge model> --worktree <that worktree> --spec-file <temp>/<slug>-<T>.md --task-title "<T>: <title>" --json`.
+   If `worker-start` fails with `nested_worker_depth_exceeded` (Orca: "Sub-worker dispatch is not permitted at
+   depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or more (Settings → Orchestration).
+   It does **not** count as an attempt of the breaker and no retry is made.
    Then add the dispatch id and the `model` field of the result to `--dispatched`.
 6. Link the new worktree to the issue: `orca worktree set --worktree <new worktree> --linear-issue <ID>`.
 7. Wait: `orca orchestration check --wait --types worker_done --timeout-ms 3600000 --json`. The
@@ -63,13 +72,16 @@ the first dispatch**.
 2. Green → commit `proofs.md` (`docs(specs): provas (<slug>)` + `Refs`), then
    `python "P/scripts/handoff.py" set <slug> --phase review` and dispatch the Q.
 3. Q brief: `python "P/scripts/dispatch.py" q-brief <slug> --base <B> --head <sha of I> --out <temp>/<slug>-q.md`.
-4. Record `--dispatched "Q · <sha of I>"` and start the Q **in the existing worktree of `I`**, in this order:
+4. Pick the Q CLI by family: `python "P/scripts/dispatch.py" q-cli --laforge <laforge cli:model> [--configured <q cli:model>]`
+   (order: configured Q, codex, antigravity, opencode; first of another family with `orca_worker` ok; never hard-code
+   the CLI). Output `self-verified` (exit 1) → no worker: run the `q` skill as a clean-context subagent and mark
+   `**Verification:** self-verified`. Record `--dispatched "Q · <sha of I>"` and start the Q **in the existing worktree of `I`**; the default order is:
 
        orca orchestration worker-start --agent codex --worktree <worktree of I> --spec-file <temp>/<slug>-q.md --json
        orca orchestration worker-start --agent antigravity --model <gemini model> --worktree <worktree of I> --spec-file <temp>/<slug>-q.md --json
 
    **codex** first (check that its hooks are trusted, F0-1). If codex fails to start, **antigravity**
-   with a Gemini model. If both fail, run the `q` skill as a clean-context subagent and mark
+   with a Gemini model (`opencode` with `--model` when `q-cli` picked it). If all fail, run the `q` skill as a clean-context subagent and mark
    `**Verification:** self-verified` (degraded).
 5. Wait as in step 2.7. Then read the effective model with
    `orca orchestration worker-read <dispatch> --source auto` and write in `verification.md`

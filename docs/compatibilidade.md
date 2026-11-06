@@ -24,6 +24,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | `orca worktree create --agent <id> --linear-issue` | ✅ | ✅ | ✅ | ✅ |
 | `orca orchestration worker-start` (`--spec-file`, resultado, modelo) | ✅ ⁸ | ✅ ⁵ | ✅ ⁸ | não testado ⁹ |
 | MCP do Linear disponível | ✅ | ⏳ ¹⁰ | ⚠️ ¹⁰ | ❌ ¹⁰ |
+| Fluxo StarCode completo (aceite da Fase 4) | ✅ ¹¹ | ✅ ¹¹ | ✅ ¹² | ✅ ¹³ |
 
 ## Notas
 
@@ -57,6 +58,21 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
     - Antigravity: `linear` configurado via `mcp-remote`; o login não foi verificado.
     - OpenCode: sem MCP.
     - O StarCode usa o `orca linear` para quase tudo (D2).
+11. **Aceite da Fase 4, Codex**: aprovado em 2026-11-05 (`docs/aceite/fase-4.md`, seção Codex). Picard e equipe em `gpt-6-luna`, Q no Antigravity; `run_gates.py done` deu VEREDITO VERDE e PROJ-11 a PROJ-13 foram publicadas pelo `orca linear` (o MCP do Linear do Codex segue sem login). Claude: aceite da Fase 3 (`docs/aceite/fase-3.md`).
+12. **Aceite da Fase 4, Antigravity**: aprovado em 2026-11-05 na 2ª tentativa (`docs/aceite/fase-4.md`, seção Antigravity). A 1ª reprovou na instalação (`rules/starcode.md` sem `trigger`, `agy` 1.5.1), corrigida no SC-41. Picard e equipe em `gemini-3.8-flash-high`, Q no codex (`gpt-6-luna`); `run_gates.py done` deu VEREDITO VERDE e PROJ-14 a PROJ-16 foram publicadas pelo `orca linear`. Ressalva: o `agy` 1.5.1 contou `agents 0 · hooks 0` para `dist/antigravity` (sem `hooks.json` na raiz), então hook de bloqueio e banner do `starcode` não foram exercitados; as linhas de hook e banner da coluna seguem da Fase 0 (`agy` 1.4.12, plugin `starcode-hello`).
+13. **Aceite da Fase 4, OpenCode**: aprovado em 2026-11-05 (`docs/aceite/fase-4.md`, seção OpenCode). O roteiro pede `openrouter/deepseek/deepseek-v4-pro`, mas o usuário trocou para o gratuito `openrouter/nvidia/nemotron-3.5-super-vl:free` (a 1ª execução parou no T1). Picard e equipe em nemotron, Q no codex; `run_gates.py done` deu VEREDITO VERDE e PROJ-17 a PROJ-19 foram publicadas pelo `orca linear`. O formato `skills.paths` do `opencode.json` foi confirmado no OpenCode 2.2.3 (as 8 skills carregaram). Ressalva: hook de bloqueio e banner do `starcode` não foram exercitados.
+
+## Fase 4: extras por CLI
+
+Fonte: `src/capabilities.yaml` (gera `dist/<cli>/capabilities.json` e a linha `Indisponível neste CLI` do banner). `ok` = o extra funciona no CLI; `unavailable` = não funciona, e o fallback entra no lugar. Um passo do núcleo comum que falha no aceite é `reprovado (<passo>)` em `docs/aceite/fase-4.md` (R29), nunca um extra indisponível.
+
+| Extra | claude | codex | antigravity | opencode |
+|---|---|---|---|---|
+| `hooks` | ok | unavailable: Fase 5 | unavailable: Fase 5 | unavailable: Fase 5 |
+| `banner_hook` | ok | unavailable: o banner vem do engajar | unavailable: o banner vem do engajar | unavailable: sem evento de início de sessão; o banner vem do engajar |
+| `linear_mcp` | ok | unavailable: issue-mãe pelo `orca linear` | unavailable: issue-mãe pelo `orca linear` | unavailable: issue-mãe pelo `orca linear` |
+| `subagent_model` | ok | unavailable: Q por worker da Orca | unavailable: Q por worker da Orca | unavailable: Q por worker da Orca |
+| `orca_worker` | ok | ok | ok | ok |
 
 ## Procedimentos (por célula)
 

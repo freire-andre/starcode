@@ -12,6 +12,9 @@ Placeholders allowed in skills (anything else in {{...}} is an error):
   {{PLUGIN_ROOT}}           in SKILL.md: how to resolve the literal token <plugin-root> in that CLI
   {{VOICE_OPEN:<member>}}   catchphrases from crew.yaml
   {{VOICE_CLOSE:<member>}}
+  {{CMD:<skill>}}           how to invoke a skill in that CLI (/starcode:<skill>, /sc-<skill>, or prose)
+  {{CLI}}                   the CLI name
+Capabilities: src/capabilities.yaml -> dist/<cli>/capabilities.json (unavailable extras need a fallback).
 """
 from __future__ import annotations
 
@@ -127,7 +130,41 @@ def load_source(root: Path) -> dict:
             raise BuildError(f"skills/{d.name}/SKILL.md: description ausente")
         skills[d.name] = {"dir": d, "invocation": skill_owner[d.name][1]["invocation"]}
     available = [k for k, m in crew.items() if m["skill"] in skills]
-    return {"crew_doc": crew_doc, "crew": crew, "skills": skills, "available": available, "version": version}
+    return {"crew_doc": crew_doc, "crew": crew, "skills": skills, "available": available, "version": version,
+            "capabilities": load_capabilities(root)}
+
+
+CAPABILITY_EXTRAS = ("hooks", "banner_hook", "linear_mcp", "subagent_model", "orca_worker")
+
+
+def load_capabilities(root: Path) -> dict:
+    path = root / "src" / "capabilities.yaml"
+    if not path.exists():
+        raise BuildError("falta src/capabilities.yaml")
+    doc = miniyaml.loads(path.read_text(encoding="utf-8"))
+    result: dict[str, dict] = {}
+    for cli in CLIS:
+        extras = doc.get(cli)
+        if not isinstance(extras, dict):
+            raise BuildError(f"capabilities.yaml: CLI {cli!r} ausente")
+        for name in CAPABILITY_EXTRAS:
+            e = extras.get(name)
+            if not isinstance(e, dict):
+                raise BuildError(f"capabilities.yaml: {cli}.{name} ausente")
+            if e.get("status") not in ("ok", "unavailable"):
+                raise BuildError(f"capabilities.yaml: {cli}.{name}.status inválido: {e.get('status')!r}")
+            if e["status"] == "unavailable" and not str(e.get("fallback") or "").strip():
+                raise BuildError(f"capabilities.yaml: {cli}.{name} unavailable sem fallback")
+        result[cli] = {name: dict(extras[name]) for name in CAPABILITY_EXTRAS}
+    return result
+
+
+def cmd_ref(cli: str, skill: str) -> str:
+    if cli == "claude":
+        return f"/starcode:{skill}"
+    if cli == "opencode":
+        return f"/sc-{skill}"
+    return f"a skill `{skill}` do StarCode"
 
 
 def render(text: str, cli: str, crew: dict, where: str, is_skill_md: bool) -> str:
@@ -141,6 +178,10 @@ def render(text: str, cli: str, crew: dict, where: str, is_skill_md: bool) -> st
             if arg not in crew:
                 raise BuildError(f"{where}: tripulante desconhecido em {m.group(0)}")
             return crew[arg]["voice"]["open" if name == "VOICE_OPEN" else "close"]
+        if name == "CMD" and arg:
+            return cmd_ref(cli, arg)
+        if name == "CLI" and arg is None:
+            return cli
         raise BuildError(f"{where}: placeholder desconhecido {m.group(0)}")
 
     return PLACEHOLDER.sub(sub, text)
@@ -172,7 +213,7 @@ def claude_frontmatter(text: str, invocation: str) -> str:
     return head + "\n" + extra.rstrip("\n") + sep + body
 
 
-def emit_common(src: dict, out: Path, root: Path) -> None:
+def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
     """Runtime pieces every adapter needs: scripts, hook scripts, core context, crew data, schemas."""
     copy_tree(root / "scripts", out / "scripts")
     copy_tree(root / "hooks" / "scripts", out / "hooks" / "scripts")
@@ -188,6 +229,7 @@ def emit_common(src: dict, out: Path, root: Path) -> None:
         "crew": src["crew"],
     }
     write_json(out / "crew.json", crew_json)
+    write_json(out / "capabilities.json", {"schemaVersion": 1, "cli": cli, "extras": src["capabilities"][cli]})
 
 
 def claude_hooks() -> dict:
@@ -208,7 +250,7 @@ def build_claude(src: dict, out: Path, root: Path) -> None:
                {"name": NAME, "version": src["version"], "description": DESC, "author": AUTHOR})
     write_icon(out / ".claude-plugin" / "icon.png")
     emit_skills(src, "claude", out)
-    emit_common(src, out, root)
+    emit_common(src, out, root, "claude")
     write_json(out / "hooks" / "hooks.json", claude_hooks())
     write(out / "context" / "CLAUDE.snippet.md",
           "## StarCode\n\nEste repositório usa o StarCode. Comece com `/starcode:engajar`; configure com "
@@ -223,7 +265,7 @@ def build_codex(src: dict, out: Path, root: Path) -> None:
                {"name": NAME, "version": src["version"], "description": DESC, "author": AUTHOR,
                 "interface": {"displayName": "StarCode", "shortDescription": "SDD com a tripulação"}})
     emit_skills(src, "codex", out)
-    emit_common(src, out, root)
+    emit_common(src, out, root, "codex")
     write(out / "AGENTS.md", (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
 
 
@@ -231,13 +273,15 @@ def build_antigravity(src: dict, out: Path, root: Path) -> None:
     write_json(out / "plugin.json",
                {"name": NAME, "version": src["version"], "description": DESC, "author": AUTHOR["name"]})
     emit_skills(src, "antigravity", out)
-    emit_common(src, out, root)
-    write(out / "rules" / "starcode.md", (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
+    emit_common(src, out, root, "antigravity")
+    # agy exige frontmatter com trigger válido; sem ele a regra nunca se aplica.
+    write(out / "rules" / "starcode.md",
+          "---\ntrigger: always_on\n---\n" + (root / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8"))
 
 
 def build_opencode(src: dict, out: Path, root: Path) -> None:
     emit_skills(src, "opencode", out)
-    emit_common(src, out, root)
+    emit_common(src, out, root, "opencode")
     for name in src["skills"]:
         write(out / "commands" / f"sc-{name}.md",
               f"---\ndescription: StarCode {name} (/sc-{name})\n---\n\n"

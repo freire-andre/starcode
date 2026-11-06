@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "cli": "claude",
+  "extras": {
+    "hooks": {
+      "status": "ok"
+    },
+    "banner_hook": {
+      "status": "ok"
+    },
+    "linear_mcp": {
+      "status": "ok"
+    },
+    "subagent_model": {
+      "status": "ok"
+    },
+    "orca_worker": {
+      "status": "ok"
+    }
+  }
+}

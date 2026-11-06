@@ -27,12 +27,12 @@ banner, no Git mode, no Linear, no tools other than reading the reference.
 ### 1. Banner and preflight
 Run and show the result to the user:
 
-    python "<plugin-root>/hooks/scripts/banner.py" --full --text
+    python "<plugin-root>/hooks/scripts/banner.py" --full --text --cli codex
 
 Then check, in this order:
-- **Repo config invalid** → stop: show the errors and recommend `/starcode:setup`. Never apply a
+- **Repo config invalid** → stop: show the errors and recommend `a skill `setup` do StarCode`. Never apply a
   partial config.
-- **Repo config missing** → recommend `/starcode:setup` first (it maps the Linear team and states).
+- **Repo config missing** → recommend `a skill `setup` do StarCode` first (it maps the Linear team and states).
   If the user declines, continue, but say that Linear steps will ask for the team and states.
 - **Orca or Linear failing** → report the exact failing line. Linear failures stop any Linear step,
   not the whole session.

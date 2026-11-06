@@ -263,3 +263,53 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** cada `Run` declarado em `## Checks` roda uma vez, citado ou não, e a saída vai para `## Output`; um `Run` não citado que falha deixa as provas vermelhas.
 - **Motivo:** um comando declarado nos checks faz parte da evidência; ignorá-lo esconderia uma suíte vermelha.
 - **Por que não é bug:** as provas citadas continuam julgadas pela linha esperada; só deixou de existir o comando declarado e não executado.
+
+## Decisões da Fase 4 (2026-11-05, SC-30)
+
+### F4-1: Matriz de recursos por CLI com `fallback` obrigatório
+- **Problema:** hooks, banner por hook, MCP do Linear, modelo de subagente e worker da Orca existem de forma diferente em cada CLI, e o Claude era o único caso tratado.
+- **Decisão:** `src/capabilities.yaml` lista cada extra por CLI com `status` (`ok` ou `unavailable`); `tools/build.py` grava `capabilities.json` por `dist/<cli>` e falha com `BuildError` se um extra `unavailable` não tiver `fallback`. O banner imprime `Indisponível neste CLI: <extra> → <fallback>`.
+- **Motivo:** o núcleo comum roda em todo CLI; o que falta vira aviso com caminho alternativo, não falha silenciosa.
+- **Por que não é bug:** um passo do núcleo que falha reprova o CLI no aceite (R29); ele nunca é marcado como extra indisponível.
+
+### F4-2: Issue-mãe quando o CLI não tem o MCP do Linear
+- **Problema:** o Data publicava com Projeto e Documento pelo MCP, que nem todo CLI tem.
+- **Decisão:** com `linear_mcp` `unavailable`, o Data cria com `orca linear create` uma issue-mãe (título da feature, spec na descrição) e cada ticket como sub-issue (`--parent`), com as relações `blocks` e os IDs gravados por `tasks_export.py record`; `run_gates.py publish` aceita a issue-mãe no lugar do Projeto.
+- **Motivo:** mantém a publicação e o vínculo ticket↔worktree sem depender do MCP.
+- **Por que não é bug:** o Data diz em uma linha qual caminho usou (R17); o caminho do MCP continua o padrão onde existe.
+
+### F4-3: Limite de aninhamento da Orca
+- **Problema:** com o Picard como worker do CLI testado, o LaForge e o Q ficam um nível abaixo, e o limite padrão da Orca barrava o `worker-start` (`nested_worker_depth_exceeded`).
+- **Decisão:** o usuário configurou o limite em 3 em 2026-11-05 (Settings → Orchestration). O fluxo precisa de no mínimo 2 (Picard worker → LaForge/Q). Ao receber `nested_worker_depth_exceeded`, o Picard para e avisa que o limite precisa ser 2 ou mais, sem contar tentativa do disjuntor (R22).
+- **Motivo:** resposta do usuário na spec ("Subir o limite para 2"), superada pela configuração em 3, que cobre o mínimo.
+- **Por que não é bug:** o valor 3 é folga da configuração local; a exigência do fluxo continua sendo 2.
+
+### F4-4: Worktree de integração do Picard
+- **Problema:** o Handoff, o `proofs.md` e o `verification.md` eram gravados no checkout de quem chamou, e um Picard rodando como worker não tem o ramo `feature/<slug>` à mão.
+- **Decisão:** ao criar ou reutilizar o ramo de integração `I`, o Picard cria ou reutiliza um worktree da Orca para `I` e grava ali esses três artefatos (R21). No OpenCode, o worktree do ticket sai antes, com `--base-branch feature/<slug>` (R20).
+- **Motivo:** um único lugar para o estado da feature, no mesmo ramo que recebe os merges dos tickets.
+- **Por que não é bug:** o escritor único continua sendo o Picard (F3-5); só mudou onde ele escreve.
+
+### F4-5: `install_local --cli codex` substitui um marketplace de outra fonte
+- **Problema:** com o marketplace `starcode` já registrado de outra fonte, o `marketplace add` falhava (`already added from a different source`) e o script parava antes do `plugin add` (aceite do Codex).
+- **Decisão:** se a saída do `marketplace add` contém essa mensagem, o script roda `codex plugin marketplace remove starcode`, repete o `add`, imprime o que fez e segue para o `plugin add`. Qualquer outra falha continua saindo com código 1; `--dry-run` só imprime o plano.
+- **Motivo:** reinstalar a partir de um novo checkout é o uso normal do aceite, e exigir o `remove` manual quebrava o fluxo.
+- **Por que não é bug:** reinstalar da mesma fonte não dispara o `remove`; a remoção só ocorre quando o próprio CLI diz que a fonte é outra.
+
+### F4-6: `q-cli` só responde `self-verified` sem CLI de outra família disponível
+- **Problema:** `dispatch.py q-cli` respondeu `self-verified` num LaForge Codex embora o Antigravity estivesse disponível: o plugin instalado num CLI só carrega o `capabilities.json` dele, e a falta do registro dos outros CLIs contava como indisponível.
+- **Decisão:** um registro que existe decide (`orca_worker` `ok` ou não). Sem registro, o CLI conta como disponível se foi pedido em `--configured` ou se o binário (`codex`, `agy`, `opencode`) está no PATH. Um `--caps-dir` explícito continua sendo autoridade: sem registro nele, o CLI não conta.
+- **Motivo:** `self-verified` degrada a verificação (R19) e só vale quando não há como verificar em outra família.
+- **Por que não é bug:** um registro `unavailable` ainda vence o binário no PATH.
+
+### F4-7: O briefing carrega as linhas Proof e exige o planejamento commitado
+- **Problema:** o briefing citava só os IDs dos checks, e o worker inventava nomes de teste que o `check_proofs` não encontrava (24 provas vermelhas); e o Picard despachou sem commitar `.specs/features/<slug>/`, então o worktree nasceu sem a spec e o `check_scope` falhou.
+- **Decisão:** `dispatch.py brief` copia para o CONTEXT, de cada check da task, a linha `**Cn** - ...`, as linhas `Proof:` e as linhas `**Run <nome>**:` que elas leem, exatas, com a regra de que o teste se chama como na linha Proof (a MÉDIA ganha a mesma regra). Sai com código 2 e mensagem em PT-BR quando `spec.md` ou `tasks.md` não está em HEAD.
+- **Motivo:** o worker só vê o briefing e o worktree dele nasce de HEAD; o que não está lá não existe para ele.
+- **Por que não é bug:** a checagem usa `git cat-file -e HEAD:<arquivo>`, então planejamento commitado e depois alterado no disco não bloqueia.
+
+### F4-8: Família só com vendor e modelo reais; `fallback` em branco não vale
+- **Problema:** o Q da Fase 4 achou `dispatch.family("openrouter/anthropic/")` devolvendo `anthropic` e `build.load_capabilities` aceitando `fallback: "   "`; os testes de C15, C16 e C27 só procuravam palavras.
+- **Decisão:** `openrouter/<vendor>/<modelo>` só ganha família com vendor e modelo não vazios (senão `unknown`); `fallback` precisa ter texto após `strip()`. C15/C16 passam a conferir os comandos da seção 2b da skill Data e a rodar o gate `publish` (recusa sem IDs, aceita com IDs gravados); C27 exige `VEREDITO: VERDE` e a linha "Modelos efetivos" em cada CLI.
+- **Motivo:** uma prova que passa mesmo quando a regra é violada não prova nada (R1, R2, R15–R17, R25, R27).
+- **Por que não é bug:** `unknown` já é o tratamento de família indeterminada (compare devolve `unknown`, o Q cai em `self-verified` só sem outra família).

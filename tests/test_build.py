@@ -48,6 +48,13 @@ class BuildTests(unittest.TestCase):
         self.assertFalse((dist / "claude" / "plugin.json").exists())
         self.assertFalse((dist / "antigravity" / ".claude-plugin").exists())
 
+    def test_antigravity_rule_has_always_on_trigger(self):
+        build.build(self.src, self.out)
+        rule = (self.out / "dist" / "antigravity" / "rules" / "starcode.md").read_text(encoding="utf-8")
+        self.assertTrue(rule.startswith("---\ntrigger: always_on\n---\n"), rule[:80])
+        body = (self.src / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8")
+        self.assertTrue(rule.endswith(body))
+
     def test_placeholders_rendered_per_cli(self):
         build.build(self.src, self.out)
         claude = (self.out / "dist" / "claude" / "skills" / "engajar" / "SKILL.md").read_text(encoding="utf-8")
@@ -84,6 +91,63 @@ class BuildTests(unittest.TestCase):
         ref.write_text(ref.read_text(encoding="utf-8") + "\n{{PLUGIN_ROOT}}\n", encoding="utf-8")
         with self.assertRaises(build.BuildError):
             build.build(self.src, self.out)
+
+    # --- Fase 4 T1: matriz de recursos e marcadores {{CMD}} / {{CLI}} ---
+
+    EXTRAS = ("hooks", "banner_hook", "linear_mcp", "subagent_model", "orca_worker")
+
+    def _caps(self, cli):
+        return json.loads((self.out / "dist" / cli / "capabilities.json").read_text(encoding="utf-8"))
+
+    def test_capabilities_json_per_cli(self):  # C1
+        build.build(self.src, self.out)
+        for cli in build.CLIS:
+            data = self._caps(cli)
+            self.assertEqual(set(data["extras"]), set(self.EXTRAS), cli)
+            for name, e in data["extras"].items():
+                self.assertIn(e["status"], ("ok", "unavailable"))
+                if e["status"] == "unavailable":
+                    self.assertTrue(e.get("fallback"), f"{cli}.{name}")
+        claude = self._caps("claude")
+        self.assertTrue(all(e["status"] == "ok" for e in claude["extras"].values()))
+        codex = self._caps("codex")
+        self.assertEqual(codex["extras"]["orca_worker"]["status"], "ok")
+        self.assertEqual(codex["extras"]["hooks"]["status"], "unavailable")
+        self.assertIn("sem evento", self._caps("opencode")["extras"]["banner_hook"]["fallback"])
+
+    def test_unavailable_extra_without_fallback_fails(self):  # C2
+        path = self.src / "src" / "capabilities.yaml"
+        lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if "fallback:" not in ln]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        with self.assertRaises(build.BuildError):
+            build.build(self.src, self.out)
+
+    def test_blank_fallback_fails(self):  # R1/R2: a whitespace-only fallback is no fallback
+        path = self.src / "src" / "capabilities.yaml"
+        lines = path.read_text(encoding="utf-8").splitlines()
+        idx = next(i for i, ln in enumerate(lines) if ln.strip().startswith("fallback:"))
+        indent = lines[idx][: len(lines[idx]) - len(lines[idx].lstrip())]
+        lines[idx] = f'{indent}fallback: "   "'
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        with self.assertRaises(build.BuildError):
+            build.build(self.src, self.out)
+
+    def test_cmd_and_cli_placeholders_per_cli(self):  # C3
+        files = ("skills/setup/SKILL.md", "skills/engajar/references/git-modes.md")
+        for rel in files:
+            f = self.src / rel
+            f.write_text(f.read_text(encoding="utf-8") + "\nX {{CMD:engajar}} Y {{CLI}}\n", encoding="utf-8")
+        build.build(self.src, self.out)
+        expected = {
+            "claude": "X /starcode:engajar Y claude",
+            "opencode": "X /sc-engajar Y opencode",
+            "codex": "X a skill `engajar` do StarCode Y codex",
+            "antigravity": "X a skill `engajar` do StarCode Y antigravity",
+        }
+        for cli, line in expected.items():
+            for rel in files:
+                got = (self.out / "dist" / cli / rel).read_text(encoding="utf-8")
+                self.assertIn(line, got, f"{cli} {rel}")
 
     def test_undeclared_skill_fails(self):
         (self.src / "skills" / "rogue").mkdir()

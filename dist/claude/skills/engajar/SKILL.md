@@ -27,7 +27,7 @@ banner, no Git mode, no Linear, no tools other than reading the reference.
 ### 1. Banner and preflight
 Run and show the result to the user:
 
-    python "<plugin-root>/hooks/scripts/banner.py" --full --text
+    python "<plugin-root>/hooks/scripts/banner.py" --full --text --cli claude
 
 Then check, in this order:
 - **Repo config invalid** → stop: show the errors and recommend `/starcode:setup`. Never apply a

@@ -391,15 +391,15 @@ Proof: run unit | test_acceptance_doc_has_all_scripts ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** LARGE
 **Git mode:** 2
-**Next:** usuário faz push e PR; SC-10 fecha após o merge
+**Next:** nenhum (fase 3 concluída)
 **Linear:** SC-10 (pai); T1..T10 = SC-20..SC-29 (Todo, crew:data, blocks), publicado em 2026-11-04 após user: "sim"
 **Integration branch:** not created
 **Last integrated:** 4e763cc
 **Dispatched:** none
-**Settled:** none
+**Settled:** 2026-11-05: merge do PR #3 autorizado pelo usuário: "pode fazer o merge do PR" (d737e59)
 **Attempts:** none
 **Reports:** 2026-11-04: T1..T9 implementados na sessão (bootstrap, LaForge ainda não existia): 70fd351, 43e387e, 7a0d379, 06c3f4a, 822a6a0, e6f00b8, ca881af, 33a4869, 2f3604f, 496c5ac; suíte completa OK; 2026-11-05: T10: 5 roteiros aceitos no sandbox (5d85ab1); provas 35/35; 2026-11-05: Q (codex): FAIL, 4 achados (Run sem Proof ignorado; app/ sem teste; degraded sem teste; asserções frouxas em C13/C14/C32); relatório veio com mojibake e `n`n do PowerShell, corrigido pelo Picard; 2026-11-05: fix-Q fase 3: 5 commits; provas 35/35; done verde
 **Breaker:** closed

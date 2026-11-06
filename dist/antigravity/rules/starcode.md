@@ -1,3 +1,6 @@
+---
+trigger: always_on
+---
 # StarCode core rules (common to every CLI)
 
 StarCode is a spec-driven development (SDD) workflow run by a Star Trek crew of skills. These rules

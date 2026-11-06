@@ -18,7 +18,10 @@ Python stdlib only.
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -35,7 +38,10 @@ import tasks_export  # noqa: E402
 import validate_tasks as vt  # noqa: E402
 
 PREFIX_FAMILIES = (("claude", "anthropic"), ("gpt", "openai"), ("o1", "openai"), ("o3", "openai"),
-                   ("o4", "openai"), ("codex", "openai"), ("gemini", "google"))
+                   ("o4", "openai"), ("codex", "openai"), ("gemini", "google"), ("deepseek", "deepseek"))
+VENDOR_FAMILIES = {"anthropic": "anthropic", "openai": "openai", "google": "google", "deepseek": "deepseek"}
+Q_CLI_ORDER = ("codex", "antigravity", "opencode")
+CLI_BINARIES = {"codex": "codex", "antigravity": "agy", "opencode": "opencode"}
 CLI_FAMILIES = {"claude": "anthropic", "codex": "openai", "antigravity": "google", "agy": "google"}
 
 WORKER_RULES = """## Regras fixas do worker (StarCode)
@@ -50,6 +56,10 @@ WORKER_RULES = """## Regras fixas do worker (StarCode)
 - Relatório final (até 5 linhas): o que mudou, gates executados com resultado, commits, pendências,
   tentativas do disjuntor (`<id>=<n>` ou `none`).
 """
+
+
+PROOF_RULE = ("O teste deve se chamar exatamente como na linha Proof: o `run_gates.py` procura esse nome na "
+              "saída; outro nome deixa a prova vermelha.")
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
@@ -111,12 +121,81 @@ def next_ticket(slug: str, root: Path, branch: str | None = None,
     return 1, "todos os tickets integrados"
 
 
+def spec_brief(slug: str, ticket: str, root: Path) -> str:
+    """MEDIUM feature (no tasks.md): the briefing comes from spec.md (R23, R24)."""
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    lines = gc.read_lines(fdir / "spec.md")
+    checks = gc.section(lines, "Checks")
+    if not checks or not gc.meaningful(checks):
+        raise LookupError("spec sem ## Checks: não há o que entregar ao worker")
+    title = next((ln[2:].strip() for ln in lines if ln.startswith("# ")), fdir.name)
+    m = re.search(r"^\*\*Linear\*\*:[ \t]*(.*)$", "\n".join(lines), re.M)
+    ids = gc.LINEAR_ID_RE.findall(m.group(1)) if m else []
+    out = [f"# {title}", "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
+           f"Feature: `{fdir.name}` · Ticket {ticket}", ""]
+    for name in ("Scope", "Requirements", "Checks"):
+        body = gc.section(lines, name) or []
+        out += [f"## {name}", *body, ""]
+    return "\n".join(out).rstrip() + "\n\n" + PROOF_RULE + "\n\n" + WORKER_RULES.format(
+        slug=fdir.name, ticket=ticket, plugin=sc.PLUGIN_ROOT.as_posix())
+
+
+def require_committed(fdir: Path, names: tuple[str, ...]) -> None:
+    """The worker's worktree starts from HEAD: planning that is not committed there does not exist for it."""
+    proj = gc.project_root(fdir)
+    rel = Path(gc.feature_root_hint(fdir))
+    missing = [(rel / n).as_posix() for n in names
+               if _git(proj, "cat-file", "-e", f"HEAD:{(rel / n).as_posix()}")[0] != 0]
+    if missing:
+        raise LookupError("planejamento não commitado em HEAD: " + ", ".join(missing) +
+                          ". Faça o commit de `.specs/features/<slug>/` antes de despachar o worker, "
+                          "senão o worktree dele nasce sem esses arquivos e o `check_scope` falha")
+
+
+def checks_context(task: vt.Task, lines: list[str]) -> list[str]:
+    """The task's check lines and `Proof:` lines, verbatim from `## Checks`, plus the Run lines they read."""
+    body = [ln.strip() for ln in (gc.section(lines, "Checks") or [])]
+    ids = {i for ln in task.blocks.get("CONTEXT", []) if re.match(r"^\W*Checks?\W*:", ln.strip(), re.I)
+           for i in re.findall(r"\bC\d+\b", ln)}
+    if not ids:
+        reqs = set(re.findall(r"\bR\d+\b", task.value("Requirements") or ""))
+        ids = {c.cid for c in gc.read_checks(lines)[0] if reqs & set(c.reqs)}
+    out: list[str] = []
+    runs: set[str] = set()
+    keep = False
+    for ln in body:
+        m = gc.CHECK_RE.match(ln)
+        if m:
+            keep = m.group(1) in ids
+            if keep:
+                out += ["", ln]
+        elif keep and gc.PROOF_RE.match(ln):
+            out.append(ln)
+            rm = gc.RUN_PROOF_RE.match(gc.PROOF_RE.match(ln).group(1).strip().strip("`").strip())
+            if rm:
+                runs.add(rm.group(1))
+    runlines = [ln for ln in body if (r := gc.RUN_RE.match(ln)) and r.group(1) in runs]
+    if not out:
+        return []
+    return ["", "Checks desta task (linhas exatas de `## Checks`):", *runlines, *out, "", PROOF_RULE]
+
+
 def worker_brief(slug: str, ticket: str, root: Path) -> str:
+    fdir0 = gc.resolve_feature(slug, root, "spec.md")
+    if not (fdir0 / "tasks.md").exists():
+        require_committed(fdir0, ("spec.md",))
+        return spec_brief(slug, ticket, root)
+    require_committed(fdir0, ("spec.md", "tasks.md"))
     fdir, tasks = load_tasks(slug, root)
     want = ticket.upper()
     task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
     if task is None:
         raise LookupError(f"ticket {ticket} não existe em {fdir / 'tasks.md'}")
+    extra = checks_context(task, gc.read_lines(fdir / "tasks.md"))
+    if extra:
+        blocks = dict(task.blocks)
+        blocks["CONTEXT"] = [*blocks.get("CONTEXT", []), *extra]
+        task = dataclasses.replace(task, blocks=blocks)
     body = tasks_export.briefing(task, fdir.name)
     head = f"# Ticket {task.tid}: {task.title}\n\nIssue: {linear_id(task) or 'sem issue'}\n\n"
     return head + body + "\n" + WORKER_RULES.format(slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
@@ -147,8 +226,13 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
 
 def family(spec: str) -> str:
     """Family of `cli:model`, `model` or `cli`; 'unknown' when it cannot be told."""
-    cli, _, model = spec.partition(":") if ":" in spec else ("", "", spec)
+    cli, _, model = spec.partition(":") if ":" in spec and not spec.lower().startswith("openrouter/")         else ("", "", spec)
     model = model.strip().lower()
+    if model.startswith("openrouter/"):
+        parts = [p.strip() for p in model.split("/", 2)]
+        if len(parts) < 3 or not parts[1] or not parts[2]:
+            return "unknown"
+        return VENDOR_FAMILIES.get(parts[1], "unknown")
     fams = {k.lower(): v for k, v in (sc.load_crew().get("families") or {}).items()}
     if model in fams:
         return fams[model]
@@ -166,6 +250,61 @@ def compare(a: str, b: str) -> str:
     if "unknown" in (fa, fb):
         return "unknown"
     return "same" if fa == fb else "different"
+
+
+def _default_caps_dirs() -> list[Path]:
+    return [sc.PLUGIN_ROOT.parent, sc.PLUGIN_ROOT / "dist"]
+
+
+def _orca_worker_status(cli: str, caps_dir: Path | None) -> str | None:
+    """The `orca_worker` status of a CLI's capability record; None when no record can be found."""
+    for d in ([caps_dir] if caps_dir else _default_caps_dirs()):
+        f = d / cli / "capabilities.json"
+        if f.is_file():
+            try:
+                extras = json.loads(f.read_text(encoding="utf-8")).get("extras", {})
+            except (OSError, ValueError):
+                return "unavailable"
+            return (extras.get("orca_worker") or {}).get("status") or "unavailable"
+    own = sc.PLUGIN_ROOT / "capabilities.json"
+    if not caps_dir and own.is_file():
+        try:
+            doc = json.loads(own.read_text(encoding="utf-8"))
+            if doc.get("cli") == cli:
+                return (doc.get("extras", {}).get("orca_worker") or {}).get("status") or "unavailable"
+        except (OSError, ValueError):
+            pass
+    return None
+
+
+def _orca_worker_ok(cli: str, caps_dir: Path | None, configured: bool = False, which=shutil.which) -> bool:
+    """A record decides. Without one (a plugin installed in one CLI only carries its own record), an explicitly
+    configured CLI or one whose binary is on PATH counts as available. An explicit --caps-dir is authoritative."""
+    status = _orca_worker_status(cli, caps_dir)
+    if status is not None:
+        return status == "ok"
+    if caps_dir:
+        return False
+    return configured or bool(which(CLI_BINARIES.get(cli, cli)))
+
+
+def q_cli(laforge: str, configured: str | None = None, caps_dir: Path | None = None,
+          which=shutil.which) -> str | None:
+    """First CLI of (configured, codex, antigravity, opencode) whose family differs from the LaForge's
+    and that is available for an Orca worker (R18); None means self-verified (R19), only when no CLI of
+    another family is configured or available."""
+    lf = family(laforge)
+    seen: list[str] = []
+    for spec in ([configured] if configured else []) + list(Q_CLI_ORDER):
+        if spec in seen:
+            continue
+        seen.append(spec)
+        cli = spec.partition(":")[0]
+        fam = family(spec)
+        if (fam != "unknown" and lf != "unknown" and fam != lf
+                and _orca_worker_ok(cli, caps_dir, spec == configured, which)):
+            return spec
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -191,6 +330,10 @@ def main(argv: list[str] | None = None) -> int:
     pf = sub.add_parser("family")
     pf.add_argument("spec")
     pf.add_argument("--compare")
+    pc = sub.add_parser("q-cli")
+    pc.add_argument("--laforge", required=True)
+    pc.add_argument("--configured")
+    pc.add_argument("--caps-dir")
     a = p.parse_args(argv)
     try:
         if a.cmd == "next":
@@ -205,6 +348,10 @@ def main(argv: list[str] | None = None) -> int:
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")
             return 0
+        if a.cmd == "q-cli":
+            pick = q_cli(a.laforge, a.configured, Path(a.caps_dir) if a.caps_dir else None)
+            print(pick or "self-verified")
+            return 0 if pick else 1
         if a.compare:
             print(compare(a.spec, a.compare))
         else:
