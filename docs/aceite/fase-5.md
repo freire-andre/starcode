@@ -16,14 +16,15 @@ Roteiros: `docs/aceite/roteiros-fase-5/<cli>.md`. Cada CLI tem a sua seção aba
 
 ## Antigravity
 
-**Resultado**: pendente
+**Resultado**: reprovado (Bloqueio)
 
-- **Versão**: pendente
-- **Contagem de hooks**: pendente
-- **Bloqueio de push forçado**: pendente
-- **Bloqueio de segredo**: pendente
-- **Comandos normais**: pendente
-- **Banner**: pendente
+- **Versão**: agy 1.5.1 (sessão real via `agy --dangerously-skip-permissions -p` em clone descartável do sandbox, ramo `freire-andre/f5-agy-aceite`, `origin` apontando para um bare local; `starcode` instalado pelo `install_local` a partir do worktree). `agy plugin validate dist/antigravity --strict` passou.
+- **Contagem de hooks**: `hooks 2` (`starcode-banner`, `starcode-guard`), tanto no `validate --strict` quanto em `agy plugin list`. Maior que 0.
+- **Bloqueio de push forçado**: reprovado. `git push --force origin main` foi barrado, mas pelo hook quebrado, não pela regra: `JSON hook "jsonhook__starcode-guard_PreToolUse_1_0" failed: command failed: exit status 2, stderr: python: can't open file 'C:\Users\freir\.gemini\config\plugins\starcode\"C:\Users\freir\.gemini\config\plugins\starcode\hooks\scripts\git_guard.py"': [Errno 22] Invalid argument`. O motivo do `git_guard` nunca apareceu.
+- **Bloqueio de segredo**: reprovado, mesmo erro no `git commit -m "chore: teste"` com `segredo.txt` (valor de teste, montado em tempo de execução) staged; o `secret_scan` não rodou.
+- **Comandos normais**: não testado (hook quebrado).
+- **Banner**: não testado (hook quebrado); o `banner.py` usa o mesmo formato de comando e deve falhar igual.
+- **Causa**: o `agy` no Windows passa o caminho com aspas literais ao `python`. As aspas vêm do comando gerado em `tools/build.py:256` (`python "{{STARCODE_ROOT}}/hooks/scripts/<hook>.py" --agy`). Correção na T10a; o reaceite será um novo despacho.
 
 ## OpenCode
 
