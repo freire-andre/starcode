@@ -3,8 +3,7 @@
   "cli": "opencode",
   "extras": {
     "hooks": {
-      "status": "unavailable",
-      "fallback": "o plugin não acha o repositório (usa o cwd do processo, não o workdir do evento) e o bloqueio de segredo falhou no aceite da Fase 5"
+      "status": "ok"
     },
     "banner_hook": {
       "status": "unavailable",
