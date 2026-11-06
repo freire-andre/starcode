@@ -229,8 +229,10 @@ def family(spec: str) -> str:
     cli, _, model = spec.partition(":") if ":" in spec and not spec.lower().startswith("openrouter/")         else ("", "", spec)
     model = model.strip().lower()
     if model.startswith("openrouter/"):
-        parts = model.split("/")
-        return VENDOR_FAMILIES.get(parts[1], "unknown") if len(parts) >= 3 else "unknown"
+        parts = [p.strip() for p in model.split("/", 2)]
+        if len(parts) < 3 or not parts[1] or not parts[2]:
+            return "unknown"
+        return VENDOR_FAMILIES.get(parts[1], "unknown")
     fams = {k.lower(): v for k, v in (sc.load_crew().get("families") or {}).items()}
     if model in fams:
         return fams[model]
