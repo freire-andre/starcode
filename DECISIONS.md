@@ -289,3 +289,21 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** ao criar ou reutilizar o ramo de integração `I`, o Picard cria ou reutiliza um worktree da Orca para `I` e grava ali esses três artefatos (R21). No OpenCode, o worktree do ticket sai antes, com `--base-branch feature/<slug>` (R20).
 - **Motivo:** um único lugar para o estado da feature, no mesmo ramo que recebe os merges dos tickets.
 - **Por que não é bug:** o escritor único continua sendo o Picard (F3-5); só mudou onde ele escreve.
+
+### F4-5: `install_local --cli codex` substitui um marketplace de outra fonte
+- **Problema:** com o marketplace `starcode` já registrado de outra fonte, o `marketplace add` falhava (`already added from a different source`) e o script parava antes do `plugin add` (aceite do Codex).
+- **Decisão:** se a saída do `marketplace add` contém essa mensagem, o script roda `codex plugin marketplace remove starcode`, repete o `add`, imprime o que fez e segue para o `plugin add`. Qualquer outra falha continua saindo com código 1; `--dry-run` só imprime o plano.
+- **Motivo:** reinstalar a partir de um novo checkout é o uso normal do aceite, e exigir o `remove` manual quebrava o fluxo.
+- **Por que não é bug:** reinstalar da mesma fonte não dispara o `remove`; a remoção só ocorre quando o próprio CLI diz que a fonte é outra.
+
+### F4-6: `q-cli` só responde `self-verified` sem CLI de outra família disponível
+- **Problema:** `dispatch.py q-cli` respondeu `self-verified` num LaForge Codex embora o Antigravity estivesse disponível: o plugin instalado num CLI só carrega o `capabilities.json` dele, e a falta do registro dos outros CLIs contava como indisponível.
+- **Decisão:** um registro que existe decide (`orca_worker` `ok` ou não). Sem registro, o CLI conta como disponível se foi pedido em `--configured` ou se o binário (`codex`, `agy`, `opencode`) está no PATH. Um `--caps-dir` explícito continua sendo autoridade: sem registro nele, o CLI não conta.
+- **Motivo:** `self-verified` degrada a verificação (R19) e só vale quando não há como verificar em outra família.
+- **Por que não é bug:** um registro `unavailable` ainda vence o binário no PATH.
+
+### F4-7: O briefing carrega as linhas Proof e exige o planejamento commitado
+- **Problema:** o briefing citava só os IDs dos checks, e o worker inventava nomes de teste que o `check_proofs` não encontrava (24 provas vermelhas); e o Picard despachou sem commitar `.specs/features/<slug>/`, então o worktree nasceu sem a spec e o `check_scope` falhou.
+- **Decisão:** `dispatch.py brief` copia para o CONTEXT, de cada check da task, a linha `**Cn** - ...`, as linhas `Proof:` e as linhas `**Run <nome>**:` que elas leem, exatas, com a regra de que o teste se chama como na linha Proof (a MÉDIA ganha a mesma regra). Sai com código 2 e mensagem em PT-BR quando `spec.md` ou `tasks.md` não está em HEAD.
+- **Motivo:** o worker só vê o briefing e o worktree dele nasce de HEAD; o que não está lá não existe para ele.
+- **Por que não é bug:** a checagem usa `git cat-file -e HEAD:<arquivo>`, então planejamento commitado e depois alterado no disco não bloqueia.
