@@ -3,20 +3,66 @@
 Plugin de desenvolvimento orientado a especificação (SDD) com uma tripulação de agentes Star Trek,
 para Claude Code, Codex, Antigravity CLI e OpenCode dentro da Orca IDE, com o Linear como base dos tickets.
 
-Estado: **Fase 1** (núcleo, configuração, hooks e Picard no Claude Code). O plano completo está em
-`PLANO_STARCODE.md`; as decisões, em `DECISIONS.md`; a matriz de compatibilidade, em
-`docs/compatibilidade.md`; o aceite de cada fase, em `docs/aceite/`.
+Estado: **v1.0**, com os 4 CLIs suportados (Claude Code, Codex, Antigravity CLI e OpenCode). A matriz de
+compatibilidade está em [`docs/compatibilidade.md`](docs/compatibilidade.md). O plano completo está em
+`PLANO_STARCODE.md`; as decisões, em `DECISIONS.md`; o aceite de cada fase, em `docs/aceite/`.
 
 Repositório privado. Star Trek é marca de seus titulares; os nomes são usados só como homenagem.
 
-## Instalação (Claude Code)
+## Pré-requisitos
+
+- Acesso ao repositório privado `freire-andre/starcode`: rode `gh auth login` ou use uma credencial Git
+  com acesso a ele.
+- Python 3 no PATH.
+- Orca e Linear.
+
+## Instalação
+
+### Claude Code
 
 ```
-/plugin install starcode --marketplace freire-andre/starcode
+/plugin marketplace add freire-andre/starcode
+/plugin install starcode@starcode
 ```
 
-Depois, em cada repositório: `/starcode:setup` (configura Linear, estados e labels) e
-`/starcode:engajar` (inicia ou retoma o trabalho com a tripulação).
+### Codex
+
+```
+codex plugin marketplace add freire-andre/starcode
+codex plugin add starcode@starcode
+```
+
+Depois, abra `/hooks` no Codex e aprove (trust) os hooks do StarCode. Só você pode aprovar.
+
+### Antigravity CLI
+
+Clone em um caminho sem espaço (o instalador recusa caminhos com espaço):
+
+```
+git clone https://github.com/freire-andre/starcode.git
+cd starcode
+python tools/install_local.py --cli antigravity
+```
+
+### OpenCode
+
+```
+git clone https://github.com/freire-andre/starcode.git
+cd starcode
+python tools/install_local.py --cli opencode
+```
+
+## Primeiros passos
+
+Em cada repositório, rode o setup (configura Linear, estados e labels) e depois engaje (inicia ou retoma o
+trabalho com a tripulação):
+
+| CLI | Setup | Engajar |
+| --- | --- | --- |
+| Claude Code | `/starcode:setup` | `/starcode:engajar` |
+| Codex | a skill `setup` do StarCode | a skill `engajar` do StarCode |
+| Antigravity CLI | a skill `setup` do StarCode | a skill `engajar` do StarCode |
+| OpenCode | `/sc-setup` | `/sc-engajar` |
 
 ## Desenvolvimento
 
@@ -26,5 +72,8 @@ python tools/build.py --check    # falha se dist/ estiver desatualizado
 python -m unittest discover -s tests
 python scripts/check_decisions.py
 ```
+
+O CI (GitHub Actions, `.github/workflows/ci.yml`) roda os checks, o eval e a conferência de release.
+O release é feito por `tools/release.py` (`check --tag vX.Y.Z` confere a tag; `create --yes` cria o release).
 
 Evals: ver `evals/README.md`.

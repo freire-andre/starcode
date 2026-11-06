@@ -31,5 +31,32 @@ class ChangelogTests(unittest.TestCase):
             self.assertRegex(sec, rf"Fase {fase}\b")
 
 
+README = ROOT / "README.md"
+
+
+class ReadmeTests(unittest.TestCase):
+    def setUp(self):
+        self.text = README.read_text(encoding="utf-8")
+
+    def test_readme_install_commands_per_cli(self):
+        for cmd in (
+            "/plugin marketplace add freire-andre/starcode",
+            "/plugin install starcode@starcode",
+            "codex plugin marketplace add freire-andre/starcode",
+            "codex plugin add starcode@starcode",
+            "/hooks",
+            "git clone https://github.com/freire-andre/starcode.git",
+            "python tools/install_local.py --cli antigravity",
+            "python tools/install_local.py --cli opencode",
+        ):
+            self.assertIn(cmd, self.text, cmd)
+
+    def test_readme_states_v1_and_private_access(self):
+        self.assertIn("v1.0", self.text)
+        self.assertIn("gh auth login", self.text)
+        self.assertIn("docs/compatibilidade.md", self.text)
+        self.assertNotIn("Fase 1", self.text)
+
+
 if __name__ == "__main__":
     unittest.main()
