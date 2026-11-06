@@ -1,3 +1,4 @@
+import re
 import unittest
 
 from helpers import TempRepoCase, run_git
@@ -41,6 +42,15 @@ class CheckDecisionsTests(TempRepoCase):
 
     def test_missing_file(self):
         self.assertEqual(cd.check(self.repo)[0], 2)
+
+
+    def test_decisions_f6_1_sandbox_mission_day(self):
+        from helpers import ROOT
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        m = re.search(r"^### F6-1: .*\n(.*?)(?=^### |\Z)", text, re.M | re.S)
+        self.assertIsNotNone(m, "DECISIONS.md sem F6-1")
+        for needle in ("starcode-sandbox", "projeto real", "2026-11-06", "Por que não é bug"):
+            self.assertIn(needle, m.group(0))
 
 
 if __name__ == "__main__":

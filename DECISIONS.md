@@ -355,3 +355,27 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o diff de cada arquivo é examinado inteiro; acima de 64 MB o hook nega com "diff grande demais para verificar" (o mesmo vale para arquivos de `--body-file`). Os hooks do Codex e do Antigravity passam `--full`, e o banner usa `workspacePaths[0]` quando o payload não traz `cwd`.
 - **Motivo:** nunca deixar de verificar em silêncio (R5/R6); o hook entrega o mesmo texto de `banner.py --full --text` (R10).
 - **Por que não é bug:** o limite de 64 MB nega em vez de pular, e a saída tem o caminho para aprovar o arquivo em `.starcode/secret-allowlist`; o `cwd` do payload continua tendo prioridade sobre `workspacePaths`.
+
+### F6-1: Dia de missão no `starcode-sandbox`, não num projeto real
+- **Problema:** o aceite do v1.0 pedia uma feature grande rodada de ponta a ponta, e a spec previa um "projeto real" para isso.
+- **Decisão:** o dia de missão roda no `starcode-sandbox`, modo Git 2, do engajar ao gate `done` (roteiro `docs/aceite/roteiros-fase-6/dia-de-missao.md`).
+- **Motivo:** escolha do usuário em 2026-11-06.
+- **Por que não é bug:** o sandbox exercita o fluxo completo sem risco a um projeto em produção.
+
+### F6-2: Banner mostra setup e engajar no formato de cada CLI
+- **Problema:** o banner citava `/starcode:setup` e `/starcode:engajar` em qualquer CLI, mas Codex e Antigravity chamam skills e o OpenCode usa `/sc-setup` e `/sc-engajar`.
+- **Decisão:** `hooks/scripts/banner.py` escolhe o texto dos comandos conforme `--cli` (T2, commit 871b9ca).
+- **Motivo:** o usuário precisa ver o comando que funciona no CLI em que está.
+- **Por que não é bug:** sem `--cli`, o banner mantém o formato do Claude Code.
+
+### F6-3: O instalador do OpenCode troca os caminhos de skill do StarCode
+- **Problema:** instalar o OpenCode de clones diferentes acumulava caminhos `dist/opencode/skills/*` em `skills.paths`.
+- **Decisão:** `tools/install_local.py` remove os caminhos de skill do StarCode de outros clones e grava os do clone atual, sem tocar nos caminhos alheios nem na ordem deles (T1, commit df8ec8e).
+- **Motivo:** a reinstalação limpa do aceite não pode deixar skills duplicadas ou apontando para um clone antigo.
+- **Por que não é bug:** caminhos que não são de skills do StarCode ficam intactos.
+
+### F6-4: `tools/release.py` recusa tag que diverge de `VERSION`
+- **Problema:** criar `v1.0.0` com `VERSION` diferente, ou sobre uma tag já publicada, quebraria a rastreabilidade do release.
+- **Decisão:** `tools/release.py` confere a tag contra `VERSION`, exige a seção da versão no CHANGELOG e só cria tag e release com confirmação (T4, commit 4dc6bf4).
+- **Motivo:** R23 e R24: nada de `--force` nem de release sem notas.
+- **Por que não é bug:** a recusa sai com código 1 e a mensagem diz o que divergiu.
