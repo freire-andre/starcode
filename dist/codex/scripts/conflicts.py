@@ -140,7 +140,22 @@ def scan(home: Path, project: Path | None) -> list[Finding]:
                     findings.append(Finding(f"{plugin_name}:{name}", "plugin-skill", overlap,
                                             plugin_id, disable))
             break
+    findings.extend(_codex_starcode_hello(home))
     return findings
+
+
+def _codex_starcode_hello(home: Path) -> list[Finding]:
+    """Old test plugin still enabled in Codex (R14): report it, never remove it."""
+    cfg = home / ".codex" / "config.toml"
+    try:
+        text = cfg.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    m = re.search(r'(?m)^\[plugins\."starcode-hello@starcode"\]\s*$(.*?)(?=^\s*\[|\Z)', text, re.S)
+    if not m or re.search(r"(?m)^\s*enabled\s*=\s*false", m.group(1)):
+        return []
+    return [Finding("starcode-hello", "codex-plugin", "hooks de teste duplicados", "starcode-hello@starcode",
+                    "codex plugin remove starcode-hello@starcode")]
 
 
 def format_report(findings: list[Finding]) -> str:
