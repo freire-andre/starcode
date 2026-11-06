@@ -26,6 +26,25 @@ class Fake:
         return SimpleNamespace(returncode=rc, stdout="", stderr="")
 
 
+class Scripted:
+    """Fake runner: the first `marketplace add` fails with the stale-source message until `remove` runs."""
+
+    MSG = ("Error: marketplace 'starcode' is already added from a different source; "
+           "remove it before adding this source")
+
+    def __init__(self, stale=True):
+        self.calls = []
+        self.stale = stale
+
+    def __call__(self, cmd, **kw):
+        self.calls.append(list(cmd))
+        if cmd[1:4] == ["plugin", "marketplace", "remove"]:
+            self.stale = False
+        if cmd[1:4] == ["plugin", "marketplace", "add"] and self.stale:
+            return SimpleNamespace(returncode=1, stdout="", stderr=self.MSG)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+
 class InstallLocalTests(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -56,6 +75,43 @@ class InstallLocalTests(unittest.TestCase):
             ["/bin/codex", "plugin", "marketplace", "add", str(self.root)],
             ["/bin/codex", "plugin", "add", "starcode@starcode"]])
         self.assertIn("plugin add", out)
+
+    def test_codex_replaces_marketplace_from_other_source(self):  # item 1
+        rc, out, _, fake = self.run_cli("--cli", "codex", fake=Scripted())
+        self.assertEqual(rc, 0)
+        add = ["/bin/codex", "plugin", "marketplace", "add", str(self.root)]
+        self.assertEqual(fake.calls, [
+            add, ["/bin/codex", "plugin", "marketplace", "remove", "starcode"], add,
+            ["/bin/codex", "plugin", "add", "starcode@starcode"]])
+        self.assertIn("outra fonte", out)
+
+    def test_codex_same_source_stays_idempotent(self):  # item 1
+        rc, _, _, fake = self.run_cli("--cli", "codex", fake=Scripted(stale=False))
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(fake.calls), 2)
+        self.assertNotIn("remove", [c[3] for c in fake.calls])
+
+    def test_codex_other_marketplace_failure_is_not_retried(self):  # item 1
+        rc, _, _, fake = self.run_cli("--cli", "codex", fake=Fake(fail_on="add"))
+        self.assertEqual(rc, 1)
+        self.assertEqual(len(fake.calls), 1)
+
+    def test_codex_remove_failure_stops(self):  # item 1
+        class RemoveFails(Scripted):
+            def __call__(self, cmd, **kw):
+                res = Scripted.__call__(self, cmd, **kw)
+                if cmd[3] == "remove":
+                    return SimpleNamespace(returncode=1, stdout="", stderr="boom")
+                return res
+
+        rc, _, _, fake = self.run_cli("--cli", "codex", fake=RemoveFails())
+        self.assertEqual(rc, 1)
+        self.assertEqual([c[3] for c in fake.calls], ["add", "remove"])
+
+    def test_codex_dry_run_only_prints_the_plan(self):  # item 1
+        rc, out, _, fake = self.run_cli("--cli", "codex", "--dry-run", fake=Scripted())
+        self.assertEqual((rc, fake.calls), (0, []))
+        self.assertIn("marketplace remove starcode", out)
 
     def test_antigravity_validates_then_installs(self):  # C10
         rc, _, _, fake = self.run_cli("--cli", "antigravity")

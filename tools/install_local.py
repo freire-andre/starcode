@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -15,27 +16,37 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BINARIES = {"codex": "codex", "antigravity": "agy", "opencode": "opencode"}
 PLUGIN = "starcode"
+STALE_SOURCE_RE = re.compile(r"already added from a different source", re.I)
 
 
 def _run(cmd, runner, **kw):
+    """Run and echo; returns (returncode, stdout + stderr)."""
     print("$ " + " ".join(str(c) for c in cmd))
     res = runner(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, **kw)
     if res.stdout:
         sys.stdout.write(res.stdout)
     if res.stderr:
         sys.stderr.write(res.stderr)
-    return res.returncode
+    return res.returncode, (res.stdout or "") + "\n" + (res.stderr or "")
 
 
 def _codex(binary, root, dry, runner):
-    cmds = [[binary, "plugin", "marketplace", "add", str(root)],
-            [binary, "plugin", "add", f"{PLUGIN}@{PLUGIN}"]]
-    for cmd in cmds:
-        if dry:
-            print("[dry-run] " + " ".join(cmd))
-        elif _run(cmd, runner) != 0:
+    add = [binary, "plugin", "marketplace", "add", str(root)]
+    remove = [binary, "plugin", "marketplace", "remove", PLUGIN]
+    install = [binary, "plugin", "add", f"{PLUGIN}@{PLUGIN}"]
+    if dry:
+        print("[dry-run] " + " ".join(add))
+        print("[dry-run] se o marketplace já existir de outra fonte: " + " ".join(remove) + " e repetir o add")
+        print("[dry-run] " + " ".join(install))
+        return 0
+    rc, out = _run(add, runner)
+    if rc != 0:
+        if not STALE_SOURCE_RE.search(out):
             return 1
-    return 0
+        print(f"marketplace '{PLUGIN}' já existe de outra fonte: removendo e adicionando de {root}")
+        if _run(remove, runner)[0] != 0 or _run(add, runner)[0] != 0:
+            return 1
+    return 1 if _run(install, runner)[0] != 0 else 0
 
 
 def _antigravity(binary, root, dry, runner):
@@ -46,9 +57,9 @@ def _antigravity(binary, root, dry, runner):
         print("[dry-run] " + " ".join(validate))
         print("[dry-run] " + " ".join(install))
         return 0
-    if _run(validate, runner, cwd=str(root)) != 0:
+    if _run(validate, runner, cwd=str(root))[0] != 0:
         return 1
-    return 1 if _run(install, runner) != 0 else 0
+    return 1 if _run(install, runner)[0] != 0 else 0
 
 
 def _opencode(root, home, dry):
