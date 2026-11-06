@@ -11,7 +11,8 @@ When StarCode is active in the worktree (a Git mode was recorded or .starcode/co
   separate authorization, recorded with `git_mode.py authorize-merge <branch>`.
 
 Output: PreToolUse JSON deny on stdout, exit 0 (never exit 2; see DECISIONS F0-5).
-`--agy`: Antigravity format ({"decision": "deny"}), input in toolCall.args.CommandLine (Phase 5).
+`--agy`: Antigravity format ({"decision": "deny"}), input in toolCall.args.CommandLine; repo dir from
+toolCall.args.Cwd, payload cwd or the first workspacePaths entry (Phase 5, SC-57).
 Known limit: commands built at runtime (variables, eval, aliases, scripts) are not seen.
 """
 from __future__ import annotations
@@ -285,6 +286,12 @@ def extract(payload: dict, agy: bool) -> tuple[str | None, str | None]:
         args = (payload.get("toolCall") or {}).get("args") or {}
         command = args.get("CommandLine") if isinstance(args, dict) else None
         cwd = (args.get("Cwd") if isinstance(args, dict) else None) or payload.get("cwd")
+        if not cwd:
+            # agy 1.5.2 não manda Cwd: o repositório vem em workspacePaths e o processo do hook roda
+            # na pasta do plugin (SC-57; tests/fixtures/agy-pretooluse-commit.json).
+            paths = payload.get("workspacePaths")
+            if isinstance(paths, list):
+                cwd = next((p for p in paths if isinstance(p, str) and p), None)
     else:
         tool_input = payload.get("tool_input") or {}
         command = tool_input.get("command") if isinstance(tool_input, dict) else None

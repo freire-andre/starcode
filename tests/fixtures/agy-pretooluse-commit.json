@@ -1,0 +1,19 @@
+{
+  "artifactDirectoryPath": "C:/Users/<user>/.gemini/antigravity-cli/brain/b50e9206-5fb6-433d-9b9a-929b9da8c2db",
+  "conversationId": "b50e9206-5fb6-433d-9b9a-929b9da8c2db",
+  "lastUserInput": "Run exactly this shell command in the current directory and report its output: git commit -m \"chore: teste\"",
+  "modelName": "gemini-3.8-flash-high",
+  "stepIdx": 4,
+  "toolCall": {
+    "args": {
+      "CommandLine": "git commit -m \"chore: teste\"",
+      "WaitMsBeforeAsync": 5000,
+      "toolSummary": "Git commit test"
+    },
+    "name": "run_command"
+  },
+  "transcriptPath": "C:/Users/<user>/.gemini/antigravity-cli/brain/b50e9206-5fb6-433d-9b9a-929b9da8c2db/.system_generated/logs/transcript_full.jsonl",
+  "workspacePaths": [
+    "<WORKSPACE>"
+  ]
+}

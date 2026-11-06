@@ -3,10 +3,10 @@ import subprocess
 import sys
 import unittest
 
-from helpers import ROOT, TempRepoCase, run_git
+from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 
 import starcode_common as sc
-from git_guard import Guard, tokenize
+from git_guard import Guard, extract, tokenize
 
 HOOK = ROOT / "hooks" / "scripts" / "git_guard.py"
 
@@ -196,6 +196,24 @@ class HookProtocolTests(TempRepoCase):
         payload = {"toolCall": {"args": {"CommandLine": "git reset --hard"}}, "cwd": str(self.repo)}
         res = self.run_hook(json.dumps(payload), "--agy")
         self.assertEqual(json.loads(res.stdout)["decision"], "deny")
+
+    def test_extract_agy_real_payload_uses_workspace_path(self):
+        payload = json.loads((FIXTURES / "agy-pretooluse-commit.json").read_text(encoding="utf-8"))
+        payload["workspacePaths"] = [str(self.repo)]
+        self.assertEqual(extract(payload, True), ('git commit -m "chore: teste"', str(self.repo)))
+        payload["toolCall"]["args"]["Cwd"] = str(self.tmp)
+        self.assertEqual(extract(payload, True)[1], str(self.tmp))  # Cwd explícito tem prioridade
+
+    def test_agy_real_payload_applies_worktree_mode(self):
+        self.write_repo_config()
+        self.set_mode(1)
+        payload = json.loads((FIXTURES / "agy-pretooluse-commit.json").read_text(encoding="utf-8"))
+        payload["workspacePaths"] = [str(self.repo)]
+        outside = self.tmp / "plugin"
+        outside.mkdir()
+        res = subprocess.run([sys.executable, str(HOOK), "--agy"], input=json.dumps(payload), cwd=outside,
+                             capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(json.loads(res.stdout or "{}").get("decision"), "deny", res.stderr)
 
     # --- payloads por CLI (Codex no formato do Claude; Antigravity com toolCall.args) -------
     def payloads(self, command):
