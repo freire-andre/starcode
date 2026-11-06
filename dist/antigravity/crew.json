@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "families": {
     "claude-opus-5-5": "anthropic",
     "claude-sonnet-5-5": "anthropic",
