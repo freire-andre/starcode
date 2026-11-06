@@ -62,4 +62,12 @@ Roteiros: `docs/aceite/roteiros-fase-6/<cli>.md` e `dia-de-missao.md`. Cada seç
 
 ## Dia de missão
 
-**Resultado**: pendente
+**Resultado**: aprovado
+
+- **Slug**: `tarefas-recorrentes`, classe GRANDE (gatilhos: dados persistidos, concorrência e estado), modo Git 2. Data: 2026-11-06, sessão interativa do Claude em `F:/Projetos/starcode-sandbox`, StarCode 1.0.0 instalado do GitHub (`freire-andre/starcode@feature/fase-6-release`).
+- **Fluxo**: descoberta da Troi em duas rodadas; spec R1–R34 aprovada com "sim"; tasks T1–T5 aprovadas e publicadas com "sim" (commit `c923aca`).
+- **IDs Linear**: workspace cifren, time PROJ; projeto P-PROJ-6 com o documento da spec; issues T1=PROJ-20, T2=PROJ-21, T3=PROJ-22, T4=PROJ-23, T5=PROJ-24. Todas foram para Done depois de user: "Sim". Comentário "pronto para revisão" em PROJ-20..24 (o config não tem estado de review).
+- **Ramo de integração**: `feature/tarefas-recorrentes`. Ticket → merge: T1 `83279e3` → `3ac2a0d`; T2 `0f49d6e` → `3725548`; T3 `dc60777` → `d1dea27`; T4 `a7aafd2` → `6f5a687`; T5 `bed49a2` → `9f9c0c4`. Depois: provas `da9c02f`, verificação do Q `b44b0d1`, fix-Q `9a2e90b` e `d189123`, provas e achados fechados `da8af7c`, conclusão `e222709`, merge na main `e3b9666` (local, sem push, após user: "Autorizo merge na main"), registro `092478c`.
+- **Gates**: `ticket` verde em T1–T5, com um aviso em T4 (cabeçalho de commit com 77 caracteres). `proofs` verde. `done` verde: validate_verification com 0 erros e 0 avisos. A suíte do sandbox tem 43 testes, todos OK.
+- **Q**: codex, efetivo gpt-6-luna, Verdict FAIL em `da9c02f`, 2 achados: (1) R2: o load aceitava `anchor_day` fora de recorrência mensal (`tarefas/store.py:29`), fechado em `9a2e90b`; (2) `assertIn` fraco em C23, C24, C25, C28, C29, C31, C32 e C35 (`tests/test_cli.py`), fechado em `d189123` com `assertEqual` exato. Uma única passada de correção pós-Q; o disjuntor ficou fechado o tempo todo.
+- **Achados**: nenhum pede código no StarCode, então não há ticket. Achado menor de documentação de estado: a linha `**Linear:**` do Handoff ainda diz "(Todo, crew:data)" mesmo com as issues em Done; não é bug e não pede código nesta fase.
