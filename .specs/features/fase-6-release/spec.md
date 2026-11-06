@@ -124,18 +124,3 @@ Discovery: `.specs/features/fase-6-release/context.md`. Issues: SC-13 e SC-61.
 
 ## Open Questions
 None.
-
-## Handoff
-
-**Phase:** spec-approved
-**Size:** LARGE
-**Git mode:** 3
-**Next:** Data quebra em tasks
-**Linear:** SC-13
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** 2026-11-06: spec aprovada: "sim"
-**Attempts:** none
-**Reports:** none
-**Breaker:** closed
