@@ -44,6 +44,31 @@ class AcceptanceDocF5Tests(unittest.TestCase):
             self.assertNotIn("pendente", field(sec, label).lower(), f"Codex: '{label}' pendente")
         self.assertNotIn("pendente", result.group(1).lower())
 
+    def test_acceptance_doc_f5_antigravity_filled(self):
+        sec = doc_section("Antigravity")
+        result = re.search(r"\*\*Resultado\*\*: (.+)", sec)
+        self.assertIsNotNone(result, "Antigravity: sem **Resultado**")
+        self.assertRegex(result.group(1), r"^(aprovado|reprovado \(.+\))", "Antigravity: Resultado inválido")
+        self.assertNotIn("pendente", result.group(1).lower())
+        self.assertRegex(field(sec, "Versão"), r"agy \d+\.\d+\.\d+", "Antigravity: sem versão do CLI")
+        self.assertRegex(field(sec, "Contagem de hooks"), r"hooks [1-9]", "Antigravity: contagem de hooks")
+        self.assertIn("aspas", field(sec, "Tentativa 1 (T10)"), "falta a tentativa 1 reprovada (aspas)")
+        self.assertIn("git push --force origin main", field(sec, "Bloqueio de push forçado"))
+        self.assertIn("segredo", field(sec, "Bloqueio de segredo"))
+        self.assertNotIn("q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3", sec, "o valor de teste do segredo não vai no doc")
+        self.assertIn("Comandos normais", sec)
+        self.assertIn("Banner", sec)
+        if result.group(1).startswith("aprovado"):
+            normal = field(sec, "Comandos normais")
+            for cmd in ("git status", "git add .", "git commit", "git switch -c", "git merge --no-ff",
+                        "orca linear issue", "run_gates.py", "unittest discover"):
+                self.assertIn(cmd, normal, f"Comandos normais sem '{cmd}'")
+            self.assertIn("antigravity", field(sec, "Banner").lower())
+            self.assertIn("StarCode bloqueou", field(sec, "Bloqueio de push forçado"))
+            self.assertIn("possível segredo", field(sec, "Bloqueio de segredo"))
+        else:
+            self.assertIn("(Bloqueio", result.group(1), "reprovação deve citar o passo")
+
 
 if __name__ == "__main__":
     unittest.main()
