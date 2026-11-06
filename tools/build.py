@@ -153,7 +153,7 @@ def load_capabilities(root: Path) -> dict:
                 raise BuildError(f"capabilities.yaml: {cli}.{name} ausente")
             if e.get("status") not in ("ok", "unavailable"):
                 raise BuildError(f"capabilities.yaml: {cli}.{name}.status inválido: {e.get('status')!r}")
-            if e["status"] == "unavailable" and not e.get("fallback"):
+            if e["status"] == "unavailable" and not str(e.get("fallback") or "").strip():
                 raise BuildError(f"capabilities.yaml: {cli}.{name} unavailable sem fallback")
         result[cli] = {name: dict(extras[name]) for name in CAPABILITY_EXTRAS}
     return result

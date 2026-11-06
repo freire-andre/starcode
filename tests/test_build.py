@@ -122,6 +122,16 @@ class BuildTests(unittest.TestCase):
         with self.assertRaises(build.BuildError):
             build.build(self.src, self.out)
 
+    def test_blank_fallback_fails(self):  # R1/R2: a whitespace-only fallback is no fallback
+        path = self.src / "src" / "capabilities.yaml"
+        lines = path.read_text(encoding="utf-8").splitlines()
+        idx = next(i for i, ln in enumerate(lines) if ln.strip().startswith("fallback:"))
+        indent = lines[idx][: len(lines[idx]) - len(lines[idx].lstrip())]
+        lines[idx] = f'{indent}fallback: "   "'
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        with self.assertRaises(build.BuildError):
+            build.build(self.src, self.out)
+
     def test_cmd_and_cli_placeholders_per_cli(self):  # C3
         files = ("skills/setup/SKILL.md", "skills/engajar/references/git-modes.md")
         for rel in files:

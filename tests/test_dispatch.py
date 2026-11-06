@@ -248,6 +248,9 @@ class FamilyAndQCliTests(TempRepoCase):
         self.assertEqual(f("opencode:openrouter/google/gemini-3"), "google")
         self.assertEqual(f("openrouter/deepseek/deepseek-v4"), "deepseek")
         self.assertEqual(f("openrouter/acme/model-x"), "unknown")
+        for broken in ("openrouter/anthropic/", "openrouter/anthropic", "openrouter//claude-x",
+                       "openrouter/", "openrouter/anthropic/  ", "opencode:openrouter/anthropic/"):
+            self.assertEqual(f(broken), "unknown", broken)
         self.assertEqual(dispatch.compare("openrouter/anthropic/claude-x", "claude"), "same")
 
     def caps(self, **status: str) -> Path:

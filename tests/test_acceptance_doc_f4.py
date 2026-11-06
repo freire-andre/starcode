@@ -37,6 +37,10 @@ class AcceptanceDocF4Tests(unittest.TestCase):
             evidence = sec.split("**Evidência**:", 1)[1]
             self.assertRegex(evidence, r"\b[0-9a-f]{7}\b", f"{cli}: evidência sem commit")
             self.assertRegex(evidence, r"PROJ-\d+", f"{cli}: evidência sem issue PROJ")
+            self.assertRegex(evidence, r"(?m)^.*VEREDITO: VERDE", f"{cli}: evidência sem a linha `VEREDITO: VERDE`")
+            models = re.search(r"(?m)^.*Modelos efetivos\*{0,2}:?\**\s*(.+)$", evidence)
+            self.assertIsNotNone(models, f"{cli}: evidência sem a linha 'Modelos efetivos'")
+            self.assertRegex(models.group(1), r"\S+ · \S+", f"{cli}: 'Modelos efetivos' sem `cli · modelo`")
 
     def test_cited_hashes_are_real_commits(self):
         text = DOC.read_text(encoding="utf-8")

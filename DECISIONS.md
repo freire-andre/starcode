@@ -307,3 +307,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `dispatch.py brief` copia para o CONTEXT, de cada check da task, a linha `**Cn** - ...`, as linhas `Proof:` e as linhas `**Run <nome>**:` que elas leem, exatas, com a regra de que o teste se chama como na linha Proof (a MÉDIA ganha a mesma regra). Sai com código 2 e mensagem em PT-BR quando `spec.md` ou `tasks.md` não está em HEAD.
 - **Motivo:** o worker só vê o briefing e o worktree dele nasce de HEAD; o que não está lá não existe para ele.
 - **Por que não é bug:** a checagem usa `git cat-file -e HEAD:<arquivo>`, então planejamento commitado e depois alterado no disco não bloqueia.
+
+### F4-8: Família só com vendor e modelo reais; `fallback` em branco não vale
+- **Problema:** o Q da Fase 4 achou `dispatch.family("openrouter/anthropic/")` devolvendo `anthropic` e `build.load_capabilities` aceitando `fallback: "   "`; os testes de C15, C16 e C27 só procuravam palavras.
+- **Decisão:** `openrouter/<vendor>/<modelo>` só ganha família com vendor e modelo não vazios (senão `unknown`); `fallback` precisa ter texto após `strip()`. C15/C16 passam a conferir os comandos da seção 2b da skill Data e a rodar o gate `publish` (recusa sem IDs, aceita com IDs gravados); C27 exige `VEREDITO: VERDE` e a linha "Modelos efetivos" em cada CLI.
+- **Motivo:** uma prova que passa mesmo quando a regra é violada não prova nada (R1, R2, R15–R17, R25, R27).
+- **Por que não é bug:** `unknown` já é o tratamento de família indeterminada (compare devolve `unknown`, o Q cai em `self-verified` só sem outra família).
