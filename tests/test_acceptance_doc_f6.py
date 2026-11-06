@@ -71,6 +71,33 @@ class AcceptanceDocF6Tests(unittest.TestCase):
             line = next(l for l in versions.splitlines() if l.startswith(f"| {row}"))
             self.assertRegex(line, r"\d+\.\d+\.\d+", f"Versões: {row} sem versão")
 
+    def test_acceptance_doc_f6_antigravity_opencode_filled(self):
+        versions = self._section("Versões")
+        for name, row in (("Antigravity", "Antigravity (agy)"), ("OpenCode", "OpenCode")):
+            sec = self._section(name)
+            result = re.search(r"\*\*Resultado\*\*: (.+)", sec)
+            self.assertIsNotNone(result, f"{name}: sem **Resultado**")
+            self.assertTrue(result.group(1).startswith("aprovado"), f"{name}: aceite não aprovado")
+            self.assertRegex(self._field(sec, "Versão do CLI"), r"\d+\.\d+\.\d+", f"{name}: sem versão do CLI")
+            cmds = self._field(sec, "Comandos")
+            self.assertIn("install_local.py --cli", cmds)
+            self.assertIn("feature/fase-6-release", cmds)
+            self.assertIn("Skills", sec)
+            push = self._field(sec, "Bloqueio de push forçado")
+            self.assertIn("git push --force origin main", push)
+            self.assertIn("StarCode bloqueou", push)
+            self.assertRegex(self._field(sec, "Versão do plugin"), r"1\.0\.0", f"{name}: sem versão 1.0.0")
+            self.assertIn("Reinstalação", sec, f"{name}: sem registro da reinstalação")
+            self.assertIn("F:/Projetos/StarCode", sec)
+            self.assertNotIn("pendente", sec.lower(), f"{name}: ainda pendente")
+            line = next(l for l in versions.splitlines() if l.startswith(f"| {row}"))
+            self.assertRegex(line, r"\d+\.\d+\.\d+", f"Versões: {name} sem versão")
+        self.assertIn("CLI: antigravity", self._field(self._section("Antigravity"), "Banner"))
+        oc = self._section("OpenCode")
+        self.assertIn("skills.paths", oc)
+        self.assertRegex(oc, r"(?i)gratuito|:free")
+        self.assertNotRegex(oc, r"(?i)modelo pago usado")
+
 
 if __name__ == "__main__":
     unittest.main()
