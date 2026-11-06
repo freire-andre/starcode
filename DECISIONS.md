@@ -349,3 +349,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o plugin usa `event.input.workdir` e só cai em `process.cwd()` sem ele (T16, commit aa01094).
 - **Motivo:** o diretório do evento é o do projeto em uso; `process.cwd()` apontaria para o lugar errado.
 - **Por que não é bug:** o fallback para `process.cwd()` preserva o comportamento de versões que não enviam `workdir`.
+
+### F5-7: Diff staged sem truncar e banner de hook em `--full`
+- **Problema:** o `secret_scan` cortava o diff staged em 2 MB e deixava passar segredo depois disso; os hooks de `SessionStart` do Codex e do Antigravity rodavam o banner sem `--full`, e o do Antigravity podia não receber `cwd` (achados do Q, SC-12).
+- **Decisão:** o diff de cada arquivo é examinado inteiro; acima de 64 MB o hook nega com "diff grande demais para verificar" (o mesmo vale para arquivos de `--body-file`). Os hooks do Codex e do Antigravity passam `--full`, e o banner usa `workspacePaths[0]` quando o payload não traz `cwd`.
+- **Motivo:** nunca deixar de verificar em silêncio (R5/R6); o hook entrega o mesmo texto de `banner.py --full --text` (R10).
+- **Por que não é bug:** o limite de 64 MB nega em vez de pular, e a saída tem o caminho para aprovar o arquivo em `.starcode/secret-allowlist`; o `cwd` do payload continua tendo prioridade sobre `workspacePaths`.
