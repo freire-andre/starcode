@@ -331,3 +331,21 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o plugin do OpenCode só bloqueia; `banner_hook` fica `unavailable` e vale o fallback atual (decisão do usuário: "Bloqueio sim, banner não").
 - **Motivo:** não inventar um canal que o CLI não oferece.
 - **Por que não é bug:** o roteiro do OpenCode marca o banner como n/a e o aceite não o cobra.
+
+### F5-4: Comando do hook do Antigravity sem aspas no caminho
+- **Problema:** no Windows, o agy 1.5.1 passava as aspas do comando do hook literalmente ao python, e o hook falhava.
+- **Decisão:** o comando do hook do Antigravity é escrito sem aspas no caminho, e `install_local` recusa caminho com espaço (T12, commit 7510a18).
+- **Motivo:** sem aspas o comando funciona no aceite real; recusar o espaço evita gerar um comando que quebraria.
+- **Por que não é bug:** a recusa é intencional e a mensagem aponta o caminho; o aceite real do Antigravity cobre o comportamento.
+
+### F5-5: Antigravity extrai a pasta de `workspacePaths[0]`
+- **Problema:** o payload real do `PreToolUse` (agy 1.5.2) não traz `Cwd`/`cwd`, só `workspacePaths`, e o hook roda na pasta do plugin.
+- **Decisão:** `extract()` usa `workspacePaths[0]` quando faltam os outros campos (T14, commit acd4153).
+- **Motivo:** é a única indicação do projeto do usuário no payload real.
+- **Por que não é bug:** `Cwd`/`cwd` continuam tendo prioridade quando presentes; o fallback só entra na ausência deles.
+
+### F5-6: Plugin do OpenCode usa `event.input.workdir`
+- **Problema:** no OpenCode 2.2.3, `process.cwd()` do plugin é a home do usuário, não o projeto.
+- **Decisão:** o plugin usa `event.input.workdir` e só cai em `process.cwd()` sem ele (T16, commit aa01094).
+- **Motivo:** o diretório do evento é o do projeto em uso; `process.cwd()` apontaria para o lugar errado.
+- **Por que não é bug:** o fallback para `process.cwd()` preserva o comportamento de versões que não enviam `workdir`.
