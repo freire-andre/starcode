@@ -68,7 +68,7 @@ class InstallLocalTests(unittest.TestCase):
             rc = install_local.main(list(argv), runner=fake, which=which, root=self.root)
         return rc, out.getvalue(), err.getvalue(), fake
 
-    def test_codex_registers_marketplace_and_installs(self):  # C9
+    def test_install_codex_runs_marketplace_and_install(self):  # C9
         rc, out, _, fake = self.run_cli("--cli", "codex")
         self.assertEqual(rc, 0)
         self.assertEqual(fake.calls, [
@@ -113,7 +113,7 @@ class InstallLocalTests(unittest.TestCase):
         self.assertEqual((rc, fake.calls), (0, []))
         self.assertIn("marketplace remove starcode", out)
 
-    def test_antigravity_validates_then_installs(self):  # C10
+    def test_install_antigravity_validates_first(self):  # C10
         rc, _, _, fake = self.run_cli("--cli", "antigravity")
         self.assertEqual(rc, 0)
         self.assertEqual(fake.calls[0][1:], ["plugin", "validate", "dist/antigravity", "--strict"])
@@ -125,7 +125,7 @@ class InstallLocalTests(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertEqual(len(fake.calls), 1)
 
-    def test_opencode_preserves_keys_and_copies_commands(self):  # C11
+    def test_install_opencode_writes_skills_and_commands(self):  # C11
         self.conf.parent.mkdir(parents=True)
         self.conf.write_text(json.dumps({"theme": "dark", "skills": {"paths": [str(self.tmp / "x")]}}), encoding="utf-8")
         rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
@@ -145,14 +145,14 @@ class InstallLocalTests(unittest.TestCase):
         self.assertEqual(data["a"], 1)
         self.assertEqual(len(data["skills"]["paths"]), 2)
 
-    def test_idempotent(self):  # C12
+    def test_install_is_idempotent(self):  # C12
         self.run_cli("--cli", "opencode", "--home", str(self.home))
         first = self.conf.read_text(encoding="utf-8")
         self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(self.conf.read_text(encoding="utf-8"), first)
         self.assertEqual(len(list((self.home / ".config/opencode/commands").glob("*.md"))), 1)
 
-    def test_missing_binary_exits_2_untouched(self):  # C13
+    def test_install_missing_binary_exits_2(self):  # C13
         rc, _, err, fake = self.run_cli("--cli", "opencode", "--home", str(self.home), which=lambda n: None)
         self.assertEqual(rc, 2)
         self.assertIn("opencode: opencode não encontrado", err)
@@ -174,7 +174,7 @@ class InstallLocalTests(unittest.TestCase):
         self.assertEqual(self.conf.read_text(encoding="utf-8"), "{oops")
         self.assertFalse((self.home / ".config/opencode/commands").exists())
 
-    def test_dry_run_changes_nothing(self):  # C14
+    def test_install_dry_run_changes_nothing(self):  # C14
         for cli in ("codex", "antigravity", "opencode"):
             rc, out, _, fake = self.run_cli("--cli", cli, "--dry-run", "--home", str(self.home))
             self.assertEqual(rc, 0)

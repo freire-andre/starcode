@@ -204,7 +204,7 @@ class MediaBriefTests(TempRepoCase):
         run_git(self.repo, "add", ".")
         run_git(self.repo, "commit", "-q", "-m", "specs")
 
-    def test_media_brief_from_spec(self):
+    def test_medium_brief_from_spec(self):
         self.make(SPEC_MEDIA)
         text = dispatch.worker_brief("media", "T1", self.repo)
         self.assertIn("# Média: Spec", text)
@@ -227,7 +227,7 @@ class MediaBriefTests(TempRepoCase):
         self.make(SPEC_MEDIA.replace("**Linear**: PROJ-9\n", "**Linear**:\n"))
         self.assertIn("Issue: sem issue", dispatch.worker_brief("media", "T1", self.repo))
 
-    def test_media_brief_without_checks_exits_2(self):
+    def test_medium_brief_without_checks_exits_2(self):
         self.make(SPEC_MEDIA.split("## Checks")[0])
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
@@ -238,7 +238,7 @@ class MediaBriefTests(TempRepoCase):
 
 
 class FamilyAndQCliTests(TempRepoCase):
-    def test_new_families(self):
+    def test_family_deepseek_gptoss_openrouter(self):
         f = dispatch.family
         self.assertEqual(f("deepseek-v4"), "deepseek")
         self.assertEqual(f("opencode:deepseek-chat"), "deepseek")
@@ -258,7 +258,7 @@ class FamilyAndQCliTests(TempRepoCase):
                 '{"extras": {"orca_worker": {"status": "%s"}}}' % st, encoding="utf-8")
         return d
 
-    def test_q_cli_picks_first_different_family(self):
+    def test_q_cli_picks_other_family(self):
         d = self.caps(codex="ok", antigravity="ok", opencode="ok")
         self.assertEqual(dispatch.q_cli("claude:claude-sonnet-5-5", None, d), "codex")
         self.assertEqual(dispatch.q_cli("claude:claude-sonnet-5-5", "antigravity", d), "antigravity")
@@ -286,6 +286,13 @@ class FamilyAndQCliTests(TempRepoCase):
             # a record that says unavailable still wins over the binary
             d = self.caps(antigravity="unavailable")
             self.assertIsNone(dispatch.q_cli("codex:cli-default", None, d, lambda b: "/bin/" + b))
+
+    def test_q_cli_self_verified_when_none(self):  # C19
+        d = self.caps(codex="unavailable", antigravity="unavailable", opencode="unavailable")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["q-cli", "--laforge", "claude:claude-sonnet-5-5", "--caps-dir", str(d)])
+        self.assertEqual((code, out.getvalue().strip()), (1, "self-verified"))
 
     def test_q_cli_command(self):
         d = self.caps(codex="ok")

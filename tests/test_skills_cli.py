@@ -18,7 +18,7 @@ class SkillsCliTests(unittest.TestCase):
         for path in sorted((ROOT / "skills").rglob("*.md")):
             self.assertNotIn("/starcode:", path.read_text(encoding="utf-8"), str(path))
 
-    def test_non_claude_dist_has_no_starcode_prefix(self):  # R7, C4
+    def test_no_claude_commands_outside_claude_dist(self):  # R7, C4
         for cli in CLIS:
             if cli == "claude":
                 continue
@@ -27,7 +27,7 @@ class SkillsCliTests(unittest.TestCase):
             for path in files:
                 self.assertNotIn("/starcode:", path.read_text(encoding="utf-8"), str(path))
 
-    def test_engajar_banner_gets_cli(self):  # R8, C5
+    def test_engajar_banner_uses_cli(self):  # R8, C5
         for cli in CLIS:
             text = (DIST / cli / "skills" / "engajar" / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn(f"banner.py\" --full --text --cli {cli}", text, cli)
