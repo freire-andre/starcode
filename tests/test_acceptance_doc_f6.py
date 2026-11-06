@@ -98,6 +98,25 @@ class AcceptanceDocF6Tests(unittest.TestCase):
         self.assertRegex(oc, r"(?i)gratuito|:free")
         self.assertNotRegex(oc, r"(?i)modelo pago usado")
 
+    def test_acceptance_doc_f6_mission_day_filled(self):
+        sec = self._section("Dia de missão")
+        result = re.search(r"\*\*Resultado\*\*: (.+)", sec)
+        self.assertIsNotNone(result, "sem **Resultado**")
+        self.assertTrue(result.group(1).startswith("aprovado"), "dia de missão não aprovado")
+        slug = self._field(sec, "Slug")
+        self.assertRegex(slug, r"`[a-z0-9-]+`")
+        linear = self._field(sec, "IDs Linear")
+        self.assertRegex(linear, r"[A-Z]+-\d+")
+        self.assertRegex(self._field(sec, "Ramo de integração"), r"`[0-9a-f]{7}`")
+        gates = self._field(sec, "Gates")
+        for gate in ("ticket", "proofs", "done"):
+            self.assertIn(gate, gates, f"Gates sem '{gate}'")
+        q = self._field(sec, "Q")
+        self.assertRegex(q, r"(?i)codex")
+        self.assertRegex(q, r"Verdict|Veredito|FAIL|PASS")
+        self.assertIn("Achados", sec)
+        self.assertNotIn("pendente", sec.lower(), "dia de missão ainda pendente")
+
 
 if __name__ == "__main__":
     unittest.main()
