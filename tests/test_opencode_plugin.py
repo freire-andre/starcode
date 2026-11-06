@@ -37,7 +37,7 @@ class OpenCodePluginTest(TempRepoCase):
     def run_plugin(self, command: str, env: dict | None = None, workdir: str | None = None, cwd=None):
         d = self.prepare()
         res = subprocess.run([NODE, os.path.join(d, "runner.mjs"), os.path.join(d, "starcode.js"), command, *([workdir] if workdir else [])],
-                             capture_output=True, text=True, cwd=cwd or self.repo, env=env, stdin=subprocess.DEVNULL)
+                             capture_output=True, text=True, encoding="utf-8", cwd=cwd or self.repo, env=env, stdin=subprocess.DEVNULL)
         self.assertEqual(res.returncode, 0, res.stderr)
         return json.loads(res.stdout.strip().splitlines()[-1]), res.stderr
 
@@ -57,6 +57,7 @@ class OpenCodePluginTest(TempRepoCase):
         self.assertTrue(out["registered"])
         self.assertIsNotNone(out["error"])
         self.assertTrue(out["error"].strip())
+        self.assertIn("push` for\u00e7ado", out["error"])  # motivo concreto do git_guard
 
     def test_opencode_plugin_allows_normal_command(self):
         out, err = self.run_plugin("git status")
