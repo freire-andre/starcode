@@ -271,6 +271,37 @@ class BuildTests(unittest.TestCase):
         self.assertIn("## Decisões da Fase 3", decisions)
         self.assertIn("### F3-1:", decisions)
 
+    def test_version_is_1_0_0_in_all_manifests(self):  # C6
+        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "1.0.0")
+        market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+        self.assertEqual(market["plugins"][0]["version"], "1.0.0")
+        for rel in ("dist/claude/.claude-plugin/plugin.json", "dist/codex/.codex-plugin/plugin.json",
+                    "dist/antigravity/plugin.json"):
+            data = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+            self.assertEqual(data["version"], "1.0.0", rel)
+
+    def test_check_fails_when_manifest_version_diverges(self):  # C7
+        script = self.src / "tools" / "build.py"
+        res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0, res.stdout)
+        res = subprocess.run([sys.executable, str(script), "--check"], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0, res.stdout)
+        for rel, edit in (
+            (".claude-plugin/marketplace.json", lambda d: d["plugins"][0].update(version="9.9.9")),
+            ("dist/claude/.claude-plugin/plugin.json", lambda d: d.update(version="9.9.9")),
+            ("dist/codex/.codex-plugin/plugin.json", lambda d: d.update(version="9.9.9")),
+            ("dist/antigravity/plugin.json", lambda d: d.update(version="9.9.9")),
+        ):
+            path = self.src / rel
+            original = path.read_text(encoding="utf-8")
+            data = json.loads(original)
+            edit(data)
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            res = subprocess.run([sys.executable, str(script), "--check"], capture_output=True, text=True,
+                                 encoding="utf-8")
+            self.assertNotEqual(res.returncode, 0, rel)
+            path.write_text(original, encoding="utf-8")
+
 
 if __name__ == "__main__":
     unittest.main()
