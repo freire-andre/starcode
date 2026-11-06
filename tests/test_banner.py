@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import shutil
 import tempfile
 import unittest
@@ -134,6 +137,65 @@ class BannerCliTests(TempRepoCase):
         text = self.build("claude", root)
         self.assertIn("CLI: claude", self.lines(text))
         self.assertNotIn("Indisponível", text)
+
+
+WARN = "Hooks do Codex sem trust: aprove em /hooks"
+KEY = "starcode@starcode:hooks/hooks.json:session_start:0:0"
+
+
+class BannerCodexTrustTests(TempRepoCase):
+    build = BannerCliTests.build
+    plugin = BannerCliTests.plugin
+    lines = BannerCliTests.lines
+
+    def codex_cfg(self, text):
+        home = Path(os.environ["STARCODE_HOME"])
+        (home / ".codex").mkdir(parents=True, exist_ok=True)
+        (home / ".codex" / "config.toml").write_text(text, encoding="utf-8")
+
+    def banner_lines(self):
+        return self.lines(self.build("codex", self.plugin()))
+
+    def test_codex_banner_warns_hooks_without_trust(self):  # C15
+        # arquivo ausente
+        self.assertIn(WARN, self.banner_lines())
+        # só de outro plugin
+        self.codex_cfg('[hooks.state."impeccable@impeccable:hooks/hooks.json:session_start:0:0"]\n'
+                       'trusted_hash = "sha256:abc"\n')
+        self.assertIn(WARN, self.banner_lines())
+        # chave do starcode sem trusted_hash
+        self.codex_cfg(f'[hooks.state."{KEY}"]\nenabled = true\n')
+        self.assertIn(WARN, self.banner_lines())
+        # com trust, mas uma chave desabilitada
+        self.codex_cfg(f'[hooks.state."{KEY}"]\ntrusted_hash = "sha256:a"\n'
+                       '[hooks.state."starcode@starcode:hooks/hooks.json:pre_tool_use:0:0"]\n'
+                       'trusted_hash = "sha256:b"\nenabled = false\n')
+        self.assertIn(WARN, self.banner_lines())
+        # TOML inválido não quebra o banner
+        self.codex_cfg("[[[ nao e toml")
+        self.assertIn(WARN, self.banner_lines())
+        # com trust: sem aviso
+        self.codex_cfg(f'[hooks.state."{KEY}"]\ntrusted_hash = "sha256:a"\n')
+        self.assertNotIn(WARN, self.banner_lines())
+        # outros CLIs nunca avisam
+        self.assertNotIn(WARN, self.lines(self.build("claude", self.plugin())))
+
+    def test_banner_hook_mode_matches_text_per_cli(self):  # C16
+        script = Path(banner.__file__)
+
+        def run(*args):
+            res = subprocess.run([sys.executable, str(script), "--cwd", str(self.repo), *args],
+                                 input="{}", capture_output=True, text=True, encoding="utf-8", timeout=60)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            return res.stdout.rstrip("\r\n")
+
+        text = run("--cli", "codex", "--text")
+        self.assertIn(WARN, text.splitlines())
+        hook = json.loads(run("--cli", "codex"))
+        self.assertEqual(hook["hookSpecificOutput"]["additionalContext"], text)
+        agy_text = run("--cli", "antigravity", "--text")
+        agy = json.loads(run("--cli", "antigravity", "--agy"))
+        self.assertEqual(agy["injectSteps"][0]["ephemeralMessage"], agy_text)
 
 
 if __name__ == "__main__":
