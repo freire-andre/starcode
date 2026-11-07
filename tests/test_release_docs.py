@@ -22,7 +22,7 @@ class ChangelogTests(unittest.TestCase):
         self.assertIn("Semantic Versioning", self.text)
         unreleased = self.section(r"\[Unreleased\]")
         self.assertEqual(unreleased.split("\n", 1)[1].strip(), "")
-        sec = self.section(r"\[1\.0\.0\] - AAAA-MM-DD")
+        sec = self.section(r"\[1\.0\.0\] - \d{4}-\d{2}-\d{2}")
         for heading in ("Adicionado", "Alterado", "Corrigido"):
             m = re.search(rf"^### {heading}\n((?:.*\n?)*?)(?=^### |\Z)", sec, flags=re.M)
             self.assertIsNotNone(m, heading)
