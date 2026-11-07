@@ -411,3 +411,53 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `scripts/statusline.py` lê `.starcode/live/crew.json` e `progress.json` do worktree principal e devolve um segmento: tripulantes com `1` e a barra de 10 células da feature mais recente (`updatedAt`, novo campo do `progress.json`), em degradê #C5DBFF (0%) → #75C3FF (50%) → #0028B3 (100%), cada célula na cor da sua posição. Funciona como statusline inteira ou importado por uma statusline pessoal (`segment(cwd)`). Uma feature concluída fica 12 h na linha, em 100%.
 - **Motivo:** pedido do usuário em 2026-11-07, com as cores escolhidas por ele. O script só usa stdlib e não importa nada do plugin, para ser rápido a cada atualização da linha.
 - **Por que não é bug:** fora de um repositório, sem a pasta `live/` ou com arquivo corrompido, o segmento sai vazio e a statusline continua; o plugin não altera a statusline do usuário sozinho: a `statusLine` é uma escolha pessoal, ligada no `settings.json` ou numa statusline própria.
+
+## Decisões da Fase 7 (2026-11-07, SC-14)
+
+### F7-1: Pool `fleet.workers` com troca na confirmação
+- **Problema:** um lote em paralelo pode usar mais de um CLI/modelo, e o usuário quer variar sem editar o config a cada lote.
+- **Decisão:** `fleet.workers` (1 a 10 pares `<cli>:<model>` únicos) é um pool; `dispatch.py batch` atribui os pares em rodízio, começando depois do último par usado pelos tickets ativos. A troca acontece na confirmação do lote: a resposta do usuário vira `--assign <Tn>=<cli>:<model>`. Sem a chave, todos usam o LaForge efetivo (sessão > config do usuário > `crew.yaml`).
+- **Motivo:** R8 a R10: o rodízio é previsível e o usuário decide no momento em que vê o custo.
+- **Por que não é bug:** pool com mais pares que tickets deixa pares sobrando e pool menor repete pares; os dois são válidos.
+
+### F7-2: Faixa de custo relativa, sem preço
+- **Problema:** o usuário precisa comparar o custo de um lote, mas preço em moeda envelhece e depende do plano de cada um.
+- **Decisão:** o mapa `costTiers` do `crew.yaml` dá a faixa de custo (`grátis`, `$`, `$$`, `$$$`); modelo `:free` ou `-free` sem entrada é `grátis` e modelo sem entrada é `?`. O `costTotal` é a contagem por faixa (`2× $$ + 1× grátis`).
+- **Motivo:** R11 e R12: o dono do repositório declara os valores, e mudar um valor não muda nenhuma regra.
+- **Por que não é bug:** a faixa `?` não bloqueia o lote; só avisa que a faixa é desconhecida.
+
+### F7-3: Integração na chegada, serial
+- **Problema:** esperar o lote inteiro para integrar atrasa os tickets prontos e deixa um worker lento segurar os outros.
+- **Decisão:** cada `worker_done` com sucesso é integrado na hora, um merge por vez (`run_gates.py ticket` e `git merge --no-ff` em `feature/<slug>`); dois `worker_done` quase juntos esperam em fila. Conflito: `git merge --abort`, ticket volta à fila e os outros seguem.
+- **Motivo:** R21 e R26: o ramo de integração só recebe ticket com gates verdes, e a fronteira por dono de arquivo reduz conflitos.
+- **Por que não é bug:** a integração serial não contradiz o paralelismo: os workers rodam juntos, só o merge é um de cada vez.
+
+### F7-4: Oferta do lote a cada rodada (2 ou mais elegíveis)
+- **Problema:** o Picard não deve decidir sozinho gastar mais workers, nem perguntar quando só há um ticket.
+- **Decisão:** a cada rodada em que não há ticket ativo e `batch` devolve 2 ou mais tickets, o Picard mostra o lote numa só mensagem (ticket, issue, CLI, modelo, faixa, total e excluídos) e pede uma confirmação. Com 1 ticket segue o fluxo sequencial da Fase 3, sem pergunta; no modo Git 1 a Frota não existe.
+- **Motivo:** R13, R27 e R28: o usuário confirma custo e pares, e o fluxo sequencial não muda.
+- **Por que não é bug:** `fleet.maxBatch` = 1 faz todo lote ter 1 ticket, então a pergunta nunca aparece.
+
+### F7-5: Timeout pelo `check --wait` e prazo no Handoff, não pelo `--timeout-ms` do `worker-start`
+- **Problema:** o `--timeout-ms` do `worker-start` parece limitar o tempo do worker, mas só limita a espera pelo início dele.
+- **Decisão:** o prazo de cada ticket é o horário do despacho (no Handoff, em UTC) mais `fleet.timeoutMinutes` (padrão 30). O Picard espera com `orca orchestration check --wait --types worker_done,question --timeout-ms <até o prazo mais próximo>` e usa `dispatch.py overdue` para achar os atrasados. Atrasado vira bloqueio (estado `blocked` ou comentário na issue) com o sufixo ` · blocked`; os arquivos continuam reservados e não há `worker-stop` nem novo despacho automático.
+- **Motivo:** R20 a R23: o prazo precisa sobreviver a uma sessão interrompida, e o Handoff é a fonte.
+- **Por que não é bug:** um `worker_done` tardio de ticket `· blocked` é integrado normalmente.
+
+### F7-6: Sem `--deps` no lote
+- **Problema:** o `worker-start` aceita `--deps`, e usá-lo parece o jeito certo de ordenar tickets.
+- **Decisão:** o lote nunca usa `--deps`, e cada worker começa com `--base-branch feature/<slug>`.
+- **Motivo:** R1 e R16: todo ticket do lote já tem as dependências integradas em `feature/<slug>`, então não há o que esperar.
+- **Por que não é bug:** a dependência é respeitada antes do despacho, pelo `batch`, e não durante.
+
+### F7-7: `crew.json` com a contagem de LaForges
+- **Problema:** a F6-7 deixava o LaForge em 0/1, e com tickets em paralelo o primeiro que terminava zerava o status dos outros.
+- **Decisão:** `crew_live.py set laforge <n>` grava a contagem de workers ativos (0 a 10), igual ao número de entradas em `**Dispatched:**`; os outros tripulantes continuam 0/1.
+- **Motivo:** R18: resolve o ponto que a F6-7 deixou para a Fase 7.
+- **Por que não é bug:** quem lê `crew.json` como booleano continua certo, porque `n > 0` significa ativo.
+
+### F7-8: Vários despachos no Handoff e Q fora das famílias dos LaForges
+- **Problema:** o Handoff guardava um despacho só, e o Q precisa de família diferente de todos os LaForges de uma feature com modelos variados.
+- **Decisão:** `**Dispatched:**` guarda uma entrada por ticket separada por `; ` (`handoff.py set --dispatch-add` e `--dispatch-remove`; `--dispatched` continua substituindo o campo inteiro). `dispatch.py q-cli --laforge` aceita repetição e escolhe o primeiro CLI (`codex` → `antigravity` → `opencode`) de família diferente de todas; sem opção serve `self-verified`.
+- **Motivo:** R15 e R29: compatibilidade com o fluxo sequencial e independência do Q.
+- **Por que não é bug:** `next` segue devolvendo exit 3 com despacho aberto e não integrado (R19).
