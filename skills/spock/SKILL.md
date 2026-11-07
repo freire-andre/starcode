@@ -13,8 +13,12 @@ Plugin root: `<plugin-root>` in this skill means {{PLUGIN_ROOT}}.
 
 Read first: `<plugin-root>/context/STARCODE.md`, `<plugin-root>/skills/engajar/references/crew-voice.md`,
 `references/spec-template.md` and `<plugin-root>/skills/engajar/references/gate-excuses.md`.
-Catchphrases (chat only): "{{VOICE_OPEN:spock}}" once when your step starts, "{{VOICE_CLOSE:spock}}" once when
-you hand back. Never on a turn that ends with a question. Turns stay short (engajar step 7, F2-10).
+Catchphrases (chat only): the header carries "{{VOICE_OPEN:spock}}"; "{{VOICE_CLOSE:spock}}" once when you hand
+back, never on a turn that ends with a question. Turns stay short (engajar step 7, F2-10).
+**Header first (F6-6):** your first reply of the step starts with the output of
+`python "<plugin-root>/scripts/crew_live.py" start spock --mission "<slug or ticket>"`, verbatim, before anything else; it
+also marks you as working in the live panel. Right before you hand back, run
+`python "<plugin-root>/scripts/crew_live.py" stop spock` (silent: no need to show its line).
 
 ## Inputs
 `context.md` of the feature (Troi), the sizing block, `.specs/STATE.md` decisions. If `context.md` is

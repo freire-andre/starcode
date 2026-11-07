@@ -100,6 +100,18 @@ Only project-level decisions that are hard to reverse, surprising without contex
 real trade-off. Feature-local decisions stay in the spec's `## Decisions`. Create the file with the
 `## Decisions` header the first time one is needed. Never delete entries; supersede them.
 
+## Live panel files (F6-7, F6-8)
+
+Not state: two small files for a visual panel (e.g. the Fase 10 "Ponte"), in the **main worktree** at
+`.starcode/live/` (self-ignored in Git), written only by `scripts/crew_live.py` (atomic writes):
+- `crew.json`: `{"<member>": 0 | 1}`, 1 = working. Each skill runs `start`/`stop`; the Picard runs
+  `set laforge|q 1|0` around its workers, because a worker may die without its `stop`.
+- `progress.json`: `{"<slug>": {"done", "total", "percent", "phase"}}`. `progress <slug>` counts the tickets
+  of `tasks.md` integrated in `feature/<slug>` (same rule as `dispatch.py next`); MEDIUM/SMALL pass
+  `--done/--total` (one ticket).
+Never read them to decide anything: Git and the Handoff stay the source of truth. A failure of these
+commands never stops the flow; report it in one line.
+
 ## Resume
 
 Read STATE.md, the feature files (approval lines and the Handoff), `git log` / `git status` and the

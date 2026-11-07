@@ -64,6 +64,21 @@ trabalho com a tripulação):
 | Antigravity CLI | a skill `setup` do StarCode | a skill `engajar` do StarCode |
 | OpenCode | `/sc-setup` | `/sc-engajar` |
 
+## Painel ao vivo
+
+O StarCode mantém dois arquivos pequenos para um painel visual, em `.starcode/live/` no worktree principal
+(a pasta se ignora sozinha no Git; a escrita é atômica):
+
+```json
+// crew.json: quem está trabalhando (1) ou parado (0)
+{"picard": 1, "spock": 0, "troi": 0, "data": 0, "laforge": 1, "mccoy": 0, "q": 0}
+
+// progress.json: tickets integrados / total por feature
+{"export-csv": {"done": 2, "total": 5, "percent": 40, "phase": "execute"}}
+```
+
+`python <plugin>/scripts/crew_live.py reset` zera o status se uma sessão cair no meio.
+
 ## Desenvolvimento
 
 ```

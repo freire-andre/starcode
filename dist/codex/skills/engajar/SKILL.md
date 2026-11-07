@@ -14,8 +14,8 @@ Before anything else, read these files:
 - `<plugin-root>/context/STARCODE.md` (core rules: language, facts, Linear, Git, state, stops)
 - `references/crew-voice.md` (persona in chat only, no flattery)
 
-Catchphrases (chat only, one line each): "Número Um, relatório." once when a mission starts, "Faça acontecer." once
-when it ends or pauses for good. Never on a turn that ends with a question (F2-10).
+Catchphrases (chat only): the header carries "Número Um, relatório."; "Faça acontecer." once when the mission
+ends or pauses for good, never on a turn that ends with a question (F2-10).
 
 ## A. Sizing-only request
 If the user only asks to size or classify a task ("qual o tamanho/risco disto?", "classifique"):
@@ -24,8 +24,13 @@ banner, no Git mode, no Linear, no tools other than reading the reference.
 
 ## B. Engage (full flow)
 
-### 1. Banner and preflight
-Run and show the result to the user:
+### 1. Header, banner and preflight
+First run `python "<plugin-root>/scripts/crew_live.py" start picard --mission "<mission, if known>"` and
+start your reply with its output, verbatim (F6-6: the user sees who took the task; it also marks Picard as
+working in `.starcode/live/crew.json`). When the mission ends or pauses for good:
+`python "<plugin-root>/scripts/crew_live.py" stop picard`.
+
+Then run the banner and show the result to the user:
 
     python "<plugin-root>/hooks/scripts/banner.py" --full --text --cli codex
 
@@ -115,7 +120,9 @@ You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` 
 (the most advanced artifact: tasks.md > spec.md > context.md) and the resume table:
 `references/state-format.md`. Record in the same turn: each user answer, each approval (exact words, in
 the artifact), each Linear write, each dispatch (before sending), each integration, each Q finding and
-its closure. Always through `scripts/handoff.py set` (it moves the section and prints one line); never
+its closure. Live panel (F6-7, F6-8): `scripts/crew_live.py set <member> 1|0` when a worker starts / ends and
+`scripts/crew_live.py progress <slug>` after each publication, integration and `--phase done` (silent, one line,
+never shown). Always through `scripts/handoff.py set` (it moves the section and prints one line); never
 edit the Handoff by hand and never show it or its diff in the chat. In modes 2–4, commit the planning
 artifacts at each approved milestone without asking (F2-7, same reference). Markers read by the banner:
 `**Phase:** <phase>` and `**Breaker:** open (<error-id>)`. Execution fields: `--dispatched`,
