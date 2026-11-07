@@ -439,15 +439,15 @@ Proof: run unit | test_decisions_and_changelog_record_fase_7 ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** ramo de integração e primeiro ticket
+**Next:** push e PR (confirmação do usuário)
 **Linear:** SC-14 (mãe); T1=SC-73 T2=SC-74 T3=SC-75 T4=SC-76 T5=SC-77 T6=SC-78 T7=SC-79 T8=SC-80
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/fase-7-frota
+**Last integrated:** 972c59c
 **Dispatched:** none
-**Settled:** 2026-11-07: spec aprovada: "sim"; 2026-11-07: tasks aprovadas e publicadas: "sim"
+**Settled:** 2026-11-07: spec aprovada: "sim"; 2026-11-07: tasks aprovadas e publicadas: "sim"; 2026-11-07: T8 autorizado: aceite no sandbox como descrito (claude-sonnet-5-5, codex gpt-6-luna, OpenCode gratuito) e alteração temporária de ~/.starcode/config.json com restauração: "Sim, como descrito" / "Sim, e restaurar"; 2026-11-07: T8: OpenCode gratuito sem cota; T3 do sandbox redespachado em antigravity:gemini-3.8-flash-high: "T3 no Antigravity"; 2026-11-07: Q no Antigravity (gemini-3.8-flash-high) por trava de hooks do Codex: "Q no Antigravity"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-07: T1: --dispatch-add/--dispatch-remove no handoff.py, testes C14/C15, dist regenerado; suíte 337 verde; gate ticket verde; commit 52577f5; disjuntor none; 2026-11-07: T2: fleet.workers, costTiers/cost_tier, crew_live laforge 0..10, dist regenerado; suíte 341 verde; gate ticket verde; commit b7a0ea7; disjuntor none; 2026-11-07: T3: subcomando batch (candidatos, fronteira, sensível, limite, rodízio, --assign, custo, --json, exit 0/1/2); 10 testes C1–C12; suíte 351 verde; gate ticket verde; disjuntor none; 2026-11-07: T3: após integrar, 'python scripts/dispatch.py next' falha com ModuleNotFoundError: validate_config (sys.path sem scripts/config; testes mascaram); 2026-11-07: T3: correção: HERE/config no sys.path, teste de subprocesso; suíte 352 verde; gate ticket verde; commit e83a394; 2026-11-07: T4: next com várias entradas, overdue, q-cli --laforge repetido; suíte verde; gate ticket verde; commit fd4036d; disjuntor none; 2026-11-07: T5: seção 2F Frota em execute.md, lote no engajar, fleet.workers no setup; 11 testes de conteúdo; suíte 367 verde; gate ticket verde; commit 2f02541; disjuntor none; 2026-11-07: T7: roteiro frota.md, esqueleto fase-7.md, 2 testes; gate ticket verde; commit 1502649; suíte completa não confirmada pelo worker (confirmada pelo Picard após merge); disjuntor none; 2026-11-07: T6: F7-1..F7-8 em DECISIONS.md, CHANGELOG 1.1.0 não lançada, teste C31; suíte 368 verde; check_decisions verde; gate ticket verde; pendência: tools/release.py não trata 'não lançada' (resolver antes da tag v1.1.0); 2026-11-07: T8: aceite 4/4 aprovado no sandbox (frota-aceite, PROJ-26..33); achados: cota OpenCode gratuito, trust Codex no T7 (redespachado em claude), gate ticket verde com outcome failed, excluded mostra 'Runs alone' em vez do padrão; config restaurado; commit 3242a57; 2026-11-07: Q: codex bloqueado no início (agent-hooks-review-prompt); worker liberado, sem nova tentativa; 2026-11-07: Q (antigravity gemini-3.8-flash-high): FAIL, 4 achados (motivo sensível mascarado por Runs alone; --dispatch-add de 3 campos no 2F; range do gate sem base do despacho no 2F; overdue relista entradas blocked); C3/C16/C21 frouxos; 2026-11-07: Q-fix: 4 achados fechados (9c55de3, 2c5a8b3, a8c7544, 854c53a), F7-9 1fc717d; proofs e done verdes no HEAD
 **Breaker:** closed
