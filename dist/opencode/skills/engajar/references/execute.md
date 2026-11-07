@@ -85,7 +85,8 @@ Each worker is still a LaForge in its own child worktree; you coordinate and nev
 4. **Wait.** `orca orchestration check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline> --json`.
    The deadline of an entry is its dispatch time plus `fleet.timeoutMinutes` (default 30). A `question` is
    answered with `orca orchestration reply`; the others keep running.
-5. **Integrate on arrival.** A `worker_done` with success: `run_gates.py ticket` and, if green,
+5. **Integrate on arrival.** A `worker_done` with success: `python "P/scripts/gates/run_gates.py" ticket <slug> <T> <base sha recorded in that ticket's entry>..<ticket branch>`
+   (the base is the one recorded at dispatch, never the current `HEAD` of `I`, which moves at every merge) and, if green,
    `git merge --no-ff` in the worktree of `I` as in section 3, **one merge at a time** (the next arrival waits
    for the previous merge). Then `--dispatch-remove <T>`, `--last-integrated <sha>`,
    `python "P/scripts/crew_live.py" progress <slug>`, the comment "integrado em `feature/<slug>`" and
