@@ -75,16 +75,24 @@ class CrewHookTest(HookCase):
         self.assertIn("TROI", json.loads(self.skill("troi", "s4"))["systemMessage"])  # bare name
 
     def test_crew_hook_header_plain_text(self):
+        spock = crew_live.crew_members()[0]["spock"]  # the plugin crew, as the hook resolves it
+        model = "padrão do CLI" if spock.get("model") in (None, "cli-default") else spock["model"]
+        top = [RULE, "🖖 SPOCK ASSUME A PONTE", f"{spock['role']} · {spock['cli']} · {model}"]
+        bottom = [f"“{spock['voice']['open']}”", RULE]
+        m80, m81 = "m" * 80, "n" * 81
         msg = json.loads(self.skill("starcode:spock", args="# **x** > " + "m" * 120))["systemMessage"]
         lines = msg.splitlines()
+        self.assertEqual(lines, top + ["Missão: " + ("# **x** > " + "m" * 120)[:80]] + bottom)
         self.assertEqual(lines[0], RULE)
         self.assertEqual(lines[-1], RULE)
-        self.assertEqual(lines[1], "🖖 SPOCK ASSUME A PONTE")
-        self.assertRegex(lines[2], r"^Spec e arquitetura .*· \S+ · \S")
-        mission = next(line for line in lines if line.startswith("Missão: "))
-        self.assertEqual(len(mission) - len("Missão: "), 80)
         self.assertIn("Fascinante.", lines[-2])
-        self.assertTrue(lines[-2].startswith("“") and lines[-2].endswith("”"))
+        exact = json.loads(self.skill("starcode:spock", args=m80))["systemMessage"].splitlines()
+        self.assertEqual(exact, top + ["Missão: " + m80] + bottom)
+        cut = json.loads(self.skill("starcode:spock", args=m81))["systemMessage"].splitlines()
+        self.assertEqual(cut, top + ["Missão: " + "n" * 80] + bottom)
+        bare = json.loads(self.skill("starcode:spock"))["systemMessage"].splitlines()
+        self.assertEqual(bare, top + bottom)
+        self.assertFalse(any(line.startswith("Missão:") for line in bare))
         plain = json.loads(self.skill("starcode:data", "s9", args="# **x** >"))["systemMessage"]
         self.assertNotIn("**", msg.replace("**x**", ""))
         for text in (msg.replace("# **x** > ", ""), plain.replace("# **x** >", "")):
@@ -149,14 +157,20 @@ class LiveExpiryTest(HookCase):
             "old-cli": {"member": "troi", "active": True, "source": "cli", "at": ago(61)},
             "cli-ok": {"member": "data", "active": True, "source": "cli", "at": ago(59)},
             "hook-ok": {"member": "mccoy", "active": True, "source": "hook", "at": ago(14)},
+            "future": {"member": "picard", "active": True, "source": "hook", "at": ago(-5)},
+            "bad-at": {"member": "picard", "active": True, "source": "hook", "at": "not-a-date"},
+            "bad-source": {"member": "picard", "active": True, "source": "other", "at": ago(1)},
+            "no-source": {"member": "picard", "active": True, "at": ago(1)},
+            "skew-ok": {"member": "troi", "active": False, "source": "hook", "at": ago(-0.5)},
         })
         now = datetime.now(timezone.utc)
         sessions = json.loads((self.live() / "sessions.json").read_text(encoding="utf-8"))
         counts = crew_live.count_members(sessions, now)
         self.assertEqual((counts.get("spock", 0), counts.get("troi", 0)), (0, 0))
         self.assertEqual((counts["data"], counts["mccoy"]), (1, 1))
+        self.assertEqual(counts.get("picard", 0), 0)  # future / unreadable `at` / unknown source count 0
         self.assertEqual(self.run_cli("set", "q", "1"), 0)  # any write drops the expired entries
-        self.assertEqual(set(self.sessions()), {"cli-ok", "hook-ok", "cli:q"})
+        self.assertEqual(set(self.sessions()), {"cli-ok", "hook-ok", "skew-ok", "cli:q"})
         crew = self.crew()
         self.assertEqual((crew["spock"], crew["troi"], crew["data"], crew["q"]), (0, 0, 1, 1))
         # two LaForge sessions and `set laforge 1` -> 2 (the larger, not the sum)
