@@ -63,6 +63,7 @@ None.
 **Size**: MEDIUM
 **Risk triggers**: <trigger or none>
 **Linear**: <issue ID, written after the approval>
+**May change**: <paths separados por vírgula>
 
 ## Context
 ## Scope

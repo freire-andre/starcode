@@ -194,5 +194,5 @@ before any new `batch`.
 ## 8. MEDIUM and SMALL
 One LaForge worker in a new child worktree from the current branch; the brief is the spec's
 `## Checks` (MEDIUM) or the inline checks (SMALL) plus the worker rules of `dispatch.py brief`. Integrate
-as in step 3 (no `check_scope`: there is no tasks.md), then steps 4–5. Progress without tasks.md is one ticket:
+as in step 3, with the gate `run_gates.py ticket <slug> <ID> <base>..<head>` using the spec's `**May change**:` (no tasks.md), then steps 4–5. Progress without tasks.md is one ticket:
 `crew_live.py progress <slug> --done 0 --total 1` at dispatch, `--done 1 --total 1` after the merge.
