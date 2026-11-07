@@ -54,6 +54,18 @@ class CrewLiveTest(TempRepoCase):
         self.run_cli("reset")
         self.assertEqual(set(self.crew().values()), {0})
 
+    def test_set_laforge_count_up_to_ten(self):
+        self.assertEqual(self.run_cli("set", "laforge", "3")[0], 0)
+        self.assertEqual(self.crew()["laforge"], 3)
+        self.assertEqual(self.run_cli("set", "laforge", "10")[0], 0)
+        self.assertEqual(self.crew()["laforge"], 10)
+        self.assertEqual(self.run_cli("set", "laforge", "11")[0], 2)
+        self.assertEqual(self.run_cli("set", "laforge", "-1")[0], 2)
+        self.assertEqual(self.run_cli("set", "spock", "2")[0], 2)
+        self.assertEqual(self.run_cli("set", "spock", "1")[0], 0)
+        data = self.crew()
+        self.assertEqual((data["laforge"], data["spock"]), (10, 1))
+
     def test_live_folder_ignores_itself_in_git(self):
         self.run_cli("start", "picard")
         self.assertEqual(run_git(self.repo, "status", "--porcelain"), "")

@@ -26,7 +26,9 @@ that worktree of `I`, never in the main worktree (the Handoff stays apart from t
 the first dispatch**, and `python "P/scripts/crew_live.py" progress <slug>` (0 of N tickets; the live panel's bar,
 F6-8).
 
-## 2. Dispatch one ticket (one at a time per feature)
+## 2. Dispatch one ticket (sequential path)
+**The batch comes first** (section 2F): run `dispatch.py batch` before this section. With one ticket in the
+batch, or in Git mode 1, this section runs as written, without a question.
 1. `python "P/scripts/dispatch.py" next <slug>` → the first ticket whose dependencies are integrated.
    Exit 3 (open dispatch) → step 6 (resume). Exit 1 with "todos os tickets integrados" → step 4.
 2. `python "P/scripts/dispatch.py" brief <slug> <T> --out <temp>/<slug>-<T>.md`.
@@ -55,6 +57,56 @@ F6-8).
 7. Wait: `orca orchestration check --wait --types worker_done --timeout-ms 3600000 --json`. The
    `worker_done` carries the worker's report (≤5 lines); record it with `--report "<T>: <report>"` and run
    `python "P/scripts/crew_live.py" set laforge 0` (also on failure or timeout).
+
+## 2F. Fleet (v1.1): parallel tickets in one batch
+**Git mode 1 → say `Frota indisponível no modo 1 (um só worktree)` and go to section 7 (sequential).**
+Each worker is still a LaForge in its own child worktree; you coordinate and never edit code (D23).
+
+1. **Batch.** `python "P/scripts/dispatch.py" batch <slug> --json`.
+   - Exit 1 (nothing ready) → section 4 when every ticket is integrated, otherwise wait (step 4).
+   - **One ticket** → section 2 with that ticket, **no question**.
+   - **Two or more** → one message: one line per ticket (ticket, issue, CLI, model, cost tier), the total,
+     and the excluded tickets with the reason, then **one confirmation**. A swap the user asks for becomes
+     `--assign <T>=<cli>:<model>` and the `batch` is run again.
+2. **Start, per ticket, in this order** (brief as in section 2 step 2):
+   1. `python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · <ID> · base <sha of I> · <cli:model> · <UTC time>"` **before** the `worker-start`.
+   2. Issue to `started` plus `crew:laforge`, then `orca orchestration worker-start --agent <cli> --model <model>
+      --worktree new-child --base-branch feature/<slug> --spec-file <temp>/<slug>-<T>.md --task-title "<T>: <title>" --json`
+      (OpenCode: create the worktree first, as in section 2 step 5). Its `--timeout-ms` is only the wait for the
+      worker to **start**, not for the work.
+   3. `--dispatch-add` again with the dispatch id and the `model` field of the receipt
+      (`"<T> · <ID> · base <sha> · <cli:model> · <UTC time> · <dispatch id>"`).
+   4. `orca worktree set --worktree <new worktree> --linear-issue <ID>`.
+   5. **No `--deps`**: independence is already decided by `batch`; say so in the line of the reason.
+   6. `python "P/scripts/crew_live.py" set laforge <n>` with the number of open entries, at every change.
+3. **A `worker-start` that fails** for one ticket: `--dispatch-remove <T>`, one line with the reason, and the
+   **other tickets go on**. The Codex trust stop (`agent-hooks-review-prompt`) and the nesting stop
+   (`nested_worker_depth_exceeded`) apply **only to that ticket**; neither counts as an attempt.
+4. **Wait.** `orca orchestration check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline> --json`.
+   The deadline of an entry is its dispatch time plus `fleet.timeoutMinutes` (default 30). A `question` is
+   answered with `orca orchestration reply`; the others keep running.
+5. **Integrate on arrival.** A `worker_done` with success: `python "P/scripts/gates/run_gates.py" ticket <slug> <T> <base sha recorded in that ticket's entry>..<ticket branch>`
+   (the base is the one recorded at dispatch, never the current `HEAD` of `I`, which moves at every merge) and, if green,
+   `git merge --no-ff` in the worktree of `I` as in section 3, **one merge at a time** (the next arrival waits
+   for the previous merge). Then `--dispatch-remove <T>`, `--last-integrated <sha>`,
+   `python "P/scripts/crew_live.py" progress <slug>`, the comment "integrado em `feature/<slug>`" and
+   `crew_live.py set laforge <n>`. The other workers **keep running**.
+6. **Overdue.** After each wait run `python "P/scripts/dispatch.py" overdue <slug>`. For each entry: the
+   `blocked` state of the config, or, without one, the comment `bloqueado: worker sem resposta após <N> min (dispatch <id>)`.
+   Warn in **one line**; the entry stays with ` · blocked`. **No automatic stop, abandon or redispatch.** A late
+   `worker_done` is integrated as in step 5 and the issue goes back to `started`.
+7. **Cancel** only with the user's confirmation: `orca orchestration worker-stop --dispatch <id>`,
+   `--dispatch-remove <T>`, the comment `cancelado; worktree preservado: <path>`. Remove the worktree only
+   with a second confirmation.
+8. **Failure** (outcome failed, no report, red gate): `--dispatch-remove <T>`, `--attempt worker-<T>=fail`
+   (or `gate-<T>=fail`), a comment with the reason, and the ticket **returns to the queue** for the next
+   `batch`. The others go on; tickets that depend on it stay out of the batch.
+9. **Merge conflict**: `git merge --abort`; the ticket returns to the queue with the conflicting files; the
+   others go on. The summary at the end of the batch gives the options of section 3.
+10. **Next.** No active entries left → run `batch` again (step 1). Every ticket integrated → section 4 (proofs).
+
+**Resume:** check each `**Dispatched:**` entry with `orca orchestration worker-show <dispatch>` (section 6)
+before any new `batch`.
 
 ## 3. Check and integrate the ticket
 - **Failure** (outcome failed, no report, or the wait timed out): do **not** integrate. Comment the reason

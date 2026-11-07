@@ -63,7 +63,7 @@ Only on the first run on this machine, or when the user asks:
    the user (no listing command confirmed). Never invent a model ID.
 3. Keep **only the differences** from the defaults (`crew` entries with `cli`/`model`). Optional keys:
    `outputLanguage` (pt-BR | en), `qStrategy` (opencode-subagent, orca-worker, self-verified),
-   `fleet.maxBatch` (1–10), `fleet.timeoutMinutes`. Field reference:
+   `fleet.maxBatch` (1–10), `fleet.timeoutMinutes`, `fleet.workers` (list of `<cli>:<model>`). Field reference:
    `<plugin-root>/schemas/config.md`.
    If nothing differs, the file is still created with only `{"schemaVersion": 1}` (plan 5.2: the
    first run creates the user config; it marks the machine as set up and pins the schema version).

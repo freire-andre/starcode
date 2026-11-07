@@ -94,6 +94,24 @@ class Cli(unittest.TestCase):
             self.assertEqual(dest.read_text(encoding="utf-8"), '{"schemaVersion": 1}')
 
 
+class FleetWorkers(unittest.TestCase):
+    def errs(self, workers):
+        return vc.validate("user", {"schemaVersion": 1, "fleet": {"workers": workers}})
+
+    def test_fleet_workers_accepts_valid_pairs_and_rejects_invalid(self):
+        self.assertEqual(self.errs(["claude:claude-sonnet-5-5", "opencode:openrouter/nvidia/x:free"]), [])
+        self.assertEqual(self.errs(["codex:gpt-6-luna"]), [])
+        bad = self.errs(["claude:ok", "foo:bar"])
+        self.assertTrue(any(e.startswith("fleet.workers[1]") for e in bad), bad)
+        dup = self.errs(["claude:a", "codex:b", "claude:a"])
+        self.assertTrue(any(e.startswith("fleet.workers[2]") and "repetido" in e for e in dup), dup)
+        self.assertTrue(any(e.startswith("fleet.workers[0]") for e in self.errs(["claude:"])))
+        self.assertTrue(any(e.startswith("fleet.workers[0]") for e in self.errs(["claude"])))
+        self.assertNotEqual(self.errs([]), [])
+        self.assertNotEqual(self.errs([f"claude:m{i}" for i in range(11)]), [])
+        self.assertEqual(self.errs([f"claude:m{i}" for i in range(10)]), [])
+
+
 class CrewListInSync(unittest.TestCase):
     def test_validator_crew_matches_crew_yaml(self):
         import miniyaml

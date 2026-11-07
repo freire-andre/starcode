@@ -17,6 +17,7 @@ in either file.
 | `qStrategy` | list | no | ordered, unique, ≥1: `opencode-subagent`, `orca-worker`, `self-verified` |
 | `fleet.maxBatch` | integer | no | 1–10 (default 3, v1.1) |
 | `fleet.timeoutMinutes` | integer | no | 1–1440 (default 30, v1.1) |
+| `fleet.workers` | list of text | no | 1–10 unique `<cli>:<model>` items; `<cli>` is `claude`, `codex`, `antigravity` or `opencode`; the model may contain `/` and `:` (split at the first `:`), e.g. `opencode:openrouter/nvidia/x:free` |
 
 ```json
 {
@@ -27,7 +28,7 @@ in either file.
     "q": { "cli": "opencode", "model": "<id confirmado pelo setup>" }
   },
   "qStrategy": ["opencode-subagent", "orca-worker", "self-verified"],
-  "fleet": { "maxBatch": 3, "timeoutMinutes": 30 }
+  "fleet": { "maxBatch": 3, "timeoutMinutes": 30, "workers": ["claude:claude-sonnet-5-5", "opencode:openrouter/nvidia/x:free"] }
 }
 ```
 

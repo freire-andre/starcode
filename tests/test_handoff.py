@@ -147,6 +147,37 @@ class HandoffTest(unittest.TestCase):
         text = (self.feat / "tasks.md").read_text(encoding="utf-8")
         self.assertIn("**Breaker:** closed", text)
 
+    def test_dispatch_add_appends_and_replaces_same_ticket(self):
+        self.tasks()
+        e1 = "T1 · PROJ-7 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:00:00Z"
+        e2 = "T2 · PROJ-8 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:40:00Z"
+        e1b = "T1 · PROJ-7 · base def5678 · claude:claude-sonnet-5-5 · 2026-11-07T17:00:00Z"
+        read = lambda: (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.assertEqual(self.run_cli("set", "dark-mode", "--dispatch-add", e1)[0], 0)
+        self.assertIn(f"**Dispatched:** {e1}\n", read())
+        self.run_cli("set", "dark-mode", "--dispatch-add", e2, "--attempt", "worker-T2=ok")
+        self.assertIn(f"**Dispatched:** {e1}; {e2}\n", read())
+        self.run_cli("set", "dark-mode", "--dispatch-add", e1b)
+        self.assertIn(f"**Dispatched:** {e1b}; {e2}\n", read())
+
+    def test_dispatch_remove_keeps_other_entries(self):
+        self.tasks()
+        read = lambda: (self.feat / "tasks.md").read_text(encoding="utf-8")
+        self.run_cli("set", "dark-mode", "--dispatched", "T1 · A · base 1; T2 · B · base 2; T3 · C · base 3")
+        code, _ = self.run_cli("set", "dark-mode", "--dispatch-remove", "T2")
+        self.assertEqual(code, 0)
+        self.assertIn("**Dispatched:** T1 · A · base 1; T3 · C · base 3\n", read())
+        code, out = self.run_cli("set", "dark-mode", "--dispatch-remove", "T9")
+        self.assertEqual(code, 0)
+        self.assertIn("T9", out)
+        self.assertIn("**Dispatched:** T1 · A · base 1; T3 · C · base 3\n", read())
+        self.run_cli("set", "dark-mode", "--dispatch-remove", "T1")
+        self.run_cli("set", "dark-mode", "--dispatch-remove", "T3")
+        self.assertIn("**Dispatched:** none\n", read())
+        self.run_cli("set", "dark-mode", "--dispatch-add", "T4 · D · base 4")
+        self.run_cli("set", "dark-mode", "--dispatched", "T5 · E · base 5")
+        self.assertIn("**Dispatched:** T5 · E · base 5\n", read())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -100,9 +100,14 @@ def crew_members() -> tuple[dict[str, dict], list[str]]:
 def set_status(d: Path, member: str, value: int, available: list[str]) -> dict:
     path = d / "crew.json"
     current = read_json(path)
-    data = {k: (1 if current.get(k) == 1 else 0) for k in available}  # fixed order, only 0/1
+    def norm(k, v):  # only laforge may count 0..10 (active workers); everyone else is 0/1
+        if k == "laforge":
+            return v if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10 else 0
+        return 1 if v == 1 else 0
+
+    data = {k: norm(k, current.get(k)) for k in available}  # fixed order
     for k, v in current.items():  # keep members of other versions that a panel may still show
-        data.setdefault(k, 1 if v == 1 else 0)
+        data.setdefault(k, norm(k, v))
     data[member] = value
     write_json(path, data)
     return data
@@ -182,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     pt.add_argument("member")
     pq = sub.add_parser("set")
     pq.add_argument("member")
-    pq.add_argument("value", choices=("0", "1"))
+    pq.add_argument("value", type=int)
     pp = sub.add_parser("progress")
     pp.add_argument("slug")
     pp.add_argument("--done", type=int)
@@ -213,7 +218,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERRO: tripulante desconhecido {args.member!r}; use um de: {', '.join(available)}",
                   file=sys.stderr)
             return 1
-        value = 1 if args.cmd == "start" or (args.cmd == "set" and args.value == "1") else 0
+        if args.cmd == "set":
+            limit = 10 if member == "laforge" else 1
+            if not 0 <= args.value <= limit:
+                print(f"ERRO: valor {args.value} fora de 0..{limit} para {member}", file=sys.stderr)
+                return 2
+            value = args.value
+        else:
+            value = 1 if args.cmd == "start" else 0
         set_status(d, member, value, available)
         if args.cmd == "start":
             print(header(crew[member], args.mission))
