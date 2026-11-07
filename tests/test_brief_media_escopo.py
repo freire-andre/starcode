@@ -113,6 +113,17 @@ class MediumScopeCase(TempRepoCase):
         results = run_gates.run_stage("ticket", "media", self.repo, ticket="SC-90", rng=f"{ok2}~1..{ok3}")
         self.assertTrue(all(r.ok for r in results), [r.report() for r in results])
 
+    def test_spec_brief_includes_boundaries(self):
+        self.write_repo_config()
+        self.make(spec())
+        text = dispatch.worker_brief("media", "T1", self.repo)
+        self.assertIn("## BOUNDARIES\nMay change: a.py, docs/", text)
+        (self.fdir / "spec.md").write_text(spec(""), encoding="utf-8")
+        run_git(self.repo, "commit", "-qam", "sem may")
+        text = dispatch.worker_brief("media", "T1", self.repo)
+        self.assertIn("May change: não definido na spec; pare e pergunte antes de alterar arquivos fora do Scope",
+                      text)
+
 
 class DocsTests(unittest.TestCase):
     def test_validate_spec_warns_medium_without_may_change(self):
