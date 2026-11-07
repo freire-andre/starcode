@@ -59,7 +59,17 @@ def check_orca() -> str:
     return "Orca: ✅ disponível"
 
 
-def check_linear(repo_cfg: dict | None) -> list[str]:
+def cmd_ref(cli: str | None, skill: str) -> str:
+    """How to invoke a StarCode skill in `cli`. Duplicates tools/build.py:cmd_ref (the banner runs installed,
+    without tools/); tests/test_banner.py compares both."""
+    if cli in (None, "claude"):
+        return f"/starcode:{skill}"
+    if cli == "opencode":
+        return f"/sc-{skill}"
+    return f"a skill `{skill}` do StarCode"
+
+
+def check_linear(repo_cfg: dict | None, cli: str | None = None) -> list[str]:
     code, out = _run(["orca", "linear", "team", "list", "--json"], LINEAR_TIMEOUT)
     if code != 0:
         return ["Linear: ❌ `orca linear team list` falhou (Linear conectado na Orca?)"]
@@ -82,7 +92,7 @@ def check_linear(repo_cfg: dict | None) -> list[str]:
             missing = [f"{k}={v}" for k, v in mapped.items() if v not in names]
             if missing:
                 lines.append(f"Linear: ⚠️ estados mapeados que não existem mais no time {team}: "
-                             + ", ".join(missing) + " (rode /starcode:setup)")
+                             + ", ".join(missing) + " (rode " + cmd_ref(cli, "setup") + ")")
             else:
                 lines.append(f"Linear: ✅ time {team}, {len(mapped)} estados mapeados conferidos")
     return lines
@@ -197,7 +207,7 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
         summary.append(f"modo Git {mode}" if mode else "modo Git não definido")
 
     if not sc.user_config_path().exists():
-        lines.append("Config do usuário: ausente (valem os padrões do crew.yaml; rode /starcode:setup para criar)")
+        lines.append("Config do usuário: ausente (valem os padrões do crew.yaml; rode " + cmd_ref(cli, "setup") + " para criar)")
     elif user_err:
         lines.append("Config do usuário: ❌ INVÁLIDO, não aplicado: " + "; ".join(user_err))
         summary.append("config do usuário inválido")
@@ -205,7 +215,7 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
         lines.append("Config do usuário: ✅ válido")
     if root is not None:
         if not has_repo_cfg:
-            lines.append("Config do repositório: ausente (rode /starcode:setup)")
+            lines.append("Config do repositório: ausente (rode " + cmd_ref(cli, "setup") + ")")
         elif repo_err:
             lines.append("Config do repositório: ❌ INVÁLIDO, fluxo parado até corrigir: " + "; ".join(repo_err))
             summary.append("config do repositório inválido")
@@ -216,7 +226,7 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
     if active:
         lines.append(check_orca())
         if full:
-            lines.extend(check_linear(repo_cfg))
+            lines.extend(check_linear(repo_cfg, cli))
         if root is not None:
             wip, degraded, breaker = work_in_progress(root)
             if wip:
@@ -240,7 +250,8 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
             summary.append(f"{len(found)} skill(s) concorrente(s)")
         lines.extend(crew_lines(user_cfg))
     else:
-        lines.append("Este repositório ainda não usa o StarCode. /starcode:setup configura; /starcode:engajar inicia.")
+        lines.append(f"Este repositório ainda não usa o StarCode. {cmd_ref(cli, 'setup')} configura; "
+                     f"{cmd_ref(cli, 'engajar')} inicia.")
 
     if cli:
         lines.append(f"CLI: {cli}")

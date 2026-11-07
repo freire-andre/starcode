@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install claude code
+        run: npm install -g @anthropic-ai/claude-code@2.1.319
+      - name: build --check
+        run: python tools/build.py --check
+      - name: unittest
+        run: python -m unittest discover -s tests -v
+      - name: check_decisions
+        run: python scripts/check_decisions.py
+      - name: plugin validate
+        run: claude plugin validate dist/claude --strict
+
+  eval:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: verificar secret
+        run: 'test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY ausente: configure o secret do repositório"; exit 1; }'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install claude code
+        run: npm install -g @anthropic-ai/claude-code@2.1.319
+      - name: eval risk-sizing
+        shell: bash
+        run: claude plugin eval dist/claude --tag risk-sizing --ablation none --trust-plugin --no-publish | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: eval routing
+        shell: bash
+        run: claude plugin eval dist/claude --tag routing --ablation none --trust-plugin --no-publish | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: dist/claude/evals/results/
+          if-no-files-found: ignore
+
+  release-check:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: release check
+        run: python tools/release.py check --tag "${{ github.ref_name }}"
