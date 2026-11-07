@@ -73,7 +73,7 @@ python -m unittest discover -s tests
 python scripts/check_decisions.py
 ```
 
-O CI (GitHub Actions, `.github/workflows/ci.yml`) roda os checks, o eval e a conferência de release.
+O CI (GitHub Actions, `.github/workflows/ci.yml`) roda os checks e a conferência de release; o eval só roda sob demanda (`workflow_dispatch`, exige o secret `ANTHROPIC_API_KEY`).
 O release é feito por `tools/release.py` (`check --tag vX.Y.Z` confere a tag; `create --yes` cria o release).
 
 Evals: ver `evals/README.md`.

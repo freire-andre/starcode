@@ -93,11 +93,11 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertEqual(c["group"], "ci-${{ github.ref }}")
         self.assertIs(c["cancel-in-progress"], True)
 
-    def test_ci_eval_job_only_on_tag_or_dispatch(self):
+    def test_ci_eval_job_only_on_dispatch(self):
         job = _jobs()["eval"]
         cond = str(job["if"])
-        self.assertIn("refs/tags/v", cond)
-        self.assertIn("workflow_dispatch", cond)
+        self.assertEqual(cond, "github.event_name == 'workflow_dispatch'")
+        self.assertNotIn("refs/tags", cond)
         joined = "\n".join(_runs("eval"))
         for tag in ("risk-sizing", "routing"):
             self.assertIn(
