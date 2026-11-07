@@ -82,8 +82,9 @@ class CrewLiveTest(TempRepoCase):
     def test_progress_explicit_counts_and_done_phase(self):
         code, out, _ = self.run_cli("progress", "dark-mode", "--done", "0", "--total", "1", "--phase", "execute")
         self.assertEqual(code, 0)
-        self.assertEqual(self.progress()["dark-mode"],
-                         {"done": 0, "total": 1, "percent": 0, "phase": "execute"})
+        entry = self.progress()["dark-mode"]
+        self.assertTrue(entry.pop("updatedAt"))
+        self.assertEqual(entry, {"done": 0, "total": 1, "percent": 0, "phase": "execute"})
         self.run_cli("progress", "export-csv", "--done", "2", "--total", "3")
         self.assertEqual(self.progress()["export-csv"]["percent"], 67)
         self.run_cli("progress", "export-csv", "--done", "2", "--total", "3", "--phase", "done")

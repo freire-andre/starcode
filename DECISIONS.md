@@ -405,3 +405,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `{"<slug>": {"done", "total", "percent", "phase"}}`. `crew_live.py progress <slug>` conta os tickets do `tasks.md` integrados em `feature/<slug>` com a mesma regra do `dispatch.py next` (Git é a evidência); MÉDIA/PEQUENA passam `--done/--total` (um ticket). O Picard roda depois da publicação, de cada merge e no `done` (100%).
 - **Motivo:** pedido do usuário em 2026-11-07. Contar pelo Git evita um contador que diverge do que foi de fato integrado.
 - **Por que não é bug:** os arquivos ao vivo nunca decidem nada no fluxo; Git e o Handoff continuam a fonte da verdade, e uma falha desses comandos não para a missão.
+
+### F6-9: Statusline do Claude Code com o tripulante ativo e a barra de progresso
+- **Problema:** o usuário quer ver no rodapé do Claude Code quem está trabalhando e quanto da feature já foi integrado, sem abrir os arquivos ao vivo.
+- **Decisão:** `scripts/statusline.py` lê `.starcode/live/crew.json` e `progress.json` do worktree principal e devolve um segmento: tripulantes com `1` e a barra de 10 células da feature mais recente (`updatedAt`, novo campo do `progress.json`), em degradê #C5DBFF (0%) → #75C3FF (50%) → #0028B3 (100%), cada célula na cor da sua posição. Funciona como statusline inteira ou importado por uma statusline pessoal (`segment(cwd)`). Uma feature concluída fica 12 h na linha, em 100%.
+- **Motivo:** pedido do usuário em 2026-11-07, com as cores escolhidas por ele. O script só usa stdlib e não importa nada do plugin, para ser rápido a cada atualização da linha.
+- **Por que não é bug:** fora de um repositório, sem a pasta `live/` ou com arquivo corrompido, o segmento sai vazio e a statusline continua; o plugin não altera a statusline do usuário sozinho: a `statusLine` é uma escolha pessoal, ligada no `settings.json` ou numa statusline própria.

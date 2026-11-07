@@ -12,6 +12,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 - Cabeçalho de apresentação: cada tripulante abre a etapa mostrando nome, papel, CLI e modelo e o bordão (`scripts/crew_live.py start`).
 - Arquivos ao vivo para painéis em `.starcode/live/`: `crew.json` (quem está trabalhando, 0/1) e `progress.json` (tickets integrados / total, em %).
+- Statusline do Claude Code (`scripts/statusline.py`): tripulantes ativos e barra de progresso em degradê azul.
 
 ## [1.0.0] - 2026-11-07
 
