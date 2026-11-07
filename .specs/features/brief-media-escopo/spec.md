@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_records_f7_11_medium_scope ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** provas e Q
+**Next:** correção pós-Q
 **Linear:** SC-83
 **Integration branch:** not created
 **Last integrated:** 27bdfd7
 **Dispatched:** none
 **Settled:** 2026-11-07: 2026-11-07: plano do ponto 3 aprovado: "(Spock escreve a spec breve)? SIM"; 2026-11-07: 2026-11-07: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** 2026-11-07: 2026-11-07: SC-83: R1–R8 (89bd2ab), gate ticket verde na própria MÉDIA, 385 testes rc 0
+**Reports:** 2026-11-07: 2026-11-07: SC-83: R1–R8 (89bd2ab), gate ticket verde na própria MÉDIA, 385 testes rc 0; 2026-11-07: 2026-11-07: Q (codex): FAIL, 2 achados (C3 sem intervalo vazio; C5 sem vários commits)
 **Breaker:** closed
