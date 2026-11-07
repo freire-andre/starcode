@@ -170,18 +170,3 @@ None.
 
 - **Timeout:** a 4.4 diz que "o `--timeout-ms` da Orca encerra a espera". Na Orca 1.4.251, o `--timeout-ms` do `worker-start` é a espera pelo início do worker. Por isso o timeout do trabalho usa o `--timeout-ms` do `check --wait` e o prazo gravado no Handoff (R20, R22). O comportamento visível é o mesmo: o worker parado vira bloqueio, sem relançar.
 - **`--deps`:** a 4.4 manda derivar `--deps` das relações `blocks`. Aqui um ticket só entra no lote com as dependências já integradas (R1), então o `--deps` não teria efeito e não é usado (R16).
-
-## Handoff
-
-**Phase:** spec-approved
-**Size:** GRANDE
-**Git mode:** 3
-**Next:** Data quebra em tasks
-**Linear:** none yet
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** 2026-11-07: spec aprovada: "sim"
-**Attempts:** none
-**Reports:** none
-**Breaker:** closed
