@@ -174,6 +174,16 @@ class ReleaseTests(unittest.TestCase):
         for yes in (True, False):
             self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-6.md: Claude\n", yes)
 
+    def test_release_refuses_without_acceptance_from_phase_6(self):  # edge case da spec
+        d = self.tmp / "docs" / "aceite"
+        self.aceite.unlink()
+        for yes in (True, False):
+            self.assert_refused(
+                Fake(), "aceite não aprovado em docs/aceite: nenhum aceite da Fase 6 em diante\n", yes)
+        (d / "fase-5.md").write_text(ACEITE, encoding="utf-8")
+        self.assert_refused(
+            Fake(), "aceite não aprovado em docs/aceite: nenhum aceite da Fase 6 em diante\n")
+
     def test_release_refuses_undated_changelog_section(self):  # R1
         (self.tmp / "VERSION").write_text("1.1.0\n", encoding="utf-8")
         (self.tmp / "CHANGELOG.md").write_text(

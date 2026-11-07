@@ -73,7 +73,7 @@ def _undated(root: Path, version: str) -> bool:
 def _preconditions(root: Path, runner) -> int:
     aceites = _aceites(root)
     if not aceites:
-        print("aceite não aprovado em docs/aceite/fase-6.md: arquivo ausente", file=sys.stderr)
+        print("aceite não aprovado em docs/aceite: nenhum aceite da Fase 6 em diante", file=sys.stderr)
         return 1
     for n, path in aceites:
         pending = _aceite_pending(path)
