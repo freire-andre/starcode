@@ -89,15 +89,15 @@ Proof: run unit | test_decisions_records_f7_12_crew_hook ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa SC-84
+**Next:** provas e Q
 **Linear:** SC-84
 **Integration branch:** not created
-**Last integrated:** none
+**Last integrated:** 1e061ea
 **Dispatched:** none
 **Settled:** 2026-11-07: 2026-11-07: Troi: hook mostra sempre; 15 min + pulso; 0 enquanto espera; Claude agora, outros depois; 2026-11-07: 2026-11-07: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-07: 2026-11-07: SC-84: R1–R12 (e57d4b0), gate ticket verde, 397 testes rc 0, hook de fumaça ok
 **Breaker:** closed
