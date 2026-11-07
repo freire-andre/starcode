@@ -467,3 +467,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o padrão sensível tem prioridade sobre `Runs alone` no motivo; a entrada tem os 5 campos desde o primeiro registro; o gate de cada ticket usa `<base gravada na entrada>..<ramo do ticket>`, nunca o HEAD atual de `feature/<slug>`; `overdue` ignora entradas `· blocked`.
 - **Motivo:** R3, R5, R14, R21–R23 e o achado do aceite (o HEAD atual acusou falsamente arquivos fora do `May change` depois de outro ticket integrado).
 - **Por que não é bug:** um ticket bloqueado continua reservando os arquivos (R23); só deixa de gerar avisos repetidos.
+
+### F7-10: Release recusa seção não lançada e confere aceites a partir da Fase 6
+- **Problema:** o release aceitava `## [1.1.0] - não lançada` e olhava só `fase-6.md`, deixando passar aceites pendentes das fases seguintes.
+- **Decisão:** `tools/release.py create` sai com 1 se a seção da versão no `CHANGELOG.md` não tem data `AAAA-MM-DD` (com e sem `--yes`), e confere todo `docs/aceite/fase-<N>.md` com N ≥ 6, em ordem numérica, citando o primeiro pendente.
+- **Motivo:** R1 e R3: as Fases 1–5 usam outro formato de resultado, por isso a conferência começa na Fase 6.
+- **Por que não é bug:** `fase-1.md` a `fase-5.md` não terem `**Resultado**:` no formato novo é esperado e não bloqueia o release.

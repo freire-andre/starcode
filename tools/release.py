@@ -34,7 +34,7 @@ def _notes(root: Path, version: str) -> str | None:
     return m.group(1).strip("\n") + "\n" if m else None
 
 
-ACEITE = "docs/aceite/fase-6.md"
+FIRST_ACEITE_PHASE = 6
 
 
 def _out(runner, cmd: list[str]):
@@ -42,11 +42,17 @@ def _out(runner, cmd: list[str]):
     return res.returncode, (res.stdout or "").strip(), res.stderr or ""
 
 
-def _aceite_pending(root: Path) -> str | None:
-    """Seção do primeiro aceite não aprovado, ou None se todos estão aprovados."""
-    path = root / ACEITE
-    if not path.is_file():
-        return "arquivo ausente"
+def _aceites(root: Path) -> list[tuple[int, Path]]:
+    found = []
+    for p in (root / "docs" / "aceite").glob("fase-*.md"):
+        m = re.fullmatch(r"fase-(\d+)\.md", p.name)
+        if m and int(m.group(1)) >= FIRST_ACEITE_PHASE:
+            found.append((int(m.group(1)), p))
+    return sorted(found)
+
+
+def _aceite_pending(path: Path) -> str | None:
+    """Seção do primeiro resultado não aprovado do arquivo, ou None se aprovado."""
     section, seen = "", False
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.startswith("## "):
@@ -58,11 +64,22 @@ def _aceite_pending(root: Path) -> str | None:
     return None if seen else "sem resultado"
 
 
+def _undated(root: Path, version: str) -> bool:
+    text = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    m = re.search(rf"^## \[{re.escape(version)}\](.*)$", text, re.M)
+    return bool(m) and not re.search(r"\d{4}-\d{2}-\d{2}", m.group(1))
+
+
 def _preconditions(root: Path, runner) -> int:
-    pending = _aceite_pending(root)
-    if pending is not None:
-        print(f"aceite não aprovado em {ACEITE}: {pending}", file=sys.stderr)
+    aceites = _aceites(root)
+    if not aceites:
+        print("aceite não aprovado em docs/aceite/fase-6.md: arquivo ausente", file=sys.stderr)
         return 1
+    for n, path in aceites:
+        pending = _aceite_pending(path)
+        if pending is not None:
+            print(f"aceite não aprovado em docs/aceite/fase-{n}.md: {pending}", file=sys.stderr)
+            return 1
     rc, branch, err = _out(runner, ["git", "rev-parse", "--abbrev-ref", "HEAD"])
     if rc != 0:
         sys.stderr.write(err)
@@ -108,6 +125,10 @@ def _create(root: Path, version: str, yes: bool, runner) -> int:
     notes = _notes(root, version)
     if notes is None:
         print(f"CHANGELOG.md sem a seção [{version}]", file=sys.stderr)
+        return 1
+    if _undated(root, version):
+        print(f"CHANGELOG.md: a seção [{version}] não tem data (não lançada); "
+              "date a seção antes do release", file=sys.stderr)
         return 1
     if _preconditions(root, runner):
         return 1
