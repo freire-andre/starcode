@@ -15,7 +15,7 @@ What it checks
   ERRO   MEDIUM: `## Checks` invalid (a check per requirement, proofs, Build/Run lines)
   ERRO   LARGE/COMPLEX: `## Checks` in spec.md (they live only in tasks.md, D24)
   ERRO   --approved: no `**Approved**: <date> - user: "<their words>"`
-  AVISO  requirement with SHALL but no EARS lead keyword; placeholders left; MEDIUM without Edge Cases
+  AVISO  requirement with SHALL but no EARS lead keyword; placeholders left; MEDIUM without Edge Cases; MEDIUM without `**May change**:`
 
 Usage: python validate_spec.py [feature|path] [--root DIR] [--approved] [--strict]
 Exit: 0 pass, 1 errors (or warnings with --strict), 2 usage error.
@@ -84,6 +84,9 @@ def evaluate(target: str | None, root: Path, require_approval: bool = False) -> 
             errors.append(f"`## {name}` está vazia")
     if brief and gc.section(lines, "Edge Cases") is None:
         warnings.append("spec breve sem `## Edge Cases`: confira conexão, concorrência, timeout e entrada inválida")
+
+    if brief and not gc.split_paths(gc.field_value(lines, "May change") or ""):
+        warnings.append("MEDIUM sem a linha **May change**: o gate ticket não confere o escopo")
 
     # Requirements (EARS).
     body = gc.section(lines, "Requirements") or []

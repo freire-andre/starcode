@@ -321,6 +321,9 @@ def spec_brief(slug: str, ticket: str, root: Path) -> str:
     for name in ("Scope", "Requirements", "Checks"):
         body = gc.section(lines, name) or []
         out += [f"## {name}", *body, ""]
+    may = gc.split_paths(gc.field_value(lines, "May change") or "")
+    out += ["## BOUNDARIES", "May change: " + (", ".join(may) if may else
+            "não definido na spec; pare e pergunte antes de alterar arquivos fora do Scope"), ""]
     return "\n".join(out).rstrip() + "\n\n" + PROOF_RULE + "\n\n" + WORKER_RULES.format(
         slug=fdir.name, ticket=ticket, plugin=sc.PLUGIN_ROOT.as_posix())
 

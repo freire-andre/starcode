@@ -8,7 +8,7 @@ Stages
             (MEDIUM, no tasks.md: validate_spec --approved, which also checks `## Checks`)
   commit    before each commit                check_commit (--message, --expect-ref)
   ticket    before integrating a ticket       check_scope + check_commit on every commit of the range
-            (the expected Refs is the ticket's `**Linear**:` ID)
+            (the expected Refs is the ticket's `**Linear**:` ID; MEDIUM: the spec's)
   proofs    after the last ticket             check_proofs (writes proofs.md)
   done      after the Q and the post-Q cycle  validate_verification (--strict: degraded is red)
 
@@ -43,11 +43,17 @@ STAGES = ("spec", "tasks", "publish", "execute", "commit", "ticket", "proofs", "
 def ticket_commits(feature: str | None, ticket: str, rng: str, root: Path) -> list[gc.Result]:
     """check_commit on every commit message of the range, expecting the ticket's Linear ID in Refs."""
     try:
-        fdir = gc.resolve_feature(feature, root, "tasks.md")
+        try:
+            fdir = gc.resolve_feature(feature, root, "tasks.md")
+        except LookupError:
+            fdir = gc.resolve_feature(feature, root, "spec.md")
     except LookupError:
         return []
-    task = check_scope.find_task(fdir, ticket)
-    linear = gc.LINEAR_ID_RE.findall(task.value("Linear") or "") if task else []
+    if (fdir / "tasks.md").exists():
+        task = check_scope.find_task(fdir, ticket)
+        linear = gc.LINEAR_ID_RE.findall(task.value("Linear") or "") if task else []
+    else:
+        linear = check_scope.spec_linear(fdir)
     p = subprocess.run(["git", "log", "--format=%H%x00%B%x1e", rng], cwd=gc.project_root(fdir),
                        capture_output=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
     if p.returncode != 0:

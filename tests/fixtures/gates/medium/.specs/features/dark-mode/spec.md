@@ -3,6 +3,7 @@
 **Size**: MEDIUM
 **Risk triggers**: dados persistidos
 **Linear**: SC-40
+**May change**: src/theme.py, tests/
 **Approved**: 2026-11-03 - user: "ok, manda ver"
 
 ## Context

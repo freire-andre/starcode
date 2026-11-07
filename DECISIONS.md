@@ -473,3 +473,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `tools/release.py create` sai com 1 se a seção da versão no `CHANGELOG.md` não tem data `AAAA-MM-DD` (com e sem `--yes`), e confere todo `docs/aceite/fase-<N>.md` com N ≥ 6, em ordem numérica, citando o primeiro pendente.
 - **Motivo:** R1 e R3: as Fases 1–5 usam outro formato de resultado, por isso a conferência começa na Fase 6.
 - **Por que não é bug:** `fase-1.md` a `fase-5.md` não terem `**Resultado**:` no formato novo é esperado e não bloqueia o release.
+
+### F7-11: `May change` da MÉDIA vive na spec e o gate `ticket` vale para ela
+- **Problema:** a MÉDIA não tem `tasks.md`; `check_scope` e `run_gates.py ticket` falhavam e o brief não trazia os arquivos permitidos (o Picard os acrescentava à mão na SC-81).
+- **Decisão:** a spec breve ganha `**May change**:` depois de `**Linear**:`. Sem `tasks.md`, `check_scope` usa essa linha (path, glob, pasta com `/`), aceita o ID do Linear da spec ou `T1`, e `run_gates.py ticket` confere o `Refs` com esse ID. A linha ausente é aviso (não erro) no `validate_spec` (R1) e no `check_scope` (R3), que mantém os erros de `STATE.md`, `## Handoff` e intervalo sem commit. O brief da MÉDIA tem `## BOUNDARIES` (R6) e o `execute.md` seção 8 integra com o gate `ticket` (R7).
+- **Motivo:** R1–R7: o mesmo gate de escopo para todas as features com spec.
+- **Por que não é bug:** specs MÉDIAS antigas sem a linha continuam válidas; a feature com `tasks.md` ignora a linha da spec.
