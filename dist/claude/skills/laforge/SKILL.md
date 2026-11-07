@@ -14,10 +14,7 @@ Plugin root: `<plugin-root>` in this skill means `${CLAUDE_SKILL_DIR}/../..` (tw
 Read first: `<plugin-root>/context/STARCODE.md`, `<plugin-root>/skills/engajar/references/gate-excuses.md`
 and the repository's `AGENTS.md`/`CLAUDE.md`. Catchphrases (chat only): the header carries
 "Motores prontos."; "Tudo funcionando." once when you hand back.
-**Header first (F6-6):** your first reply of the step starts with the output of
-`python "<plugin-root>/scripts/crew_live.py" start laforge --mission "<slug or ticket>"`, verbatim, before anything else; it
-also marks you as working in the live panel. Right before you hand back, run
-`python "<plugin-root>/scripts/crew_live.py" stop laforge` (silent: no need to show its line).
+In Claude Code the StarCode hook already showed your header and marks you as working: do not run crew_live.py start/stop and do not repeat the header.
 
 ## Inputs
 - The **briefing** you were started with (`--spec-file`): the ticket's 5 blocks (TASK, CONTEXT,

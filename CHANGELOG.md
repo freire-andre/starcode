@@ -8,6 +8,11 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+### Adicionado
+
+- Claude Code: `hooks/scripts/crew_hook.py` mostra o cabeçalho do tripulante e marca o status sozinho (sem depender do modelo), com `sessions.json` ao lado do `crew.json`; entradas vencem em 15 min (hook) ou 60 min (CLI) e o `crew.json` é recalculado a cada escrita.
+- Statusline: validade das entradas e `🔧 LaForge ×<n>`; banner: aviso quando o plugin instalado está atrás do repositório do StarCode.
+
 ## [1.1.0] - 2026-11-07
 
 ### Adicionado

@@ -16,6 +16,13 @@ reader never sees half a file. Each command prints at most a few lines, to keep 
     python crew_live.py show                                  # paths and contents (debug)
     python crew_live.py reset                                 # everyone 0 (stale states after a crash)
 
+`crew.json` stays flat and is RECALCULATED on every write from `sessions.json` (same folder, F7-12):
+    {"<session id or cli:<member>>": {"member": "spock", "active": true, "source": "hook"|"cli",
+                                      "at": "<iso>", "count": 2}}      # count: only `cli` laforge entries
+A member is 1 with a valid active entry (`hook` entries live 15 min from `at`, `cli` entries 60 min);
+laforge is the larger of the valid active hook entries and the `set laforge <n>` count. Expired entries are
+dropped on the next write. scripts/hooks crew_hook.py (Claude Code) writes the `hook` entries.
+
 Options: --cwd DIR (default: current directory). Exit: 0 ok, 1 not a git repo / unknown member / no tasks,
 2 usage error. Python stdlib only.
 """
@@ -27,6 +34,7 @@ import os
 import re
 import sys
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -37,6 +45,9 @@ import starcode_common as sc  # noqa: E402
 
 LIVE_DIR = Path(".starcode") / "live"
 RULE = "━" * 36
+SESSIONS_FILE = "sessions.json"
+HOOK_TTL = timedelta(minutes=15)  # a hook entry is renewed by every tool call
+CLI_TTL = timedelta(minutes=60)   # an entry written by `crew_live.py start|set`
 
 
 # --- location ---------------------------------------------------------------------------------
@@ -97,20 +108,98 @@ def crew_members() -> tuple[dict[str, dict], list[str]]:
     return crew, [k for k in crew if k in available]
 
 
-def set_status(d: Path, member: str, value: int, available: list[str]) -> dict:
+def _parse_at(value: object) -> datetime | None:
+    try:
+        at = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    return at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+
+
+def entry_valid(entry: object, now: datetime) -> bool:
+    """A session entry counts while it is younger than its source's validity (15 min hook, 60 min cli)."""
+    if not isinstance(entry, dict):
+        return False
+    at = _parse_at(entry.get("at"))
+    if at is None:
+        return False
+    ttl = CLI_TTL if entry.get("source") == "cli" else HOOK_TTL
+    return now - at < ttl
+
+
+def entry_active(entry: object, now: datetime) -> bool:
+    return entry_valid(entry, now) and entry.get("active") is True  # type: ignore[union-attr]
+
+
+def count_members(sessions: dict, now: datetime) -> dict[str, int]:
+    """{member: 0|1, laforge: n} from the valid active entries (R6); read-only."""
+    counts: dict[str, int] = {}
+    hook_laforge, cli_laforge = 0, 0
+    for entry in sessions.values():
+        if not entry_active(entry, now):
+            continue
+        member = entry.get("member")
+        if not isinstance(member, str):
+            continue
+        if member != "laforge":
+            counts[member] = 1
+        elif entry.get("source") == "cli":
+            n = entry.get("count", 1)
+            cli_laforge = max(cli_laforge, n if isinstance(n, int) and not isinstance(n, bool) and 0 < n <= 10 else 1)
+        else:
+            hook_laforge += 1
+    counts["laforge"] = min(10, max(hook_laforge, cli_laforge))
+    return counts
+
+
+def _norm(k: str, v: object) -> int:  # only laforge may count 0..10 (active workers); everyone else is 0/1
+    if k == "laforge":
+        return v if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10 else 0
+    return 1 if v == 1 else 0
+
+
+def update_sessions(d: Path, available: list[str], mutate, now: datetime | None = None,
+                    strict: bool = False) -> dict:
+    """Read sessions.json, apply `mutate(sessions)`, drop expired entries, write it, then recalculate and write
+    crew.json (flat). `strict`: a sessions.json that exists but cannot be read raises instead of restarting
+    from empty (the hook stays silent). Returns the new crew.json content."""
+    now = now or datetime.now(timezone.utc)
+    spath = d / SESSIONS_FILE
+    if strict and spath.exists():
+        loaded = json.loads(spath.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict):
+            raise ValueError("sessions.json is not an object")
+        sessions = loaded
+    else:
+        sessions = read_json(spath)
+    mutate(sessions)
+    sessions = {k: v for k, v in sessions.items() if entry_valid(v, now)}
+    write_json(spath, sessions)
+    counts = count_members(sessions, now)
     path = d / "crew.json"
     current = read_json(path)
-    def norm(k, v):  # only laforge may count 0..10 (active workers); everyone else is 0/1
-        if k == "laforge":
-            return v if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10 else 0
-        return 1 if v == 1 else 0
-
-    data = {k: norm(k, current.get(k)) for k in available}  # fixed order
+    data = {k: counts.get(k, 0) for k in available}  # fixed order
     for k, v in current.items():  # keep members of other versions that a panel may still show
-        data.setdefault(k, norm(k, v))
-    data[member] = value
+        data.setdefault(k, _norm(k, v))
     write_json(path, data)
     return data
+
+
+def set_status(d: Path, member: str, value: int, available: list[str]) -> dict:
+    """`crew_live.py start|stop|set`: a `cli` entry (valid 60 min); 0 removes it."""
+    now = datetime.now(timezone.utc)
+
+    def mutate(sessions: dict) -> None:
+        key = f"cli:{member}"
+        if value <= 0:
+            sessions.pop(key, None)
+            return
+        entry = {"member": member, "active": True, "source": "cli", "at": now.replace(microsecond=0).isoformat()}
+        if member == "laforge":
+            entry["count"] = value
+        sessions[key] = entry
+
+    return update_sessions(d, available, mutate, now)
 
 
 def header(member: dict, mission: str | None) -> str:
@@ -210,6 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd in ("start", "stop", "set", "reset"):
         crew, available = crew_members()
         if args.cmd == "reset":
+            write_json(d / SESSIONS_FILE, {})
             write_json(d / "crew.json", {k: 0 for k in available})
             print("Status da tripulação zerado")
             return 0
@@ -257,7 +347,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     # show
-    for name in ("crew.json", "progress.json"):
+    for name in ("crew.json", SESSIONS_FILE, "progress.json"):
         f = d / name
         print(f"{f}:")
         print(f.read_text(encoding="utf-8").strip() if f.exists() else "(vazio)")
