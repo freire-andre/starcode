@@ -47,6 +47,7 @@ LIVE_DIR = Path(".starcode") / "live"
 RULE = "━" * 36
 SESSIONS_FILE = "sessions.json"
 HOOK_TTL = timedelta(minutes=15)  # a hook entry is renewed by every tool call
+FUTURE_SKEW = timedelta(seconds=60)  # an `at` further ahead than this is a bad clock or a forged entry
 CLI_TTL = timedelta(minutes=60)   # an entry written by `crew_live.py start|set`
 
 
@@ -120,11 +121,13 @@ def entry_valid(entry: object, now: datetime) -> bool:
     """A session entry counts while it is younger than its source's validity (15 min hook, 60 min cli)."""
     if not isinstance(entry, dict):
         return False
-    at = _parse_at(entry.get("at"))
-    if at is None:
+    source = entry.get("source")
+    if source not in ("hook", "cli"):
         return False
-    ttl = CLI_TTL if entry.get("source") == "cli" else HOOK_TTL
-    return now - at < ttl
+    at = _parse_at(entry.get("at"))
+    if at is None or at - now > FUTURE_SKEW:
+        return False
+    return now - at < (CLI_TTL if source == "cli" else HOOK_TTL)
 
 
 def entry_active(entry: object, now: datetime) -> bool:
