@@ -9,6 +9,8 @@ ticket's `**May change**:` in tasks.md and the files changed in a commit range.
   ERRO  the `## Handoff` section of context.md, spec.md or tasks.md of any feature changed
   ERRO  no commit in the range (the worker did not commit)
 
+  MEDIUM (no tasks.md): the allowed list is the spec's `**May change**:` line; without it, a warning.
+
 Usage: python check_scope.py <feature> <ticket> <base>..<head> [--root DIR]
 Exit 0 ok, 1 out of scope, 2 usage error.
 """
@@ -63,6 +65,15 @@ def find_task(fdir: Path, ticket: str) -> vt.Task | None:
     return None
 
 
+def spec_may_change(fdir: Path) -> list[str]:
+    """MEDIUM feature (no tasks.md): the paths of the spec's `**May change**:` line (empty line = absent)."""
+    return gc.split_paths(gc.field_value(gc.read_lines(fdir / "spec.md"), "May change") or "")
+
+
+def spec_linear(fdir: Path) -> list[str]:
+    return gc.LINEAR_ID_RE.findall((gc.field_value(gc.read_lines(fdir / "spec.md"), "Linear") or "").upper())
+
+
 def changed_files(root: Path, rng: str) -> tuple[list[str] | None, list[str]]:
     code, names = _git(root, "diff", "--name-only", rng)
     if code != 0:
@@ -74,18 +85,39 @@ def changed_files(root: Path, rng: str) -> tuple[list[str] | None, list[str]]:
 def evaluate(feature: str | None, ticket: str, rng: str, root: Path) -> gc.Result:
     res = gc.Result("check_scope")
     try:
-        fdir = gc.resolve_feature(feature, root, "tasks.md")
+        try:
+            fdir = gc.resolve_feature(feature, root, "tasks.md")
+        except LookupError:
+            fdir = gc.resolve_feature(feature, root, "spec.md")
     except LookupError as e:
         res.usage_error = str(e)
         return res
     if ".." not in rng:
         res.usage_error = f"intervalo inválido {rng!r}: use <base>..<head>"
         return res
-    task = find_task(fdir, ticket)
+    medium = not (fdir / "tasks.md").exists()
     res.target = f"{gc.feature_root_hint(fdir)} {ticket} {rng}"
-    if task is None:
-        res.usage_error = f"ticket {ticket} não existe em tasks.md"
-        return res
+    patterns: list[str] | None
+    if medium:
+        if not (fdir / "spec.md").exists():
+            res.usage_error = f"feature sem tasks.md nem spec.md em {gc.feature_root_hint(fdir)}"
+            return res
+        ids = spec_linear(fdir)
+        if ticket.upper() != "T1" and ticket.upper() not in ids:
+            res.usage_error = (f"ticket {ticket} não é desta feature MÉDIA "
+                               f"(use {ids[0] if ids else 'o ID do Linear'} ou T1)")
+            return res
+        tid = ticket
+        patterns = spec_may_change(fdir) or None
+        if patterns is None:
+            res.warnings.append("spec sem **May change**: escopo não conferido")
+    else:
+        task = find_task(fdir, ticket)
+        if task is None:
+            res.usage_error = f"ticket {ticket} não existe em tasks.md"
+            return res
+        tid = task.tid
+        patterns = task.may_change
     proj = gc.project_root(fdir)
     files, commits = changed_files(proj, rng)
     if files is None:
@@ -93,7 +125,6 @@ def evaluate(feature: str | None, ticket: str, rng: str, root: Path) -> gc.Resul
         return res
     if not commits:
         res.errors.append(f"nenhum commit em {rng}: o worker não commitou o ticket")
-    patterns = task.may_change
     base, head = rng.split("..", 1)
     for f in files:
         n = gc.norm_path(f)
@@ -106,8 +137,8 @@ def evaluate(feature: str | None, ticket: str, rng: str, root: Path) -> gc.Resul
             if handoff_text(old) != handoff_text(new):
                 res.errors.append(f"`## Handoff` alterado em {n}: só o Picard escreve nele (D28)")
                 continue
-        if not allowed(n, patterns):
-            res.errors.append(f"{n}: fora do `May change` de {task.tid} ({', '.join(patterns) or 'vazio'})")
+        if patterns is not None and not allowed(n, patterns):
+            res.errors.append(f"{n}: fora do `May change` de {tid} ({', '.join(patterns) or 'vazio'})")
     return res
 
 
