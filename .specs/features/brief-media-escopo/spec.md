@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_records_f7_11_medium_scope ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa SC-83
+**Next:** provas e Q
 **Linear:** SC-83
 **Integration branch:** not created
-**Last integrated:** none
+**Last integrated:** 27bdfd7
 **Dispatched:** none
 **Settled:** 2026-11-07: 2026-11-07: plano do ponto 3 aprovado: "(Spock escreve a spec breve)? SIM"; 2026-11-07: 2026-11-07: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-07: 2026-11-07: SC-83: R1–R8 (89bd2ab), gate ticket verde na própria MÉDIA, 385 testes rc 0
 **Breaker:** closed
