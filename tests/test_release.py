@@ -186,14 +186,21 @@ class ReleaseTests(unittest.TestCase):
 
     def test_release_refuses_undated_changelog_section(self):  # R1
         (self.tmp / "VERSION").write_text("1.1.0\n", encoding="utf-8")
+        headers = ["## [1.1.0] - não lançada", "## [1.1.0] - não lançada (2026-11-08)",
+                   "## [1.1.0] - adiada para 2026-12-01", "## [1.1.0] - 2026/11/08",
+                   "## [1.1.0]", "## [1.1.0] - 2026-11-08 (adiada)"]
+        for header in headers:
+            (self.tmp / "CHANGELOG.md").write_text(
+                f"# Changelog\n\n{header}\n\n- Item.\n", encoding="utf-8")
+            for yes in (True, False):
+                fake = Fake()
+                self.assert_refused(
+                    fake, "CHANGELOG.md: a seção [1.1.0] não tem data (não lançada); "
+                          "date a seção antes do release\n", yes)
+                self.assertFalse(any(c[:2] == ["git", "tag"] for c in fake.calls))
         (self.tmp / "CHANGELOG.md").write_text(
-            "# Changelog\n\n## [1.1.0] - não lançada\n\n- Item.\n", encoding="utf-8")
-        for yes in (True, False):
-            fake = Fake()
-            self.assert_refused(
-                fake, "CHANGELOG.md: a seção [1.1.0] não tem data (não lançada); "
-                      "date a seção antes do release\n", yes)
-            self.assertFalse(any(c[:2] == ["git", "tag"] for c in fake.calls))
+            "# Changelog\n\n## [1.1.0] - 2026-11-08  \n\n- Item.\n", encoding="utf-8")
+        self.assertEqual(self.run_main(["create"], Fake())[0], 0)
 
     def test_release_notes_extracted_from_dated_section(self):  # R2
         (self.tmp / "VERSION").write_text("1.1.0\n", encoding="utf-8")

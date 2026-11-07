@@ -67,7 +67,7 @@ def _aceite_pending(path: Path) -> str | None:
 def _undated(root: Path, version: str) -> bool:
     text = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     m = re.search(rf"^## \[{re.escape(version)}\](.*)$", text, re.M)
-    return bool(m) and not re.search(r"\d{4}-\d{2}-\d{2}", m.group(1))
+    return bool(m) and not re.fullmatch(r" - \d{4}-\d{2}-\d{2}\s*", m.group(1))
 
 
 def _preconditions(root: Path, runner) -> int:
