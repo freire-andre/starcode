@@ -58,15 +58,15 @@ Proof: run unit | test_decisions_records_f7_10_release_guard ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** LaForge implementa SC-81
 **Linear:** SC-81
 **Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
+**Last integrated:** 697221c
+**Dispatched:** Q-fix · cf8c324 · ctx_d8ac252dbebb · model claude-sonnet-5-5
 **Settled:** 2026-11-07: spec aprovada e issue criada: "Sim para os dois"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-07: SC-81: R1–R4 em release.py/test_release.py/DECISIONS (F7-10), 376 testes rc 0; check_scope não se aplica (MÉDIA); commit 7e81d47; 2026-11-07: Q (antigravity gemini-3.8-flash-high): FAIL, 3 achados (mensagem sem aceites ≥6; data não estrita; testes C1/C3/C4 frouxos)
 **Breaker:** closed

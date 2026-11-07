@@ -1,6 +1,6 @@
 # release-nao-lancada proofs
 
-**HEAD**: 697221c
+**HEAD**: b3504d8
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 7 pass, 0 fail
@@ -32,7 +32,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 376 tests in 142.906s
+Ran 377 tests in 127.931s
 
 OK
 ```
