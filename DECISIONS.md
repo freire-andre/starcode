@@ -461,3 +461,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `**Dispatched:**` guarda uma entrada por ticket separada por `; ` (`handoff.py set --dispatch-add` e `--dispatch-remove`; `--dispatched` continua substituindo o campo inteiro). `dispatch.py q-cli --laforge` aceita repetição e escolhe o primeiro CLI (`codex` → `antigravity` → `opencode`) de família diferente de todas; sem opção serve `self-verified`.
 - **Motivo:** R15 e R29: compatibilidade com o fluxo sequencial e independência do Q.
 - **Por que não é bug:** `next` segue devolvendo exit 3 com despacho aberto e não integrado (R19).
+
+### F7-9: Correções pós-Q da Frota (motivo sensível, entrada de despacho, base do gate, bloqueados no overdue)
+- **Problema:** o Q (antigravity, gemini-3.8-flash-high) achou 4 desvios da spec: `batch` mostrava `roda sozinho: Runs alone` em vez do padrão sensível; o 1º `--dispatch-add` do `execute.md` 2F tinha 3 campos (sem par e horário, o `overdue` sai com 2); o gate de integração não fixava a base gravada no despacho; `overdue` relistava entradas `· blocked`.
+- **Decisão:** o padrão sensível tem prioridade sobre `Runs alone` no motivo; a entrada tem os 5 campos desde o primeiro registro; o gate de cada ticket usa `<base gravada na entrada>..<ramo do ticket>`, nunca o HEAD atual de `feature/<slug>`; `overdue` ignora entradas `· blocked`.
+- **Motivo:** R3, R5, R14, R21–R23 e o achado do aceite (o HEAD atual acusou falsamente arquivos fora do `May change` depois de outro ticket integrado).
+- **Por que não é bug:** um ticket bloqueado continua reservando os arquivos (R23); só deixa de gerar avisos repetidos.
