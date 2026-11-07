@@ -108,7 +108,8 @@ crew member would take it and that it arrives in a later phase, record the Hando
 and stop there. Never do that member's job yourself.
 
 ### 5b. Execute (Phase 3)
-Follow `references/execute.md`: integration branch `feature/<slug>`, one LaForge worker per ticket via
+Follow `references/execute.md`: first the Fleet batch (`dispatch.py batch`, section `2F`: parallel LaForge
+workers when two or more tickets are independent); integration branch `feature/<slug>`, one LaForge worker per ticket via
 `orca orchestration worker-start` (brief from `scripts/dispatch.py brief`), `orca worktree set
 --linear-issue`, wait for `worker_done`, `run_gates.py ticket` then `git merge --no-ff` into the
 integration branch, next ticket without asking; after the last one `run_gates.py proofs`, the Q worker in
