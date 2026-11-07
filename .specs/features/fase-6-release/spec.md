@@ -57,7 +57,7 @@ Discovery: `.specs/features/fase-6-release/context.md`. Issues: SC-13 e SC-61.
 
 ### Eval
 
-- **R7** - WHEN uma tag que casa com `v*` é enviada, ou o workflow é disparado manualmente (`workflow_dispatch`), THEN the system SHALL rodar o job `eval`. Ele executa `claude plugin eval dist/claude --tag risk-sizing --ablation none --trust-plugin --no-publish` e depois o mesmo comando com `--tag routing`.
+- **R7** - WHEN o workflow é disparado manualmente (`workflow_dispatch`) THEN the system SHALL rodar o job `eval` (revisada em 2026-11-07, F6-5, user: "2a": sem o gatilho de tag). Ele executa `claude plugin eval dist/claude --tag risk-sizing --ablation none --trust-plugin --no-publish` e depois o mesmo comando com `--tag routing`.
 - **R8** - The system SHALL ler o secret `ANTHROPIC_API_KEY` só no job `eval`. Esse job não roda em eventos `pull_request`.
 - **R9** - IF o secret `ANTHROPIC_API_KEY` está vazio no job `eval` THEN the system SHALL falhar o job com a mensagem `ANTHROPIC_API_KEY ausente: configure o secret do repositório`, sem pular o eval.
 - **R10** - WHEN o job `eval` termina THEN the system SHALL anexar `dist/claude/evals/results/` como artefato da execução e escrever no resumo do job a nota de cada suíte.
