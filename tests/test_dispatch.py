@@ -3,14 +3,17 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from helpers import TempRepoCase, run_git
+from helpers import FIXTURES, TempRepoCase, run_git
 
 import dispatch
 import handoff
+FIXTURES_DIR = FIXTURES / "config" / "valid"
 
 TASKS = """# Demo: Tasks
 
@@ -311,3 +314,177 @@ class FamilyAndQCliTests(TempRepoCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def make_tasks(specs: list[dict]) -> str:
+    """tasks.md fixture: each spec has tid, deps, paths, alone (optional) and uses Linear PROJ-<n>."""
+    out = ["# Demo: Tasks", "", "## Tasks", ""]
+    for s in specs:
+        n = s["tid"][1:]
+        out += [f"### {s['tid']}: Ticket {n}", f"**Depends on**: {s.get('deps', 'none')}", f"**Requirements**: R{n}",
+                "**Tests**: unit", "**Gate**: quick", f"**Linear**: PROJ-{n}"]
+        if s.get("alone"):
+            out.append("**Runs alone**: yes")
+        paths = ", ".join(f"`{p}`" for p in s.get("paths", []))
+        out += ["", "#### TASK", "Faz.", "", "#### CONTEXT", "Spec.", "", "#### BOUNDARIES"]
+        if paths:
+            out.append(f"May change: {paths}")
+        out += ["", "#### RULES", "TDD.", "", "#### DELIVERY", "Commit.", ""]
+    return "\n".join(out)
+
+
+def entry(tid: str, pair: str = "claude:claude-sonnet-5-5") -> str:
+    return f"{tid} · PROJ-{tid[1:]} · base abc1234 · {pair} · 2026-11-07T16:40:00Z"
+
+
+class BatchTests(TempRepoCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.write_repo_config()
+        self.fdir = self.repo / ".specs" / "features" / "demo"
+        self.fdir.mkdir(parents=True)
+        (self.fdir / "spec.md").write_text("# Demo: Spec\n", encoding="utf-8")
+        run_git(self.repo, "branch", "feature/demo")
+
+    def tasks(self, specs: list[dict]) -> None:
+        (self.fdir / "tasks.md").write_text(make_tasks(specs), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "--allow-empty", "-m", "specs")
+        run_git(self.repo, "branch", "-f", "feature/demo")
+
+    def integrate(self, msg: str) -> None:
+        run_git(self.repo, "checkout", "-q", "feature/demo")
+        run_git(self.repo, "commit", "-q", "--allow-empty", "-m", msg)
+        run_git(self.repo, "checkout", "-q", "main")
+
+    def active(self, *entries: str) -> None:
+        handoff.set_handoff("demo", self.repo, {"dispatched": "; ".join(entries)})
+
+    def user_config(self, **fleet) -> None:
+        cfg = json.loads((FIXTURES_DIR / "user-full.json").read_text(encoding="utf-8"))
+        cfg["fleet"] = {"maxBatch": 3, "timeoutMinutes": 30, **fleet}
+        home = Path(os.environ["STARCODE_HOME"])
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "config.json").write_text(json.dumps(cfg), encoding="utf-8")
+
+    def run_batch(self, **kw) -> dict:
+        return dispatch.batch("demo", self.repo, **kw)
+
+    def ids(self, res: dict) -> list[str]:
+        return [b["ticket"] for b in res["batch"]]
+
+    def reasons(self, res: dict) -> dict[str, str]:
+        return {x["ticket"]: x["reason"] for x in res["excluded"]}
+
+    def test_batch_skips_integrated_active_and_waiting_tickets(self):
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["b.py"]},
+                    {"tid": "T3", "deps": "T2", "paths": ["c.py"]}, {"tid": "T4", "paths": ["d.py"]}])
+        self.integrate("feat: a\n\nRefs: PROJ-1")
+        self.active(entry("T2"))
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), ["T4"])
+        self.assertEqual(self.reasons(res), {"T3": "espera T2"})
+        self.assertEqual([a["ticket"] for a in res["active"]], ["T2"])
+
+    def test_batch_excludes_ticket_sharing_path_with_active(self):
+        self.tasks([{"tid": "T1", "paths": ["app/a.py"]}, {"tid": "T2", "paths": ["app/a.py"]},
+                    {"tid": "T3", "paths": ["app/b.py"]}, {"tid": "T4", "paths": ["app/b.py"]}])
+        self.active(entry("T1"))
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), ["T3"])
+        self.assertEqual(self.reasons(res), {"T2": "arquivo em comum com T1: app/a.py",
+                                             "T4": "arquivo em comum com T3: app/b.py"})
+
+    def test_batch_sensitive_ticket_runs_alone_only_when_idle(self):
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["package-lock.json"]},
+                    {"tid": "T3", "paths": ["c.py"], "alone": True}])
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), ["T1"])
+        self.assertEqual(self.reasons(res), {"T2": "roda sozinho: package-lock.json",
+                                             "T3": "roda sozinho: Runs alone"})
+        # idle and first: the batch is that ticket alone
+        self.tasks([{"tid": "T1", "paths": ["package-lock.json"]}, {"tid": "T2", "paths": ["b.py"]}])
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), ["T1"])
+        self.assertIn("roda sozinho", self.reasons(res)["T2"])
+        # with an active worker the sensitive ticket stays out even when first
+        self.tasks([{"tid": "T1", "paths": ["package-lock.json"]}, {"tid": "T2", "paths": ["b.py"]}])
+        self.active(entry("T2"))
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), [])
+        self.assertEqual(self.reasons(res), {"T1": "roda sozinho: package-lock.json"})
+
+    def test_batch_limit_counts_active_workers(self):
+        self.tasks([{"tid": f"T{i}", "paths": [f"f{i}.py"]} for i in range(1, 5)])
+        self.user_config(maxBatch=3)
+        self.active(entry("T1"))
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), ["T2", "T3"])
+        self.assertEqual(self.reasons(res), {"T4": "limite de 3 workers ativos"})
+
+    def test_batch_json_contract(self):
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "deps": "T1", "paths": ["b.py"]}])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["batch", "demo", "--root", str(self.repo), "--json"])
+        data = json.loads(out.getvalue())
+        self.assertEqual(code, 0)
+        self.assertEqual(set(data), {"batch", "costTotal", "excluded", "active"})
+        self.assertEqual(set(data["batch"][0]), {"ticket", "linear", "title", "cli", "model", "cost"})
+        self.assertEqual((data["batch"][0]["ticket"], data["batch"][0]["linear"]), ("T1", "PROJ-1"))
+        self.assertEqual(data["excluded"], [{"ticket": "T2", "reason": "espera T1"}])
+        self.assertEqual(data["active"], [])
+        text = io.StringIO()
+        with contextlib.redirect_stdout(text):
+            dispatch.main(["batch", "demo", "--root", str(self.repo)])
+        lines = text.getvalue().splitlines()
+        self.assertTrue(lines[0].startswith("T1 PROJ-1"))
+        self.assertTrue(lines[1].startswith("total: "))
+        self.assertEqual(lines[2], "T2: espera T1")
+
+    def test_batch_exit_codes(self):
+        def code():
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                return dispatch.main(["batch", "demo", "--root", str(self.repo)])
+        self.assertEqual(code(), 2)  # no tasks.md
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}])
+        self.assertEqual(code(), 0)
+        self.active(entry("T1"))
+        self.assertEqual(code(), 1)  # empty batch
+
+    def test_batch_excludes_ticket_without_may_change(self):
+        self.tasks([{"tid": "T1"}, {"tid": "T2", "paths": ["b.py"]}])
+        res = self.run_batch()
+        self.assertEqual(self.ids(res), ["T2"])
+        self.assertEqual(self.reasons(res), {"T1": "sem May change"})
+
+    def test_batch_round_robin_from_fleet_workers(self):
+        pool = ["claude:claude-sonnet-5-5", "codex:gpt-6-luna", "opencode:opencode/mimo-v2.6-flash-free"]
+        self.tasks([{"tid": f"T{i}", "paths": [f"f{i}.py"]} for i in range(1, 4)])
+        self.user_config(workers=pool, maxBatch=4)
+        self.active(entry("T1", pool[1]))
+        res = self.run_batch()
+        self.assertEqual([f"{b['cli']}:{b['model']}" for b in res["batch"]], [pool[2], pool[0]])
+        # no pool: the effective LaForge (user config > crew.yaml)
+        self.user_config()
+        self.active("none")
+        res = self.run_batch()
+        self.assertEqual({(b["cli"], b["model"]) for b in res["batch"]}, {("claude", "claude-opus-5-5")})
+
+    def test_batch_assign_overrides_pair(self):
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["b.py"]}])
+        res = self.run_batch(assign=["T2=codex:gpt-6-luna"])
+        by = {b["ticket"]: b for b in res["batch"]}
+        self.assertEqual((by["T2"]["cli"], by["T2"]["model"]), ("codex", "gpt-6-luna"))
+        self.assertNotEqual(by["T1"]["cli"], "codex")
+        for bad in ("T2=semcli", "T2=foo:bar"):
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                code = dispatch.main(["batch", "demo", "--root", str(self.repo), "--assign", bad])
+            self.assertEqual(code, 2, bad)
+
+    def test_batch_cost_total_counts_tiers(self):
+        pool = ["claude:claude-sonnet-5-5", "claude:claude-sonnet-5-5", "opencode:opencode/mimo-v2.6-flash-free"]
+        self.tasks([{"tid": f"T{i}", "paths": [f"f{i}.py"]} for i in range(1, 4)])
+        res = self.run_batch(assign=[f"T{i}={p}" for i, p in enumerate(pool, 1)])
+        self.assertEqual([b["cost"] for b in res["batch"]], ["$$", "$$", "grátis"])
+        self.assertEqual(res["costTotal"], "2× $$ + 1× grátis")

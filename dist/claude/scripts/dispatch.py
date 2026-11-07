@@ -5,6 +5,12 @@
         read from Git (evidence beats notes): a ticket is integrated when a commit of <base>..<branch>
         cites its Linear ID in a `Refs:` footer, or names it as `integra T<n>`. Exit 0 with the ticket,
         1 when nothing is ready (all integrated, or blocked), 3 when the Handoff has an open dispatch.
+    python dispatch.py batch <slug> [--branch feature/<slug>] [--base <ref>] [--assign Tn=cli:model]... [--json]
+        The next batch of tickets that can run in parallel: not integrated, not active, dependencies
+        integrated, no shared `May change` path with an active or already chosen ticket, nothing
+        sensitive or `Runs alone` unless idle, up to fleet.maxBatch minus the active workers. Each
+        ticket gets a cli:model (fleet.workers round-robin, else the effective LaForge) and a cost tier.
+        Exit 0 with a batch, 1 when empty, 2 on a usage or read error.
     python dispatch.py brief <slug> <ticket> --out <file>
         The worker brief for --spec-file: the ticket's 5 blocks plus the fixed worker rules.
     python dispatch.py q-brief <slug> --base <ref> --head <sha> --out <file>
@@ -33,6 +39,7 @@ for p in (HERE, HERE / "gates"):
 
 import gates_common as gc  # noqa: E402
 import handoff  # noqa: E402
+import validate_config  # noqa: E402
 import starcode_common as sc  # noqa: E402
 import tasks_export  # noqa: E402
 import validate_tasks as vt  # noqa: E402
@@ -119,6 +126,129 @@ def next_ticket(slug: str, root: Path, branch: str | None = None,
             return 0, f"{t.tid} {linear_id(t) or '-'} {t.title}"
         return 1, f"nenhum ticket liberado: {t.tid} espera {', '.join(d for d in t.deps if d not in done)}"
     return 1, "todos os tickets integrados"
+
+
+DEFAULT_MAX_BATCH = 3
+TIER_ORDER = ("$$$", "$$", "$", "grátis", "?")
+
+
+def _entry_pair(entry: str) -> str:
+    parts = [x.strip() for x in entry.split("·")]
+    return parts[3] if len(parts) > 3 else ""
+
+
+def _valid_pair(value: str, where: str) -> str:
+    errors: list[str] = []
+    validate_config._check({"type": "worker"}, value, where, errors)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return value
+
+
+def _cost_total(costs: list[str]) -> str:
+    return " + ".join(f"{costs.count(t)}× {t}" for t in TIER_ORDER if t in costs)
+
+
+def _sensitive_reason(task: vt.Task, patterns: list[str]) -> str | None:
+    if task.runs_alone:
+        return "Runs alone"
+    return next((pat for p in task.may_change if (pat := gc.is_sensitive(p, patterns))), None)
+
+
+def batch(slug: str, root: Path, branch: str | None = None, base: str | None = None,
+          assign: list[str] | None = None) -> dict:
+    """The next parallel batch (R1-R7, R9, R10, R12)."""
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    if not (fdir / "tasks.md").is_file():
+        raise LookupError(f"tasks.md não encontrado em {fdir}")
+    fdir, tasks = load_tasks(slug, root)
+    proj = gc.project_root(fdir)
+    branch = branch or f"feature/{fdir.name}"
+    if base is None:
+        cfg, _ = sc.load_repo_config(proj)
+        base = (cfg or {}).get("baseBranch", "main")
+    overrides: dict[str, str] = {}
+    for item in assign or []:
+        tid, sep, pair = item.partition("=")
+        tid = tid.strip().upper()
+        if not sep or not re.fullmatch(r"T\d+", tid):
+            raise ValueError(f"--assign espera Tn=cli:modelo, veio {item!r}")
+        overrides[tid] = _valid_pair(pair.strip(), f"--assign {tid}")
+    user_cfg, _ = sc.load_user_config()
+    fleet = (user_cfg or {}).get("fleet") or {}
+    max_batch = fleet.get("maxBatch", DEFAULT_MAX_BATCH)
+    pool = list(fleet.get("workers") or [])
+    crew = sc.load_crew()
+    done = integrated(tasks, proj, base, branch)
+    by_id = {t.tid: t for t in tasks}
+    entries = [e for e in handoff.dispatch_entries(handoff_values(fdir).get("dispatched", "none"))
+               if handoff.entry_ticket(e).upper() not in done]
+    active_ids = [handoff.entry_ticket(e).upper() for e in entries]
+    excluded: list[dict] = []
+    candidates: list[vt.Task] = []
+    for t in tasks:
+        if t.tid in done or t.tid in active_ids:
+            continue
+        waiting = [d for d in t.deps if d not in done]
+        if waiting:
+            excluded.append({"ticket": t.tid, "reason": f"espera {', '.join(waiting)}"})
+        else:
+            candidates.append(t)
+    patterns = gc.sensitive_patterns(proj)
+    reserved = [(tid, p) for tid in active_ids if tid in by_id for p in by_id[tid].may_change]
+    slots = max_batch - len(entries)
+    chosen: list[vt.Task] = []
+    solo = False
+    for i, t in enumerate(candidates):
+        if solo:
+            excluded.append({"ticket": t.tid, "reason": f"roda sozinho: {chosen[0].tid}"})
+            continue
+        paths = t.may_change
+        if not paths:
+            excluded.append({"ticket": t.tid, "reason": "sem May change"})
+            continue
+        why = _sensitive_reason(t, patterns)
+        if why:
+            if not entries and i == 0:
+                chosen.append(t)
+                solo = True
+            else:
+                excluded.append({"ticket": t.tid, "reason": f"roda sozinho: {why}"})
+            continue
+        clash = next(((tid, p) for p in paths for tid, q in reserved if gc.paths_overlap(p, q)), None)
+        if clash:
+            excluded.append({"ticket": t.tid, "reason": f"arquivo em comum com {clash[0]}: {clash[1]}"})
+            continue
+        if len(chosen) >= slots:
+            excluded.append({"ticket": t.tid, "reason": f"limite de {max_batch} workers ativos"})
+            continue
+        chosen.append(t)
+        reserved += [(t.tid, p) for p in paths]
+    start = 0
+    for e in reversed(entries):
+        if _entry_pair(e) in pool:
+            start = pool.index(_entry_pair(e)) + 1
+            break
+    lf = sc.effective_crew(crew, user_cfg).get("laforge", {})
+    default_pair = f"{lf.get('cli')}:{lf.get('model')}"
+    out = []
+    for n, t in enumerate(chosen):
+        pair = overrides.get(t.tid) or (pool[(start + n) % len(pool)] if pool else default_pair)
+        cli, _, model = pair.partition(":")
+        out.append({"ticket": t.tid, "linear": linear_id(t), "title": t.title, "cli": cli, "model": model,
+                    "cost": sc.cost_tier(model, crew.get("costTiers"))})
+    active = [{"ticket": tid, "pair": _entry_pair(e)} for tid, e in zip(active_ids, entries)]
+    return {"batch": out, "costTotal": _cost_total([b["cost"] for b in out]), "excluded": excluded,
+            "active": active}
+
+
+def format_batch(res: dict) -> str:
+    lines = [f"{b['ticket']} {b['linear'] or '-'} {b['title']} · {b['cli']}:{b['model']} · {b['cost']}"
+             for b in res["batch"]]
+    if res["batch"]:
+        lines.append(f"total: {res['costTotal']}")
+    lines += [f"{x['ticket']}: {x['reason']}" for x in res["excluded"]]
+    return "\n".join(lines)
 
 
 def spec_brief(slug: str, ticket: str, root: Path) -> str:
@@ -316,6 +446,13 @@ def main(argv: list[str] | None = None) -> int:
     pn.add_argument("--branch")
     pn.add_argument("--base")
     pn.add_argument("--root", default=".")
+    pt = sub.add_parser("batch")
+    pt.add_argument("slug")
+    pt.add_argument("--branch")
+    pt.add_argument("--base")
+    pt.add_argument("--assign", action="append", default=[])
+    pt.add_argument("--json", action="store_true")
+    pt.add_argument("--root", default=".")
     pb = sub.add_parser("brief")
     pb.add_argument("slug")
     pb.add_argument("ticket")
@@ -340,6 +477,10 @@ def main(argv: list[str] | None = None) -> int:
             code, msg = next_ticket(a.slug, Path(a.root).resolve(), a.branch, a.base)
             print(msg)
             return code
+        if a.cmd == "batch":
+            res = batch(a.slug, Path(a.root).resolve(), a.branch, a.base, a.assign)
+            print(json.dumps(res, ensure_ascii=False) if a.json else format_batch(res))
+            return 0 if res["batch"] else 1
         if a.cmd == "brief":
             Path(a.out).write_text(worker_brief(a.slug, a.ticket, Path(a.root).resolve()), encoding="utf-8")
             print(f"briefing do ticket gravado em {a.out}")
