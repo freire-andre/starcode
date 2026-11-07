@@ -174,6 +174,49 @@ class ReleaseTests(unittest.TestCase):
         for yes in (True, False):
             self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-6.md: Claude\n", yes)
 
+    def test_release_refuses_undated_changelog_section(self):  # R1
+        (self.tmp / "VERSION").write_text("1.1.0\n", encoding="utf-8")
+        (self.tmp / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## [1.1.0] - não lançada\n\n- Item.\n", encoding="utf-8")
+        for yes in (True, False):
+            fake = Fake()
+            self.assert_refused(
+                fake, "CHANGELOG.md: a seção [1.1.0] não tem data (não lançada); "
+                      "date a seção antes do release\n", yes)
+            self.assertFalse(any(c[:2] == ["git", "tag"] for c in fake.calls))
+
+    def test_release_notes_extracted_from_dated_section(self):  # R2
+        (self.tmp / "VERSION").write_text("1.1.0\n", encoding="utf-8")
+        (self.tmp / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## [1.1.0] - 2026-11-08\n\n- Item datado.\n\n"
+            "## [1.0.0] - 2025-01-01\n\n- Antigo.\n", encoding="utf-8")
+        rc, out, _ = self.run_main(["notes"])
+        self.assertEqual(rc, 0)
+        self.assertIn("- Item datado.", out)
+        self.assertNotIn("Antigo", out)
+        rc, out, _ = self.run_main(["create"], Fake())
+        self.assertEqual(rc, 0)
+        self.assertIn("git tag -a v1.1.0", out)
+
+    def test_release_checks_every_acceptance_from_phase_6(self):  # R3
+        d = self.tmp / "docs" / "aceite"
+        (d / "fase-1.md").write_text("# Aceite\n\n## Antigo\n\nsem formato novo\n", encoding="utf-8")
+        (d / "fase-7.md").write_text(ACEITE.replace("aprovado", "pendente", 1).replace("Claude", "Sete", 1),
+                                     encoding="utf-8")
+        for yes in (True, False):
+            self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-7.md: Sete\n", yes)
+        (d / "fase-7.md").write_text(ACEITE, encoding="utf-8")
+        (d / "fase-10.md").write_text(ACEITE.replace("aprovado", "pendente", 1).replace("Claude", "Dez", 1),
+                                      encoding="utf-8")
+        self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-10.md: Dez\n")
+        (d / "fase-10.md").write_text("# sem resultado\n", encoding="utf-8")
+        self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-10.md: sem resultado\n")
+
+    def test_decisions_records_f7_10_release_guard(self):  # R4
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        self.assertIn("### F7-10:", text)
+        self.assertIn("Fase 6", text.split("### F7-10:", 1)[1])
+
 
 if __name__ == "__main__":
     unittest.main()
