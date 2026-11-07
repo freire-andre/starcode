@@ -7,6 +7,9 @@ prints one line. The agent never pastes the Handoff or its diff in the chat.
     python handoff.py set <slug> --phase spec --next "Spock apresenta a spec" [--root .]
     python handoff.py set <slug> --settle "limite de 10 MB"     # appends "<date>: <text>" to Settled
     python handoff.py set <slug> --dispatched "T1 · PROJ-7 · base abc1234" --integration-branch feature/x
+    python handoff.py set <slug> --dispatch-add "T2 · PROJ-8 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:40:00Z"
+        # one entry per open ticket, separated by "; "; an entry of the same <Tn> is replaced in place
+    python handoff.py set <slug> --dispatch-remove T2           # drops only T2; no entries left -> none
     python handoff.py set <slug> --report "T1: 3 arquivos, gates verdes, 2 commits"  # appends to Reports
     python handoff.py set <slug> --attempt worker-T1=fail       # counts per error id; 3rd fail opens the breaker
     python handoff.py set <slug> --attempt worker-T1=ok         # a success resets that id
@@ -122,9 +125,46 @@ def append_item(values: dict[str, str], key: str, text: str, today: str | None) 
     values[key] = stamp if old in ("", "none") else f"{old}; {stamp}"
 
 
+SEP = "; "
+
+
+def dispatch_entries(value: str) -> list[str]:
+    return [e.strip() for e in (value or "").split(";") if e.strip() and e.strip() != "none"]
+
+
+def entry_ticket(entry: str) -> str:
+    m = re.match(r"\s*(\S+)", entry)
+    return m.group(1) if m else ""
+
+
+def dispatch_add(values: dict[str, str], entry: str) -> None:
+    """Add an entry to Dispatched, replacing in place the one with the same <Tn>."""
+    entry = entry.strip()
+    ticket = entry_ticket(entry)
+    if not ticket:
+        raise ValueError("--dispatch-add precisa de uma entrada que comece com <Tn>")
+    entries = dispatch_entries(values.get("dispatched", ""))
+    for i, e in enumerate(entries):
+        if entry_ticket(e) == ticket:
+            entries[i] = entry
+            break
+    else:
+        entries.append(entry)
+    values["dispatched"] = SEP.join(entries)
+
+
+def dispatch_remove(values: dict[str, str], ticket: str) -> bool:
+    """Drop the entry of one ticket; returns False when there was none. No entries left -> none."""
+    entries = dispatch_entries(values.get("dispatched", ""))
+    kept = [e for e in entries if entry_ticket(e) != ticket.strip()]
+    values["dispatched"] = SEP.join(kept) or "none"
+    return len(kept) != len(entries)
+
+
 def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | None = None,
                 today: str | None = None, report: str | None = None,
-                attempt: str | None = None) -> tuple[Path, dict[str, str]]:
+                attempt: str | None = None, dispatch_add_entry: str | None = None,
+                dispatch_remove_ticket: str | None = None) -> tuple[Path, dict[str, str]]:
     fdir = feature_dir(slug, root)
     present = [fdir / a for a in ARTIFACTS if (fdir / a).is_file()]
     if not present:
@@ -155,6 +195,11 @@ def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | No
         append_item(values, "reports", report, today)
     if attempt:
         apply_attempt(values, attempt)
+    if dispatch_add_entry:
+        dispatch_add(values, dispatch_add_entry)
+    if dispatch_remove_ticket:
+        if not dispatch_remove(values, dispatch_remove_ticket):
+            print(f"sem entrada de {dispatch_remove_ticket.strip()} em Dispatched")
     for art, lines in texts.items():
         if art == target:
             lines = lines + [""] + render(values)
@@ -175,6 +220,10 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("--settle", help="acrescenta '<data>: <texto>' ao Settled")
     ps.add_argument("--report", help="acrescenta '<data>: <relatório do worker>' ao Reports")
     ps.add_argument("--attempt", help="<id-do-erro>=fail|ok: conta a tentativa; a 3ª falha abre o disjuntor")
+    ps.add_argument("--dispatch-add", dest="dispatch_add",
+                    help="acrescenta (ou substitui a do mesmo <Tn>) uma entrada em Dispatched")
+    ps.add_argument("--dispatch-remove", dest="dispatch_remove", metavar="Tn",
+                    help="tira de Dispatched só a entrada desse ticket")
     pv = sub.add_parser("show")
     pv.add_argument("feature")
     pv.add_argument("--root", default=".")
@@ -202,7 +251,8 @@ def main(argv: list[str] | None = None) -> int:
     updates = {option: getattr(args, option, None) for option, _, _ in FIELDS}
     try:
         target, values = set_handoff(args.feature, root, updates, args.settle, report=args.report,
-                                     attempt=args.attempt)
+                                     attempt=args.attempt, dispatch_add_entry=args.dispatch_add,
+                                     dispatch_remove_ticket=args.dispatch_remove)
     except ValueError as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2
