@@ -222,6 +222,10 @@ class ReleaseTests(unittest.TestCase):
                                      encoding="utf-8")
         for yes in (True, False):
             self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-7.md: Sete\n", yes)
+        (d / "fase-10.md").write_text(ACEITE.replace("aprovado", "pendente", 1).replace("Claude", "Dez", 1),
+                                      encoding="utf-8")
+        # fase-7 e fase-10 pendentes juntas: ordem numérica cita a 7 (não a 10, ordem lexical)
+        self.assert_refused(Fake(), "aceite não aprovado em docs/aceite/fase-7.md: Sete\n")
         (d / "fase-7.md").write_text(ACEITE, encoding="utf-8")
         (d / "fase-10.md").write_text(ACEITE.replace("aprovado", "pendente", 1).replace("Claude", "Dez", 1),
                                       encoding="utf-8")
@@ -232,7 +236,9 @@ class ReleaseTests(unittest.TestCase):
     def test_decisions_records_f7_10_release_guard(self):  # R4
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         self.assertIn("### F7-10:", text)
-        self.assertIn("Fase 6", text.split("### F7-10:", 1)[1])
+        body = text.split("### F7-10:", 1)[1].split("\n### ", 1)[0]
+        for needle in ("Fase 6", "R1", "R3", "Fases 1–5"):
+            self.assertIn(needle, body)
 
 
 if __name__ == "__main__":
