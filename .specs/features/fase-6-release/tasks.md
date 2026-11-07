@@ -505,15 +505,15 @@ Proof: run unit | test_acceptance_doc_f6_mission_day_filled ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** done
 **Size:** LARGE
 **Git mode:** 3
-**Next:** T8: aceite Claude e Codex
+**Next:** PR feature/fase-6-release → main (confirmação)
 **Linear:** SC-13 (issue-mãe); T1–T10 = SC-62..SC-71; SC-61 relacionada
 **Integration branch:** feature/fase-6-release
-**Last integrated:** 9b99f56
+**Last integrated:** 7b3fe18
 **Dispatched:** none
-**Settled:** 2026-11-06: spec aprovada: "sim"; 2026-11-06: tasks aprovadas e publicação: "sim"; 2026-11-06: push do ramo para o aceite: "Sim"
+**Settled:** 2026-11-06: spec aprovada: "sim"; 2026-11-06: tasks aprovadas e publicação: "sim"; 2026-11-06: push do ramo para o aceite: "Sim"; 2026-11-06: T8: remover instalação atual de Claude e Codex e reinstalar do GitHub: "sim"; restaurar para F:/Projetos/StarCode no fim; 2026-11-06: T8: trust dos 3 hooks do starcode 1.0.0 (GitHub) dado pelo usuário: "trust dado"; 2026-11-06: T9: remover Antigravity e OpenCode atuais, instalar do clone e reinstalar de F:/Projetos/StarCode no fim: "Sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-06: 2026-11-06: Q (codex · effective gpt-6-luna): FAIL em 92a89cc; 3 achados: caixa de caminho no install_local OpenCode, release.py não verifica pré-condições do R23, assertIn fraco em C9/C10/C21; 2026-11-07: 2026-11-07: fix-Q: achado 1 a19bdda, achado 2 337978e, achado 3 7b3fe18; 317 testes OK; proofs e done verdes em d1b1d82
 **Breaker:** closed
