@@ -3,7 +3,7 @@
 Files (in the MAIN worktree, so every Orca worktree of the repo writes to the same place):
     <main worktree>/.starcode/live/crew.json      {"picard": 1, "spock": 0, ...}   1 = working, 0 = idle
     <main worktree>/.starcode/live/progress.json  {"<slug>": {"done": 2, "total": 5, "percent": 40,
-                                                              "phase": "execute"}}
+                                                              "phase": "execute", "updatedAt": "<iso>"}}
 The folder ignores itself in Git (`.gitignore` with `*`). Writes are atomic (temp file + os.replace), so a
 reader never sees half a file. Each command prints at most a few lines, to keep the agent's turn cheap.
 
@@ -162,6 +162,7 @@ def set_progress(d: Path, slug: str, done: int, total: int, phase: str | None) -
     entry = {"done": done, "total": total, "percent": percent}
     if phase:
         entry["phase"] = phase
+    entry["updatedAt"] = sc.now_iso()  # the status line shows the most recently updated feature (F6-9)
     data[slug] = entry
     write_json(path, data)
     return entry

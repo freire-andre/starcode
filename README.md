@@ -74,10 +74,20 @@ O StarCode mantém dois arquivos pequenos para um painel visual, em `.starcode/l
 {"picard": 1, "spock": 0, "troi": 0, "data": 0, "laforge": 1, "mccoy": 0, "q": 0}
 
 // progress.json: tickets integrados / total por feature
-{"export-csv": {"done": 2, "total": 5, "percent": 40, "phase": "execute"}}
+{"export-csv": {"done": 2, "total": 5, "percent": 40, "phase": "execute", "updatedAt": "2026-11-07T15:00:00+00:00"}}
 ```
 
 `python <plugin>/scripts/crew_live.py reset` zera o status se uma sessão cair no meio.
+
+**Statusline do Claude Code.** `scripts/statusline.py` mostra os tripulantes ativos e a barra de progresso
+(degradê #C5DBFF → #75C3FF → #0028B3). Como statusline inteira, no `~/.claude/settings.json`:
+
+```json
+"statusLine": {"type": "command", "command": "python <plugin>/scripts/statusline.py"}
+```
+
+Numa statusline própria em Python, importe o arquivo e chame `segment(cwd)` (devolve `""` quando não há o que
+mostrar).
 
 ## Desenvolvimento
 
