@@ -22,8 +22,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C3 não cobre a preservação do erro para intervalo sem commit exigida por R3. | `tests/test_brief_media_escopo.py:70-81` só avalia intervalos com commits; a verificação adicional de `check_scope` não cobre intervalo vazio. | Adicionar caso MEDIUM sem May change com intervalo sem commits e afirmar o erro de intervalo vazio. | |
-| C5 não verifica o caso de vários commits, embora R5 exija `check_commit` em cada commit. | `tests/test_brief_media_escopo.py:92-100` usa um commit em cada intervalo; nenhum caso inclui dois commits com um deles sem `Refs`. | Testar intervalo de dois commits e confirmar rejeição quando qualquer commit não contém o ID esperado. | |
+| C3 não cobre a preservação do erro para intervalo sem commit exigida por R3. | `tests/test_brief_media_escopo.py:70-81` só avalia intervalos com commits; a verificação adicional de `check_scope` não cobre intervalo vazio. | Adicionar caso MEDIUM sem May change com intervalo sem commits e afirmar o erro de intervalo vazio. | yes - bb6494d (HEAD..HEAD sem May change acusa `nenhum commit em`) |
+| C5 não verifica o caso de vários commits, embora R5 exija `check_commit` em cada commit. | `tests/test_brief_media_escopo.py:92-100` usa um commit em cada intervalo; nenhum caso inclui dois commits com um deles sem `Refs`. | Testar intervalo de dois commits e confirmar rejeição quando qualquer commit não contém o ID esperado. | yes - bb6494d, a8d6c40 (dois commits: só o sem Refs é acusado pelo sha; ambos com Refs passam) |
 
 ## Limits
 

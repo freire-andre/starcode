@@ -1,6 +1,6 @@
 # brief-media-escopo proofs
 
-**HEAD**: 27bdfd7
+**HEAD**: f7ab30f
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 11 pass, 0 fail
@@ -36,7 +36,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 385 tests in 130.580s
+Ran 385 tests in 581.116s
 
 OK
 ```
