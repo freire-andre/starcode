@@ -8,7 +8,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
-## [1.0.0] - AAAA-MM-DD
+## [1.0.0] - 2026-11-07
 
 ### Adicionado
 
