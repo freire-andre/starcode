@@ -8,7 +8,6 @@ from helpers import ROOT  # noqa: F401  (sets sys.path)
 import miniyaml
 
 CI = ROOT / ".github" / "workflows" / "ci.yml"
-SECRET_MSG = "ANTHROPIC_API_KEY ausente: configure o secret do repositório"
 PIN = "npm install -g @anthropic-ai/claude-code@2.1.319"
 
 
@@ -120,9 +119,7 @@ class CiWorkflowTests(unittest.TestCase):
 
     def test_ci_eval_fails_without_secret(self):
         run = str(_steps("eval")[0].get("run"))
-        self.assertIn(SECRET_MSG, run)
-        self.assertIn("exit 1", run)
-        self.assertIn('-n "$ANTHROPIC_API_KEY"', run)
+        self.assertEqual(run, 'test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY ausente: configure o secret do repositório"; exit 1; }')
 
     def test_ci_eval_uploads_results_and_summary(self):
         steps = _steps("eval")

@@ -94,7 +94,7 @@ class ReleaseTests(unittest.TestCase):
     def test_release_check_rejects_tag_diverging_from_version(self):
         rc, _, err = self.run_main(["check", "--tag", "v9.9.9"])
         self.assertEqual(rc, 1)
-        self.assertIn("tag v9.9.9 diverge de VERSION 1.2.3", err)
+        self.assertEqual(err, "tag v9.9.9 diverge de VERSION 1.2.3\n")
 
     def test_release_notes_extracted_from_changelog(self):
         rc, out, _ = self.run_main(["notes"])
@@ -112,7 +112,7 @@ class ReleaseTests(unittest.TestCase):
         fake = Fake(remote_out="abc123\trefs/tags/v1.2.3\n")
         rc, _, err = self.run_main(["create", "--yes"], fake)
         self.assertEqual(rc, 1)
-        self.assertIn("tag v1.2.3 já existe no remoto", err)
+        self.assertEqual(err, "tag v1.2.3 já existe no remoto\n")
         self.assertIn("ls-remote", fake.calls[-1])
         self.assertEqual(fake.mutating(), [])
         self.assertFalse(any("--force" in c for call in fake.calls for c in call))
