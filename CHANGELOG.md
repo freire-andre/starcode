@@ -8,23 +8,24 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
-### Adicionado
-
-- Cabeçalho de apresentação: cada tripulante abre a etapa mostrando nome, papel, CLI e modelo e o bordão (`scripts/crew_live.py start`).
-- Arquivos ao vivo para painéis em `.starcode/live/`: `crew.json` (quem está trabalhando, 0/1) e `progress.json` (tickets integrados / total, em %).
-- Statusline do Claude Code (`scripts/statusline.py`): tripulantes ativos e barra de progresso em degradê azul.
-
-## [1.1.0] - não lançada
+## [1.1.0] - 2026-11-07
 
 ### Adicionado
 
 - Fase 7: Modo Frota. `dispatch.py batch` calcula o lote de tickets independentes (fronteira por dono de arquivo, arquivos sensíveis sozinhos, limite `fleet.maxBatch`) com atribuição de CLI/modelo e faixa de custo relativa; `dispatch.py overdue` lista os despachos que passaram do timeout.
 - Fase 7: chave `fleet.workers` (pool de pares `<cli>:<model>`), mapa `costTiers` no `crew.yaml` e fluxo da Frota no Picard (confirmação do lote, integração na chegada, timeout, falha e cancelamento por ticket).
+- Cabeçalho de apresentação: cada tripulante abre a etapa mostrando nome, papel, CLI e modelo e o bordão (`scripts/crew_live.py start`).
+- Arquivos ao vivo para painéis em `.starcode/live/`: `crew.json` (quem está trabalhando, 0/1) e `progress.json` (tickets integrados / total, em %).
+- Statusline do Claude Code (`scripts/statusline.py`): tripulantes ativos e barra de progresso em degradê azul.
 
 ### Alterado
 
 - Fase 7: o Handoff guarda vários despachos abertos em `**Dispatched:**` (`--dispatch-add` e `--dispatch-remove`), e `dispatch.py next` e `q-cli` entendem vários despachos e várias famílias de LaForge.
 - Fase 7: `.starcode/live/crew.json` passa a guardar a contagem de LaForges ativos (0 a 10) em vez de 0/1.
+
+### Corrigido
+
+- `tools/release.py` recusa seção sem data e confere os aceites da Fase 6 em diante (SC-81).
 
 ## [1.0.0] - 2026-11-07
 

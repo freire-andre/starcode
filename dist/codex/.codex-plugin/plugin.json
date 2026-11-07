@@ -1,6 +1,6 @@
 {
   "name": "starcode",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "StarCode: spec-driven development with a Star Trek crew (Picard, Spock, Troi, Data, LaForge, McCoy, Q) for Orca IDE and Linear.",
   "author": {
     "name": "Andre Freire"
