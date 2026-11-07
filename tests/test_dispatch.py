@@ -468,11 +468,13 @@ class BatchTests(TempRepoCase):
 
     def test_batch_sensitive_ticket_runs_alone_only_when_idle(self):
         self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["package-lock.json"]},
-                    {"tid": "T3", "paths": ["c.py"], "alone": True}])
+                    {"tid": "T3", "paths": ["c.py"], "alone": True},
+                    {"tid": "T4", "paths": ["yarn.lock"], "alone": True}])
         res = self.run_batch()
         self.assertEqual(self.ids(res), ["T1"])
         self.assertEqual(self.reasons(res), {"T2": "roda sozinho: package-lock.json",
-                                             "T3": "roda sozinho: Runs alone"})
+                                             "T3": "roda sozinho: Runs alone",
+                                             "T4": "roda sozinho: yarn.lock"})
         # idle and first: the batch is that ticket alone
         self.tasks([{"tid": "T1", "paths": ["package-lock.json"]}, {"tid": "T2", "paths": ["b.py"]}])
         res = self.run_batch()

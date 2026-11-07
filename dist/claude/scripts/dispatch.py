@@ -162,9 +162,10 @@ def _cost_total(costs: list[str]) -> str:
 
 
 def _sensitive_reason(task: vt.Task, patterns: list[str]) -> str | None:
-    if task.runs_alone:
-        return "Runs alone"
-    return next((pat for p in task.may_change if (pat := gc.is_sensitive(p, patterns))), None)
+    pattern = next((pat for p in task.may_change if (pat := gc.is_sensitive(p, patterns))), None)
+    if pattern:
+        return pattern
+    return "Runs alone" if task.runs_alone else None
 
 
 def batch(slug: str, root: Path, branch: str | None = None, base: str | None = None,
