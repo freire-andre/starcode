@@ -79,6 +79,9 @@ class MediumScopeCase(TempRepoCase):
         errs = "\n".join(res.errors)
         self.assertIn(".specs/STATE.md", errs)
         self.assertIn("## Handoff", errs)
+        res = check_scope.evaluate("media", "SC-90", "HEAD..HEAD", self.repo)
+        self.assertFalse(res.ok)
+        self.assertIn("nenhum commit em", "\n".join(res.errors))
 
     def test_check_scope_medium_ticket_id(self):
         base = self.make(spec())
@@ -97,6 +100,17 @@ class MediumScopeCase(TempRepoCase):
         self.assertIn("check_commit", [r.gate for r in results])
         good = self.commit({"a.py": "2\n"}, "feat: y\n\nRefs: SC-90")
         results = run_gates.run_stage("ticket", "media", self.repo, ticket="SC-90", rng=f"{bad}..{good}")
+        self.assertTrue(all(r.ok for r in results), [r.report() for r in results])
+        ok1 = self.commit({"a.py": "3\n"}, "feat: z\n\nRefs: SC-90")
+        bad2 = self.commit({"a.py": "4\n"}, "feat: w")
+        results = run_gates.run_stage("ticket", "media", self.repo, ticket="SC-90", rng=f"{good}..{bad2}")
+        report = "\n".join(r.report() for r in results if r.gate == "check_commit")
+        self.assertFalse(all(r.ok for r in results))
+        self.assertIn(bad2[:7], report)
+        self.assertNotIn(ok1[:7], report)
+        ok2 = self.commit({"a.py": "5\n"}, "feat: v\n\nRefs: SC-90")
+        ok3 = self.commit({"a.py": "6\n"}, "feat: u\n\nRefs: SC-90")
+        results = run_gates.run_stage("ticket", "media", self.repo, ticket="SC-90", rng=f"{ok2}~1..{ok3}")
         self.assertTrue(all(r.ok for r in results), [r.report() for r in results])
 
     def test_spec_brief_includes_boundaries(self):
