@@ -39,7 +39,7 @@ class Fase7DocsTests(unittest.TestCase):
             self.assertIn(termo, decisions, termo)
         text = CHANGELOG.read_text(encoding="utf-8")
         parts = re.split(r"^## ", text, flags=re.M)
-        sec = next(p for p in parts if p.startswith("[1.1.0] - não lançada"))
+        sec = next(p for p in parts if p.startswith("[1.1.0] - 2026-11-07"))
         self.assertIn("### Adicionado", sec)
         self.assertIn("### Alterado", sec)
         self.assertIn("Frota", sec)
