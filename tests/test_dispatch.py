@@ -156,6 +156,15 @@ class DispatchTests(TempRepoCase):
         self.assertEqual(code, 0)
         self.assertIn("T2 · PROJ-8 · 20 min · -", out.getvalue())
 
+    def test_overdue_skips_blocked_entries(self):  # R22, R23
+        blocked = "T1 · PROJ-7 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:00:00Z · disp_1 · blocked"
+        late = "T2 · PROJ-8 · base abc1234 · codex:gpt-6-luna · 2026-11-07T16:00:00Z · disp_2"
+        handoff.set_handoff("demo", self.repo, {"dispatched": f"{blocked}; {late}"})
+        code, lines = dispatch.overdue("demo", self.repo, 30, "2026-11-07T16:45:00Z")
+        self.assertEqual((code, lines), (0, ["T2 · PROJ-8 · 45 min · disp_2"]))
+        handoff.set_handoff("demo", self.repo, {"dispatched": blocked})
+        self.assertEqual(dispatch.overdue("demo", self.repo, 30, "2026-11-07T16:45:00Z"), (1, []))
+
     def test_overdue_unreadable_time_exits_2(self):
         handoff.set_handoff("demo", self.repo, {"dispatched": "T1 · PROJ-7 · base abc1234"})
         err = io.StringIO()

@@ -283,6 +283,8 @@ def overdue(slug: str, root: Path, minutes: int | None = None, now: str | None =
         if tid in done:
             continue
         parts = [x.strip() for x in e.split("·")]
+        if parts[-1] == "blocked":
+            continue
         try:
             started = _parse_utc(parts[4])
         except (IndexError, ValueError):
