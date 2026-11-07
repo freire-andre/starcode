@@ -30,6 +30,22 @@ class ChangelogTests(unittest.TestCase):
             self.assertRegex(sec, rf"Fase {fase}\b")
 
 
+class Fase7DocsTests(unittest.TestCase):
+    def test_decisions_and_changelog_record_fase_7(self):
+        decisions = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        ids = set(re.findall(r"^### (F7-\d+):", decisions, flags=re.M))
+        self.assertGreaterEqual(len(ids), 7, ids)
+        for termo in ("fleet.workers", "faixa de custo", "serial", "lote", "check --wait", "--deps", "crew.json"):
+            self.assertIn(termo, decisions, termo)
+        text = CHANGELOG.read_text(encoding="utf-8")
+        parts = re.split(r"^## ", text, flags=re.M)
+        sec = next(p for p in parts if p.startswith("[1.1.0] - não lançada"))
+        self.assertIn("### Adicionado", sec)
+        self.assertIn("### Alterado", sec)
+        self.assertIn("Frota", sec)
+        self.assertLess(text.index("## [1.1.0]"), text.index("## [1.0.0]"))
+
+
 README = ROOT / "README.md"
 
 
