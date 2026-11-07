@@ -69,7 +69,7 @@ Each worker is still a LaForge in its own child worktree; you coordinate and nev
      and the excluded tickets with the reason, then **one confirmation**. A swap the user asks for becomes
      `--assign <T>=<cli>:<model>` and the `batch` is run again.
 2. **Start, per ticket, in this order** (brief as in section 2 step 2):
-   1. `python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · <ID> · base <sha of I>"` **before** the `worker-start`.
+   1. `python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · <ID> · base <sha of I> · <cli:model> · <UTC time>"` **before** the `worker-start`.
    2. Issue to `started` plus `crew:laforge`, then `orca orchestration worker-start --agent <cli> --model <model>
       --worktree new-child --base-branch feature/<slug> --spec-file <temp>/<slug>-<T>.md --task-title "<T>: <title>" --json`
       (OpenCode: create the worktree first, as in section 2 step 5). Its `--timeout-ms` is only the wait for the
