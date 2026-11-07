@@ -20,8 +20,7 @@ class ChangelogTests(unittest.TestCase):
     def test_changelog_has_1_0_0_section(self):
         self.assertIn("Keep a Changelog", self.text)
         self.assertIn("Semantic Versioning", self.text)
-        unreleased = self.section(r"\[Unreleased\]")
-        self.assertEqual(unreleased.split("\n", 1)[1].strip(), "")
+        self.section(r"\[Unreleased\]")  # may list changes made after 1.0.0 (Keep a Changelog)
         sec = self.section(r"\[1\.0\.0\] - \d{4}-\d{2}-\d{2}")
         for heading in ("Adicionado", "Alterado", "Corrigido"):
             m = re.search(rf"^### {heading}\n((?:.*\n?)*?)(?=^### |\Z)", sec, flags=re.M)

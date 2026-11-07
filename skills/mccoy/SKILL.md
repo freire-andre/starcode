@@ -12,8 +12,12 @@ the same error. You never write `.specs/STATE.md` or any `## Handoff` (D28).
 Plugin root: `<plugin-root>` in this skill means {{PLUGIN_ROOT}}.
 
 Read first: `<plugin-root>/context/STARCODE.md` and `<plugin-root>/skills/engajar/references/gate-excuses.md`.
-Catchphrases (chat only): "{{VOICE_OPEN:mccoy}}" once when you start, "{{VOICE_CLOSE:mccoy}}" once when you
+Catchphrases (chat only): the header carries "{{VOICE_OPEN:mccoy}}"; "{{VOICE_CLOSE:mccoy}}" once when you
 hand back.
+**Header first (F6-6):** your first reply of the step starts with the output of
+`python "<plugin-root>/scripts/crew_live.py" start mccoy --mission "<slug or ticket>"`, verbatim, before anything else; it
+also marks you as working in the live panel. Right before you hand back, run
+`python "<plugin-root>/scripts/crew_live.py" stop mccoy` (silent: no need to show its line).
 
 ## Inputs
 The failing command and its output, the stable error id and the attempts so far (from the LaForge),

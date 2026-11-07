@@ -385,3 +385,23 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o job `eval` da CI roda só em `workflow_dispatch`; o gatilho `on.push.tags: ['v*']` continua, porque o `release-check` precisa dele. O eval segue disponível pelo `workflow_dispatch` quando houver o secret.
 - **Motivo:** aprovação do usuário em 2026-11-07: "2a"; altera a R7 da fase-6-release.
 - **Por que não é bug:** sem o secret o job de tag falharia sempre e bloquearia o release; sob demanda, o eval continua disponível sem travar nada.
+
+## Ajustes depois do v1.0 (antes da Fase 7)
+
+### F6-6: Cabeçalho de apresentação no início de cada etapa
+- **Problema:** o usuário não via qual tripulante tinha assumido a tarefa; o bordão solto no chat passava despercebido.
+- **Decisão:** cada skill (Picard, Troi, Spock, Data, LaForge, McCoy, Q) abre a etapa com o cabeçalho impresso por `scripts/crew_live.py start <membro>` (emoji, nome, papel, cli · modelo, bordão de abertura), colado sem alteração no topo da resposta. Ele substitui o bordão de abertura solto.
+- **Motivo:** pedido do usuário em 2026-11-07. Um script mantém o formato igual em todos os CLIs e gasta uma chamada curta.
+- **Por que não é bug:** a F2-10 proíbe o bordão **depois** de uma pergunta, porque soa como resposta sugerida; o cabeçalho fica no topo, então pode abrir um turno que termina com pergunta. O bordão de fechamento continua sob a F2-10.
+
+### F6-7: Status da tripulação em `.starcode/live/crew.json`
+- **Problema:** um sistema visual precisa saber quem está trabalhando sem ler o chat.
+- **Decisão:** `{"<membro>": 0|1}` no worktree principal (resolvido pelo diretório Git comum, então os workers em outros worktrees gravam no mesmo arquivo), pasta que se ignora sozinha no Git, escrita atômica. `start`/`stop` nas skills; o Picard também faz `set laforge|q 1|0` em volta dos workers.
+- **Motivo:** pedido do usuário em 2026-11-07: simples e barato em tokens. JSON plano é o formato mais fácil de ler por um painel (Fase 10 "Ponte").
+- **Por que não é bug:** com tickets em paralelo (Fase 7), dois LaForge dividem o mesmo `1`; o primeiro que termina zera o status. Fica para a Fase 7 trocar por contagem, se o painel precisar. Um processo que morre sem `stop` deixa `1`: `crew_live.py reset` limpa, e o Picard marca os workers ele mesmo.
+
+### F6-8: Progresso da feature em `.starcode/live/progress.json`
+- **Problema:** o usuário quer uma barra de progresso dos tickets depois da aprovação.
+- **Decisão:** `{"<slug>": {"done", "total", "percent", "phase"}}`. `crew_live.py progress <slug>` conta os tickets do `tasks.md` integrados em `feature/<slug>` com a mesma regra do `dispatch.py next` (Git é a evidência); MÉDIA/PEQUENA passam `--done/--total` (um ticket). O Picard roda depois da publicação, de cada merge e no `done` (100%).
+- **Motivo:** pedido do usuário em 2026-11-07. Contar pelo Git evita um contador que diverge do que foi de fato integrado.
+- **Por que não é bug:** os arquivos ao vivo nunca decidem nada no fluxo; Git e o Handoff continuam a fonte da verdade, e uma falha desses comandos não para a missão.

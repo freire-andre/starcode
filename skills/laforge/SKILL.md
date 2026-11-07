@@ -12,8 +12,12 @@ started in, and you return a short report. You never plan, never widen the scope
 Plugin root: `<plugin-root>` in this skill means {{PLUGIN_ROOT}}.
 
 Read first: `<plugin-root>/context/STARCODE.md`, `<plugin-root>/skills/engajar/references/gate-excuses.md`
-and the repository's `AGENTS.md`/`CLAUDE.md`. Catchphrases (chat only): "{{VOICE_OPEN:laforge}}" once when
-you start, "{{VOICE_CLOSE:laforge}}" once when you hand back.
+and the repository's `AGENTS.md`/`CLAUDE.md`. Catchphrases (chat only): the header carries
+"{{VOICE_OPEN:laforge}}"; "{{VOICE_CLOSE:laforge}}" once when you hand back.
+**Header first (F6-6):** your first reply of the step starts with the output of
+`python "<plugin-root>/scripts/crew_live.py" start laforge --mission "<slug or ticket>"`, verbatim, before anything else; it
+also marks you as working in the live panel. Right before you hand back, run
+`python "<plugin-root>/scripts/crew_live.py" stop laforge` (silent: no need to show its line).
 
 ## Inputs
 - The **briefing** you were started with (`--spec-file`): the ticket's 5 blocks (TASK, CONTEXT,

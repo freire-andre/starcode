@@ -23,7 +23,8 @@ Create `I` from `B` **or reuse `I` if it already exists** (Git evidence wins ove
 --base-branch feature/<slug> --json`). Every write of the Handoff, `proofs.md` and `verification.md` happens in
 that worktree of `I`, never in the main worktree (the Handoff stays apart from the proofs). Then
 `python "P/scripts/handoff.py" set <slug> --phase execute --integration-branch feature/<slug>` **before
-the first dispatch**.
+the first dispatch**, and `python "P/scripts/crew_live.py" progress <slug>` (0 of N tickets; the live panel's bar,
+F6-8).
 
 ## 2. Dispatch one ticket (one at a time per feature)
 1. `python "P/scripts/dispatch.py" next <slug>` → the first ticket whose dependencies are integrated.
@@ -48,10 +49,12 @@ the first dispatch**.
    hooks, e.g. "Agent startup blocked: agent-hooks-review-prompt"), **stop** the dispatch and show the trust
    step: open `/hooks` in Codex and approve the `starcode` hooks. Do **not** retry, do **not** use
    `--dangerously-bypass-hook-trust`, and it does **not** count as an attempt of the breaker.
-   Then add the dispatch id and the `model` field of the result to `--dispatched`.
+   Then add the dispatch id and the `model` field of the result to `--dispatched`, and mark the worker as working:
+   `python "P/scripts/crew_live.py" set laforge 1` (F6-7).
 6. Link the new worktree to the issue: `orca worktree set --worktree <new worktree> --linear-issue <ID>`.
 7. Wait: `orca orchestration check --wait --types worker_done --timeout-ms 3600000 --json`. The
-   `worker_done` carries the worker's report (≤5 lines); record it with `--report "<T>: <report>"`.
+   `worker_done` carries the worker's report (≤5 lines); record it with `--report "<T>: <report>"` and run
+   `python "P/scripts/crew_live.py" set laforge 0` (also on failure or timeout).
 
 ## 3. Check and integrate the ticket
 - **Failure** (outcome failed, no report, or the wait timed out): do **not** integrate. Comment the reason
@@ -66,7 +69,8 @@ the first dispatch**.
   (no extra authorization: it is local to the feature, D11).
 - **Conflict** → `git merge --abort`, `I` stays at the previous commit, and stop with the list of
   conflicting files (options: redispatch the ticket rebased on `I`, or rethink the slicing).
-- After the merge: `--last-integrated <sha> --attempt worker-<T>=ok --dispatched none`, comment on the issue
+- After the merge: `--last-integrated <sha> --attempt worker-<T>=ok --dispatched none`, then
+  `python "P/scripts/crew_live.py" progress <slug>` (counts the integrated tickets from Git), comment on the issue
   "integrado em `feature/<slug>`" with the short hash, then go straight to step 2 for the next ticket
   **without asking the user** (end of a ticket is never a stop, D29).
 
@@ -87,6 +91,8 @@ the first dispatch**.
    **codex** first (check that its hooks are trusted, F0-1). If codex fails to start, **antigravity**
    with a Gemini model (`opencode` with `--model` when `q-cli` picked it). If all fail, run the `q` skill as a clean-context subagent and mark
    `**Verification:** self-verified` (degraded).
+   Mark it: `python "P/scripts/crew_live.py" set q 1` after the start, `set q 0` after its `worker_done` (the Q
+   brief is self-contained and does not update the panel itself).
 5. Wait as in step 2.7. Then read the effective model with
    `orca orchestration worker-read <dispatch> --source auto` and write in `verification.md`
    `**Verifier**: <cli> · requested <model field of the result> · effective <model | unconfirmed>` (F0-2);
@@ -109,7 +115,7 @@ the first dispatch**.
   reason on the issues; the banner shows `Verificação: degradada (<slug>)`.
 - `completed` only with the user's explicit confirmation in this session, with `run_gates.py done` green,
   and **never in mode 1**. Modes 3/4: push and PR follow `git-modes.md` (each confirmed right before).
-- Then `--phase done`.
+- Then `--phase done` and `python "P/scripts/crew_live.py" progress <slug> --phase done` (100%).
 
 ## 6. Resume and the circuit breaker (D27)
 - On resume with a `**Dispatched:**` not integrated: `orca orchestration worker-show <dispatch>` before
@@ -136,4 +142,5 @@ the first dispatch**.
 ## 8. MEDIUM and SMALL
 One LaForge worker in a new child worktree from the current branch; the brief is the spec's
 `## Checks` (MEDIUM) or the inline checks (SMALL) plus the worker rules of `dispatch.py brief`. Integrate
-as in step 3 (no `check_scope`: there is no tasks.md), then steps 4–5.
+as in step 3 (no `check_scope`: there is no tasks.md), then steps 4–5. Progress without tasks.md is one ticket:
+`crew_live.py progress <slug> --done 0 --total 1` at dispatch, `--done 1 --total 1` after the merge.
