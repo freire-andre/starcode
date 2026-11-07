@@ -130,6 +130,42 @@ def work_in_progress(root: Path) -> tuple[list[str], list[str], list[str]]:
     return wip, degraded, breaker
 
 
+def _version_tuple(text: str) -> tuple[int, ...] | None:
+    m = re.fullmatch(r"\s*(\d+)\.(\d+)\.(\d+)\s*", text or "")
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def plugin_version() -> str | None:
+    """Version of the running plugin: its manifest (Claude), else the generated crew.json, else VERSION."""
+    for rel in (".claude-plugin/plugin.json", "crew.json"):
+        try:
+            return str(json.loads((ROOT / rel).read_text(encoding="utf-8")).get("version"))
+        except (OSError, ValueError, AttributeError):
+            continue
+    try:
+        return (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+
+
+def outdated_plugin_line(root: Path | None) -> str | None:
+    """F7-12: when the open repository is the StarCode source and the running plugin is older than its VERSION."""
+    if root is None:
+        return None
+    try:
+        if not ((root / "VERSION").is_file() and (root / "dist" / "claude" / ".claude-plugin" / "plugin.json").is_file()):
+            return None
+        repo_v = (root / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    running = plugin_version()
+    a, b = _version_tuple(running or ""), _version_tuple(repo_v)
+    if a is None or b is None or a >= b:
+        return None
+    return (f"⚠️ plugin StarCode instalado {running}, repositório {repo_v}: "
+            "atualize o plugin e abra uma nova sessão")
+
+
 def unavailable_extras(cli: str) -> list[str]:
     """`Indisponível neste CLI: <extra> → <fallback>` lines: capabilities.json beside the plugin
     (dist), else that CLI's section of src/capabilities.yaml (source tree)."""
@@ -205,6 +241,10 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
                     "novo nesta sessão)") if mode else "não definido (o Picard pergunta ao engajar)"
         lines.append(f"Repositório: {root.name} · ramo {branch} · modo Git: {mode_txt}")
         summary.append(f"modo Git {mode}" if mode else "modo Git não definido")
+        stale = outdated_plugin_line(root)
+        if stale:
+            lines.append(stale)
+            summary.append("plugin desatualizado")
 
     if not sc.user_config_path().exists():
         lines.append("Config do usuário: ausente (valem os padrões do crew.yaml; rode " + cmd_ref(cli, "setup") + " para criar)")

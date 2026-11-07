@@ -12,6 +12,8 @@
 - A catchphrase is never a compliment to the user.
 
 ## Header (F6-6)
+- In Claude Code the StarCode hook (`crew_hook.py`) shows the header and marks the member as working, so the
+  command below is for the other CLIs (F7-12).
 - Each member's step opens with the header printed by `python "<plugin-root>/scripts/crew_live.py" start <member>`:
   emoji, name, role, cli · model and the opening catchphrase, as a markdown blockquote. Paste it **verbatim
   as the first lines of the reply**, once per step (not on every turn). It replaces the loose opening
