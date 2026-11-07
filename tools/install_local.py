@@ -99,12 +99,12 @@ def _opencode(root, home, dry):
         if not isinstance(cur, dict):
             cur = data["skills"] = {}
         have = cur.setdefault("paths", [])
-    suffixes = {("dist", "opencode", "skills", Path(s).name) for s in skills}
+    suffixes = {("dist", "opencode", "skills", Path(s).name.casefold()) for s in skills}
 
     def is_starcode(entry):
         if not isinstance(entry, str):
             return False
-        parts = [x for x in re.split(r"[\\/]+", entry) if x]
+        parts = [x.casefold() for x in re.split(r"[\\/]+", entry) if x]
         return tuple(parts[-4:]) in suffixes
 
     kept = [e for e in have if not is_starcode(e)]

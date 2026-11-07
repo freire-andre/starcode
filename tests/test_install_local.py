@@ -240,6 +240,21 @@ class InstallLocalTests(unittest.TestCase):
         self.assertEqual(lst[0], foreign[0])
         self.assertEqual(len(lst), 3)
 
+    def test_opencode_install_matches_starcode_paths_case_insensitively(self):  # Q: caixa
+        foreign = ["/opt/alheio", r"C:\w\dist\opencode\skills\outra"]
+        self._seed_paths([
+            r"C:\x\DIST\OpenCode\Skills\engajar",
+            foreign[0],
+            "/home/u/Dist/OPENCODE/skills/spock",
+            foreign[1],
+            r"D:\y/Dist\opencode/SKILLS/Engajar",
+        ])
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        mine = sorted(str((self.root / "dist/opencode/skills" / s).resolve()) for s in ("engajar", "spock"))
+        self.assertEqual(paths, foreign + mine)
+
     def test_opencode_install_twice_from_two_clones_no_duplicates(self):  # C3
         other = self._other_clone("clone2")
         self.run_cli("--cli", "opencode", "--home", str(self.home))
