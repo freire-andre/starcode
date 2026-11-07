@@ -379,3 +379,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `tools/release.py` confere a tag contra `VERSION`, exige a seção da versão no CHANGELOG e só cria tag e release com confirmação (T4, commit 4dc6bf4).
 - **Motivo:** R23 e R24: nada de `--force` nem de release sem notas.
 - **Por que não é bug:** a recusa sai com código 1 e a mensagem diz o que divergiu.
+
+### F6-5: O eval da CI roda só sob demanda
+- **Problema:** a spec previa o eval no gatilho de tag, mas o usuário usa o Claude Code pela assinatura e não tem `ANTHROPIC_API_KEY`, e o runner do GitHub não tem esse login.
+- **Decisão:** o job `eval` da CI roda só em `workflow_dispatch`; o gatilho `on.push.tags: ['v*']` continua, porque o `release-check` precisa dele. O eval segue disponível pelo `workflow_dispatch` quando houver o secret.
+- **Motivo:** aprovação do usuário em 2026-11-07: "2a"; altera a R7 da fase-6-release.
+- **Por que não é bug:** sem o secret o job de tag falharia sempre e bloquearia o release; sob demanda, o eval continua disponível sem travar nada.
