@@ -5,6 +5,8 @@ import contextlib
 import io
 import json
 import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -312,10 +314,6 @@ class FamilyAndQCliTests(TempRepoCase):
         self.assertEqual((code, out.getvalue().strip()), (1, "self-verified"))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 def make_tasks(specs: list[dict]) -> str:
     """tasks.md fixture: each spec has tid, deps, paths, alone (optional) and uses Linear PROJ-<n>."""
     out = ["# Demo: Tasks", "", "## Tasks", ""]
@@ -488,3 +486,17 @@ class BatchTests(TempRepoCase):
         res = self.run_batch(assign=[f"T{i}={p}" for i, p in enumerate(pool, 1)])
         self.assertEqual([b["cost"] for b in res["batch"]], ["$$", "$$", "grátis"])
         self.assertEqual(res["costTotal"], "2× $$ + 1× grátis")
+
+
+class DispatchCliSubprocessTests(unittest.TestCase):
+    def test_dispatch_cli_runs_as_subprocess(self):
+        root = Path(__file__).resolve().parent.parent
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        for script in (root / "scripts" / "dispatch.py", root / "dist" / "claude" / "scripts" / "dispatch.py"):
+            r = subprocess.run([sys.executable, str(script), "--help"], env=env,
+                               capture_output=True, text=True, cwd=str(root))
+            self.assertEqual(r.returncode, 0, f"{script}: {r.stderr}")
+
+
+if __name__ == "__main__":
+    unittest.main()
