@@ -4,7 +4,13 @@
         The first ticket of tasks.md whose dependencies are integrated in the branch. Integration is
         read from Git (evidence beats notes): a ticket is integrated when a commit of <base>..<branch>
         cites its Linear ID in a `Refs:` footer, or names it as `integra T<n>`. Exit 0 with the ticket,
-        1 when nothing is ready (all integrated, or blocked), 3 when the Handoff has an open dispatch.
+        1 when nothing is ready (all integrated, or blocked), 3 when any entry of `**Dispatched:**` is not
+        integrated yet (the message cites every open one).
+    python dispatch.py overdue <slug> [--minutes N] [--now <ISO-8601>] [--branch ...] [--base ...]
+        One line per active (not integrated) entry of `**Dispatched:**` whose time (5th field, UTC) plus N
+        minutes has passed: `<Tn> · <ID> · <minutes> min · <dispatch id or ->`. N defaults to
+        fleet.timeoutMinutes of the user config (30 when absent); --now is for tests. Exit 0 with some
+        overdue, 1 with none, 2 when an entry has no readable time (the message cites it).
     python dispatch.py batch <slug> [--branch feature/<slug>] [--base <ref>] [--assign Tn=cli:model]... [--json]
         The next batch of tickets that can run in parallel: not integrated, not active, dependencies
         integrated, no shared `May change` path with an active or already chosen ticket, nothing
@@ -15,6 +21,9 @@
         The worker brief for --spec-file: the ticket's 5 blocks plus the fixed worker rules.
     python dispatch.py q-brief <slug> --base <ref> --head <sha> --out <file>
         Fills the Q brief (briefs/q-verify.md) with the feature paths and the range; no session history.
+    python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
+        The Q CLI: first of Q_CLI_ORDER whose family differs from ALL the given LaForge families and whose
+        Orca worker is available. None qualifies: `self-verified` (exit 1).
     python dispatch.py family <cli:model | model | cli> [--compare <other>]
         The model family (crew.yaml `families`, then known prefixes, then the CLI). With --compare:
         `same`, `different` or `unknown`.
@@ -30,6 +39,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -115,10 +125,11 @@ def next_ticket(slug: str, root: Path, branch: str | None = None,
         cfg, _ = sc.load_repo_config(proj)
         base = (cfg or {}).get("baseBranch", "main")
     done = integrated(tasks, proj, base, branch)
-    dispatched = handoff_values(fdir).get("dispatched", "none")
-    m = re.match(r"\s*(T\d+)\b", dispatched or "")
-    if m and m.group(1).upper() not in done:
-        return 3, f"despacho aberto: {dispatched} (confira com `orca orchestration worker-show` antes de redespachar)"
+    entries = handoff.dispatch_entries(handoff_values(fdir).get("dispatched", "none"))
+    open_entries = [e for e in entries if handoff.entry_ticket(e).upper() not in done]
+    if open_entries:
+        return 3, (f"despacho aberto: {'; '.join(open_entries)} "
+                   "(confira com `orca orchestration worker-show` antes de redespachar)")
     for t in tasks:
         if t.tid in done:
             continue
@@ -129,6 +140,7 @@ def next_ticket(slug: str, root: Path, branch: str | None = None,
 
 
 DEFAULT_MAX_BATCH = 3
+DEFAULT_TIMEOUT_MINUTES = 30
 TIER_ORDER = ("$$$", "$$", "$", "grátis", "?")
 
 
@@ -240,6 +252,46 @@ def batch(slug: str, root: Path, branch: str | None = None, base: str | None = N
     active = [{"ticket": tid, "pair": _entry_pair(e)} for tid, e in zip(active_ids, entries)]
     return {"batch": out, "costTotal": _cost_total([b["cost"] for b in out]), "excluded": excluded,
             "active": active}
+
+
+def _parse_utc(text: str) -> datetime:
+    dt = datetime.fromisoformat(text.strip().replace("Z", "+00:00").replace("z", "+00:00"))
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def overdue(slug: str, root: Path, minutes: int | None = None, now: str | None = None,
+            branch: str | None = None, base: str | None = None) -> tuple[int, list[str]]:
+    """Active entries of Dispatched whose time + N minutes has passed (R22)."""
+    fdir, tasks = load_tasks(slug, root)
+    proj = gc.project_root(fdir)
+    branch = branch or f"feature/{fdir.name}"
+    if base is None:
+        cfg, _ = sc.load_repo_config(proj)
+        base = (cfg or {}).get("baseBranch", "main")
+    if minutes is None:
+        user_cfg, _ = sc.load_user_config()
+        minutes = ((user_cfg or {}).get("fleet") or {}).get("timeoutMinutes", DEFAULT_TIMEOUT_MINUTES)
+    try:
+        clock = _parse_utc(now) if now else datetime.now(timezone.utc)
+    except ValueError:
+        raise ValueError(f"--now não é ISO-8601: {now!r}")
+    done = integrated(tasks, proj, base, branch)
+    late: list[str] = []
+    for e in handoff.dispatch_entries(handoff_values(fdir).get("dispatched", "none")):
+        tid = handoff.entry_ticket(e).upper()
+        if tid in done:
+            continue
+        parts = [x.strip() for x in e.split("·")]
+        try:
+            started = _parse_utc(parts[4])
+        except (IndexError, ValueError):
+            raise ValueError(f"entrada de Dispatched sem horário legível: {e}")
+        elapsed = int((clock - started).total_seconds() // 60)
+        if (clock - started).total_seconds() > minutes * 60:
+            extra = parts[5:]
+            did = next((x for x in extra if x and x != "blocked" and not x.startswith("model ")), "-")
+            late.append(f"{tid} · {parts[1] if len(parts) > 1 else '-'} · {elapsed} min · {did}")
+    return (0 if late else 1), late
 
 
 def format_batch(res: dict) -> str:
@@ -418,12 +470,12 @@ def _orca_worker_ok(cli: str, caps_dir: Path | None, configured: bool = False, w
     return configured or bool(which(CLI_BINARIES.get(cli, cli)))
 
 
-def q_cli(laforge: str, configured: str | None = None, caps_dir: Path | None = None,
+def q_cli(laforge: str | list[str], configured: str | None = None, caps_dir: Path | None = None,
           which=shutil.which) -> str | None:
-    """First CLI of (configured, codex, antigravity, opencode) whose family differs from the LaForge's
-    and that is available for an Orca worker (R18); None means self-verified (R19), only when no CLI of
+    """First CLI of (configured, codex, antigravity, opencode) whose family differs from all the LaForge
+    families (one spec or a list) and that is available for an Orca worker (R18); None means self-verified (R19), only when no CLI of
     another family is configured or available."""
-    lf = family(laforge)
+    lfs = {family(x) for x in ([laforge] if isinstance(laforge, str) else laforge)}
     seen: list[str] = []
     for spec in ([configured] if configured else []) + list(Q_CLI_ORDER):
         if spec in seen:
@@ -431,7 +483,7 @@ def q_cli(laforge: str, configured: str | None = None, caps_dir: Path | None = N
         seen.append(spec)
         cli = spec.partition(":")[0]
         fam = family(spec)
-        if (fam != "unknown" and lf != "unknown" and fam != lf
+        if (fam != "unknown" and "unknown" not in lfs and fam not in lfs
                 and _orca_worker_ok(cli, caps_dir, spec == configured, which)):
             return spec
     return None
@@ -468,9 +520,17 @@ def main(argv: list[str] | None = None) -> int:
     pf.add_argument("spec")
     pf.add_argument("--compare")
     pc = sub.add_parser("q-cli")
-    pc.add_argument("--laforge", required=True)
+    pc.add_argument("laforge_pos", nargs="*", metavar="laforge")
+    pc.add_argument("--laforge", action="append", default=[])
     pc.add_argument("--configured")
     pc.add_argument("--caps-dir")
+    po = sub.add_parser("overdue")
+    po.add_argument("slug")
+    po.add_argument("--minutes", type=int)
+    po.add_argument("--now")
+    po.add_argument("--branch")
+    po.add_argument("--base")
+    po.add_argument("--root", default=".")
     a = p.parse_args(argv)
     try:
         if a.cmd == "next":
@@ -481,6 +541,11 @@ def main(argv: list[str] | None = None) -> int:
             res = batch(a.slug, Path(a.root).resolve(), a.branch, a.base, a.assign)
             print(json.dumps(res, ensure_ascii=False) if a.json else format_batch(res))
             return 0 if res["batch"] else 1
+        if a.cmd == "overdue":
+            code, lines = overdue(a.slug, Path(a.root).resolve(), a.minutes, a.now, a.branch, a.base)
+            if lines:
+                print("\n".join(lines))
+            return code
         if a.cmd == "brief":
             Path(a.out).write_text(worker_brief(a.slug, a.ticket, Path(a.root).resolve()), encoding="utf-8")
             print(f"briefing do ticket gravado em {a.out}")
@@ -490,7 +555,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"briefing do Q gravado em {a.out}")
             return 0
         if a.cmd == "q-cli":
-            pick = q_cli(a.laforge, a.configured, Path(a.caps_dir) if a.caps_dir else None)
+            lfs = [*a.laforge_pos, *a.laforge]
+            if not lfs:
+                raise ValueError("q-cli precisa de ao menos um --laforge <cli:model>")
+            pick = q_cli(lfs, a.configured, Path(a.caps_dir) if a.caps_dir else None)
             print(pick or "self-verified")
             return 0 if pick else 1
         if a.compare:

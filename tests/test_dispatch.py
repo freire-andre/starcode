@@ -110,6 +110,60 @@ class DispatchTests(TempRepoCase):
         code, msg = dispatch.next_ticket("demo", self.repo)
         self.assertEqual((code, msg), (1, "todos os tickets integrados"))
 
+    def test_next_open_dispatch_with_multiple_entries(self):  # C19
+        self.integrate("feat(model): priority\n\nRefs: PROJ-7")
+        e1 = "T1 · PROJ-7 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:40:00Z"
+        e2 = "T2 · PROJ-8 · base abc1234 · codex:gpt-6-luna · 2026-11-07T16:41:00Z"
+        handoff.set_handoff("demo", self.repo, {"dispatched": f"{e1}; {e2}"})
+        code, msg = dispatch.next_ticket("demo", self.repo)
+        self.assertEqual(code, 3)
+        self.assertIn("T2 · PROJ-8", msg)
+        self.assertNotIn("T1 · PROJ-7", msg)
+        handoff.set_handoff("demo", self.repo, {"dispatched": "T2 · PROJ-8 · x; T3 · PROJ-9 · y"})
+        code, msg = dispatch.next_ticket("demo", self.repo)
+        self.assertEqual(code, 3)
+        self.assertIn("T2 · PROJ-8", msg)
+        self.assertIn("T3 · PROJ-9", msg)
+        self.integrate("merge: integra T2 em feature/demo")
+        handoff.set_handoff("demo", self.repo, {"dispatched": f"{e1}; {e2}"})
+        self.assertEqual(dispatch.next_ticket("demo", self.repo),
+                         (1, "todos os tickets integrados"))
+
+    def test_overdue_lists_tickets_past_deadline(self):  # C22
+        old = "T1 · PROJ-7 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:00:00Z · disp_1 · model x"
+        new = "T2 · PROJ-8 · base abc1234 · codex:gpt-6-luna · 2026-11-07T16:40:00Z"
+        handoff.set_handoff("demo", self.repo, {"dispatched": f"{old}; {new}"})
+        code, lines = dispatch.overdue("demo", self.repo, 30, "2026-11-07T16:45:00Z")
+        self.assertEqual((code, lines), (0, ["T1 · PROJ-7 · 45 min · disp_1"]))
+        code, lines = dispatch.overdue("demo", self.repo, 60, "2026-11-07T16:45:00Z")
+        self.assertEqual((code, lines), (1, []))
+        code, lines = dispatch.overdue("demo", self.repo, 1, "2026-11-07T16:45:00Z")
+        self.assertEqual(lines, ["T1 · PROJ-7 · 45 min · disp_1", "T2 · PROJ-8 · 5 min · -"])
+        # default from fleet.timeoutMinutes, else 30
+        with mock.patch.object(dispatch.sc, "load_user_config", return_value=({"fleet": {"timeoutMinutes": 50}}, [])):
+            self.assertEqual(dispatch.overdue("demo", self.repo, None, "2026-11-07T16:45:00Z")[0], 1)
+        with mock.patch.object(dispatch.sc, "load_user_config", return_value=(None, [])):
+            self.assertEqual(dispatch.overdue("demo", self.repo, None, "2026-11-07T16:45:00Z")[0], 0)
+        # integrated tickets are not active
+        self.integrate("feat(model): priority\n\nRefs: PROJ-7")
+        self.assertEqual(dispatch.overdue("demo", self.repo, 30, "2026-11-07T16:45:00Z")[0], 1)
+        # command
+        out = io.StringIO()
+        handoff.set_handoff("demo", self.repo, {"dispatched": new})
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["overdue", "demo", "--root", str(self.repo), "--minutes", "10",
+                                  "--now", "2026-11-07T17:00:00Z", "--base", "main"])
+        self.assertEqual(code, 0)
+        self.assertIn("T2 · PROJ-8 · 20 min · -", out.getvalue())
+
+    def test_overdue_unreadable_time_exits_2(self):
+        handoff.set_handoff("demo", self.repo, {"dispatched": "T1 · PROJ-7 · base abc1234"})
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = dispatch.main(["overdue", "demo", "--root", str(self.repo), "--now", "2026-11-07T17:00:00Z"])
+        self.assertEqual(code, 2)
+        self.assertIn("T1 · PROJ-7", err.getvalue())
+
     def test_ticket_brief_has_block_and_worker_rules(self):
         text = dispatch.worker_brief("demo", "PROJ-8", self.repo)
         self.assertIn("# Ticket T2: CLI", text)
@@ -294,6 +348,25 @@ class FamilyAndQCliTests(TempRepoCase):
             # a record that says unavailable still wins over the binary
             d = self.caps(antigravity="unavailable")
             self.assertIsNone(dispatch.q_cli("codex:cli-default", None, d, lambda b: "/bin/" + b))
+
+    def test_q_cli_differs_from_all_laforge_families(self):  # C29
+        d = self.caps(codex="ok", antigravity="ok", opencode="ok")
+        lfs = ["claude:claude-sonnet-5-5", "codex:gpt-6-luna"]
+        self.assertEqual(dispatch.q_cli(lfs, None, d), "antigravity")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["q-cli", "--laforge", lfs[0], "--laforge", lfs[1], "--caps-dir", str(d)])
+        self.assertEqual((code, out.getvalue().strip()), (0, "antigravity"))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):  # old positional form still works
+            code = dispatch.main(["q-cli", lfs[0], "--laforge", lfs[1], "--caps-dir", str(d)])
+        self.assertEqual((code, out.getvalue().strip()), (0, "antigravity"))
+        d2 = self.caps(codex="ok", antigravity="unavailable", opencode="unavailable")
+        self.assertIsNone(dispatch.q_cli(lfs, None, d2))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["q-cli", "--laforge", lfs[0], "--laforge", lfs[1], "--caps-dir", str(d2)])
+        self.assertEqual((code, out.getvalue().strip()), (1, "self-verified"))
 
     def test_q_cli_self_verified_when_none(self):  # C19
         d = self.caps(codex="unavailable", antigravity="unavailable", opencode="unavailable")
