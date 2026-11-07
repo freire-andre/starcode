@@ -182,3 +182,13 @@ def effective_crew(crew_doc: dict, user_cfg: dict | None) -> dict[str, dict]:
         entry["overridden"] = bool(ov)
         out[key] = entry
     return out
+
+
+def cost_tier(model: str, tiers: dict[str, str] | None) -> str:
+    """Cost tier of a model: the declared map value, else 'grátis' for :free/-free, else '?'."""
+    declared = (tiers or {}).get(model)
+    if declared:
+        return declared
+    if isinstance(model, str) and model.endswith((":free", "-free")):
+        return "grátis"
+    return "?"

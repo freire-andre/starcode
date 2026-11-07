@@ -57,6 +57,8 @@ USER_SCHEMA = _obj({
     "fleet": _obj({
         "maxBatch": {"type": "int", "min": 1, "max": 10},
         "timeoutMinutes": {"type": "int", "min": 1, "max": 1440},
+        "workers": {"type": "list", "item": {"type": "worker"}, "unique": True, "unique_at_item": True,
+                    "min": 1, "max": 10},
     }),
 }, required=True)
 
@@ -119,6 +121,15 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
             errors.append(f"{where}: data no formato AAAA-MM-DD, veio {value!r}")
         elif t == "gitref" and not GIT_REF.match(value):
             errors.append(f"{where}: nome de ramo Git inválido: {value!r}")
+    elif t == "worker":
+        if not isinstance(value, str):
+            errors.append(f"{where}: esperado texto <cli>:<modelo>, veio {_tname(value)}")
+            return
+        cli, sep, model = value.partition(":")
+        if not sep or not model.strip():
+            errors.append(f"{where}: formato <cli>:<modelo>, veio {value!r}")
+        elif cli not in CLIS:
+            errors.append(f"{where}: CLI {cli!r} não permitido (use: {', '.join(CLIS)})")
     elif t == "enum":
         if value not in spec["values"]:
             errors.append(f"{where}: valor {value!r} não permitido (use: {', '.join(spec['values'])})")
@@ -128,14 +139,17 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
             return
         if len(value) < spec.get("min", 0):
             errors.append(f"{where}: precisa de pelo menos {spec['min']} item(ns)")
+        if "max" in spec and len(value) > spec["max"]:
+            errors.append(f"{where}: no máximo {spec['max']} itens, veio {len(value)}")
         for i, item in enumerate(value):
             _check(spec["item"], item, f"{path}[{i}]", errors)
         if spec.get("unique"):
             seen = set()
-            for item in value:
+            for i, item in enumerate(value):
                 key = json.dumps(item, sort_keys=True)
                 if key in seen:
-                    errors.append(f"{where}: item repetido {item!r}")
+                    at = f"{path}[{i}]" if spec.get("unique_at_item") else where
+                    errors.append(f"{at}: item repetido {item!r}")
                 seen.add(key)
     elif t == "map":
         if not isinstance(value, dict):
