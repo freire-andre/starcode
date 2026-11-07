@@ -225,6 +225,7 @@ def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
         "schemaVersion": src["crew_doc"].get("schemaVersion", 1),
         "version": src["version"],
         "families": src["crew_doc"].get("families", {}),
+        "costTiers": src["crew_doc"].get("costTiers", {}),
         "available": src["available"],
         "crew": src["crew"],
     }

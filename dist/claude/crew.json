@@ -10,6 +10,15 @@
     "gemini-3.8-flash-medium": "google",
     "gemini-3.8-flash-low": "google"
   },
+  "costTiers": {
+    "claude-opus-5-5": "$$$",
+    "claude-sonnet-5-5": "$$",
+    "claude-haiku-5-5": "$",
+    "gpt-6-luna": "$$",
+    "gemini-3.8-flash-high": "$",
+    "gemini-3.8-flash-medium": "$",
+    "gemini-3.8-flash-low": "$"
+  },
   "available": [
     "picard",
     "spock",
