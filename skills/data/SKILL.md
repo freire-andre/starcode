@@ -28,9 +28,14 @@ The spec must be approved (LARGE/COMPLEX). Check:
 Red → stop and route back to `spock`. A MEDIUM feature has no tasks.md: say so and return to the Picard.
 
 ## 1. Facts from the repo
-Find the real commands: test runner, build, type check, lint (manifests, Makefile, CI workflows,
-`AGENTS.md`). Sample existing tests for location and style. Never invent a command; if the repo has no
-tests, ask the user which test types and commands the project will use (one message).
+If the repo has `.starcode/stack.json` (registered by Scotty), take the commands from the profile instead
+of guessing: run `python "<plugin-root>/scripts/scaffold.py" checks <repo>` and use its lines as
+`**Build**` and `**Run <name>**` (`Run unit`, `Run integration`) in `## Checks`; a missing stack.json makes
+it exit 1 with `perfil não registrado`, then continue as below.
+
+Without `.starcode/stack.json`, find the real commands: test runner, build, type check, lint (manifests,
+Makefile, CI workflows, `AGENTS.md`). Sample existing tests for location and style. Never invent a command;
+if the repo has no tests, ask the user which test types and commands the project will use (one message).
 
 ## 2. Break down
 Follow `references/tasks-template.md`:

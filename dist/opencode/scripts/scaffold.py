@@ -5,6 +5,8 @@
   scaffold.py versions <app>[+<db>] [--json]
   scaffold.py new <pasta> --profile <app> [--db <db>] [--name N] [--description "<frase>"]
                   [--pin-tested | --allow-new-series]
+  scaffold.py detect <repo> [--json]
+  scaffold.py record <repo> --profiles a[,b] [--yes]
   scaffold.py checks <pasta> [--json]
   scaffold.py gates <pasta> [--json] [--timeout-min 30]
 
@@ -22,6 +24,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -464,6 +467,194 @@ def _cleanup(folder: Path, top: Path, pre_existing: bool) -> None:
         shutil.rmtree(top, onerror=onerr)
 
 
+# --- detect / record (repo existente, R31) ---------------------------------------------------------------
+
+_VER = re.compile(r"\d+(?:\.\d+)*")
+_DB_DEPS = {"psycopg": "postgresql", "psycopg2": "postgresql", "pymysql": "mysql"}
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _same(name: str) -> str:
+    return name
+
+
+def _read_toml(path: Path) -> dict:
+    try:
+        return tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return {}
+
+
+def _read_json(path: Path) -> dict:
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _spec_version(spec) -> str | None:
+    m = _VER.search(spec) if isinstance(spec, str) else None
+    return m.group(0) if m else None
+
+
+def _py_manifest(repo: Path) -> dict[str, str | None]:
+    """{nome normalizado: versão do manifesto | None}."""
+    doc = _read_toml(repo / "pyproject.toml")
+    project = doc.get("project") or {}
+    specs: list[str] = list(project.get("dependencies") or [])
+    for group in (project.get("optional-dependencies") or {}).values():
+        specs += [x for x in group if isinstance(x, str)]
+    for group in (doc.get("dependency-groups") or {}).values():
+        specs += [x for x in group if isinstance(x, str)]
+    specs += [x for x in ((doc.get("tool") or {}).get("uv") or {}).get("dev-dependencies") or []
+              if isinstance(x, str)]
+    out: dict[str, str | None] = {}
+    for spec in specs:
+        m = re.match(r"\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:\[[^\]]*\])?\s*(.*)", spec)
+        if m:
+            out.setdefault(_norm(m.group(1)), _spec_version(m.group(2)))
+    return out
+
+
+def _lock_versions(path: Path, norm=_norm) -> dict[str, str]:
+    return {norm(p["name"]): str(p["version"]) for p in _read_toml(path).get("package") or []
+            if isinstance(p, dict) and "name" in p and "version" in p}
+
+
+def _npm_manifest(repo: Path) -> dict[str, str | None]:
+    doc = _read_json(repo / "package.json")
+    out: dict[str, str | None] = {}
+    for key in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+        for name, spec in (doc.get(key) or {}).items():
+            out.setdefault(name, _spec_version(spec))
+    return out
+
+
+def _npm_lock(repo: Path) -> dict[str, str]:
+    pk = _read_json(repo / "package-lock.json").get("packages") or {}
+    prefix = "node_modules/"
+    return {k[len(prefix):]: str(v["version"]) for k, v in pk.items()
+            if k.startswith(prefix) and prefix not in k[len(prefix):] and isinstance(v, dict) and "version" in v}
+
+
+def _cargo_dirs(repo: Path) -> list[Path]:
+    return [d for d in (repo, repo / "src-tauri") if (d / "Cargo.toml").is_file()]
+
+
+def _cargo_manifest(repo: Path) -> dict[str, str | None]:
+    out: dict[str, str | None] = {}
+    for d in _cargo_dirs(repo):
+        doc = _read_toml(d / "Cargo.toml")
+        for key in ("dependencies", "dev-dependencies", "build-dependencies"):
+            for name, spec in (doc.get(key) or {}).items():
+                out.setdefault(name, _spec_version(spec.get("version") if isinstance(spec, dict) else spec))
+    return out
+
+
+def _cargo_lock(repo: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for d in _cargo_dirs(repo):
+        for name, ver in _lock_versions(d / "Cargo.lock", norm=_same).items():
+            out.setdefault(name, ver)
+    return out
+
+
+def detect_profiles(repo: Path) -> dict:
+    py, npm, cargo = _py_manifest(repo), _npm_manifest(repo), _cargo_manifest(repo)
+    apps: list[str] = []
+    evidence: dict[str, str] = {}
+    tauri = (repo / "src-tauri" / "tauri.conf.json").is_file()
+    if "flask" in py:
+        apps.append("python-flask")
+        evidence["python-flask"] = "pyproject.toml com flask"
+    if tauri:
+        apps.append("tauri")
+        evidence["tauri"] = "src-tauri/tauri.conf.json"
+    elif (repo / "Cargo.toml").is_file():
+        name = "gpui" if "gpui" in cargo else "rust"
+        apps.append(name)
+        evidence[name] = "Cargo.toml com gpui" if name == "gpui" else "Cargo.toml"
+    if "typescript" in npm and not tauri:  # o perfil tauri já inclui o pacote TS
+        apps.append("typescript")
+        evidence["typescript"] = "package.json com typescript"
+    dbs: list[str] = []
+    for dep, prof in _DB_DEPS.items():
+        if dep in py and prof not in dbs:
+            dbs.append(prof)
+            evidence[prof] = f"dependência {dep}"
+    return {"profiles": apps + dbs, "apps": apps, "db": dbs, "evidence": evidence,
+            "ambiguous": len(apps) > 1 or len(dbs) > 1}
+
+
+def read_versions(repo: Path, chosen: list[dict]) -> dict[str, dict]:
+    lock_py = _lock_versions(repo / "uv.lock") or _lock_versions(repo / "poetry.lock")
+    src = {"pypi": (_py_manifest(repo), lock_py, _norm),
+           "npm": (_npm_manifest(repo), _npm_lock(repo), _same),
+           "crates": (_cargo_manifest(repo), _cargo_lock(repo), _same)}
+    at = datetime.now(timezone.utc).date().isoformat()
+    out: dict[str, dict] = {}
+    for prof in chosen:
+        for dep in prof.get("deps") or []:
+            manifest, lock, norm = src.get(dep["registry"], ({}, {}, _same))
+            key = norm(dep["name"])
+            version = lock.get(key) or manifest.get(key)
+            if version:
+                out.setdefault(dep["name"], {"version": version, "registry": dep["registry"],
+                                             "source": "manifest", "at": at})
+    return out
+
+
+def cmd_detect(args) -> int:
+    repo = Path(args.repo)
+    if not repo.is_dir():
+        raise ScaffoldError(f"repositório inexistente: {repo}")
+    found = detect_profiles(repo)
+    if args.json:
+        print(json.dumps(found, ensure_ascii=False, indent=2))
+        return 0
+    if not found["profiles"]:
+        print("nenhum perfil detectado")
+    for name in found["profiles"]:
+        print(f"{name}: {found['evidence'][name]}")
+    if found["ambiguous"]:
+        print("perfis misturados: escolha quais registrar (record --profiles a[,b])")
+    return 0
+
+
+def cmd_record(args) -> int:
+    repo = Path(args.repo)
+    if not repo.is_dir():
+        raise ScaffoldError(f"repositório inexistente: {repo}")
+    names = [n.strip() for n in args.profiles.split(",") if n.strip()]
+    profiles = load_profiles()
+    unknown = [n for n in names if n not in profiles]
+    if unknown:
+        raise ScaffoldError(f"perfil inexistente: {', '.join(unknown)}. Válidos — {valid_summary(profiles)}")
+    apps = [n for n in names if profiles[n].get("kind") == "app"]
+    dbs = [n for n in names if profiles[n].get("kind") == "db"]
+    if len(apps) != 1 or len(dbs) > 1:
+        raise ScaffoldError("informe um perfil de app e, no máximo, um de banco. "
+                            f"Válidos — {valid_summary(profiles)}")
+    chosen = pick(profiles, apps[0], dbs[0] if dbs else None)
+    versions = read_versions(repo, chosen)
+    stack = {"schemaVersion": 1, "profiles": [p["name"] for p in chosen], "versions": versions}
+    print(f"perfis: {'+'.join(stack['profiles'])}")
+    for n, e in versions.items():
+        print(f"{n} {e['version']} ({e['registry']}, manifest)")
+    if not args.yes:
+        print("nada gravado: confirme com o usuário e rode de novo com --yes")
+        return 0
+    (repo / ".starcode").mkdir(exist_ok=True)
+    (repo / ".starcode" / "stack.json").write_text(
+        json.dumps(stack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"gravado: {repo / '.starcode' / 'stack.json'}")
+    return 0
+
+
 # --- checks / gates ----------------------------------------------------------------------------------
 
 def load_stack(folder: Path) -> tuple[dict, list[dict]]:
@@ -620,6 +811,13 @@ def build_parser() -> argparse.ArgumentParser:
     g = p.add_mutually_exclusive_group()
     g.add_argument("--pin-tested", action="store_true")
     g.add_argument("--allow-new-series", action="store_true")
+    p = sub.add_parser("detect")
+    p.add_argument("repo")
+    p.add_argument("--json", action="store_true")
+    p = sub.add_parser("record")
+    p.add_argument("repo")
+    p.add_argument("--profiles", required=True)
+    p.add_argument("--yes", action="store_true")
     p = sub.add_parser("checks")
     p.add_argument("folder")
     p.add_argument("--json", action="store_true")
@@ -636,6 +834,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8")
     args = build_parser().parse_args(argv)
     handler = {"list": cmd_list, "versions": cmd_versions, "new": cmd_new,
+               "detect": cmd_detect, "record": cmd_record,
                "checks": cmd_checks, "gates": cmd_gates}[args.cmd]
     try:
         return handler(args)
