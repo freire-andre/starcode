@@ -238,6 +238,40 @@ await reg["experimental.idle"]({ sessionID: "s9" })
 console.log(JSON.stringify({ names: Object.keys(reg), calls }))
 """
 
+FAIL_RUNNER = """
+import { pathToFileURL } from "node:url"
+const mod = await import(pathToFileURL(process.argv[2]).href)
+const scenario = process.argv[3]
+const out = { escaped: [], calls: 0, setup: "ok" }
+const reg = {}
+const bad = {
+  syncHook: scenario === "hook-throws-sync",
+  asyncHook: scenario === "hook-rejects",
+}
+const synth = scenario === "synthetic-throws" ? () => { throw new Error("boom") }
+  : scenario === "synthetic-rejects" ? () => { out.calls++; return Promise.reject(new Error("nope")) }
+  : () => { out.calls++ }
+const ctx = {
+  tool: { hook: async (n, fn) => { if (n !== "execute.before" && bad.asyncHook) throw new Error("reg"); if (n !== "execute.before" && bad.syncHook) throw new Error("reg"); reg[n] = fn } },
+  session: { hook: (n, fn) => { if (bad.syncHook) throw new Error("reg"); if (bad.asyncHook) return Promise.reject(new Error("reg")); reg[n] = fn }, synthetic: synth },
+}
+try { await mod.default.setup(ctx) } catch (e) { out.setup = String(e) }
+const cwd = scenario === "bad-cwd" ? "/no/such/dir-starcode" : undefined
+const steps = {
+  skill: () => reg["execute.before"]?.({ tool: "skill", sessionID: "s9", input: { id: "starcode:troi", workdir: cwd } }),
+  bash: () => reg["execute.before"]?.({ tool: "bash", sessionID: "s9", input: { command: "echo oi", workdir: cwd } }),
+  after: () => reg["execute.after"]?.({ sessionID: "s9", input: { workdir: cwd } }),
+  prompt: () => reg["prompt"]?.({ sessionID: "s9" }),
+  idle: () => reg["experimental.idle"]?.({ sessionID: "s9" }),
+}
+for (const [name, fn] of Object.entries(steps)) {
+  try { await fn(); await new Promise((r) => setTimeout(r, 50)) } catch (e) { out.escaped.push(name + ": " + e.message) }
+}
+out.names = Object.keys(reg).sort()
+console.log(JSON.stringify(out))
+process.on("unhandledRejection", () => { console.log("UNHANDLED"); process.exitCode = 3 })
+"""
+
 
 class OpenCodePluginCrewTest(AgyOpenCodeCase):
     def test_opencode_plugin_registers_crew_hooks(self):
@@ -254,7 +288,7 @@ class OpenCodePluginCrewTest(AgyOpenCodeCase):
         if not NODE:
             self.skipTest("node not on PATH")
         d = self.tmp / "plugin"
-        d.mkdir()
+        d.mkdir(exist_ok=True)
         (d / "starcode.js").write_text(text.replace("{{STARCODE_ROOT}}", ROOT.as_posix()), encoding="utf-8")
         (d / "package.json").write_text('{"type":"module"}', encoding="utf-8")
         (d / "runner.mjs").write_text(RUNNER, encoding="utf-8")
@@ -268,6 +302,44 @@ class OpenCodePluginCrewTest(AgyOpenCodeCase):
         self.assertEqual((call["sessionID"], call["resume"]), ("s9", False))
         self.assertTrue(call["text"].startswith(ORDER))
         self.assertIn("TROI ASSUME A PONTE", call["text"])
+
+    def run_fail_scenario(self, scenario: str, path_only_node: bool = False) -> tuple[subprocess.CompletedProcess, dict]:
+        d = self.tmp / f"plugin-{scenario}"
+        d.mkdir(exist_ok=True)
+        text = (ROOT / "dist" / "opencode" / "plugins" / "starcode.js").read_text(encoding="utf-8")
+        (d / "starcode.js").write_text(text.replace("{{STARCODE_ROOT}}", ROOT.as_posix()), encoding="utf-8")
+        (d / "package.json").write_text('{"type":"module"}', encoding="utf-8")
+        (d / "runner.mjs").write_text(FAIL_RUNNER, encoding="utf-8")
+        env = None
+        if path_only_node:  # no python on PATH: spawnSync must report an error, not throw
+            import os
+            env = {k: v for k, v in os.environ.items() if k.upper() in ("SYSTEMROOT", "WINDIR", "TEMP", "TMP")}
+            env["PATH"] = str(Path(NODE).parent)
+        res = subprocess.run([NODE, str(d / "runner.mjs"), str(d / "starcode.js"), scenario], capture_output=True,
+                             text=True, encoding="utf-8", cwd=self.repo, stdin=subprocess.DEVNULL, env=env)
+        out = json.loads([l for l in res.stdout.splitlines() if l.startswith("{")][-1])
+        return res, out
+
+    def test_opencode_plugin_swallows_errors(self):
+        if not NODE:
+            self.skipTest("node not on PATH")
+        every = ["execute.after", "execute.before", "experimental.idle", "prompt"]
+        for scenario, kwargs in (("synthetic-throws", {}), ("synthetic-rejects", {}), ("hook-throws-sync", {}),
+                                 ("hook-rejects", {}), ("bad-cwd", {}), ("no-python", {"path_only_node": True})):
+            res, out = self.run_fail_scenario(scenario, **kwargs)
+            self.assertEqual(res.returncode, 0, (scenario, res.stderr))
+            self.assertNotIn("UNHANDLED", res.stdout, scenario)
+            self.assertEqual(out["setup"], "ok", scenario)
+            self.assertEqual(out["escaped"], [], scenario)
+            if scenario.startswith("hook-"):
+                self.assertEqual(out["names"], ["execute.before"], scenario)
+            else:
+                self.assertEqual(out["names"], every, scenario)
+        res, out = self.run_fail_scenario("synthetic-rejects")
+        self.assertGreaterEqual(out["calls"], 1)  # the rejecting synthetic really ran
+        res, out = self.run_fail_scenario("no-python", path_only_node=True)
+        self.assertEqual(out["calls"], 0)  # no python, no header, and the skill read was not blocked
+        self.assertIn("did not run", res.stderr)  # the guard failure was only a warning for the bash command
 
 
 class AgyOpenCodeBuildTest(TempRepoCase):
