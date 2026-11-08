@@ -6,7 +6,7 @@ Python stdlib only. Nothing in dist/ is edited by hand.
 
 Source: skills/, hooks/scripts/, scripts/, src/crew.yaml, src/context/STARCODE.md, src/briefs/, schemas/, evals/, VERSION.
 Only crew members whose skill exists are emitted (crew.json "available"); plugin validation passes at
-every phase. crew_hook.py is registered for Claude (F7-12) and Codex (F7-14) only.
+every phase. crew_hook.py is registered for Claude (F7-12), Codex (F7-14), Antigravity and OpenCode (F7-16).
 
 Placeholders allowed in skills (anything else in {{...}} is an error):
   {{PLUGIN_ROOT}}           in SKILL.md: how to resolve the literal token <plugin-root> in that CLI
@@ -202,6 +202,9 @@ def emit_skills(src: dict, cli: str, out: Path) -> None:
                     text = claude_frontmatter(text, info["invocation"])
                 elif rel.as_posix() == "SKILL.md" and cli == "codex":
                     text = claude_header_rule(text, HEADER_RULE_CODEX)
+                elif rel.as_posix() == "SKILL.md" and cli in ("antigravity", "opencode"):
+                    text = claude_header_rule(text, HEADER_RULE_EXTRA.format(
+                        cli={"antigravity": "Antigravity", "opencode": "OpenCode"}[cli]))
                 write(target, text)
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -212,6 +215,8 @@ HEADER_RULE_CLAUDE = ("In Claude Code the StarCode hook already showed your head
                       "do not run crew_live.py start/stop and do not repeat the header.")
 HEADER_RULE_CODEX = ("In Codex the StarCode hook shows your header and marks you as working once its hooks are "
                      "trusted: do not run crew_live.py start/stop and do not repeat the header.")
+HEADER_RULE_EXTRA = ("In {cli} the StarCode hook marks you as working and sends you your header: start your next "
+                     "reply with it exactly as sent, and do not run crew_live.py start/stop.")
 HEADER_PARAGRAPHS = (
     re.compile(r"\*\*Header first \(F6-6\):\*\*.*?\n\n", re.S),  # troi, spock, data, laforge, mccoy, q
     re.compile(r"First run `python \"<plugin-root>/scripts/crew_live\.py\" start picard.*?stop picard`\.\n\n", re.S),
@@ -295,7 +300,15 @@ def codex_hooks() -> dict:
 
 def antigravity_hooks() -> dict:
     root = "{{STARCODE_ROOT}}/hooks/scripts"  # sem aspas (o agy as passa literais ao python); install_local troca pelo caminho absoluto
+    crew = [{"type": "command", "command": f"python {root}/crew_hook.py --cli antigravity", "timeout": 10}]
     return {
+        "starcode-crew": {
+            "PreToolUse": [{"matcher": "read_file|view_file|run_command", "hooks": crew}],
+            "PostToolUse": [{"hooks": crew}],
+            "PreInvocation": [{"hooks": crew}],
+            "PostInvocation": [{"hooks": crew}],
+            "Stop": [{"hooks": crew}],
+        },
         "starcode-guard": {"PreToolUse": [{"matcher": "run_command", "hooks": [
             {"type": "command", "command": f"python {root}/git_guard.py --agy", "timeout": 15},
             {"type": "command", "command": f"python {root}/secret_scan.py --agy", "timeout": 30},

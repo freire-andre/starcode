@@ -261,13 +261,10 @@ class BuildTest(TempRepoCase):
         text = json.dumps(events)
         for script in ("git_guard.py", "secret_scan.py", "banner.py"):
             self.assertIn(script, text)
-        for cli in ("antigravity", "opencode"):  # Codex got its own crew_hook registration in F7-14
-            for f in (ROOT / "dist" / cli).rglob("*"):
-                if f.is_file() and f.suffix in (".json", ".js") and "crew_hook" in f.read_text(encoding="utf-8"):
-                    self.fail(f"{f} cita crew_hook")
+        # Codex (F7-14), Antigravity and OpenCode (F7-16) got their own crew_hook registration
         self.assertIn("--cli codex", json.dumps(build.codex_hooks()))
         self.assertIn("crew_hook.py", json.dumps(build.codex_hooks()))
-        self.assertNotIn("crew_hook", json.dumps(build.antigravity_hooks()))
+        self.assertIn("--cli antigravity", json.dumps(build.antigravity_hooks()))
 
     def test_build_header_rule_per_cli(self):
         sentence = build.HEADER_RULE_CLAUDE
@@ -281,10 +278,7 @@ class BuildTest(TempRepoCase):
             for cli in ("codex", "antigravity", "opencode"):
                 other = (ROOT / "dist" / cli / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
                 self.assertNotIn(sentence, other, f"{cli}/{skill}")
-                if cli != "codex":  # Codex swaps the F6-6 instruction in F7-14
-                    self.assertIn('crew_live.py" start', other, f"{cli}/{skill}")
-        agy = (ROOT / "dist" / "antigravity" / "skills" / "laforge" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("Header first (F6-6)", agy)
+                self.assertNotIn('crew_live.py" start', other, f"{cli}/{skill}")  # F7-14 / F7-16 swap F6-6
 
 
 class DocsTest(TempRepoCase):
@@ -453,10 +447,7 @@ class CodexBuildTest(TempRepoCase):
         for script in ("git_guard.py", "secret_scan.py", "banner.py"):
             self.assertIn(script, text)
         self.assertEqual(len(events["PreToolUse"]), 2)  # the guards group is kept
-        for cli in ("antigravity", "opencode"):
-            for f in (ROOT / "dist" / cli).rglob("*"):
-                if f.is_file() and f.suffix in (".json", ".js") and "crew_hook" in f.read_text(encoding="utf-8"):
-                    self.fail(f"{f} cita crew_hook")
+        # F7-16: antigravity and opencode now register crew_hook too (see test_crew_hook_agy_opencode.py)
 
     def test_build_header_rule_codex(self):
         self.assertEqual(build.HEADER_RULE_CODEX, CODEX_RULE)
@@ -466,10 +457,7 @@ class CodexBuildTest(TempRepoCase):
             self.assertNotIn('crew_live.py" start', text, skill)
             self.assertNotIn("Header first (F6-6)", text, skill)
             agy = (ROOT / "dist" / "antigravity" / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
-            self.assertIn('crew_live.py" start', agy, skill)
             self.assertNotIn(CODEX_RULE, agy, skill)
-        agy = (ROOT / "dist" / "antigravity" / "skills" / "laforge" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("Header first (F6-6)", agy)
 
 
 class CodexDocsTest(TempRepoCase):
@@ -485,4 +473,4 @@ class CodexDocsTest(TempRepoCase):
         compat = (ROOT / "docs" / "compatibilidade.md").read_text(encoding="utf-8")
         row = next(l for l in compat.splitlines() if l.startswith("| Cabeçalho por hook"))
         cells = [c.strip() for c in row.strip().strip("|").split("|")]
-        self.assertEqual(cells[1:], ["✅", "✅ (após confiança)", "em sondagem", "em sondagem"])
+        self.assertEqual(cells[1:3], ["✅", "✅ (após confiança)"])  # F7-16 updated the other two
