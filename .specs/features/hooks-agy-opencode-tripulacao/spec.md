@@ -99,15 +99,15 @@ Proof: run unit | test_decisions_records_f7_16_agy_opencode_hooks ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa R1–R11
+**Next:** esperar worker_done da correção
 **Linear:** SC-86
 **Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
+**Last integrated:** bd5cc2a
+**Dispatched:** SC-86 fix --event → claude claude-sonnet-5-5 (ctx_4f0dca32b584)
 **Settled:** 2026-11-08: 2026-11-08: Antigravity: hook injeta e o modelo repete; OpenCode: mensagem sintética + modelo repete; 2026-11-08: 2026-11-08: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-08: 2026-11-08: SC-86: R1–R11 (bd5cc2a), gate ticket verde, 420 testes rc 0; Picard: agy não manda nome do evento na entrada, falta --event no comando
 **Breaker:** closed
