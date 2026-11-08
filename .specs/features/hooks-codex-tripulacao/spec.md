@@ -85,15 +85,15 @@ Proof: run unit | test_decisions_records_f7_14_codex_hooks ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa SC-85
+**Next:** provas e Q
 **Linear:** SC-85
 **Integration branch:** not created
-**Last integrated:** none
+**Last integrated:** 869ebad
 **Dispatched:** none
 **Settled:** 2026-11-07: 2026-11-07: Codex agora, sondagem dos outros; gatilho: leitura do SKILL.md + $skill; 2026-11-07: 2026-11-07: spec aprovada, issue e sondagem: "Sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-07: 2026-11-07: SC-85: R1–R9 (f7caf92), gate ticket verde, 409 testes rc 0, fumaça do hook Codex ok; observação do Picard: cabeçalho no Codex mostra CLI/modelo da config, não o real
 **Breaker:** closed
