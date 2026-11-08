@@ -307,9 +307,10 @@ def antigravity_hooks() -> dict:
         "starcode-crew": {
             "PreToolUse": [{"matcher": "read_file|view_file|run_command", "hooks": crew("PreToolUse")}],
             "PostToolUse": [{"hooks": crew("PostToolUse")}],
-            "PreInvocation": [{"hooks": crew("PreInvocation")}],
-            "PostInvocation": [{"hooks": crew("PostInvocation")}],
-            "Stop": [{"hooks": crew("Stop")}],
+            # SC-86: eventos sem ferramenta usam a lista plana de comandos (sem o invólucro {"hooks": [...]})
+            "PreInvocation": crew("PreInvocation"),
+            "PostInvocation": crew("PostInvocation"),
+            "Stop": crew("Stop"),
         },
         "starcode-guard": {"PreToolUse": [{"matcher": "run_command", "hooks": [
             {"type": "command", "command": f"python {root}/git_guard.py --agy", "timeout": 15},

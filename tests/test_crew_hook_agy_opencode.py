@@ -349,13 +349,28 @@ class AgyOpenCodeBuildTest(TempRepoCase):
         crew = hooks["starcode-crew"]
         self.assertEqual(set(crew), {"PreToolUse", "PostToolUse", "PreInvocation", "PostInvocation", "Stop"})
         for name, groups in crew.items():
-            (group,) = groups
-            self.assertEqual(group.get("matcher"), "read_file|view_file|run_command" if name == "PreToolUse" else None)
-            (hook,) = group["hooks"]
+            (item,) = groups
+            if name in ("PreToolUse", "PostToolUse"):  # tool events keep the {"hooks": [...]} wrapper
+                self.assertEqual(item.get("matcher"),
+                                 "read_file|view_file|run_command" if name == "PreToolUse" else None)
+                (hook,) = item["hooks"]
+            else:  # SC-86: toolless events are a flat command list, no wrapper
+                self.assertNotIn("hooks", item, name)
+                self.assertNotIn("matcher", item, name)
+                hook = item
+            self.assertEqual(hook["type"], "command", name)
             self.assertTrue(hook["command"].endswith(f"crew_hook.py --cli antigravity --event {name}"), name)  # C7
             self.assertEqual(hook["timeout"], 10, name)
         self.assertIn("git_guard.py", json.dumps(hooks["starcode-guard"]))
         self.assertIn("banner.py", json.dumps(hooks["starcode-banner"]))
+
+    def test_agy_plugin_validate_strict_passes(self):  # SC-86
+        agy = shutil.which("agy")
+        if not agy:
+            self.skipTest("agy not on PATH")
+        res = subprocess.run([agy, "plugin", "validate", str(ROOT / "dist" / "antigravity"), "--strict"],
+                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
 
     def test_build_header_rule_agy_opencode(self):
         for cli, label in (("antigravity", "Antigravity"), ("opencode", "OpenCode")):
