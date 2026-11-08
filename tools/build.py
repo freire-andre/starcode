@@ -300,14 +300,16 @@ def codex_hooks() -> dict:
 
 def antigravity_hooks() -> dict:
     root = "{{STARCODE_ROOT}}/hooks/scripts"  # sem aspas (o agy as passa literais ao python); install_local troca pelo caminho absoluto
-    crew = [{"type": "command", "command": f"python {root}/crew_hook.py --cli antigravity", "timeout": 10}]
+    def crew(event: str) -> list:  # o payload real do agy não traz o nome do evento: ele vai na linha de comando
+        return [{"type": "command", "command": f"python {root}/crew_hook.py --cli antigravity --event {event}",
+                 "timeout": 10}]
     return {
         "starcode-crew": {
-            "PreToolUse": [{"matcher": "read_file|view_file|run_command", "hooks": crew}],
-            "PostToolUse": [{"hooks": crew}],
-            "PreInvocation": [{"hooks": crew}],
-            "PostInvocation": [{"hooks": crew}],
-            "Stop": [{"hooks": crew}],
+            "PreToolUse": [{"matcher": "read_file|view_file|run_command", "hooks": crew("PreToolUse")}],
+            "PostToolUse": [{"hooks": crew("PostToolUse")}],
+            "PreInvocation": [{"hooks": crew("PreInvocation")}],
+            "PostInvocation": [{"hooks": crew("PostInvocation")}],
+            "Stop": [{"hooks": crew("Stop")}],
         },
         "starcode-guard": {"PreToolUse": [{"matcher": "run_command", "hooks": [
             {"type": "command", "command": f"python {root}/git_guard.py --agy", "timeout": 15},

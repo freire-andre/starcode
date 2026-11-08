@@ -18,7 +18,8 @@ Codex mode (`--cli codex`, F7-14): Codex has no Skill tool nor UserPromptExpansi
                                   the mission is the rest of that line; a prompt without the token only reactivates
   The same member already active in the session only renews `at` (no second header). Other events as above.
 
-Antigravity mode (`--cli antigravity`, F7-16): payload `hookEventName`, `conversationId`, `modelName`,
+Antigravity mode (`--cli antigravity --event <Name>`, F7-16): the real agy payload carries no event name, so the
+  event comes from `--event` (a payload `hookEventName` is only a fallback). Payload: `conversationId`, `modelName`,
   `workspacePaths`, `invocationNum`, `toolCall {name, args {Path|CommandLine}}`. PreToolUse (read_file, view_file,
   run_command) on a crew SKILL.md marks the session and parks the header in .starcode/live/pending.json;
   PostInvocation prints {"injectSteps": [...ephemeralMessage...]} once. It never prints a decision field.
@@ -129,7 +130,7 @@ def agy_member(payload: dict, crew: dict[str, dict]) -> str | None:
     return None
 
 
-def handle_extra(payload: dict, cli: str, now: datetime | None = None) -> dict | None:
+def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: str | None = None) -> dict | None:
     """Antigravity / OpenCode (F7-16). Returns the JSON document to print, or None. Raises on I/O failure."""
     import crew_live  # noqa: PLC0415
 
@@ -137,7 +138,7 @@ def handle_extra(payload: dict, cli: str, now: datetime | None = None) -> dict |
     stamp = now.replace(microsecond=0).isoformat()
     agy = cli == "antigravity"
     if agy:
-        event, sid = agy_event(payload), payload.get("conversationId")
+        event, sid = event or agy_event(payload), payload.get("conversationId")
         paths = payload.get("workspacePaths")
         cwd = paths[0] if isinstance(paths, list) and paths and isinstance(paths[0], str) and paths[0] else None
         model = payload.get("modelName")
@@ -298,7 +299,8 @@ def main() -> int:
         argv = sys.argv[1:]
         cli = argv[argv.index("--cli") + 1] if "--cli" in argv and argv.index("--cli") + 1 < len(argv) else "claude"
         if cli in ("antigravity", "opencode"):
-            doc = handle_extra(payload, cli)
+            event = argv[argv.index("--event") + 1] if "--event" in argv and argv.index("--event") + 1 < len(argv) else None
+            doc = handle_extra(payload, cli, event=event)
             if doc:
                 sys.stdout.buffer.write(json.dumps(doc, ensure_ascii=False).encode("utf-8") + b"\n")
             return 0
