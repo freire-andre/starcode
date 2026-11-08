@@ -85,15 +85,15 @@ Proof: run unit | test_decisions_records_f7_14_codex_hooks ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** provas e Q
+**Next:** correção pós-Q
 **Linear:** SC-85
 **Integration branch:** not created
 **Last integrated:** 869ebad
 **Dispatched:** none
 **Settled:** 2026-11-07: 2026-11-07: Codex agora, sondagem dos outros; gatilho: leitura do SKILL.md + $skill; 2026-11-07: 2026-11-07: spec aprovada, issue e sondagem: "Sim"
 **Attempts:** none
-**Reports:** 2026-11-07: 2026-11-07: SC-85: R1–R9 (f7caf92), gate ticket verde, 409 testes rc 0, fumaça do hook Codex ok; observação do Picard: cabeçalho no Codex mostra CLI/modelo da config, não o real
+**Reports:** 2026-11-07: 2026-11-07: SC-85: R1–R9 (f7caf92), gate ticket verde, 409 testes rc 0, fumaça do hook Codex ok; observação do Picard: cabeçalho no Codex mostra CLI/modelo da config, não o real; 2026-11-07: 2026-11-07: Q (antigravity gemini-3.8-flash-high): FAIL, 3 achados (maiúsculas em R1/R2 via member_for; C1/C2 sem caixa nem cabeçalho sem missão)
 **Breaker:** closed
