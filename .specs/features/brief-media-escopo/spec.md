@@ -75,10 +75,10 @@ Proof: run unit | test_decisions_records_f7_11_medium_scope ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** gate done, push e PR
+**Next:** nada (PR #13 com merge em main d4894d5)
 **Linear:** SC-83
 **Integration branch:** not created
 **Last integrated:** f7ab30f

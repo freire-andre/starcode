@@ -58,10 +58,10 @@ Proof: run unit | test_decisions_records_f7_10_release_guard ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** push e PR (confirmação do usuário)
+**Next:** nada (PR #11 com merge em main 1fa1251)
 **Linear:** SC-81
 **Integration branch:** not created
 **Last integrated:** 697221c

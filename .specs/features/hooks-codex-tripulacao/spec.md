@@ -85,10 +85,10 @@ Proof: run unit | test_decisions_records_f7_14_codex_hooks ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** gate done, push e PR
+**Next:** merge do PR em main; o usuário confia os hooks novos no Codex
 **Linear:** SC-85
 **Integration branch:** not created
 **Last integrated:** c90fb7d
