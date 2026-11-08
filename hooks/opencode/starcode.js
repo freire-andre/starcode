@@ -10,9 +10,18 @@ function warn(message) {
   process.stderr.write(`StarCode hook: ${message}\n`)
 }
 
+// SC-86: OpenCode moves process.cwd() away from the project; the project folder is ctx.location.directory.
+let projectDir = null
+
+function pickDir(workdir) {
+  if (typeof workdir === "string" && workdir) return workdir
+  if (projectDir) return projectDir
+  return process.cwd()
+}
+
 // Returns the deny reason, or null to let the command through (also when the guard itself fails).
 function runGuard(script, command, workdir) {
-  const cwd = typeof workdir === "string" && workdir ? workdir : process.cwd()
+  const cwd = pickDir(workdir)
   const payload = JSON.stringify({ tool_input: { command }, cwd })
   const res = spawnSync("python", [`${STARCODE_ROOT}/hooks/scripts/${script}`], {
     input: payload, encoding: "utf8", timeout: 30000, windowsHide: true,
@@ -38,7 +47,7 @@ function sessionOf(event) {
 // F7-16: sends the normalized event to crew_hook.py and returns the header it prints, or null. Never throws.
 function runCrew(payload) {
   try {
-    const cwd = typeof payload.cwd === "string" && payload.cwd ? payload.cwd : process.cwd()
+    const cwd = pickDir(payload.cwd)
     const res = spawnSync("python", [`${STARCODE_ROOT}/hooks/scripts/crew_hook.py`, "--cli", "opencode"], {
       input: JSON.stringify({ ...payload, cwd }), encoding: "utf8", timeout: 10000, windowsHide: true,
     })
@@ -72,6 +81,10 @@ function register(call) {
 export default {
   id: "starcode",
   async setup(ctx) {
+    try {
+      const dir = ctx && ctx.location && ctx.location.directory
+      if (typeof dir === "string" && dir) projectDir = dir
+    } catch { /* fall back to process.cwd() */ }
     await ctx.tool.hook("execute.before", (event) => {
       if (event && event.tool === "skill" && event.input && typeof event.input.id === "string") {
         crewEvent(ctx, event, "skill", { skill: event.input.id })

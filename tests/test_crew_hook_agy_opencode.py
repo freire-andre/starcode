@@ -238,6 +238,21 @@ await reg["experimental.idle"]({ sessionID: "s9" })
 console.log(JSON.stringify({ names: Object.keys(reg), calls }))
 """
 
+LOCATION_RUNNER = """
+import { pathToFileURL } from "node:url"
+const mod = await import(pathToFileURL(process.argv[2]).href)
+const reg = {}
+const calls = []
+const ctx = {
+  location: { directory: process.argv[3], project: { directory: process.argv[3] } },
+  tool: { hook: async (n, fn) => { reg[n] = fn } },
+  session: { hook: (n, fn) => { reg[n] = fn }, synthetic: (a) => { calls.push(a) } },
+}
+await mod.default.setup(ctx)
+await reg["execute.before"]({ tool: "skill", sessionID: "ses_real", agent: "build", messageID: "msg_1", id: "call-1", input: { id: "spock" } })
+console.log(JSON.stringify({ cwd: process.cwd(), calls }))
+"""
+
 FAIL_RUNNER = """
 import { pathToFileURL } from "node:url"
 const mod = await import(pathToFileURL(process.argv[2]).href)
@@ -302,6 +317,29 @@ class OpenCodePluginCrewTest(AgyOpenCodeCase):
         self.assertEqual((call["sessionID"], call["resume"]), ("s9", False))
         self.assertTrue(call["text"].startswith(ORDER))
         self.assertIn("TROI ASSUME A PONTE", call["text"])
+
+    def test_opencode_plugin_uses_ctx_location_directory(self):  # SC-86: real OpenCode 2.2.3 event, no workdir
+        if not NODE:
+            self.skipTest("node not on PATH")
+        text = (ROOT / "dist" / "opencode" / "plugins" / "starcode.js").read_text(encoding="utf-8")
+        d = self.tmp / "plugin-location"
+        elsewhere = self.tmp / "elsewhere"
+        d.mkdir(exist_ok=True)
+        elsewhere.mkdir(exist_ok=True)
+        (d / "starcode.js").write_text(text.replace("{{STARCODE_ROOT}}", ROOT.as_posix()), encoding="utf-8")
+        (d / "package.json").write_text('{"type":"module"}', encoding="utf-8")
+        (d / "runner.mjs").write_text(LOCATION_RUNNER, encoding="utf-8")
+        res = subprocess.run([NODE, str(d / "runner.mjs"), str(d / "starcode.js"), str(self.repo)],
+                             capture_output=True, text=True, encoding="utf-8", cwd=elsewhere, stdin=subprocess.DEVNULL)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        out = json.loads(res.stdout.strip().splitlines()[-1])
+        self.assertEqual(Path(out["cwd"]).resolve(), elsewhere.resolve())
+        self.assertIn("ses_real", self.sessions())
+        self.assertFalse((elsewhere / ".starcode").exists())
+        (call,) = out["calls"]
+        self.assertEqual(call["sessionID"], "ses_real")
+        self.assertTrue(call["text"].startswith(ORDER))
+        self.assertIn("SPOCK ASSUME A PONTE", call["text"])
 
     def run_fail_scenario(self, scenario: str, path_only_node: bool = False) -> tuple[subprocess.CompletedProcess, dict]:
         d = self.tmp / f"plugin-{scenario}"
