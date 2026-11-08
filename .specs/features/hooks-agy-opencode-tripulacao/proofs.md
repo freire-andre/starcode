@@ -1,9 +1,9 @@
 # hooks-agy-opencode-tripulacao proofs
 
-**HEAD**: 67bb16c
+**HEAD**: a34dbf3
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 12 pass, 1 fail
+**Result**: 13 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -19,7 +19,7 @@
 | C10 | `run unit / test_decisions_records_f7_16_agy_opencode_hooks ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
-| Build | `python scripts/check_decisions.py` | fail - check_decisions: FALHOU. skills/, scripts/ ou hooks/ mudaram em 943ef04 fix(hooks): evento do antigr |
+| Build | `python scripts/check_decisions.py` | pass |
 
 ## Output
 
@@ -38,7 +38,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 422 tests in 157.861s
+Ran 422 tests in 156.409s
 
 OK
 ```
