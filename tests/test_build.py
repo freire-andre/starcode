@@ -72,7 +72,8 @@ class BuildTests(unittest.TestCase):
         crew = json.loads((self.out / "dist" / "claude" / "crew.json").read_text(encoding="utf-8"))
         self.assertEqual(crew["available"][:4], ["picard", "spock", "troi", "data"])
         self.assertIn("q", crew["available"])  # Phase 3: skills/q exists
-        self.assertNotIn("uhura", crew["available"])  # no skills/uhura yet
+        self.assertIn("uhura", crew["available"])  # Phase 8: skills/uhura exists
+        self.assertNotIn("worf", crew["available"])  # no skills/worf yet (Phase 9)
         self.assertEqual(crew["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
 
     def test_crew_json_carries_cost_tiers(self):

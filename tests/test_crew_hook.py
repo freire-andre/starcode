@@ -19,7 +19,7 @@ import crew_live
 import statusline
 
 HOOK = ROOT / "hooks" / "scripts" / "crew_hook.py"
-CREW = ["picard", "spock", "troi", "data", "laforge", "mccoy", "q"]
+CREW = crew_live.crew_members()[1]  # whatever has a skill today; does not break when new crew arrives
 RULE = "━" * 36
 
 

@@ -58,7 +58,8 @@ class RegistryTests(unittest.TestCase):
     def test_scaffold_registry_error_writes_nothing(self) -> None:
         with with_fixture("ok.json"), tempfile.TemporaryDirectory() as d:
             res = subprocess.run([sys.executable, str(SCRIPT), "pypi", "inexistente"], cwd=d,
-                                 capture_output=True, text=True, env=os.environ.copy())
+                                 capture_output=True, text=True, encoding="utf-8",
+                                 env={**os.environ, "PYTHONIOENCODING": "utf-8"})
             self.assertEqual(res.returncode, 2)
             self.assertIn("registro pypi indisponível para inexistente:", res.stdout + res.stderr)
             self.assertEqual(list(Path(d).iterdir()), [])
@@ -90,9 +91,9 @@ class RegistryTests(unittest.TestCase):
                 self.assertEqual(registry.latest_stable("npm", "vite"), "8.3.6")
 
     def test_registry_cli_json(self) -> None:
-        env = {**os.environ, "STARCODE_REGISTRY_FIXTURE": str(REG / "ok.json")}
+        env = {**os.environ, "STARCODE_REGISTRY_FIXTURE": str(REG / "ok.json"), "PYTHONIOENCODING": "utf-8"}
         res = subprocess.run([sys.executable, str(SCRIPT), "crates", "gpui", "--series", "0.2", "--json"],
-                             capture_output=True, text=True, env=env)
+                             capture_output=True, text=True, encoding="utf-8", env=env)
         self.assertEqual(res.returncode, 0, res.stderr)
         data = json.loads(res.stdout)
         self.assertEqual(data["version"], "0.2.10")

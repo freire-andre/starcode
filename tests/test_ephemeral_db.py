@@ -86,12 +86,14 @@ class EphemeralDbTests(unittest.TestCase):
         env["PATH"] = str(self.bin) + os.pathsep + env.get("PATH", "")
         env["FAKE_DOCKER_DIR"] = str(self.state)
         env["STARCODE_EPH_POLL_SECONDS"] = "0.05"
+        env["PYTHONIOENCODING"] = "utf-8"
         env.update(extra)
         return env
 
     def eph(self, *args: str, **extra: str) -> subprocess.CompletedProcess:
         return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=self.cwd, env=self.env(**extra),
-                              capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+                              capture_output=True, text=True, encoding="utf-8", timeout=60,
+                              stdin=subprocess.DEVNULL)
 
     def calls(self) -> list[list[str]]:
         p = self.state / "calls.jsonl"
@@ -133,7 +135,7 @@ class EphemeralDbTests(unittest.TestCase):
         env = self.env()
         env["PATH"] = str(self.tmp / "vazio")
         r = subprocess.run([sys.executable, str(SCRIPT), "run", "postgresql", "--", sys.executable, "-c", "pass"],
-                           cwd=self.cwd, env=env, capture_output=True, text=True, timeout=60)
+                           cwd=self.cwd, env=env, capture_output=True, text=True, encoding="utf-8", timeout=60)
         self.assertEqual(r.returncode, 3)
         self.assertIn("Docker indisponível", r.stderr)
 
@@ -200,7 +202,7 @@ class EphemeralDbTests(unittest.TestCase):
                     "sys.exit(0 if os.path.exists(sys.argv[1]) else 9)", str(go))
         first = subprocess.Popen([sys.executable, str(SCRIPT), "run", "postgresql", "--", *wait_cmd],
                                  cwd=self.cwd, env=self.env(), stdin=subprocess.DEVNULL,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
         try:
             deadline = time.time() + 30
             while not any(c[0] == "exec" for c in self.calls()) and time.time() < deadline:
