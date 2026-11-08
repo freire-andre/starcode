@@ -67,7 +67,9 @@ class RegistryTests(unittest.TestCase):
         from urllib.error import HTTPError, URLError
         env = {k: v for k, v in os.environ.items() if k != "STARCODE_REGISTRY_FIXTURE"}
         with mock.patch.dict(os.environ, env, clear=True):
-            for exc in (HTTPError("u", 404, "Not Found", None, None), URLError("sem rede"), TimeoutError("t")):
+            http_error = HTTPError("u", 404, "Not Found", None, None)
+            self.addCleanup(http_error.close)
+            for exc in (http_error, URLError("sem rede"), TimeoutError("t")):
                 with mock.patch("urllib.request.urlopen", side_effect=exc):
                     with self.assertRaises(registry.RegistryError) as cm:
                         registry.latest_stable("npm", "foo")
