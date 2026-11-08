@@ -123,6 +123,42 @@ class CrewHookAgyTest(AgyOpenCodeCase):
         self.assertEqual(self.crew()["troi"], 0)
 
 
+class CrewHookRepeatTest(AgyOpenCodeCase):
+    def test_crew_hook_agy_reread_same_member_only_renews_at(self):
+        self.agy("PreToolUse", **self.tool("read_file", Path=SKILL_PATH))
+        self.assertEqual(json.loads(self.agy("PostInvocation"))["injectSteps"][0]["ephemeralMessage"], ORDER + TROI_AGY)
+        data = self.sessions()
+        data["c1"]["at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        stale = (datetime.now(timezone.utc) - timedelta(seconds=30)).replace(microsecond=0).isoformat()
+        data["c1"]["at"] = stale
+        (self.live() / "sessions.json").write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(self.agy("PreToolUse", **self.tool("read_file", Path=SKILL_PATH)), "")
+        self.assertNotIn("c1", self.pending())
+        self.assertNotEqual(self.sessions()["c1"]["at"], stale)
+        self.assertEqual(self.agy("PostInvocation"), "")
+        # another member in the same session still parks a new header
+        self.agy("PreToolUse", **self.tool("read_file", Path=SPOCK_PATH))
+        self.assertEqual(self.pending()["c1"], SPOCK_AGY)
+        # an inactive entry (after Stop) of the same member is a new engagement
+        self.agy("PostInvocation")
+        self.agy("Stop")
+        self.agy("PreToolUse", **self.tool("read_file", Path=SPOCK_PATH))
+        self.assertEqual(self.pending()["c1"], SPOCK_AGY)
+
+    def test_crew_hook_opencode_reread_same_member_prints_no_second_header(self):
+        first = json.loads(self.oc("skill", skill="starcode:laforge", mission="ticket SC-1"))
+        self.assertEqual(first["header"], LAFORGE_OC)
+        data = self.sessions()
+        stale = (datetime.now(timezone.utc) - timedelta(seconds=30)).replace(microsecond=0).isoformat()
+        data["o1"]["at"] = stale
+        (self.live() / "sessions.json").write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(self.oc("skill", skill="starcode:laforge", mission="ticket SC-1"), "")
+        self.assertNotEqual(self.sessions()["o1"]["at"], stale)
+        self.assertEqual(self.sessions()["o1"]["member"], "laforge")
+        other = json.loads(self.oc("skill", skill="starcode:troi"))
+        self.assertIn("TROI ASSUME A PONTE", other["header"])
+
+
 class CrewHookAgyEventArgTest(AgyOpenCodeCase):
     def test_crew_hook_agy_event_comes_from_argv(self):
         payload = {"conversationId": "c1", "modelName": "m", "workspacePaths": [str(self.repo)], "invocationNum": 0,
