@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-nova-missao
+description: "Deve disparar a skill starcode:nova-missao."
+tags: [routing, positive]
+execution:
+  prompt: "Kirk, nova missão: crie um projeto novo do zero com o perfil python-flask na pasta ../meu-app."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-nova-missao
+    tool: Skill
+    input_match: "starcode:nova-missao"
+    min: 1
