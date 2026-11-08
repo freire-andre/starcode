@@ -527,3 +527,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** (1) `PreInvocation`, `PostInvocation` e `Stop` em lista plana de comandos, como o `SessionStart` do banner, e um teste roda o `agy plugin validate --strict` real quando o `agy` está no PATH (ed60c99); (2) a pasta enviada ao `crew_hook.py` e aos guardas vem de `input.workdir`, depois de `ctx.location.directory` capturado no `setup`, e só por último de `process.cwd()` (c1cc4d8).
 - **Motivo:** os testes só simulavam as entradas; o aceite nos CLIs reais mostrou os dois formatos. Com as correções, o Antigravity e o OpenCode mostraram o cabeçalho repetido pelo modelo e gravaram a sessão no `sessions.json`.
 - **Por que não é bug:** R1–R11 da F7-16 não mudam (a pasta de `ctx.location.directory` já estava em R6); Claude e Codex não mudam.
+
+### F7-20: Cabeçalho do OpenCode mostra "padrão do CLI"
+- **Problema:** no aceite real da F7-16 o cabeçalho do OpenCode mostrou o modelo configurado para o tripulante (`opencode · claude-opus-5-5`), mas quem rodava era o modelo da sessão do OpenCode (nemotron). O plugin não tem acesso confiável ao modelo real: os eventos de skill e de prompt não trazem o modelo, e os ganchos `session.model.request` e `ctx.session.get` travaram o `opencode run` na sondagem de 2026-11-08.
+- **Decisão:** no modo `--cli opencode` a linha do papel é sempre `<papel> · opencode · padrão do CLI` (escolha do usuário em 2026-11-08: "2, padrão do CLI"), substituindo a parte do OpenCode em R4 da F7-16 (253f028).
+- **Motivo:** o cabeçalho não deve afirmar um modelo que pode não ser o que roda; "padrão do CLI" é honesto.
+- **Por que não é bug:** Claude, Codex e Antigravity continuam mostrando o modelo como antes; o `crew.json` e o `sessions.json` não mudam.
