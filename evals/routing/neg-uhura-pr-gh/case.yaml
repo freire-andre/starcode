@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-uhura-pr-gh
+description: "Não deve disparar starcode:uhura (escrita genérica fora do StarCode)."
+tags: [routing, negative]
+execution:
+  prompt: "Escreva um parágrafo de boas-vindas para o README do meu blog pessoal."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-uhura
+    tool: Skill
+    input_match: "starcode:uhura"
+    min: 0
+    max: 0

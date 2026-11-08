@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-uhura-cache
+description: "Deve disparar a skill starcode:uhura."
+tags: [routing, positive]
+execution:
+  prompt: "Uhura, atualize a documentação da stack: faça o cache do Context7 das dependências do projeto."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-uhura
+    tool: Skill
+    input_match: "starcode:uhura"
+    min: 1
