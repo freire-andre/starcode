@@ -99,15 +99,15 @@ Proof: run unit | test_decisions_records_f7_16_agy_opencode_hooks ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** push e PR com confirmação
+**Next:** nada (PR #16 com merge em main 95ea31f); aceite real no Antigravity e OpenCode após reinstalar
 **Linear:** SC-86
 **Integration branch:** not created
 **Last integrated:** 104b95b
 **Dispatched:** none
 **Settled:** 2026-11-08: 2026-11-08: Antigravity: hook injeta e o modelo repete; OpenCode: mensagem sintética + modelo repete; 2026-11-08: 2026-11-08: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** 2026-11-08: 2026-11-08: SC-86: R1–R11 (bd5cc2a), gate ticket verde, 420 testes rc 0; Picard: agy não manda nome do evento na entrada, falta --event no comando; 2026-11-08: 2026-11-08: fix --event (943ef04, F7-17), 422 testes rc 0, fumaça do hook agy ok, proofs verde; 2026-11-08: 2026-11-08: Q (codex gpt-6-luna): FAIL, 3 achados (leitura repetida recria pendência; C6 não prova erros engolidos; cabeçalho com assertIn); 2026-11-08: 2026-11-08: Q-fix: 3 achados fechados (6d227fb, 699abd9, 005e69f; F7-18); 425 testes rc 0; proofs e done verdes
+**Reports:** 2026-11-08: 2026-11-08: SC-86: R1–R11 (bd5cc2a), gate ticket verde, 420 testes rc 0; Picard: agy não manda nome do evento na entrada, falta --event no comando; 2026-11-08: 2026-11-08: fix --event (943ef04, F7-17), 422 testes rc 0, fumaça do hook agy ok, proofs verde; 2026-11-08: 2026-11-08: Q (codex gpt-6-luna): FAIL, 3 achados (leitura repetida recria pendência; C6 não prova erros engolidos; cabeçalho com assertIn); 2026-11-08: 2026-11-08: Q-fix: 3 achados fechados (6d227fb, 699abd9, 005e69f; F7-18); 425 testes rc 0; proofs e done verdes; 2026-11-08: 2026-11-08: PR #16: CI verde Ubuntu e Windows, 425 testes; merge 95ea31f
 **Breaker:** closed
