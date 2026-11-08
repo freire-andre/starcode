@@ -7,15 +7,24 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from helpers import ROOT, TempRepoCase
 
 HOOK = ROOT / "hooks" / "scripts" / "crew_hook.py"
 SKILL_PATH = "C:\\x\\starcode\\skills\\troi\\SKILL.md"
+SPOCK_PATH = SKILL_PATH.replace("troi", "spock")
 FORBIDDEN = ("decision", "allow", "ask", "deny", "systemMessage", "statusMessage", "displayMessage")
 ORDER = "Comece sua próxima resposta ao usuário com este cabeçalho, sem mudar nada:\n"
 NODE = shutil.which("node")
+BAR = "━" * 36
+TROI_AGY = "\n".join([BAR, "💜 TROI ASSUME A PONTE", "Descoberta · antigravity · gemini-3.8-flash-high",
+                      "“Sinto que há algo não dito.”", BAR])
+SPOCK_AGY = "\n".join([BAR, "🖖 SPOCK ASSUME A PONTE", "Spec e arquitetura · antigravity · gemini-3.8-flash-high",
+                       "“Fascinante.”", BAR])
+LAFORGE_OC = "\n".join([BAR, "🔧 LAFORGE ASSUME A PONTE", "Implementação · opencode · claude-sonnet-5-5",
+                        "Missão: ticket SC-1", "“Motores prontos.”", BAR])
 
 
 class AgyOpenCodeCase(TempRepoCase):
@@ -61,14 +70,13 @@ class CrewHookAgyTest(AgyOpenCodeCase):
         self.assertEqual((entry["member"], entry["active"], entry["source"]), ("troi", True, "hook"))
         self.assertEqual(self.crew()["troi"], 1)
         header = self.pending()["c1"]
-        self.assertIn("TROI ASSUME A PONTE", header)
-        self.assertIn("antigravity · gemini-3.8-flash-high", header)
+        self.assertEqual(header, TROI_AGY)
         out = self.agy("PreToolUse", "c2", **self.tool(
             "run_command", CommandLine="Get-Content C:\\x\\starcode\\skills\\spock\\SKILL.md"))
         self.assertEqual(out, "")
         self.assertEqual(self.sessions()["c2"]["member"], "spock")
         self.assertEqual(self.crew()["spock"], 1)
-        self.assertIn("SPOCK ASSUME A PONTE", self.pending()["c2"])
+        self.assertEqual(self.pending()["c2"], SPOCK_AGY)
         out = self.agy("PreToolUse", "c3", **self.tool("view_file", Path="C:\\x\\other\\skills\\troi\\SKILL.md"))
         self.assertEqual(out, "")
         self.assertNotIn("c3", self.sessions())
@@ -93,8 +101,7 @@ class CrewHookAgyTest(AgyOpenCodeCase):
         self.assertEqual(list(doc), ["injectSteps"])
         (step,) = doc["injectSteps"]
         self.assertEqual(list(step), ["ephemeralMessage"])
-        self.assertTrue(step["ephemeralMessage"].startswith(ORDER))
-        self.assertIn("antigravity · gemini-3.8-flash-high", step["ephemeralMessage"])
+        self.assertEqual(step["ephemeralMessage"], ORDER + TROI_AGY)
         self.assertNotIn("c1", self.pending())
         self.assertEqual(self.agy("PostInvocation"), "")
 
@@ -141,9 +148,7 @@ class CrewHookOpenCodeTest(AgyOpenCodeCase):
     def test_crew_hook_opencode_events(self):
         out = json.loads(self.oc("skill", skill="starcode:laforge", mission="ticket SC-1"))
         self.assertEqual(list(out), ["header"])
-        self.assertIn("LAFORGE ASSUME A PONTE", out["header"])
-        self.assertIn("opencode · ", out["header"])
-        self.assertIn("Missão: ticket SC-1", out["header"])
+        self.assertEqual(out["header"], LAFORGE_OC)
         self.assertEqual(self.sessions()["o1"]["member"], "laforge")
         self.assertEqual(self.crew()["laforge"], 1)
         self.assertEqual(self.oc("idle"), "")
