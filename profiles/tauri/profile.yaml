@@ -1,0 +1,22 @@
+name: tauri
+kind: app
+combinesWith: []
+tools: [node, npm, cargo]
+install: ["npm install"]
+gates:
+  lint: ["npx biome check .", {run: "cargo fmt --check", cwd: src-tauri}, {run: "cargo clippy --all-targets -- -D warnings", cwd: src-tauri}]
+  typecheck: ["npx tsc --noEmit"]
+  unit: ["npx vitest run", {run: "cargo test", cwd: src-tauri}]
+  build: ["npm run tauri build -- --debug --no-bundle"]
+alignMajor:
+  - from: "@tauri-apps/cli"
+    deps: [tauri, tauri-build, "@tauri-apps/api"]
+deps:
+  - {name: tauri, registry: crates, main: true, tested: "2", docs: {id: /tauri-apps/tauri-docs, at: 2026-11-08}}
+  - {name: tauri-build, registry: crates, main: false, tested: "2"}
+  - {name: "@tauri-apps/cli", registry: npm, main: true, dev: true, tested: "2", docs: {id: /tauri-apps/tauri-docs, at: 2026-11-08}}
+  - {name: "@tauri-apps/api", registry: npm, main: true, tested: "2"}
+  - {name: vite, registry: npm, main: true, dev: true, tested: "8", docs: {id: /vitejs/vite, at: 2026-11-08}}
+  - {name: typescript, registry: npm, main: true, dev: true, tested: "7"}
+  - {name: vitest, registry: npm, main: true, dev: true, tested: "5", docs: {id: /vitest-dev/vitest, at: 2026-11-08}}
+  - {name: "@biomejs/biome", registry: npm, main: false, dev: true, tested: "2"}
