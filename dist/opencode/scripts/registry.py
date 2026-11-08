@@ -11,6 +11,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -55,7 +56,10 @@ def _fetch(registry: str, package: str, url: str, headers: dict[str, str] | None
     except UnicodeDecodeError as exc:
         raise _fail(registry, package, f"resposta ilegível ({exc})") from exc
     except OSError as exc:  # HTTPError, URLError and timeouts are OSErrors
-        raise _fail(registry, package, exc) from exc
+        error = _fail(registry, package, exc)
+        if isinstance(exc, urllib.error.HTTPError):
+            exc.close()
+        raise error from exc
 
 
 def _fixture(registry: str, package: str) -> object:
