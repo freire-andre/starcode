@@ -25,10 +25,7 @@ banner, no Git mode, no Linear, no tools other than reading the reference.
 ## B. Engage (full flow)
 
 ### 1. Header, banner and preflight
-First run `python "<plugin-root>/scripts/crew_live.py" start picard --mission "<mission, if known>"` and
-start your reply with its output, verbatim (F6-6: the user sees who took the task; it also marks Picard as
-working in `.starcode/live/crew.json`). When the mission ends or pauses for good:
-`python "<plugin-root>/scripts/crew_live.py" stop picard`.
+In OpenCode the StarCode hook marks you as working and sends you your header: start your next reply with it exactly as sent, and do not run crew_live.py start/stop.
 
 Then run the banner and show the result to the user:
 

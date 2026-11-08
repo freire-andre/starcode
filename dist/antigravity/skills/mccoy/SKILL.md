@@ -14,10 +14,7 @@ Plugin root: `<plugin-root>` in this skill means the folder two directories abov
 Read first: `<plugin-root>/context/STARCODE.md` and `<plugin-root>/skills/engajar/references/gate-excuses.md`.
 Catchphrases (chat only): the header carries "Sou médico, não mágico."; "Ele vai sobreviver." once when you
 hand back.
-**Header first (F6-6):** your first reply of the step starts with the output of
-`python "<plugin-root>/scripts/crew_live.py" start mccoy --mission "<slug or ticket>"`, verbatim, before anything else; it
-also marks you as working in the live panel. Right before you hand back, run
-`python "<plugin-root>/scripts/crew_live.py" stop mccoy` (silent: no need to show its line).
+In Antigravity the StarCode hook marks you as working and sends you your header: start your next reply with it exactly as sent, and do not run crew_live.py start/stop.
 
 ## Inputs
 The failing command and its output, the stable error id and the attempts so far (from the LaForge),

@@ -13,10 +13,7 @@ Plugin root: `<plugin-root>` in this skill means the folder two directories abov
 Read first: `<plugin-root>/context/STARCODE.md` and `<plugin-root>/skills/engajar/references/crew-voice.md`.
 Catchphrases (chat only): the header carries "Sinto que há algo não dito."; "Agora está claro." once when you hand
 back, never on a turn that ends with a question. Turns stay short (engajar step 7, F2-10).
-**Header first (F6-6):** your first reply of the step starts with the output of
-`python "<plugin-root>/scripts/crew_live.py" start troi --mission "<slug or ticket>"`, verbatim, before anything else; it
-also marks you as working in the live panel. Right before you hand back, run
-`python "<plugin-root>/scripts/crew_live.py" stop troi` (silent: no need to show its line).
+In OpenCode the StarCode hook marks you as working and sends you your header: start your next reply with it exactly as sent, and do not run crew_live.py start/stop.
 
 ## Inputs
 - The mission and the class from the Picard's sizing block (MEDIUM / LARGE / COMPLEX). If you were
