@@ -14,6 +14,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 - Statusline: validade das entradas e `🔧 LaForge ×<n>`; banner: aviso quando o plugin instalado está atrás do repositório do StarCode.
 - Codex: `crew_hook.py --cli codex` mostra o cabeçalho e marca o status por hook (leitura do `SKILL.md` pelo shell ou `$starcode:<skill>` no prompt), registrado em `dist/codex/hooks/hooks.json`; as skills do Codex deixam de pedir `crew_live.py start/stop`.
 - Banner do Codex: aviso quando os hooks da tripulação ainda não têm confiança em `hooks.state`.
+- Antigravity e OpenCode: `crew_hook.py --cli antigravity|opencode` marca o status por hook e manda o modelo repetir o cabeçalho (`injectSteps` no agy, `ctx.session.synthetic` no OpenCode); grupo `starcode-crew` em `dist/antigravity/hooks.json` e as skills dos dois CLIs deixam de pedir `crew_live.py start/stop`.
 
 ## [1.1.0] - 2026-11-07
 

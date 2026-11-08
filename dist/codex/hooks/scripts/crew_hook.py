@@ -18,6 +18,14 @@ Codex mode (`--cli codex`, F7-14): Codex has no Skill tool nor UserPromptExpansi
                                   the mission is the rest of that line; a prompt without the token only reactivates
   The same member already active in the session only renews `at` (no second header). Other events as above.
 
+Antigravity mode (`--cli antigravity --event <Name>`, F7-16): the real agy payload carries no event name, so the
+  event comes from `--event` (a payload `hookEventName` is only a fallback). Payload: `conversationId`, `modelName`,
+  `workspacePaths`, `invocationNum`, `toolCall {name, args {Path|CommandLine}}`. PreToolUse (read_file, view_file,
+  run_command) on a crew SKILL.md marks the session and parks the header in .starcode/live/pending.json;
+  PostInvocation prints {"injectSteps": [...ephemeralMessage...]} once. It never prints a decision field.
+OpenCode mode (`--cli opencode`, F7-16): {"event": skill|pulse|prompt|idle, "session_id", "skill", "cwd", "mission"};
+  `skill` of a crew member prints {"header": "<header>"}.
+
 Never breaks the session: invalid JSON, outside Git, unreadable/unwritable files -> exit 0, no output.
 Python stdlib only.
 """
@@ -93,6 +101,123 @@ def codex_member(event: object, payload: dict, crew: dict[str, dict]) -> tuple[s
             if member:
                 return member, prompt[m.end():].splitlines()[0] if prompt[m.end():].strip() else None
     return None, None
+
+
+AGY_ORDER = "Comece sua próxima resposta ao usuário com este cabeçalho, sem mudar nada:\n"
+PENDING_FILE = "pending.json"
+AGY_READ_TOOLS = ("read_file", "view_file", "run_command")
+
+
+def agy_event(payload: dict) -> object:
+    for key in ("hookEventName", "hook_event_name", "eventName", "event", "evento"):
+        if isinstance(payload.get(key), str):
+            return payload[key]
+    return None
+
+
+def agy_member(payload: dict, crew: dict[str, dict]) -> str | None:
+    call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else {}
+    args = call.get("args") if isinstance(call.get("args"), dict) else {}
+    if call.get("name") not in AGY_READ_TOOLS:
+        return None
+    for key in ("Path", "CommandLine"):
+        text = args.get(key)
+        if isinstance(text, str):
+            for m in SKILL_READ.finditer(text):
+                member = member_for(m.group(1), crew)
+                if member:
+                    return member
+    return None
+
+
+def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: str | None = None) -> dict | None:
+    """Antigravity / OpenCode (F7-16). Returns the JSON document to print, or None. Raises on I/O failure."""
+    import crew_live  # noqa: PLC0415
+
+    now = now or datetime.now(timezone.utc)
+    stamp = now.replace(microsecond=0).isoformat()
+    agy = cli == "antigravity"
+    if agy:
+        event, sid = event or agy_event(payload), payload.get("conversationId")
+        paths = payload.get("workspacePaths")
+        cwd = paths[0] if isinstance(paths, list) and paths and isinstance(paths[0], str) and paths[0] else None
+        model = payload.get("modelName")
+        running = ("antigravity", model.strip() if isinstance(model, str) and model.strip() else "padrão do CLI")
+        if event not in ("PreToolUse", "PostToolUse", "PreInvocation", "PostInvocation", "Stop"):
+            return None
+    else:
+        event, sid = payload.get("event"), payload.get("session_id")
+        cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) and payload.get("cwd") else None
+        running = None
+        if event not in ("skill", "pulse", "prompt", "idle"):
+            return None
+    if not isinstance(sid, str) or not sid:
+        return None
+    cwd = cwd or os.getcwd()
+
+    member = mission = None
+    if (agy and event == "PreToolUse") or (not agy and event == "skill"):
+        crew, _ = crew_live.crew_members()
+        if agy:
+            member = agy_member(payload, crew)
+        else:
+            member = member_for(payload.get("skill"), crew)
+            mission = payload.get("mission")
+        if member is None:
+            return None
+    d = crew_live.live_dir(cwd)
+    if d is None:
+        return None
+    crew, available = crew_live.crew_members()
+    pending = d / PENDING_FILE
+
+    if agy and event == "PostInvocation":
+        data = json.loads(pending.read_text(encoding="utf-8")) if pending.exists() else {}
+        header = data.get(sid) if isinstance(data, dict) else None
+        if not isinstance(header, str) or not header:
+            return None
+        data.pop(sid)
+        crew_live.write_json(pending, data)
+        return {"injectSteps": [{"ephemeralMessage": AGY_ORDER + header}]}
+
+    num = payload.get("invocationNum")
+
+    repeat = False
+
+    def mutate(sessions: dict) -> None:
+        nonlocal repeat
+        entry = sessions.get(sid)
+        if member is not None and isinstance(entry, dict) and entry.get("member") == member                 and entry.get("active") is True and crew_live.entry_valid(entry, now):
+            entry["at"] = stamp  # same member already working in this session: no second header/pending (R4)
+            repeat = True
+        elif member is not None:
+            sessions[sid] = {"member": member, "active": True, "source": "hook", "at": stamp}
+        elif isinstance(entry, dict):
+            entry["at"] = stamp
+            if event in ("Stop", "idle"):
+                entry["active"] = False
+            elif event == "prompt" or (event == "PreInvocation" and num == 0 and not isinstance(num, bool)):
+                entry["active"] = True
+
+    if member is None:
+        spath = d / crew_live.SESSIONS_FILE
+        existing = json.loads(spath.read_text(encoding="utf-8")) if spath.exists() else {}
+        if not isinstance(existing, dict) or not isinstance(existing.get(sid), dict):
+            return None
+    crew_live.update_sessions(d, available, mutate, now, strict=True)
+    if member is None or repeat:
+        return None
+    if not agy:
+        model = crew[member].get("model")
+        running = ("opencode", "padrão do CLI" if model in (None, "cli-default") else str(model))
+    header = plain_header(crew[member], mission if isinstance(mission, str) else None, running)
+    if agy:
+        data = json.loads(pending.read_text(encoding="utf-8")) if pending.exists() else {}
+        data = data if isinstance(data, dict) else {}
+        data[sid] = header
+        crew_live.write_json(pending, data)
+        return None
+    return {"header": header}
 
 
 def handle(payload: dict, now: datetime | None = None, cli: str = "claude") -> str | None:
@@ -179,6 +304,12 @@ def main() -> int:
             return 0
         argv = sys.argv[1:]
         cli = argv[argv.index("--cli") + 1] if "--cli" in argv and argv.index("--cli") + 1 < len(argv) else "claude"
+        if cli in ("antigravity", "opencode"):
+            event = argv[argv.index("--event") + 1] if "--event" in argv and argv.index("--event") + 1 < len(argv) else None
+            doc = handle_extra(payload, cli, event=event)
+            if doc:
+                sys.stdout.buffer.write(json.dumps(doc, ensure_ascii=False).encode("utf-8") + b"\n")
+            return 0
         message = handle(payload, cli=cli)
         if message:
             sys.stdout.buffer.write(json.dumps({"systemMessage": message}, ensure_ascii=False).encode("utf-8"))

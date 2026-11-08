@@ -1,4 +1,62 @@
 {
+  "starcode-crew": {
+    "PreToolUse": [
+      {
+        "matcher": "read_file|view_file|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/crew_hook.py --cli antigravity --event PreToolUse",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/crew_hook.py --cli antigravity --event PostToolUse",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreInvocation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/crew_hook.py --cli antigravity --event PreInvocation",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/crew_hook.py --cli antigravity --event PostInvocation",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{STARCODE_ROOT}}/hooks/scripts/crew_hook.py --cli antigravity --event Stop",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "starcode-guard": {
     "PreToolUse": [
       {
