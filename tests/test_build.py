@@ -109,7 +109,7 @@ class BuildTests(unittest.TestCase):
         build.build(self.src, self.out)
         hooks = self._hooks_json("codex", "hooks", "hooks.json")["hooks"]
         pre = hooks["PreToolUse"]
-        self.assertEqual([e["matcher"] for e in pre], ["Bash"])
+        self.assertEqual([e["matcher"] for e in pre], ["Bash", "Bash"])  # 2nd group: crew_hook (F7-14)
         cmds = [(h["command"], h["timeout"]) for h in pre[0]["hooks"]]
         self.assertEqual(cmds, [
             ('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/git_guard.py"', 15),

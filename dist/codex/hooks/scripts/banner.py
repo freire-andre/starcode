@@ -203,6 +203,44 @@ def codex_trust_warning() -> list[str]:
     return []
 
 
+CREW_HOOK_WARNING = ("⚠️ Codex: confie nos hooks da tripulação do StarCode (abra o Codex e aceite o aviso de hooks) "
+                     "para o cabeçalho aparecer")
+CREW_HOOK_KEYS = tuple(f"starcode@starcode:hooks/hooks.json:{e}:{g}:0" for e, g in (
+    ("pre_tool_use", 1), ("user_prompt_submit", 0), ("post_tool_use", 0), ("stop", 0), ("session_end", 0)))
+
+
+def _snake(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def crew_hook_keys() -> tuple[str, ...]:
+    """`hooks.state` keys of the crew_hook entries in this plugin's hooks.json (F7-14); the known five when the file
+    is missing or lists none."""
+    try:
+        events = json.loads((sc.PLUGIN_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+        keys = [f"starcode@starcode:hooks/hooks.json:{_snake(event)}:{gi}:{hi}"
+                for event, groups in events.items() for gi, group in enumerate(groups)
+                for hi, hook in enumerate(group.get("hooks", [])) if "crew_hook.py" in str(hook.get("command"))]
+    except Exception:  # noqa: BLE001 - never break the banner
+        keys = []
+    return tuple(keys) or CREW_HOOK_KEYS
+
+
+def codex_crew_hooks_warning() -> list[str]:
+    """F7-14 R8: the header only shows once every crew hook has a trusted (and not disabled) `hooks.state` entry."""
+    home = Path(os.environ.get("STARCODE_HOME") or Path.home())
+    try:
+        with open(home / ".codex" / "config.toml", "rb") as fh:
+            state = tomllib.load(fh).get("hooks", {}).get("state", {})
+        for key in crew_hook_keys():
+            entry = state.get(key)
+            if not (isinstance(entry, dict) and entry.get("trusted_hash") and entry.get("enabled") is not False):
+                return [CREW_HOOK_WARNING]
+    except Exception:  # noqa: BLE001
+        return [CREW_HOOK_WARNING]
+    return []
+
+
 def crew_lines(user_cfg: dict | None) -> list[str]:
     try:
         doc = sc.load_crew()
@@ -298,6 +336,7 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
         lines.extend(unavailable_extras(cli))
         if cli == "codex":
             lines.extend(codex_trust_warning())
+            lines.extend(codex_crew_hooks_warning())
 
     one_line = "🖖 StarCode: " + (" · ".join(summary) if summary else "pronto")
     return "\n".join(lines), one_line, active

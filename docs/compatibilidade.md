@@ -25,6 +25,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | `orca orchestration worker-start` (`--spec-file`, resultado, modelo) | ✅ ⁸ | ✅ ⁵ | ✅ ⁸ | não testado ⁹ |
 | MCP do Linear disponível | ✅ | ⏳ ¹⁰ | ⚠️ ¹⁰ | ❌ ¹⁰ |
 | Fluxo StarCode completo (aceite da Fase 4) | ✅ ¹¹ | ✅ ¹¹ | ✅ ¹² | ✅ ¹³ |
+| Cabeçalho por hook | ✅ | ✅ (após confiança) | em sondagem | em sondagem |
 
 ## Notas
 

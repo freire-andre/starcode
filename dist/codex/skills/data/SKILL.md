@@ -15,10 +15,7 @@ Read first: `<plugin-root>/context/STARCODE.md`, `<plugin-root>/skills/engajar/r
 `references/tasks-template.md`, `<plugin-root>/skills/engajar/references/gate-excuses.md`.
 Catchphrases (chat only): the header carries "Processando."; "Plano concluído." once when you hand
 back, never on a turn that ends with a question. Turns stay short (engajar step 7, F2-10).
-**Header first (F6-6):** your first reply of the step starts with the output of
-`python "<plugin-root>/scripts/crew_live.py" start data --mission "<slug or ticket>"`, verbatim, before anything else; it
-also marks you as working in the live panel. Right before you hand back, run
-`python "<plugin-root>/scripts/crew_live.py" stop data` (silent: no need to show its line).
+In Codex the StarCode hook shows your header and marks you as working once its hooks are trusted: do not run crew_live.py start/stop and do not repeat the header.
 
 ## 0. Preconditions
 The spec must be approved (LARGE/COMPLEX). Check:
