@@ -515,3 +515,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** cada comando do grupo `starcode-crew` passa o evento como `--event <Nome>` (`PreToolUse`, `PostToolUse`, `PreInvocation`, `PostInvocation`, `Stop`); o `crew_hook.py` usa esse valor e só recorre ao campo da entrada quando `--event` falta; evento ausente ou desconhecido sai com 0 e sem saída. Os testes do modo antigravity usam entrada sem nome de evento, como a real (943ef04).
 - **Motivo:** o hook só faz sentido se reconhecer o evento no CLI real; o registro em `hooks.json` é o único lugar que sabe qual evento disparou.
 - **Por que não é bug:** o comportamento de R1–R11 da F7-16 não muda; Claude, Codex e OpenCode não mudam.
+
+### F7-18: Correção pós-Q da F7-16 (releitura da skill, erros do plugin do OpenCode e cabeçalho integral nos testes)
+- **Problema:** o Q (codex gpt-6-luna) achou que (1) uma nova leitura do `SKILL.md` do mesmo tripulante, na mesma sessão, recriava a pendência do cabeçalho no agy (e o `header` no OpenCode), contra o caso de borda aprovado; (2) o C6 só conferia o texto do `starcode.js` e não provava que os erros são engolidos (R7); (3) os testes de cabeçalho de C3 e C5 usavam `assertIn`/`startswith`.
+- **Decisão:** (1) quando a sessão já tem entrada ativa e válida do mesmo tripulante, a leitura só renova `at`, sem pendência nem `header` (6d227fb); (2) um teste carrega o plugin no Node com um `ctx` falso e prova que `synthetic` que lança ou rejeita, registro que falha, Python ausente e pasta inválida não escapam; sem Node o teste é pulado (699abd9); o plugin já engolia tudo e não mudou; (3) C3 e C5 comparam o cabeçalho inteiro (005e69f).
+- **Motivo:** repetir o cabeçalho a cada releitura poluiria a conversa, e R7 exige comportamento sob erro, não só a presença de `catch`.
+- **Por que não é bug:** R1–R11 da F7-16 e o `--event` da F7-17 não mudam; Claude e Codex não mudam.

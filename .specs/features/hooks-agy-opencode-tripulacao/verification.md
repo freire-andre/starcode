@@ -24,9 +24,9 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| Nova leitura da mesma skill na mesma sessão cria uma nova pendência, contrariando o edge case aprovado de apenas renovar `at`. | `hooks/scripts/crew_hook.py:188-212`; sondagem: após ler `troi/SKILL.md`, consumir a pendência com `PostInvocation` e ler a mesma skill de novo, `pending.json` voltou a conter `c1` (saídas de ambas as leituras: vazias). | Detectar sessão ativa válida do mesmo membro; renovar `at` sem recriar a pendência. | |
-| C6 não verifica a tolerância a erros exigida por R7; verificações de texto por contagem de `catch` não demonstram o comportamento sob rejeição ou exceção. | `tests/test_crew_hook_agy_opencode.py:202-229` | Exercitar rejeições/exceções em registro, execução do hook e `ctx.session.synthetic`, confirmando que não escapam nem bloqueiam o turno. | |
-| As asserções de cabeçalho são mais fracas que o texto integral fixado por R3/R4/R6. | `tests/test_crew_hook_agy_opencode.py:50-60, 91-98, 142-146`; usam `assertIn`/`startswith` em vez de comparar o cabeçalho completo, incluindo linha de papel, modelo e demais linhas. | Comparar a string integral esperada para os casos especificados. | |
+| Nova leitura da mesma skill na mesma sessão cria uma nova pendência, contrariando o edge case aprovado de apenas renovar `at`. | `hooks/scripts/crew_hook.py:188-212`; sondagem: após ler `troi/SKILL.md`, consumir a pendência com `PostInvocation` e ler a mesma skill de novo, `pending.json` voltou a conter `c1` (saídas de ambas as leituras: vazias). | Detectar sessão ativa válida do mesmo membro; renovar `at` sem recriar a pendência. | 6d227fb |
+| C6 não verifica a tolerância a erros exigida por R7; verificações de texto por contagem de `catch` não demonstram o comportamento sob rejeição ou exceção. | `tests/test_crew_hook_agy_opencode.py:202-229` | Exercitar rejeições/exceções em registro, execução do hook e `ctx.session.synthetic`, confirmando que não escapam nem bloqueiam o turno. | 699abd9 |
+| As asserções de cabeçalho são mais fracas que o texto integral fixado por R3/R4/R6. | `tests/test_crew_hook_agy_opencode.py:50-60, 91-98, 142-146`; usam `assertIn`/`startswith` em vez de comparar o cabeçalho completo, incluindo linha de papel, modelo e demais linhas. | Comparar a string integral esperada para os casos especificados. | 005e69f |
 
 ## Limits
 

@@ -99,15 +99,15 @@ Proof: run unit | test_decisions_records_f7_16_agy_opencode_hooks ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** esperar worker_done da correção
+**Next:** esperar a correção pós-Q
 **Linear:** SC-86
 **Integration branch:** not created
-**Last integrated:** bd5cc2a
-**Dispatched:** SC-86 fix --event → claude claude-sonnet-5-5 (ctx_4f0dca32b584)
+**Last integrated:** a28cfe0
+**Dispatched:** Q-fix → claude claude-sonnet-5-5 (ctx_f07b98c7b160)
 **Settled:** 2026-11-08: 2026-11-08: Antigravity: hook injeta e o modelo repete; OpenCode: mensagem sintética + modelo repete; 2026-11-08: 2026-11-08: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** 2026-11-08: 2026-11-08: SC-86: R1–R11 (bd5cc2a), gate ticket verde, 420 testes rc 0; Picard: agy não manda nome do evento na entrada, falta --event no comando
+**Reports:** 2026-11-08: 2026-11-08: SC-86: R1–R11 (bd5cc2a), gate ticket verde, 420 testes rc 0; Picard: agy não manda nome do evento na entrada, falta --event no comando; 2026-11-08: 2026-11-08: fix --event (943ef04, F7-17), 422 testes rc 0, fumaça do hook agy ok, proofs verde; 2026-11-08: 2026-11-08: Q (codex gpt-6-luna): FAIL, 3 achados (leitura repetida recria pendência; C6 não prova erros engolidos; cabeçalho com assertIn)
 **Breaker:** closed
