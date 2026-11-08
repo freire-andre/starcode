@@ -1,0 +1,15 @@
+name: faketauri
+kind: app
+combinesWith: []
+tools: [python]
+install: []
+gates:
+  unit: [python gate_ok.py unit]
+alignMajor:
+  - from: "@tauri-apps/cli"
+    deps: [tauri, tauri-build, "@tauri-apps/api"]
+deps:
+  - {name: tauri, registry: crates, main: true, tested: "2"}
+  - {name: tauri-build, registry: crates, main: true, tested: "2"}
+  - {name: "@tauri-apps/cli", registry: npm, main: true, tested: "2"}
+  - {name: "@tauri-apps/api", registry: npm, main: true, tested: "2"}

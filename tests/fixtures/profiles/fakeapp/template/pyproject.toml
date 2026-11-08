@@ -1,0 +1,7 @@
+[project]
+name = "{{name}}"
+dependencies = [
+    "fakelib=={{version:fakelib}}",
+    # starcode:inject deps
+]
+dev = ["fakedev=={{version:fakedev}}"]

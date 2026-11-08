@@ -1,0 +1,12 @@
+name: fakedb
+kind: db
+tools: [python]
+image: {name: postgres, registry: dockerhub}
+inject:
+  - file: pyproject.toml
+    marker: "# starcode:inject deps"
+    lines: ['"fakedriver=={{version:fakedriver}}",']
+gates:
+  integration: [python gate_ok.py integration]
+deps:
+  - {name: fakedriver, registry: pypi, main: true, tested: "1", docs: {id: /x/fakedriver, at: 2026-11-08}}
