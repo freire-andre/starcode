@@ -41,26 +41,29 @@ def member_for(name: object, crew: dict[str, dict], prefixed_only: bool = False)
     """Crew key whose skill is `name` ("starcode:<skill>" or, unless prefixed_only, "<skill>")."""
     if not isinstance(name, str):
         return None
-    name = name.strip()
+    name = name.strip().lower()
     if name.startswith("starcode:"):
         name = name[len("starcode:"):]
     elif prefixed_only:
         return None
     for key, m in crew.items():
-        if m.get("skill") == name:
+        if str(m.get("skill", "")).lower() == name:
             return key
     return None
 
 
-def plain_header(member: dict, mission: str | None) -> str:
+def plain_header(member: dict, mission: str | None, running: tuple[str, str] | None = None) -> str:
     """The header as plain text: the systemMessage markdown rendering was not verified (R2)."""
     import crew_live  # noqa: PLC0415
 
     model = "padrão do CLI" if member.get("model") in (None, "cli-default") else member["model"]
+    cli = member.get("cli")
+    if running:  # Codex mode: show who actually runs, not the crew config (F7-15)
+        cli, model = running
     open_line = (member.get("voice") or {}).get("open", "")
     lines = [crew_live.RULE,
              f"{member.get('emoji', '')} {member['name'].upper()} ASSUME A PONTE",
-             f"{member.get('role', '')} · {member.get('cli')} · {model}"]
+             f"{member.get('role', '')} · {cli} · {model}"]
     text = " ".join(str(mission or "").split())[:MISSION_MAX].strip()
     if text:
         lines.append(f"Missão: {text}")
@@ -162,7 +165,11 @@ def handle(payload: dict, now: datetime | None = None, cli: str = "claude") -> s
     crew_live.update_sessions(d, available, mutate, now, strict=True)
     if member is None or repeat:
         return None
-    return plain_header(crew[member], mission if isinstance(mission, str) else None)
+    running = None
+    if codex:
+        pm = payload.get("model")
+        running = ("codex", pm.strip() if isinstance(pm, str) and pm.strip() else "padrão do CLI")
+    return plain_header(crew[member], mission if isinstance(mission, str) else None, running)
 
 
 def main() -> int:

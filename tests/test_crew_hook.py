@@ -313,11 +313,11 @@ class CodexHookCase(HookCase):
         self.assertEqual(res.returncode, 0, res.stderr)
         return res.stdout
 
-    def bash(self, command: str, sid: str = "s1") -> str:
-        return self.fire("PreToolUse", sid, tool_name="Bash", tool_input={"command": command})
+    def bash(self, command: str, sid: str = "s1", **extra) -> str:
+        return self.fire("PreToolUse", sid, tool_name="Bash", tool_input={"command": command}, **extra)
 
-    def prompt(self, text: str, sid: str = "s1") -> str:
-        return self.fire("UserPromptSubmit", sid, prompt=text)
+    def prompt(self, text: str, sid: str = "s1", **extra) -> str:
+        return self.fire("UserPromptSubmit", sid, prompt=text, **extra)
 
 
 class CrewHookCodexTest(CodexHookCase):
@@ -330,6 +330,11 @@ class CrewHookCodexTest(CodexHookCase):
         self.assertEqual(self.crew()["troi"], 1)
         # case-insensitive, forward slashes, other crew member
         out = self.bash("cat /home/u/.codex/plugins/StarCode/skills/spock/skill.md", "s2")
+        self.assertIn("SPOCK ASSUME A PONTE", json.loads(out)["systemMessage"])
+        before = self.sessions()
+        out = self.bash("cat C:/x/StarCode/skills/Troi/SKILL.md", "s4")
+        self.assertIn("TROI ASSUME A PONTE", json.loads(out)["systemMessage"])
+        out = self.bash(r"type C:\x\starcode\1.1.0\skills\SPOCK\SKILL.md", "s5")
         self.assertIn("SPOCK ASSUME A PONTE", json.loads(out)["systemMessage"])
         before = self.sessions()
         self.assertEqual(self.bash("cat C:/x/other-plugin/skills/troi/SKILL.md", "s3"), "")
@@ -350,6 +355,17 @@ class CrewHookCodexTest(CodexHookCase):
         self.assertIn("Missão: " + "x" * 80, out.splitlines())
         self.assertEqual(self.crew()["troi"], 1)
         before = self.sessions()
+        out = json.loads(self.prompt("$Spock revisar", "s4"))["systemMessage"]
+        self.assertIn("SPOCK ASSUME A PONTE", out)
+        self.assertIn("Missão: revisar", out.splitlines())
+        out = json.loads(self.prompt("$TROI", "s5"))["systemMessage"]
+        lines = out.splitlines()
+        self.assertEqual(len(lines), 5, lines)
+        self.assertEqual(lines[0], lines[-1])
+        self.assertIn("TROI ASSUME A PONTE", lines[1])
+        self.assertTrue(lines[2].endswith(" · codex · padrão do CLI"), lines[2])
+        self.assertFalse(any(l.startswith("Missão:") for l in lines))
+        before = self.sessions()
         self.assertEqual(self.prompt("custa US$data hoje", "s3"), "")
         self.assertEqual(self.prompt("$starcode sem skill", "s3"), "")
         self.assertEqual(self.sessions(), before)
@@ -360,6 +376,15 @@ class CrewHookCodexTest(CodexHookCase):
         self.assertTrue(self.sessions()["s1"]["active"])
         self.assertEqual(self.prompt("e agora?", "none"), "")
         self.assertNotIn("none", self.sessions())
+
+    def test_crew_hook_codex_header_shows_running_cli(self):
+        out = json.loads(self.prompt("$troi", model="gpt-5.5"))["systemMessage"]
+        self.assertTrue(out.splitlines()[2].endswith(" · codex · gpt-5.5"), out)
+        self.assertNotIn("claude", out.splitlines()[2])
+        out = json.loads(self.prompt("$spock", "s2", model=7))["systemMessage"]
+        self.assertTrue(out.splitlines()[2].endswith(" · codex · padrão do CLI"), out)
+        out = json.loads(self.bash(f"cat {SKILL_PATH}", "s3"))["systemMessage"]
+        self.assertTrue(out.splitlines()[2].endswith(" · codex · padrão do CLI"), out)
 
     def test_crew_hook_codex_lifecycle(self):
         self.assertEqual(self.fire("PostToolUse", tool_name="Bash"), "")
