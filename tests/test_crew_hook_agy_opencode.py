@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -23,7 +24,7 @@ TROI_AGY = "\n".join([BAR, "💜 TROI ASSUME A PONTE", "Descoberta · antigravit
                       "“Sinto que há algo não dito.”", BAR])
 SPOCK_AGY = "\n".join([BAR, "🖖 SPOCK ASSUME A PONTE", "Spec e arquitetura · antigravity · gemini-3.8-flash-high",
                        "“Fascinante.”", BAR])
-LAFORGE_OC = "\n".join([BAR, "🔧 LAFORGE ASSUME A PONTE", "Implementação · opencode · claude-sonnet-5-5",
+LAFORGE_OC = "\n".join([BAR, "🔧 LAFORGE ASSUME A PONTE", "Implementação · opencode · padrão do CLI",
                         "Missão: ticket SC-1", "“Motores prontos.”", BAR])
 
 
@@ -181,6 +182,17 @@ class CrewHookAgyEventArgTest(AgyOpenCodeCase):
 
 
 class CrewHookOpenCodeTest(AgyOpenCodeCase):
+    def test_crew_hook_opencode_header_never_shows_configured_model(self):
+        # the plugin cannot know which model the OpenCode session runs, so the configured one must not appear
+        home = Path(os.environ["STARCODE_HOME"])
+        home.mkdir(parents=True, exist_ok=True)
+        for sid, model in (("m1", "claude-opus-5-5"), ("m2", "cli-default")):
+            (home / "config.json").write_text(json.dumps(
+                {"schemaVersion": 1, "crew": {"laforge": {"model": model}}}), encoding="utf-8")
+            out = json.loads(self.oc("skill", sid=sid, skill="starcode:laforge", mission="ticket SC-1"))
+            self.assertEqual(out["header"], LAFORGE_OC)
+            self.assertNotIn(model if model != "cli-default" else "claude-", out["header"])
+
     def test_crew_hook_opencode_events(self):
         out = json.loads(self.oc("skill", skill="starcode:laforge", mission="ticket SC-1"))
         self.assertEqual(list(out), ["header"])

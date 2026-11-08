@@ -24,7 +24,8 @@ Antigravity mode (`--cli antigravity --event <Name>`, F7-16): the real agy paylo
   run_command) on a crew SKILL.md marks the session and parks the header in .starcode/live/pending.json;
   PostInvocation prints {"injectSteps": [...ephemeralMessage...]} once. It never prints a decision field.
 OpenCode mode (`--cli opencode`, F7-16): {"event": skill|pulse|prompt|idle, "session_id", "skill", "cwd", "mission"};
-  `skill` of a crew member prints {"header": "<header>"}.
+  `skill` of a crew member prints {"header": "<header>"}; the role line always reads `opencode · padrão do CLI`
+  (the session model is unknown to the plugin, so the crew's configured model is never shown).
 
 Never breaks the session: invalid JSON, outside Git, unreadable/unwritable files -> exit 0, no output.
 Python stdlib only.
@@ -208,8 +209,8 @@ def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: st
     if member is None or repeat:
         return None
     if not agy:
-        model = crew[member].get("model")
-        running = ("opencode", "padrão do CLI" if model in (None, "cli-default") else str(model))
+        # the plugin cannot know which model the OpenCode session runs, so never show the configured one
+        running = ("opencode", "padrão do CLI")
     header = plain_header(crew[member], mission if isinstance(mission, str) else None, running)
     if agy:
         data = json.loads(pending.read_text(encoding="utf-8")) if pending.exists() else {}
