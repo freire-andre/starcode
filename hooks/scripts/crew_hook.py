@@ -182,9 +182,15 @@ def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: st
 
     num = payload.get("invocationNum")
 
+    repeat = False
+
     def mutate(sessions: dict) -> None:
+        nonlocal repeat
         entry = sessions.get(sid)
-        if member is not None:
+        if member is not None and isinstance(entry, dict) and entry.get("member") == member                 and entry.get("active") is True and crew_live.entry_valid(entry, now):
+            entry["at"] = stamp  # same member already working in this session: no second header/pending (R4)
+            repeat = True
+        elif member is not None:
             sessions[sid] = {"member": member, "active": True, "source": "hook", "at": stamp}
         elif isinstance(entry, dict):
             entry["at"] = stamp
@@ -199,7 +205,7 @@ def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: st
         if not isinstance(existing, dict) or not isinstance(existing.get(sid), dict):
             return None
     crew_live.update_sessions(d, available, mutate, now, strict=True)
-    if member is None:
+    if member is None or repeat:
         return None
     if not agy:
         model = crew[member].get("model")
