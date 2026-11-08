@@ -198,11 +198,27 @@ def emit_skills(src: dict, cli: str, out: Path) -> None:
                 text = render(f.read_text(encoding="utf-8"), cli, src["crew"], f"skills/{name}/{rel.as_posix()}",
                               rel.as_posix() == "SKILL.md")
                 if rel.as_posix() == "SKILL.md" and cli == "claude":
+                    text = claude_header_rule(text)
                     text = claude_frontmatter(text, info["invocation"])
                 write(target, text)
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(f.read_bytes())
+
+
+HEADER_RULE_CLAUDE = ("In Claude Code the StarCode hook already showed your header and marks you as working: "
+                      "do not run crew_live.py start/stop and do not repeat the header.")
+HEADER_PARAGRAPHS = (
+    re.compile(r"\*\*Header first \(F6-6\):\*\*.*?\n\n", re.S),  # troi, spock, data, laforge, mccoy, q
+    re.compile(r"First run `python \"<plugin-root>/scripts/crew_live\.py\" start picard.*?stop picard`\.\n\n", re.S),
+)
+
+
+def claude_header_rule(text: str) -> str:
+    """Claude only (F7-12): the hook shows the header and the status, so the F6-6 instruction becomes one line."""
+    for pattern in HEADER_PARAGRAPHS:
+        text = pattern.sub(lambda _m: HEADER_RULE_CLAUDE + "\n\n", text)
+    return text
 
 
 def claude_frontmatter(text: str, invocation: str) -> str:
@@ -233,7 +249,7 @@ def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
     write_json(out / "capabilities.json", {"schemaVersion": 1, "cli": cli, "extras": src["capabilities"][cli]})
 
 
-def claude_hooks() -> dict:
+def base_hooks() -> dict:
     root = "${CLAUDE_PLUGIN_ROOT}"
     return {"hooks": {
         "PreToolUse": [{"matcher": "Bash", "hooks": [
@@ -246,8 +262,21 @@ def claude_hooks() -> dict:
     }}
 
 
+def claude_hooks() -> dict:
+    """Claude also gets crew_hook.py (F7-12): header and live status without depending on the model."""
+    hooks = base_hooks()
+    crew = [{"type": "command", "command": 'python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/crew_hook.py"', "timeout": 10}]
+    events = hooks["hooks"]
+    events["PreToolUse"].append({"matcher": "Skill", "hooks": crew})
+    events["UserPromptExpansion"] = [{"matcher": "starcode:.*", "hooks": crew}]
+    events["PostToolUse"] = [{"matcher": "*", "hooks": crew}]
+    for name in ("Stop", "UserPromptSubmit", "SessionEnd"):
+        events[name] = [{"hooks": crew}]
+    return hooks
+
+
 def codex_hooks() -> dict:
-    hooks = claude_hooks()
+    hooks = base_hooks()
     root = "${CLAUDE_PLUGIN_ROOT}"
     hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"] = f'python "{root}/hooks/scripts/banner.py" --full --cli codex'
     return hooks

@@ -25,6 +25,8 @@ DIM = "\x1b[2m"
 STOPS = ((0.0, (0xC5, 0xDB, 0xFF)), (50.0, (0x75, 0xC3, 0xFF)), (100.0, (0x00, 0x28, 0xB3)))
 WIDTH = 10
 DONE_WINDOW = timedelta(hours=12)  # a finished feature stays on the line for a while, at 100%
+HOOK_TTL = timedelta(minutes=15)  # same validity as crew_live.py (F7-12); read-only here
+CLI_TTL = timedelta(minutes=60)
 CREW_FILE = Path(__file__).resolve().parent.parent / "crew.json"  # generated, beside the plugin
 
 
@@ -94,6 +96,42 @@ def _names() -> dict:
     return {k: f"{m.get('emoji', '')} {m.get('name', k)}".strip() for k, m in crew.items() if isinstance(m, dict)}
 
 
+def _alive(entry: object, now: datetime) -> bool:
+    if not isinstance(entry, dict) or entry.get("active") is not True:
+        return False
+    try:
+        at = datetime.fromisoformat(str(entry.get("at")))
+    except ValueError:
+        return False
+    at = at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+    return now - at < (CLI_TTL if entry.get("source") == "cli" else HOOK_TTL)
+
+
+def active_crew(d: Path, now: datetime) -> dict[str, int]:
+    """{member: n} of who is working. With sessions.json beside crew.json, only its valid active entries count
+    (an expired one is 0, nothing is written); without it, the flat crew.json values."""
+    spath = d / "sessions.json"
+    if not spath.exists():
+        return {k: v for k, v in _read(d / "crew.json").items()
+                if isinstance(v, int) and not isinstance(v, bool) and v > 0 and (v == 1 or k == "laforge")}
+    counts: dict[str, int] = {}
+    hook_laforge = cli_laforge = 0
+    for e in _read(spath).values():
+        if not _alive(e, now) or not isinstance(e.get("member"), str):
+            continue
+        m = e["member"]
+        if m != "laforge":
+            counts[m] = 1
+        elif e.get("source") == "cli":
+            n = e.get("count", 1)
+            cli_laforge = max(cli_laforge, n if isinstance(n, int) and not isinstance(n, bool) and 0 < n <= 10 else 1)
+        else:
+            hook_laforge += 1
+    if max(hook_laforge, cli_laforge):
+        counts["laforge"] = min(10, max(hook_laforge, cli_laforge))
+    return counts
+
+
 def _when(entry: dict) -> datetime:
     try:
         return datetime.fromisoformat(str(entry.get("updatedAt")))
@@ -118,8 +156,11 @@ def segment(cwd: str, now: datetime | None = None) -> str:
             return ""
         now = now or datetime.now(timezone.utc)
         names = _names()
-        crew = _read(d / "crew.json")
-        active = [names.get(k, k.capitalize()) for k, v in crew.items() if v == 1]
+        crew = active_crew(d, now)
+        active = []
+        for k in crew:
+            label = names.get(k, k.capitalize())
+            active.append(f"{label} ×{crew[k]}" if k == "laforge" and crew[k] > 1 else label)
         feat = pick_feature(_read(d / "progress.json"), now)
         parts = []
         if active:
