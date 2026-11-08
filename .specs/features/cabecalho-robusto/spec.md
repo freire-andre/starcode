@@ -89,10 +89,10 @@ Proof: run unit | test_decisions_records_f7_12_crew_hook ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** push e PR
+**Next:** nada (PR #14 com merge em main 1055429)
 **Linear:** SC-84
 **Integration branch:** not created
 **Last integrated:** c5b759e

@@ -261,11 +261,12 @@ class BuildTest(TempRepoCase):
         text = json.dumps(events)
         for script in ("git_guard.py", "secret_scan.py", "banner.py"):
             self.assertIn(script, text)
-        for cli in ("codex", "antigravity", "opencode"):
+        for cli in ("antigravity", "opencode"):  # Codex got its own crew_hook registration in F7-14
             for f in (ROOT / "dist" / cli).rglob("*"):
                 if f.is_file() and f.suffix in (".json", ".js") and "crew_hook" in f.read_text(encoding="utf-8"):
                     self.fail(f"{f} cita crew_hook")
-        self.assertNotIn("crew_hook", json.dumps(build.codex_hooks()))
+        self.assertIn("--cli codex", json.dumps(build.codex_hooks()))
+        self.assertIn("crew_hook.py", json.dumps(build.codex_hooks()))
         self.assertNotIn("crew_hook", json.dumps(build.antigravity_hooks()))
 
     def test_build_header_rule_per_cli(self):
@@ -280,9 +281,10 @@ class BuildTest(TempRepoCase):
             for cli in ("codex", "antigravity", "opencode"):
                 other = (ROOT / "dist" / cli / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
                 self.assertNotIn(sentence, other, f"{cli}/{skill}")
-                self.assertIn('crew_live.py" start', other, f"{cli}/{skill}")
-        codex = (ROOT / "dist" / "codex" / "skills" / "laforge" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("Header first (F6-6)", codex)
+                if cli != "codex":  # Codex swaps the F6-6 instruction in F7-14
+                    self.assertIn('crew_live.py" start', other, f"{cli}/{skill}")
+        agy = (ROOT / "dist" / "antigravity" / "skills" / "laforge" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Header first (F6-6)", agy)
 
 
 class DocsTest(TempRepoCase):
@@ -295,3 +297,192 @@ class DocsTest(TempRepoCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
         self.assertIn("crew_hook.py", unreleased)
+
+
+CODEX_RULE = ("In Codex the StarCode hook shows your header and marks you as working once its hooks are trusted: "
+              "do not run crew_live.py start/stop and do not repeat the header.")
+SKILL_PATH = "C:\\x\\starcode\\1.1.0\\skills\\troi\\SKILL.md"
+
+
+class CodexHookCase(HookCase):
+    def fire(self, event: str, sid: str = "s1", raw: str | None = None, cwd: Path | None = None, **extra):
+        payload = {"hook_event_name": event, "session_id": sid, "cwd": str(cwd or self.repo), **extra}
+        res = subprocess.run([sys.executable, str(HOOK), "--cli", "codex"],
+                             input=raw if raw is not None else json.dumps(payload),
+                             capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        return res.stdout
+
+    def bash(self, command: str, sid: str = "s1", **extra) -> str:
+        return self.fire("PreToolUse", sid, tool_name="Bash", tool_input={"command": command}, **extra)
+
+    def prompt(self, text: str, sid: str = "s1", **extra) -> str:
+        return self.fire("UserPromptSubmit", sid, prompt=text, **extra)
+
+
+class CrewHookCodexTest(CodexHookCase):
+    def test_crew_hook_codex_skill_read_marks_member(self):
+        out = self.bash(f"Get-Content {SKILL_PATH}")
+        self.assertEqual(list(json.loads(out)), ["systemMessage"])
+        self.assertIn("TROI ASSUME A PONTE", json.loads(out)["systemMessage"])
+        entry = self.sessions()["s1"]
+        self.assertEqual((entry["member"], entry["active"], entry["source"]), ("troi", True, "hook"))
+        self.assertEqual(self.crew()["troi"], 1)
+        # case-insensitive, forward slashes, other crew member
+        out = self.bash("cat /home/u/.codex/plugins/StarCode/skills/spock/skill.md", "s2")
+        self.assertIn("SPOCK ASSUME A PONTE", json.loads(out)["systemMessage"])
+        before = self.sessions()
+        out = self.bash("cat C:/x/StarCode/skills/Troi/SKILL.md", "s4")
+        self.assertIn("TROI ASSUME A PONTE", json.loads(out)["systemMessage"])
+        out = self.bash(r"type C:\x\starcode\1.1.0\skills\SPOCK\SKILL.md", "s5")
+        self.assertIn("SPOCK ASSUME A PONTE", json.loads(out)["systemMessage"])
+        before = self.sessions()
+        self.assertEqual(self.bash("cat C:/x/other-plugin/skills/troi/SKILL.md", "s3"), "")
+        self.assertEqual(self.bash("ls C:/x/starcode/skills/troi", "s3"), "")
+        self.assertEqual(self.bash("cat C:/x/starcode/skills/unknown/SKILL.md", "s3"), "")
+        self.assertEqual(self.fire("PreToolUse", "s3", tool_name="Skill",
+                                   tool_input={"skill": "starcode:troi", "command": SKILL_PATH}), "")
+        self.assertEqual(self.sessions(), before)
+
+    def test_crew_hook_codex_prompt_token(self):
+        out = json.loads(self.prompt("$starcode:spock revisar a spec\noutra linha"))["systemMessage"]
+        self.assertIn("SPOCK ASSUME A PONTE", out)
+        self.assertIn("Missão: revisar a spec", out.splitlines())
+        self.assertNotIn("outra linha", out)
+        self.assertEqual(self.sessions()["s1"]["member"], "spock")
+        out = json.loads(self.prompt("quero isso: $troi " + "x" * 100, "s2"))["systemMessage"]
+        self.assertIn("TROI ASSUME A PONTE", out)
+        self.assertIn("Missão: " + "x" * 80, out.splitlines())
+        self.assertEqual(self.crew()["troi"], 1)
+        before = self.sessions()
+        out = json.loads(self.prompt("$Spock revisar", "s4"))["systemMessage"]
+        self.assertIn("SPOCK ASSUME A PONTE", out)
+        self.assertIn("Missão: revisar", out.splitlines())
+        out = json.loads(self.prompt("$TROI", "s5"))["systemMessage"]
+        lines = out.splitlines()
+        self.assertEqual(len(lines), 5, lines)
+        self.assertEqual(lines[0], lines[-1])
+        self.assertIn("TROI ASSUME A PONTE", lines[1])
+        self.assertTrue(lines[2].endswith(" · codex · padrão do CLI"), lines[2])
+        self.assertFalse(any(l.startswith("Missão:") for l in lines))
+        before = self.sessions()
+        self.assertEqual(self.prompt("custa US$data hoje", "s3"), "")
+        self.assertEqual(self.prompt("$starcode sem skill", "s3"), "")
+        self.assertEqual(self.sessions(), before)
+        # a plain prompt only reactivates an existing entry
+        self.fire("Stop")
+        self.assertFalse(self.sessions()["s1"]["active"])
+        self.assertEqual(self.prompt("e agora?"), "")
+        self.assertTrue(self.sessions()["s1"]["active"])
+        self.assertEqual(self.prompt("e agora?", "none"), "")
+        self.assertNotIn("none", self.sessions())
+
+    def test_crew_hook_codex_header_shows_running_cli(self):
+        out = json.loads(self.prompt("$troi", model="gpt-5.5"))["systemMessage"]
+        self.assertTrue(out.splitlines()[2].endswith(" · codex · gpt-5.5"), out)
+        self.assertNotIn("claude", out.splitlines()[2])
+        out = json.loads(self.prompt("$spock", "s2", model=7))["systemMessage"]
+        self.assertTrue(out.splitlines()[2].endswith(" · codex · padrão do CLI"), out)
+        out = json.loads(self.bash(f"cat {SKILL_PATH}", "s3"))["systemMessage"]
+        self.assertTrue(out.splitlines()[2].endswith(" · codex · padrão do CLI"), out)
+
+    def test_crew_hook_codex_lifecycle(self):
+        self.assertEqual(self.fire("PostToolUse", tool_name="Bash"), "")
+        self.assertFalse((self.live() / "sessions.json").exists())
+        self.put_sessions({"s1": {"member": "spock", "active": True, "source": "hook", "at": ago(10)}})
+        self.assertEqual(self.fire("PostToolUse", tool_name="Bash"), "")
+        self.assertGreater(datetime.fromisoformat(self.sessions()["s1"]["at"]),
+                           datetime.now(timezone.utc) - timedelta(minutes=1))
+        self.assertEqual(self.fire("Stop"), "")
+        self.assertFalse(self.sessions()["s1"]["active"])
+        self.assertEqual(self.crew()["spock"], 0)
+        self.assertEqual(self.fire("SessionEnd", reason="other"), "")
+        self.assertNotIn("s1", self.sessions())
+        self.assertEqual(self.fire("UserPromptExpansion", command_name="starcode:spock"), "")  # not a Codex event
+
+    def test_crew_hook_codex_no_repeat_header(self):
+        self.assertIn("ASSUME A PONTE", self.bash(f"cat {SKILL_PATH}"))
+        self.put_sessions({"s1": {**self.sessions()["s1"], "at": ago(5)}})
+        self.assertEqual(self.bash(f"cat {SKILL_PATH}"), "")
+        entry = self.sessions()["s1"]
+        self.assertGreater(datetime.fromisoformat(entry["at"]), datetime.now(timezone.utc) - timedelta(minutes=1))
+        self.assertEqual(self.prompt("$troi de novo"), "")  # same member, same session: no second header
+        self.assertIn("SPOCK ASSUME A PONTE", self.prompt("$spock agora"))  # another member shows its own
+        self.fire("Stop")
+        self.assertIn("SPOCK ASSUME A PONTE", self.prompt("$spock outra vez"))  # inactive: header again
+
+    def test_crew_hook_codex_never_breaks(self):
+        for raw in ("{not json", "", "[1,2]", "null"):
+            self.assertEqual(self.fire("PreToolUse", raw=raw), "")
+        self.assertEqual(self.fire("PreToolUse", tool_name="Bash", tool_input="x"), "")
+        self.assertEqual(self.fire("UserPromptSubmit", prompt=5), "")
+        outside = Path(tempfile.mkdtemp(prefix="starcode-nogit-"))
+        try:
+            out = self.fire("PreToolUse", cwd=outside, tool_name="Bash", tool_input={"command": SKILL_PATH})
+            self.assertEqual(out, "")
+        finally:
+            shutil.rmtree(outside, ignore_errors=True)
+        self.live().mkdir(parents=True, exist_ok=True)
+        (self.live() / "sessions.json").write_text("{broken", encoding="utf-8")
+        self.assertEqual(self.bash(SKILL_PATH), "")
+        (self.live() / "sessions.json").unlink()
+        (self.live() / "sessions.json").mkdir()  # unwritable: a folder where the file should be
+        self.assertEqual(self.bash(SKILL_PATH), "")
+        self.assertEqual(self.prompt("$troi x"), "")
+        self.assertEqual(self.fire("Stop"), "")
+
+
+class CodexBuildTest(TempRepoCase):
+    def test_build_registers_crew_hook_in_codex(self):
+        events = json.loads((ROOT / "dist" / "codex" / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+        self.assertEqual(set(events), {"PreToolUse", "SessionStart", "PostToolUse", "Stop", "UserPromptSubmit",
+                                       "SessionEnd"})
+
+        def crew_groups(name: str) -> list[dict]:
+            return [g for g in events[name] if any("crew_hook.py" in h["command"] for h in g["hooks"])]
+
+        wanted = {"PreToolUse": "Bash", "UserPromptSubmit": None, "PostToolUse": None, "Stop": None,
+                  "SessionEnd": None}
+        for name, matcher in wanted.items():
+            (group,) = crew_groups(name)
+            self.assertEqual(group.get("matcher"), matcher, name)
+            (hook,) = group["hooks"]
+            self.assertTrue(hook["command"].endswith('crew_hook.py" --cli codex'), name)
+            self.assertEqual(hook["timeout"], 10, name)
+        text = json.dumps(events)
+        for script in ("git_guard.py", "secret_scan.py", "banner.py"):
+            self.assertIn(script, text)
+        self.assertEqual(len(events["PreToolUse"]), 2)  # the guards group is kept
+        for cli in ("antigravity", "opencode"):
+            for f in (ROOT / "dist" / cli).rglob("*"):
+                if f.is_file() and f.suffix in (".json", ".js") and "crew_hook" in f.read_text(encoding="utf-8"):
+                    self.fail(f"{f} cita crew_hook")
+
+    def test_build_header_rule_codex(self):
+        self.assertEqual(build.HEADER_RULE_CODEX, CODEX_RULE)
+        for skill in ("engajar", "troi", "spock", "data", "laforge", "mccoy", "q"):
+            text = (ROOT / "dist" / "codex" / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn(CODEX_RULE, text, skill)
+            self.assertNotIn('crew_live.py" start', text, skill)
+            self.assertNotIn("Header first (F6-6)", text, skill)
+            agy = (ROOT / "dist" / "antigravity" / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn('crew_live.py" start', agy, skill)
+            self.assertNotIn(CODEX_RULE, agy, skill)
+        agy = (ROOT / "dist" / "antigravity" / "skills" / "laforge" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Header first (F6-6)", agy)
+
+
+class CodexDocsTest(TempRepoCase):
+    def test_decisions_records_f7_14_codex_hooks(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        self.assertIn("### F7-14:", text)
+        body = text.split("### F7-14:", 1)[1].split("\n### ", 1)[0]
+        for needle in ("crew_hook.py --cli codex", "SKILL.md", "$starcode:<skill>", "(R1)", "(R8)", "(R9)"):
+            self.assertIn(needle, body)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("crew_hook.py --cli codex", unreleased)
+        compat = (ROOT / "docs" / "compatibilidade.md").read_text(encoding="utf-8")
+        row = next(l for l in compat.splitlines() if l.startswith("| Cabeçalho por hook"))
+        cells = [c.strip() for c in row.strip().strip("|").split("|")]
+        self.assertEqual(cells[1:], ["✅", "✅ (após confiança)", "em sondagem", "em sondagem"])

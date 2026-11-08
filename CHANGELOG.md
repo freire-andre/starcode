@@ -12,6 +12,8 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 - Claude Code: `hooks/scripts/crew_hook.py` mostra o cabeçalho do tripulante e marca o status sozinho (sem depender do modelo), com `sessions.json` ao lado do `crew.json`; entradas vencem em 15 min (hook) ou 60 min (CLI) e o `crew.json` é recalculado a cada escrita.
 - Statusline: validade das entradas e `🔧 LaForge ×<n>`; banner: aviso quando o plugin instalado está atrás do repositório do StarCode.
+- Codex: `crew_hook.py --cli codex` mostra o cabeçalho e marca o status por hook (leitura do `SKILL.md` pelo shell ou `$starcode:<skill>` no prompt), registrado em `dist/codex/hooks/hooks.json`; as skills do Codex deixam de pedir `crew_live.py start/stop`.
+- Banner do Codex: aviso quando os hooks da tripulação ainda não têm confiança em `hooks.state`.
 
 ## [1.1.0] - 2026-11-07
 

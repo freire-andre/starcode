@@ -243,3 +243,37 @@ class BannerCommandFormatTests(TempRepoCase):  # R19
         with mock.patch.object(banner, "_run", side_effect=outs):
             lines = banner.check_linear(cfg, "opencode")
         self.assertTrue(any("/sc-setup" in l for l in lines))
+
+
+CREW_WARN = ("⚠️ Codex: confie nos hooks da tripulação do StarCode (abra o Codex e aceite o aviso de hooks) "
+             "para o cabeçalho aparecer")
+CREW_KEYS = [f"starcode@starcode:hooks/hooks.json:{e}:{g}:0" for e, g in (
+    ("pre_tool_use", 1), ("user_prompt_submit", 0), ("post_tool_use", 0), ("stop", 0), ("session_end", 0))]
+
+
+class BannerCodexCrewHooksTests(BannerCodexTrustTests):
+    def toml(self, keys, extra=""):
+        return "".join(f'[hooks.state."{k}"]\ntrusted_hash = "sha256:a"\n' for k in keys) + extra
+
+    def test_banner_warns_codex_crew_hooks_untrusted(self):
+        self.assertIn(CREW_WARN, self.banner_lines())  # no config.toml
+        self.codex_cfg(self.toml([KEY]))  # only the banner hook is trusted
+        self.assertIn(CREW_WARN, self.banner_lines())
+        self.codex_cfg(self.toml(CREW_KEYS[:-1]))  # one crew hook missing
+        self.assertIn(CREW_WARN, self.banner_lines())
+        self.codex_cfg(self.toml(CREW_KEYS[:-1], f'[hooks.state."{CREW_KEYS[-1]}"]\nenabled = true\n'))  # no hash
+        self.assertIn(CREW_WARN, self.banner_lines())
+        self.codex_cfg(self.toml(CREW_KEYS[1:], f'[hooks.state."{CREW_KEYS[0]}"]\ntrusted_hash = "sha256:a"\n'
+                                 "enabled = false\n"))  # trusted but disabled
+        self.assertIn(CREW_WARN, self.banner_lines())
+        self.codex_cfg("[[[ nao e toml")
+        self.assertIn(CREW_WARN, self.banner_lines())
+        self.codex_cfg(self.toml([KEY, *CREW_KEYS]))  # everything trusted: no warning
+        self.assertNotIn(CREW_WARN, self.banner_lines())
+        self.assertNotIn(WARN, self.banner_lines())
+        self.assertNotIn(CREW_WARN, self.lines(self.build("claude", self.plugin())))  # other CLIs never warn
+
+    def test_banner_crew_hook_keys_follow_hooks_json(self):
+        real = Path(__file__).resolve().parent.parent / "dist" / "codex"
+        with mock.patch.object(banner.sc, "PLUGIN_ROOT", real):
+            self.assertEqual(sorted(banner.crew_hook_keys()), sorted(CREW_KEYS))

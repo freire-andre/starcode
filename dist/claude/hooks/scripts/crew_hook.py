@@ -12,6 +12,12 @@ Registered by tools/build.py in dist/claude/hooks/hooks.json for six events. The
   UserPromptSubmit                session entry active=true and renewed, when it exists (silent)
   SessionEnd                      removes the session entry and recalculates crew.json (silent)
 
+Codex mode (`--cli codex`, F7-14): Codex has no Skill tool nor UserPromptExpansion, so the member is found by
+  PreToolUse (tool_name Bash)     tool_input.command reads `...starcode.../skills/<skill>/SKILL.md` (or with backslashes)
+  UserPromptSubmit                prompt has `$starcode:<skill>` or `$<skill>` (at the start or after a space);
+                                  the mission is the rest of that line; a prompt without the token only reactivates
+  The same member already active in the session only renews `at` (no second header). Other events as above.
+
 Never breaks the session: invalid JSON, outside Git, unreadable/unwritable files -> exit 0, no output.
 Python stdlib only.
 """
@@ -19,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,32 +33,37 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 
 MISSION_MAX = 80
+SKILL_READ = re.compile(r"starcode[^\n\"']*?[\\/]skills[\\/]([\w-]+)[\\/]SKILL\.md", re.I)
+PROMPT_TOKEN = re.compile(r"(?:^|(?<=\s))\$(?:starcode:)?([\w-]+)")
 
 
 def member_for(name: object, crew: dict[str, dict], prefixed_only: bool = False) -> str | None:
     """Crew key whose skill is `name` ("starcode:<skill>" or, unless prefixed_only, "<skill>")."""
     if not isinstance(name, str):
         return None
-    name = name.strip()
+    name = name.strip().lower()
     if name.startswith("starcode:"):
         name = name[len("starcode:"):]
     elif prefixed_only:
         return None
     for key, m in crew.items():
-        if m.get("skill") == name:
+        if str(m.get("skill", "")).lower() == name:
             return key
     return None
 
 
-def plain_header(member: dict, mission: str | None) -> str:
+def plain_header(member: dict, mission: str | None, running: tuple[str, str] | None = None) -> str:
     """The header as plain text: the systemMessage markdown rendering was not verified (R2)."""
     import crew_live  # noqa: PLC0415
 
     model = "padrão do CLI" if member.get("model") in (None, "cli-default") else member["model"]
+    cli = member.get("cli")
+    if running:  # Codex mode: show who actually runs, not the crew config (F7-15)
+        cli, model = running
     open_line = (member.get("voice") or {}).get("open", "")
     lines = [crew_live.RULE,
              f"{member.get('emoji', '')} {member['name'].upper()} ASSUME A PONTE",
-             f"{member.get('role', '')} · {member.get('cli')} · {model}"]
+             f"{member.get('role', '')} · {cli} · {model}"]
     text = " ".join(str(mission or "").split())[:MISSION_MAX].strip()
     if text:
         lines.append(f"Missão: {text}")
@@ -61,7 +73,29 @@ def plain_header(member: dict, mission: str | None) -> str:
     return "\n".join(lines)
 
 
-def handle(payload: dict, now: datetime | None = None) -> str | None:
+def codex_member(event: object, payload: dict, crew: dict[str, dict]) -> tuple[str | None, str | None]:
+    """(crew key, mission) the Codex event points at: a Bash read of a crew SKILL.md or a `$skill` prompt token."""
+    if event == "PreToolUse":
+        tin = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
+        command = tin.get("command")
+        if payload.get("tool_name") != "Bash" or not isinstance(command, str):
+            return None, None
+        for m in SKILL_READ.finditer(command):
+            member = member_for(m.group(1), crew)
+            if member:
+                return member, None
+    elif event == "UserPromptSubmit":
+        prompt = payload.get("prompt")
+        if not isinstance(prompt, str):
+            return None, None
+        for m in PROMPT_TOKEN.finditer(prompt):
+            member = member_for(m.group(1), crew)
+            if member:
+                return member, prompt[m.end():].splitlines()[0] if prompt[m.end():].strip() else None
+    return None, None
+
+
+def handle(payload: dict, now: datetime | None = None, cli: str = "claude") -> str | None:
     """Apply the event to the live files. Returns the systemMessage text, or None. Raises on I/O failure."""
     import crew_live  # noqa: PLC0415
 
@@ -74,7 +108,17 @@ def handle(payload: dict, now: datetime | None = None) -> str | None:
     stamp = now.replace(microsecond=0).isoformat()
     member = mission = None
 
-    if event in ("PreToolUse", "UserPromptExpansion"):
+    codex = cli == "codex"
+    if codex and event in ("PreToolUse", "UserPromptSubmit"):
+        crew, _ = crew_live.crew_members()
+        member, mission = codex_member(event, payload, crew)
+        if member is None and event == "PreToolUse":
+            return None
+    elif codex and event in ("PostToolUse", "Stop", "SessionEnd"):
+        pass
+    elif codex:
+        return None
+    elif event in ("PreToolUse", "UserPromptExpansion"):
         crew, _ = crew_live.crew_members()
         if event == "PreToolUse":
             if payload.get("tool_name") != "Skill":
@@ -94,9 +138,15 @@ def handle(payload: dict, now: datetime | None = None) -> str | None:
         return None
     crew, available = crew_live.crew_members()
 
+    repeat = False
+
     def mutate(sessions: dict) -> None:
+        nonlocal repeat
         entry = sessions.get(sid)
-        if member is not None:
+        if member is not None and codex and isinstance(entry, dict) and entry.get("member") == member                 and entry.get("active") is True and crew_live.entry_valid(entry, now):
+            entry["at"] = stamp  # same member already working in this session: no second header (R4)
+            repeat = True
+        elif member is not None:
             sessions[sid] = {"member": member, "active": True, "source": "hook", "at": stamp}
         elif event == "SessionEnd":
             sessions.pop(sid, None)
@@ -113,7 +163,13 @@ def handle(payload: dict, now: datetime | None = None) -> str | None:
         if not isinstance(existing, dict) or not isinstance(existing.get(sid), dict):
             return None
     crew_live.update_sessions(d, available, mutate, now, strict=True)
-    return plain_header(crew[member], mission if isinstance(mission, str) else None) if member else None
+    if member is None or repeat:
+        return None
+    running = None
+    if codex:
+        pm = payload.get("model")
+        running = ("codex", pm.strip() if isinstance(pm, str) and pm.strip() else "padrão do CLI")
+    return plain_header(crew[member], mission if isinstance(mission, str) else None, running)
 
 
 def main() -> int:
@@ -121,7 +177,9 @@ def main() -> int:
         payload = json.loads(sys.stdin.buffer.read().decode("utf-8"))
         if not isinstance(payload, dict):
             return 0
-        message = handle(payload)
+        argv = sys.argv[1:]
+        cli = argv[argv.index("--cli") + 1] if "--cli" in argv and argv.index("--cli") + 1 < len(argv) else "claude"
+        message = handle(payload, cli=cli)
         if message:
             sys.stdout.buffer.write(json.dumps({"systemMessage": message}, ensure_ascii=False).encode("utf-8"))
             sys.stdout.buffer.write(b"\n")
