@@ -22,17 +22,20 @@ class AgyOpenCodeCase(TempRepoCase):
     def live(self) -> Path:
         return self.repo / ".starcode" / "live"
 
-    def run_hook(self, cli: str, payload: dict | None = None, raw: str | None = None) -> str:
-        res = subprocess.run([sys.executable, str(HOOK), "--cli", cli],
+    def run_hook(self, cli: str, payload: dict | None = None, raw: str | None = None, event: str | None = None) -> str:
+        args = ["--event", event] if event else []
+        res = subprocess.run([sys.executable, str(HOOK), "--cli", cli, *args],
                              input=raw if raw is not None else json.dumps(payload),
                              capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(res.returncode, 0, res.stderr)
         return res.stdout
 
     def agy(self, event: str, cid: str = "c1", cwd: Path | None = None, **extra) -> str:
-        payload = {"hookEventName": event, "conversationId": cid, "modelName": "gemini-3.8-flash-high",
+        # real agy 1.5.2 payload: no event name in stdin; the event travels in --event
+        payload = {"conversationId": cid, "modelName": "gemini-3.8-flash-high", "lastUserInput": "x",
+                   "transcriptPath": "t", "artifactDirectoryPath": "a",
                    "workspacePaths": [str(cwd or self.repo)], "invocationNum": 0, **extra}
-        return self.run_hook("antigravity", payload)
+        return self.run_hook("antigravity", payload, event=event)
 
     def tool(self, name: str, **args) -> dict:
         return {"toolCall": {"name": name, "args": args}}
@@ -113,6 +116,27 @@ class CrewHookAgyTest(AgyOpenCodeCase):
         self.assertEqual(self.crew()["troi"], 0)
 
 
+class CrewHookAgyEventArgTest(AgyOpenCodeCase):
+    def test_crew_hook_agy_event_comes_from_argv(self):
+        payload = {"conversationId": "c1", "modelName": "m", "workspacePaths": [str(self.repo)], "invocationNum": 0,
+                   **self.tool("read_file", Path=SKILL_PATH)}
+        self.assertEqual(self.run_hook("antigravity", payload), "")  # no --event, no event in stdin: ignored
+        self.assertFalse((self.live() / "sessions.json").exists())
+        self.assertEqual(self.run_hook("antigravity", payload, event="Nada"), "")  # unknown event: ignored
+        self.assertFalse((self.live() / "sessions.json").exists())
+        self.assertEqual(self.run_hook("antigravity", payload, event="PreToolUse"), "")
+        self.assertEqual(self.sessions()["c1"]["member"], "troi")
+
+    def test_crew_hook_agy_stdin_event_is_only_a_fallback(self):
+        payload = {"hookEventName": "PreToolUse", "conversationId": "c1", "workspacePaths": [str(self.repo)],
+                   **self.tool("read_file", Path=SKILL_PATH)}
+        self.assertEqual(self.run_hook("antigravity", payload), "")
+        self.assertEqual(self.sessions()["c1"]["member"], "troi")
+        # --event wins over the stdin field
+        self.assertEqual(self.run_hook("antigravity", {**payload, "conversationId": "c2"}, event="Stop"), "")
+        self.assertNotIn("c2", self.sessions())
+
+
 class CrewHookOpenCodeTest(AgyOpenCodeCase):
     def test_crew_hook_opencode_events(self):
         out = json.loads(self.oc("skill", skill="starcode:laforge", mission="ticket SC-1"))
@@ -141,7 +165,7 @@ class CrewHookNeverBreakTest(AgyOpenCodeCase):
         for cli in ("antigravity", "opencode"):
             for raw in ("{not json", "", "[1,2]", "null"):
                 self.assertEqual(self.run_hook(cli, raw=raw), "")
-        self.assertEqual(self.run_hook("antigravity", {"hookEventName": "PreToolUse", "toolCall": "x"}), "")
+        self.assertEqual(self.run_hook("antigravity", {"conversationId": "c1", "toolCall": "x"}, event="PreToolUse"), "")
         self.assertEqual(self.run_hook("opencode", {"event": "skill", "session_id": 5}), "")
         outside = Path(tempfile.mkdtemp(prefix="starcode-nogit-"))
         try:
@@ -215,7 +239,7 @@ class AgyOpenCodeBuildTest(TempRepoCase):
             (group,) = groups
             self.assertEqual(group.get("matcher"), "read_file|view_file|run_command" if name == "PreToolUse" else None)
             (hook,) = group["hooks"]
-            self.assertTrue(hook["command"].endswith("crew_hook.py --cli antigravity"), name)
+            self.assertTrue(hook["command"].endswith(f"crew_hook.py --cli antigravity --event {name}"), name)  # C7
             self.assertEqual(hook["timeout"], 10, name)
         self.assertIn("git_guard.py", json.dumps(hooks["starcode-guard"]))
         self.assertIn("banner.py", json.dumps(hooks["starcode-banner"]))
