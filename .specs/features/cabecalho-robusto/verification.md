@@ -26,8 +26,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| R6 aceita carimbos de data no futuro e fontes desconhecidas como sessões válidas; isso pode manter tripulantes ativos indevidamente. | `scripts/crew_live.py:119`; sondagem `crew_live.entry_active`: `future hook True`, `unknown source True` | Rejeitar `at` futuro e aceitar apenas `source` `hook` ou `cli`; acrescentar casos aos testes de validade. | |
-| C2 não prova os valores fixos da missão nem os componentes completos de papel/CLI/modelo e bordão exigidos por R2. | `tests/test_crew_hook.py:77` | Comparar os valores de cada linha e o conteúdo exato da missão truncada, incluindo a fronteira de 80 caracteres. | |
+| R6 aceita carimbos de data no futuro e fontes desconhecidas como sessões válidas; isso pode manter tripulantes ativos indevidamente. | `scripts/crew_live.py:119`; sondagem `crew_live.entry_active`: `future hook True`, `unknown source True` | Rejeitar `at` futuro e aceitar apenas `source` `hook` ou `cli`; acrescentar casos aos testes de validade. | yes - fd18f19 (`at` > 60 s no futuro, `at` ilegível e `source` fora de hook/cli valem 0 e somem na escrita) |
+| C2 não prova os valores fixos da missão nem os componentes completos de papel/CLI/modelo e bordão exigidos por R2. | `tests/test_crew_hook.py:77` | Comparar os valores de cada linha e o conteúdo exato da missão truncada, incluindo a fronteira de 80 caracteres. | yes - fd18f19 (linhas exatas; missão de 80 inteira, 81 cortada, sem args sem `Missão:`) |
 
 ## Limits
 

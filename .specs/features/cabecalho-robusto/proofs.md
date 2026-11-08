@@ -1,9 +1,9 @@
 # cabecalho-robusto proofs
 
-**HEAD**: 1e061ea
+**HEAD**: c5b759e
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 15 pass, 0 fail
+**Result**: 14 pass, 1 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -21,7 +21,7 @@
 | C12 | `run unit / test_decisions_records_f7_12_crew_hook ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
-| Build | `python scripts/check_decisions.py` | pass |
+| Build | `python scripts/check_decisions.py` | fail - check_decisions: FALHOU. skills/, scripts/ ou hooks/ mudaram em fd18f19 fix(cabecalho-robusto): reje |
 
 ## Output
 
@@ -40,7 +40,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 397 tests in 139.011s
+Ran 397 tests in 142.765s
 
 OK
 ```

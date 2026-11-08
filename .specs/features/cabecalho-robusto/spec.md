@@ -92,12 +92,12 @@ Proof: run unit | test_decisions_records_f7_12_crew_hook ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** correção pós-Q
+**Next:** gate done, push e PR
 **Linear:** SC-84
 **Integration branch:** not created
-**Last integrated:** 1e061ea
+**Last integrated:** c5b759e
 **Dispatched:** none
 **Settled:** 2026-11-07: 2026-11-07: Troi: hook mostra sempre; 15 min + pulso; 0 enquanto espera; Claude agora, outros depois; 2026-11-07: 2026-11-07: spec aprovada e issue criada: "sim"
 **Attempts:** none
-**Reports:** 2026-11-07: 2026-11-07: SC-84: R1–R12 (e57d4b0), gate ticket verde, 397 testes rc 0, hook de fumaça ok; 2026-11-07: 2026-11-07: Q (codex gpt-6-luna): FAIL, 2 achados (R6 aceita at futuro e source desconhecida; C2 frouxo)
+**Reports:** 2026-11-07: 2026-11-07: SC-84: R1–R12 (e57d4b0), gate ticket verde, 397 testes rc 0, hook de fumaça ok; 2026-11-07: 2026-11-07: Q (codex gpt-6-luna): FAIL, 2 achados (R6 aceita at futuro e source desconhecida; C2 frouxo); 2026-11-07: 2026-11-07: Q-fix: 2 achados fechados (fd18f19); 397 testes rc 0
 **Breaker:** closed
