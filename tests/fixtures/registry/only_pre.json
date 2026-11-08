@@ -1,0 +1,4 @@
+{"pypi": {"x": ["1.0a1", "1.0b2", "1.0rc1", "1.0.dev0"]},
+ "npm": {"y": {"latest": "3.0.0-alpha.6"}},
+ "crates": {"z": {"max_stable_version": "3.0.0-alpha.6"}},
+ "dockerhub": {"w": ["18-rc", "18-alpine"]}}
