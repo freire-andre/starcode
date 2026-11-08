@@ -6,7 +6,7 @@ Python stdlib only. Nothing in dist/ is edited by hand.
 
 Source: skills/, hooks/scripts/, scripts/, src/crew.yaml, src/context/STARCODE.md, src/briefs/, schemas/, evals/, VERSION.
 Only crew members whose skill exists are emitted (crew.json "available"); plugin validation passes at
-every phase. Hooks are registered only for Claude in Phase 1 (other CLIs: Phase 5).
+every phase. crew_hook.py is registered for Claude (F7-12) and Codex (F7-14) only.
 
 Placeholders allowed in skills (anything else in {{...}} is an error):
   {{PLUGIN_ROOT}}           in SKILL.md: how to resolve the literal token <plugin-root> in that CLI
@@ -200,6 +200,8 @@ def emit_skills(src: dict, cli: str, out: Path) -> None:
                 if rel.as_posix() == "SKILL.md" and cli == "claude":
                     text = claude_header_rule(text)
                     text = claude_frontmatter(text, info["invocation"])
+                elif rel.as_posix() == "SKILL.md" and cli == "codex":
+                    text = claude_header_rule(text, HEADER_RULE_CODEX)
                 write(target, text)
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -208,16 +210,19 @@ def emit_skills(src: dict, cli: str, out: Path) -> None:
 
 HEADER_RULE_CLAUDE = ("In Claude Code the StarCode hook already showed your header and marks you as working: "
                       "do not run crew_live.py start/stop and do not repeat the header.")
+HEADER_RULE_CODEX = ("In Codex the StarCode hook shows your header and marks you as working once its hooks are "
+                     "trusted: do not run crew_live.py start/stop and do not repeat the header.")
 HEADER_PARAGRAPHS = (
     re.compile(r"\*\*Header first \(F6-6\):\*\*.*?\n\n", re.S),  # troi, spock, data, laforge, mccoy, q
     re.compile(r"First run `python \"<plugin-root>/scripts/crew_live\.py\" start picard.*?stop picard`\.\n\n", re.S),
 )
 
 
-def claude_header_rule(text: str) -> str:
-    """Claude only (F7-12): the hook shows the header and the status, so the F6-6 instruction becomes one line."""
+def claude_header_rule(text: str, sentence: str = HEADER_RULE_CLAUDE) -> str:
+    """Claude (F7-12) and Codex (F7-14): the hook shows the header and the status, so the F6-6 instruction becomes
+    one line."""
     for pattern in HEADER_PARAGRAPHS:
-        text = pattern.sub(lambda _m: HEADER_RULE_CLAUDE + "\n\n", text)
+        text = pattern.sub(lambda _m: sentence + "\n\n", text)
     return text
 
 
@@ -279,6 +284,12 @@ def codex_hooks() -> dict:
     hooks = base_hooks()
     root = "${CLAUDE_PLUGIN_ROOT}"
     hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"] = f'python "{root}/hooks/scripts/banner.py" --full --cli codex'
+    # F7-14: the crew header and live status also come from a hook in Codex (Bash read of SKILL.md, `$skill`).
+    crew = [{"type": "command", "command": f'python "{root}/hooks/scripts/crew_hook.py" --cli codex', "timeout": 10}]
+    events = hooks["hooks"]
+    events["PreToolUse"].append({"matcher": "Bash", "hooks": crew})
+    for name in ("UserPromptSubmit", "PostToolUse", "Stop", "SessionEnd"):
+        events[name] = [{"hooks": crew}]
     return hooks
 
 
