@@ -1,6 +1,7 @@
 # Fase 8: Uhura, Scotty e Kirk (v1.2): Spec
 
 **Approved**: 2026-11-08 - user: "sim"
+**Amended**: 2026-11-09 - user: "a" (R27: `Doc version` desconhecida, achado do Q)
 
 **Size**: LARGE
 **Risk triggers**: Chamadas externas (registro de pacotes, Context7), Irreversibilidade (containers locais e criação de projeto)
@@ -103,7 +104,7 @@ Discovery: `.specs/features/fase-8-uhura-scotty-kirk/context.md`. Issue: SC-15.
 ### Uhura
 
 - **R26** - WHEN `python stack_cache.py write <repo> <lib> --id <context7-id> --project-version <v> --doc-version <v|desconhecida> --summary-file <arq>` roda THEN the system SHALL gravar `.specs/stack/<lib>.md` no formato de Data & Contracts, substituindo a entrada da mesma lib, nunca duplicando.
-- **R27** - WHEN `python stack_cache.py check <repo> [--json]` roda THEN the system SHALL listar cada entrada como `ok`, `velha` (mais de 30 dias), `versão mudou` (versão do manifesto ≠ `project-version`) ou `outra versão` (`doc-version` ≠ `project-version` no major.minor), e sair com 0 quando todas estão `ok` e 1 caso contrário.
+- **R27** - WHEN `python stack_cache.py check <repo> [--json]` roda THEN the system SHALL listar cada entrada como `ok`, `velha` (mais de 30 dias), `versão mudou` (versão do manifesto ≠ `project-version`) ou `outra versão` (`doc-version` ≠ `project-version` no major.minor), e sair com 0 quando todas estão `ok` e 1 caso contrário. IF `doc-version` é `desconhecida` (o Context7 não informa a versão dos docs) THEN the system SHALL pular só a comparação de `outra versão`, julgar a entrada pela idade e pela versão do manifesto, e listá-la como `ok (doc sem versão)` quando passar nas duas, contando como `ok` no código de saída.
 - **R28** - The system SHALL ter na skill `uhura` o protocolo do Context7 (bootstrap só das dependências principais do perfil, sob demanda, atualização por R27, sem Context7 → doc oficial e `**Verified**: não verificada` na entrada).
 - **R29** - The system SHALL ter em `uhura/references/pr-body.md` o template do corpo do PR (Resumo, Issue, Mudanças, Gates com resultado, Verificação do Q, Riscos) e em `references/linear-comments.md` os modelos de comentário (início, integrado, bloqueado, cancelado, concluído), todos neutros e em PT-BR.
 - **R30** - WHEN o Picard vai abrir o PR ou comentar no Linear THEN `execute.md` SHALL mandar redigir o texto pela Uhura: no Claude como subagente com o modelo da Uhura; nos outros CLIs pela própria sessão seguindo a skill. O Picard continua sendo quem confirma e executa o `gh pr create` e o `orca linear comment`.
@@ -203,6 +204,7 @@ Discovery: `.specs/features/fase-8-uhura-scotty-kirk/context.md`. Issue: SC-15.
 | Geração dos templates | arquivos fixos + script (determinístico, testável) · modelo gera os arquivos | approved - user: "Arquivos fixos + script (Recomendado)" |
 | Perfil GPUI | incluir como 7º perfil experimental, série 0.2, sem banco (escolhido) · deixar para depois | approved - user: "pode incluir também o app GPUI" |
 | Context7 antes do scaffold | versões → Context7 → scaffold, com série testada por dependência (escolhido) · Context7 só depois, como registro | approved - user: "Eles não consultam o MCP Context7 para garantir a documentação mais recente antes de iniciar o processo?" |
+| `Doc version` desconhecida no `check` (R27) | julgar só por idade e manifesto, listada como `ok (doc sem versão)` (escolhido) · gravar a versão do projeto como versão dos docs · manter e o `check` sempre falha | approved - user: "a" |
 | Grill-me no Kirk | não incluir; frase do projeto no README + oferta de engajar a primeira missão, que leva à Troi (já baseada em grilling) (escolhido) · interrogatório dentro do Kirk | approved - user: "sim, inclua os dois e reapresente" |
 | Frontend do Tauri | vanilla TS + Vite · + React · + React e Svelte | approved - user: "Vanilla TS + Vite (Recomendado)" |
 | Alcance do Kirk | pasta + git init + oferta do setup · + repo no GitHub · só scaffold | approved - user: "Pasta + git init + setup (Recomendado)" |
