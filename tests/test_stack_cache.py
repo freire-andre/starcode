@@ -94,10 +94,25 @@ class StackCacheTests(unittest.TestCase):
         self.assertEqual(code, 1, err)
         got = {e["lib"]: e["state"] for e in json.loads(out)}
         self.assertEqual(got, {"fresh": "ok", "old": "velha", "moved": "versão mudou",
-                               "other": "outra versão", "unknown": "outra versão"})
+                               "other": "outra versão", "unknown": "ok (doc sem versão)"})
         code, out, _ = run("check", self.repo, "--today", "2026-11-08")
         self.assertEqual(code, 1)
         self.assertIn("old: velha", out)
+
+    def test_stack_cache_unknown_doc_version_flow(self):
+        self.write(doc="desconhecida", date="2026-11-09")
+        code, out, err = run("check", self.repo, "--today", "2026-11-09")
+        self.assertEqual((code, out.strip()), (0, "flask: ok (doc sem versão)"), err)
+        # 30 dias ainda vale; 31 dias é velha
+        code, out, _ = run("check", self.repo, "--today", "2026-12-09")
+        self.assertEqual((code, out.strip()), (0, "flask: ok (doc sem versão)"))
+        code, out, _ = run("check", self.repo, "--today", "2026-12-10")
+        self.assertEqual((code, out.strip()), (1, "flask: velha"))
+        # manifesto com outro major
+        (self.repo / "pyproject.toml").write_text(
+            '[project]\nname="x"\ndependencies = ["flask>=4.0.0"]\n', encoding="utf-8")
+        code, out, _ = run("check", self.repo, "--today", "2026-11-09")
+        self.assertEqual((code, out.strip()), (1, "flask: versão mudou"))
 
     def test_stack_cache_check_all_ok_and_manifest(self):
         self.write("flask", date="2026-11-08")
