@@ -178,6 +178,12 @@ class BiomeExcludesSpecsTests(unittest.TestCase):
             cfg = json.loads((PROFILES / name / "template" / "biome.json").read_text(encoding="utf-8"))
             self.assertIn("!.specs", cfg["files"]["includes"], name)
 
+    def test_biome_uses_preset_not_deprecated_recommended(self) -> None:
+        # Biome 2.5+: linter.rules.recommended está obsoleto; a forma atual é rules.preset (SC-98)
+        for name in ("typescript", "tauri"):
+            cfg = json.loads((PROFILES / name / "template" / "biome.json").read_text(encoding="utf-8"))
+            self.assertEqual(cfg["linter"], {"enabled": True, "rules": {"preset": "recommended"}}, name)
+
 
 class NoHardcodedVersionTests(unittest.TestCase):
     def test_manifests_use_version_markers(self) -> None:
