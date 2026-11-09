@@ -1,0 +1,15 @@
+name: python-flask
+kind: app
+combinesWith: [postgresql, mysql]
+tools: [uv]
+install: ["uv sync"]
+gates:
+  lint: ["uv run ruff check .", "uv run ruff format --check ."]
+  typecheck: ["uv run mypy src"]
+  unit: ["uv run pytest -v"]
+  build: []
+deps:
+  - {name: flask, registry: pypi, main: true, tested: "3", docs: {id: /pallets/flask, at: 2026-11-08}}
+  - {name: pytest, registry: pypi, main: true, dev: true, tested: "9", docs: {id: /pytest-dev/pytest, at: 2026-11-08}}
+  - {name: ruff, registry: pypi, main: false, dev: true}
+  - {name: mypy, registry: pypi, main: false, dev: true}

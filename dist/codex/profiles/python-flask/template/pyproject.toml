@@ -1,0 +1,33 @@
+[project]
+name = "{{name}}"
+dynamic = ["version"]
+dependencies = [
+    "flask=={{version:flask}}",
+    # starcode:inject deps
+]
+
+[dependency-groups]
+dev = [
+    "pytest=={{version:pytest}}",
+    "ruff=={{version:ruff}}",
+    "mypy=={{version:mypy}}",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = ["integration: precisa de banco de dados (gate de integração)"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+strict = true

@@ -1,0 +1,14 @@
+name: typescript
+kind: app
+combinesWith: []
+tools: [node, npm]
+install: ["npm install"]
+gates:
+  lint: ["npx biome check ."]
+  typecheck: ["npx tsc --noEmit"]
+  unit: ["npx vitest run"]
+  build: []
+deps:
+  - {name: typescript, registry: npm, main: true, dev: true, tested: "7", docs: {id: /microsoft/typescript, at: 2026-11-08}}
+  - {name: vitest, registry: npm, main: true, dev: true, tested: "5", docs: {id: /vitest-dev/vitest, at: 2026-11-08}}
+  - {name: "@biomejs/biome", registry: npm, main: false, dev: true, tested: "2"}

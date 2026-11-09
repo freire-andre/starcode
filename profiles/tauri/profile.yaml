@@ -15,8 +15,8 @@ deps:
   - {name: tauri, registry: crates, main: true, tested: "2", docs: {id: /tauri-apps/tauri-docs, at: 2026-11-08}}
   - {name: tauri-build, registry: crates, main: false, tested: "2"}
   - {name: "@tauri-apps/cli", registry: npm, main: true, dev: true, tested: "2", docs: {id: /tauri-apps/tauri-docs, at: 2026-11-08}}
-  - {name: "@tauri-apps/api", registry: npm, main: true, tested: "2"}
+  - {name: "@tauri-apps/api", registry: npm, main: true, tested: "2", docs: {id: /tauri-apps/tauri-docs, at: 2026-11-08}}
   - {name: vite, registry: npm, main: true, dev: true, tested: "8", docs: {id: /vitejs/vite, at: 2026-11-08}}
-  - {name: typescript, registry: npm, main: true, dev: true, tested: "7"}
+  - {name: typescript, registry: npm, main: true, dev: true, tested: "7", docs: {id: /microsoft/typescript, at: 2026-11-08}}
   - {name: vitest, registry: npm, main: true, dev: true, tested: "5", docs: {id: /vitest-dev/vitest, at: 2026-11-08}}
   - {name: "@biomejs/biome", registry: npm, main: false, dev: true, tested: "2"}

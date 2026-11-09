@@ -1,0 +1,9 @@
+name: rust
+kind: app
+combinesWith: []
+tools: [cargo]
+install: ["cargo fetch"]
+gates:
+  lint: ["cargo fmt --check", "cargo clippy --all-targets -- -D warnings"]
+  unit: ["cargo test"]
+deps: []

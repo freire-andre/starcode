@@ -1,0 +1,19 @@
+name: mysql
+kind: db
+tools: [uv, docker]
+image: {name: mysql, registry: dockerhub}
+inject:
+  - file: pyproject.toml
+    marker: "# starcode:inject deps"
+    lines:
+      - '"sqlalchemy=={{version:sqlalchemy}}",'
+      - '"alembic=={{version:alembic}}",'
+      - '"pymysql=={{version:pymysql}}",'
+      - '"cryptography=={{version:cryptography}}",'
+gates:
+  integration: ["python scripts/ephemeral_db.py run mysql -- uv run pytest -v -m integration"]
+deps:
+  - {name: sqlalchemy, registry: pypi, main: true, tested: "2", docs: {id: /sqlalchemy/sqlalchemy, at: 2026-11-08}}
+  - {name: alembic, registry: pypi, main: true, tested: "1", docs: {id: /sqlalchemy/alembic, at: 2026-11-08}}
+  - {name: pymysql, registry: pypi, main: true, tested: "1", docs: {id: /pymysql/pymysql, at: 2026-11-08}}
+  - {name: cryptography, registry: pypi, main: false}

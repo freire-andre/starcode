@@ -1,0 +1,17 @@
+name: postgresql
+kind: db
+tools: [uv, docker]
+image: {name: postgres, registry: dockerhub}
+inject:
+  - file: pyproject.toml
+    marker: "# starcode:inject deps"
+    lines:
+      - '"sqlalchemy=={{version:sqlalchemy}}",'
+      - '"alembic=={{version:alembic}}",'
+      - '"psycopg[binary]=={{version:psycopg}}",'
+gates:
+  integration: ["python scripts/ephemeral_db.py run postgresql -- uv run pytest -v -m integration"]
+deps:
+  - {name: sqlalchemy, registry: pypi, main: true, tested: "2", docs: {id: /sqlalchemy/sqlalchemy, at: 2026-11-08}}
+  - {name: alembic, registry: pypi, main: true, tested: "1", docs: {id: /sqlalchemy/alembic, at: 2026-11-08}}
+  - {name: psycopg, registry: pypi, main: true, tested: "3", docs: {id: /psycopg/psycopg, at: 2026-11-08}}

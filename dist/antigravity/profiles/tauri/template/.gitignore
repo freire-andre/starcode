@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+src-tauri/target/
+src-tauri/gen/
+.env
+.env.*
+.DS_Store

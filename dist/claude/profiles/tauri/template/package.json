@@ -1,0 +1,25 @@
+{
+  "name": "{{name}}",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "{{description}}",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "{{version:@tauri-apps/api}}"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "{{version:@biomejs/biome}}",
+    "@tauri-apps/cli": "{{version:@tauri-apps/cli}}",
+    "typescript": "{{version:typescript}}",
+    "vite": "{{version:vite}}",
+    "vitest": "{{version:vitest}}"
+  }
+}

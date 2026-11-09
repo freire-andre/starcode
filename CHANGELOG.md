@@ -16,6 +16,18 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 - Banner do Codex: aviso quando os hooks da tripulação ainda não têm confiança em `hooks.state`.
 - Antigravity e OpenCode: `crew_hook.py --cli antigravity|opencode` marca o status por hook e manda o modelo repetir o cabeçalho (`injectSteps` no agy, `ctx.session.synthetic` no OpenCode); grupo `starcode-crew` em `dist/antigravity/hooks.json` e as skills dos dois CLIs deixam de pedir `crew_live.py start/stop`.
 
+## [1.2.0] - não lançada
+
+### Adicionado
+
+- Fase 8: perfis de stack em `profiles/` (`python-flask`, `rust`, `tauri`, `typescript`, `gpui` experimental, `postgresql`, `mysql`) com templates de marcadores `{{version:<pacote>}}`, CI e `.gitignore`; o `tools/build.py` copia `profiles/` para `dist/<cli>/profiles/` nos 4 CLIs.
+- Fase 8: skills `uhura` (cache de documentação em `.specs/stack/`), `scotty` (detecta e registra a stack em `.starcode/stack.json`) e `nova-missao` (Kirk: projeto novo a partir de um perfil), com evals de roteamento.
+- Fase 8: `scripts/scaffold.py` (versões pelos registros, série testada, `--pin`, `--allow-new`) e `scripts/ephemeral_db.py` (banco efêmero em Docker, `--reuse-env`).
+
+### Alterado
+
+- Fase 8: o `evals/README.md` descreve as 24 frases de roteamento (a edição antes feita na cópia gerada foi para a fonte).
+
 ## [1.1.0] - 2026-11-07
 
 ### Adicionado

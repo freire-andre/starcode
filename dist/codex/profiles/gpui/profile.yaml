@@ -1,0 +1,12 @@
+name: gpui
+kind: app
+experimental: true
+combinesWith: []
+tools: [cargo]
+install: ["cargo fetch"]
+gates:
+  lint: ["cargo fmt --check", "cargo clippy --all-targets -- -D warnings"]
+  unit: ["cargo test"]
+  build: ["cargo build"]
+deps:
+  - {name: gpui, registry: crates, main: true, tested: "0.2", docs: {id: /websites/rs_gpui, at: 2026-11-08}}
