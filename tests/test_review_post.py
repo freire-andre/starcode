@@ -95,7 +95,7 @@ class PostReviewTests(unittest.TestCase):
         payload = json.loads(post["input"])
         self.assertEqual(payload["event"], "COMMENT")
         self.assertIn("Veredito pretendido: REQUEST_CHANGES (o GitHub não aceita REQUEST_CHANGES no próprio PR)",
-                      payload["body"])
+                      payload["body"].splitlines())
         self.assertEqual(payload["comments"][0]["path"], "src/x.py")
         # PR de outra pessoa: usa o veredito como evento
         self.md.write_text("**Round**: 1\n", encoding="utf-8")

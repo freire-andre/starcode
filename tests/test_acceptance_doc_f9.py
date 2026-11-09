@@ -37,10 +37,20 @@ class AcceptanceDocF9Tests(unittest.TestCase):
         scan = parts["Varredura do bypass"]
         self.assertRegex(scan, r"planted_bypass\.py:\d+\ttls-bypass|planted_bypass\.py:\d+.*tls-bypass")
         self.assertRegex(scan, r"test-dodge")
+        lines = scan.splitlines()
+        for kind in ("tls-bypass", "test-dodge"):
+            self.assertTrue(any(re.search(r"planted_bypass\.py:\d+", ln) and kind in ln
+                                for ln in lines), f"linha citada sem {kind}")
         report = parts["Relatório L0–L4"]
         self.assertRegex(report, r"\bL[0-4]\b")
         self.assertRegex(report, r"\d+/\d+")
-        self.assertRegex(report, r"docs/diagnostico/20\d\d-\d\d-\d\d\.md")
+        cited = re.search(r"docs/diagnostico/20\d\d-\d\d-\d\d\.md", report)
+        self.assertIsNotNone(cited, "relatório não citado")
+        diag = (ROOT / cited.group(0)).read_text(encoding="utf-8")
+        level = re.search(r"\*\*Level\*\*: (L[0-4])\b", diag).group(1)
+        score = re.search(r"\*\*Score\*\*: (\d+/\d+)", diag).group(1)
+        self.assertRegex(report, rf"\*\*Nível\*\*: {level}\b")
+        self.assertRegex(report, rf"\*\*Pontuação\*\*: {re.escape(score)}")
 
 
 if __name__ == "__main__":
