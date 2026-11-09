@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-diagnostico-setup
+description: "Não deve disparar starcode:diagnostico (configurar o StarCode é setup)."
+tags: [routing, negative]
+execution:
+  prompt: "Configure o StarCode neste repositório e mapeie os estados do Linear."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-diagnostico
+    tool: Skill
+    input_match: "starcode:diagnostico"
+    min: 0
+    max: 0
