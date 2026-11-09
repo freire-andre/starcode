@@ -161,6 +161,8 @@ before any new `batch`.
   spec change, and dispatch the Q again only after the new approval.
 - A finding still open after the cycle goes to the user with the finding and the evidence; the issues do
   not move to review.
+- `run_gates.py done <slug>` green → the Picard invokes the Guinan (retro, `skills/guinan`; lessons go to
+  `.specs/LESSONS.md`) **before the PR**; only then continue below (R20).
 - `run_gates.py done <slug>` green → move the issues to the `review` state of the config or, without one,
   comment "pronto para revisão" with HEAD, the proofs result and the Q verdict.
 - Degraded (`self-verified`, `degraded`, same family or mode 1) → comment "verificação degradada" with the
@@ -168,6 +170,16 @@ before any new `batch`.
 - `completed` only with the user's explicit confirmation in this session, with `run_gates.py done` green,
   and **never in mode 1**. Modes 3/4: push and PR follow `git-modes.md` (each confirmed right before).
 - Then `--phase done` and `python "P/scripts/crew_live.py" progress <slug> --phase done` (100%).
+
+## Review (Worf)
+After opening the PR (modes 3/4) and before asking for the merge authorization, the Picard invokes the
+Worf (`skills/worf`): on Claude, a subagent with the model from `crew.yaml`; on the other CLIs, the
+session itself (R17).
+- `REQUEST_CHANGES`, or `COMMENT` with an open `should-fix` → **one LaForge dispatch** with all open
+  findings in a single brief, then the next Worf round.
+- After round 3 with findings still open, the Picard stops and shows the findings and the evidence,
+  without asking for the merge (R18).
+- Publishing the review (PR comments) always needs the user's confirmation.
 
 ## Text for the PR and the Linear comments (Uhura)
 Whenever you open a PR or comment on Linear (start, integrated, blocked, cancelled, done), have the text
