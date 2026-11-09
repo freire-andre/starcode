@@ -1,0 +1,26 @@
+{
+  "round": 1,
+  "verdict": "REQUEST_CHANGES",
+  "summary": "TL;DR: REQUEST_CHANGES - 1 blocker (TLS desligado)",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "blocker",
+      "path": "src/x.py",
+      "line": 12,
+      "body": "TLS desligado na chamada externa.",
+      "evidence": "src/x.py:12",
+      "category": "security",
+      "attacker": "atacante na rede entre cliente e servidor",
+      "entry": "requests.get em src/x.py:12",
+      "control": "nenhum: verify=False",
+      "boundary": "cliente para API externa",
+      "impact": "leitura e alteração do tráfego (MITM)",
+      "proof": "src/x.py:12",
+      "state": "confirmed"
+    }
+  ],
+  "carryover": {},
+  "research": ["https://requests.readthedocs.io/en/latest/user/advanced/"],
+  "ladder": [{"cmd": "python -m unittest", "result": "ok"}]
+}
