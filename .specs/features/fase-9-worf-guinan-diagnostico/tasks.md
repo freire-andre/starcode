@@ -159,7 +159,7 @@ Spec: `.specs/features/fase-9-worf-guinan-diagnostico/spec.md` (R3, R11–R13, R
 Fonte: `docs/reference/the-judge.zip` (`SKILL.md`, `references/review-standards.md`, `references/comment-voice.md`; CC-BY-4.0, adapte com crédito). Modelo de skill: `skills/uhura/SKILL.md` e `tests/test_uhura_skill.py`. O Worf já está declarado em `src/crew.yaml` (`subagent: true`, Opus 5.5, voz "Hoje é um bom dia para revisar."). `tools/build.py` gera toda skill de `skills/` declarada no crew.yaml.
 
 #### BOUNDARIES
-May change: `skills/worf/`, `evals/routing/pos-worf-review-pr/`, `evals/routing/pos-worf-security/`, `evals/routing/neg-worf-fix-code/`, `tests/test_worf_skill.py`, `dist/`
+May change: `skills/worf/`, `evals/routing/pos-worf-review-pr/`, `evals/routing/pos-worf-security/`, `evals/routing/neg-worf-fix-code/`, `tests/test_worf_skill.py`, `dist/`, `tests/test_build.py` (ampliado pelo Picard em 2026-11-09: a asserção de que `worf` não está em `available` passa a `assertIn`)
 Do not touch: `scripts/`, `src/`, `skills/engajar/`, `tools/build.py`
 
 #### RULES
@@ -303,7 +303,7 @@ Spec: `.specs/features/fase-9-worf-guinan-diagnostico/spec.md` (R26–R28, R35; 
 Fontes: `docs/reference/harness-eval.zip` (`scripts/`, `references/`, `SKILL.md` passos 2 e 3) e `docs/reference/harness-score-main.zip` (`packages/cli/README.md`: `--json`, `--md`, `--min-level`; níveis L0 Unharnessed, L1 Documented, L2 Guided, L3 Sensing, L4 Self-correcting). `harness-score` 1.8.4 no npm (MIT, sem rede em tempo de execução).
 
 #### BOUNDARIES
-May change: `scripts/harness/`, `scripts/diagnostico.py`, `tests/test_diagnostico.py`, `tests/fixtures/diagnostico/`, `dist/`
+May change: `scripts/harness/`, `scripts/diagnostico.py`, `tests/test_diagnostico.py`, `tests/fixtures/diagnostico/`, `dist/`, `.gitignore` (ampliado pelo Picard em 2026-11-09: C28 checa `.harness-eval/` no .gitignore; antes só na T11)
 Do not touch: `scripts/review/`, `scripts/lessons.py`, `scripts/dispatch.py`, `skills/`, `src/`
 
 #### RULES
@@ -591,15 +591,15 @@ Proof: run unit | test_fase9_acceptance_sections ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** ramo de integração e primeiro ticket
+**Next:** Q verifica a feature
 **Linear:** Projeto StarCode; Documento https://linear.app/cifren/document/spec-fase-9-worf-guinan-e-diagnostico-v13-011cdb6eb852; SC-102..SC-113; fase SC-16
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/fase-9-worf-guinan-diagnostico
+**Last integrated:** 153071a
 **Dispatched:** none
 **Settled:** 2026-11-09: 2026-11-09: spec aprovada: user "sim"; 2026-11-09: 2026-11-09: tasks aprovadas e publicadas: user "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-09: 2026-11-09: T1: scan_bypasses.py + testes + dist; 528 testes; commit b72a50e; integrado em 761cf11; 2026-11-09: 2026-11-09: T2: review_gate.py + testes + dist; worker commitou direto no ramo de integração (worktree errado), sem merge; check_commit, gate do ticket, build --check e suíte 536 OK em 9f6d2e5; aceito; 2026-11-09: 2026-11-09: T3: post_review.py + testes com gh falso + dist; suíte 539 OK; commit cda0b2d; integrado em 7cb21e7; 2026-11-09: 2026-11-09: T4: skill worf + 3 referências + 3 evals + test_worf_skill; test_build ajustado (May change ampliado); suíte 544 OK; commit 713ea76; integrado em 2fe2850; 2026-11-09: 2026-11-09: T5: lessons.py + test_lessons + dist; suíte 548 OK; commit 0e597d4; integrado em c0c9ae2; 2026-11-09: 2026-11-09: T6: skill guinan + lessons.md + retro.md + 3 evals + test_guinan_skill; suíte 551 OK; commit 655fdda; integrado em b954128; 2026-11-09: 2026-11-09: T7: lessons_section em dispatch.py + test_dispatch_lessons; suíte 553 OK; commit 5560f7e; integrado em 85eb60c; 2026-11-09: 2026-11-09: T8: diagnostico.py + scripts/harness + fixtures + .gitignore (May change ampliado); suíte 557 OK; commit 95dec9d; integrado em bc0d909; 2026-11-09: 2026-11-09: T9: skill diagnostico + judge-prompts + 3 evals + crew.yaml (também worf/guinan invocation both, adiantando C32 da T10); suíte 561 OK; commit 4abefc5; integrado em 8c78b8a; 2026-11-09: 2026-11-09: T10: Review (Worf) e Guinan no execute.md, fluxo no engajar, STARCODE.md, test_flow_worf_guinan; suíte 565 OK; commit 6b97f6b; integrado em 311a81b; 2026-11-09: 2026-11-09: T11: testes de build/evals/créditos/registros; CREDITS, evals/README, DECISIONS F9-1..8, CHANGELOG 1.3.0, compatibilidade; gate build verde; suíte 571 OK; commit f528f1a; integrado em 022a690; 2026-11-09: 2026-11-09: T12: aceite: ramo teste/worf-bypass 456b371 (scan: 2 candidatos), diagnóstico L0 44/105, docs/aceite/fase-9.md; suíte 572 OK; commit 8b47cdb; integrado em 153071a; 2026-11-09: 2026-11-09: proofs verdes em 153071a (39 checks)
 **Breaker:** closed
