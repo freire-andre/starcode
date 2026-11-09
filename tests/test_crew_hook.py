@@ -289,8 +289,8 @@ class DocsTest(TempRepoCase):
         for needle in ("crew_hook.py", "sessions.json", "15 min", "60 min", "(R1)", "(R11)", "(R12)"):
             self.assertIn(needle, body)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
-        self.assertIn("crew_hook.py", unreleased)
+        release_section = changelog.split("## [1.2.0]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("crew_hook.py", release_section)
 
 
 CODEX_RULE = ("In Codex the StarCode hook shows your header and marks you as working once its hooks are trusted: "
@@ -468,8 +468,8 @@ class CodexDocsTest(TempRepoCase):
         for needle in ("crew_hook.py --cli codex", "SKILL.md", "$starcode:<skill>", "(R1)", "(R8)", "(R9)"):
             self.assertIn(needle, body)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
-        self.assertIn("crew_hook.py --cli codex", unreleased)
+        release_section = changelog.split("## [1.2.0]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("crew_hook.py --cli codex", release_section)
         compat = (ROOT / "docs" / "compatibilidade.md").read_text(encoding="utf-8")
         row = next(l for l in compat.splitlines() if l.startswith("| Cabeçalho por hook"))
         cells = [c.strip() for c in row.strip().strip("|").split("|")]

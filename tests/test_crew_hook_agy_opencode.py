@@ -441,8 +441,8 @@ class AgyOpenCodeDocsTest(TempRepoCase):
         for needle in ("crew_hook.py --cli antigravity", "starcode-crew", "ctx.session.synthetic", "(R1)", "(R11)"):
             self.assertIn(needle, body)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
-        self.assertIn("crew_hook.py --cli antigravity|opencode", unreleased)
+        release_section = changelog.split("## [1.2.0]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("crew_hook.py --cli antigravity|opencode", release_section)
         compat = (ROOT / "docs" / "compatibilidade.md").read_text(encoding="utf-8")
         row = next(l for l in compat.splitlines() if l.startswith("| Cabeçalho por hook"))
         cells = [c.strip() for c in row.strip().strip("|").split("|")]
