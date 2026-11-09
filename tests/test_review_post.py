@@ -119,6 +119,21 @@ class PostReviewTests(unittest.TestCase):
         self.assertRegex(self.md.read_text(encoding="utf-8"),
                          r"\*\*Posted\*\*: \d{4}-\d{2}-\d{2} - https://github.com/o/r/pull/7#pullrequestreview-1")
 
+    def test_inline_comment_does_not_repeat_severity_emoji(self) -> None:
+        data = json.loads(self.json.read_text(encoding="utf-8"))
+        first = data["findings"][0]
+        first["body"] = "🔴 TLS desligado na chamada externa."
+        second = dict(first, id="W2", line=13, body="Sem emoji no começo do texto.")
+        data["findings"].append(second)
+        self.json.write_text(json.dumps(data), encoding="utf-8")
+        r = self.post()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        payload = json.loads([c for c in self.calls() if c["input"]][0]["input"])
+        by_line = {c["line"]: c["body"] for c in payload["comments"]}
+        self.assertEqual(by_line[12], "**blocker** (W1): 🔴 TLS desligado na chamada externa.")
+        self.assertEqual(by_line[13], "🔴 **blocker** (W1): Sem emoji no começo do texto.".replace("W1", "W2"))
+        self.assertEqual(by_line[12].count("🔴"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
