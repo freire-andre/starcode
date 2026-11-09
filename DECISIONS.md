@@ -601,3 +601,15 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o `new` aceita a pasta quando ela contém só `.specs/` (qualquer outro conteúdo continua exit 2, e o `.specs/` preexistente é preservado se o `new` falhar); os `biome.json` dos perfis `tauri` e `typescript` excluem `.specs`.
 - **Motivo:** o cache de stack é gravado antes do scaffold por desenho, então a pasta "quase vazia" é o caso normal do Kirk, e o gate não deve mexer em arquivos de cache.
 - **Por que não é bug:** testes em `tests/test_scaffold.py` e `tests/test_profile_ts_tauri.py` e os cenários 1 e 2 do aceite, aprovados.
+
+### F8-12: `Doc version` desconhecida é `ok (doc sem versão)` no `check`
+- **Problema:** o Context7 muitas vezes não informa a versão dos docs, então o `write` grava `Doc version: desconhecida`; o `check` comparava esse valor com a versão do projeto e devolvia `outra versão` (exit 1) logo após o `write`, o que travava o bootstrap (achado do Q, C27).
+- **Decisão:** em `scripts/stack_cache.py`, `Doc version` `desconhecida` pula só a comparação de `outra versão`; a entrada continua julgada pela idade (mais de 30 dias é `velha`) e pela versão do manifesto (`versão mudou`). Se passar nas duas, o estado é `ok (doc sem versão)` e conta como `ok` no exit (0). Decisão do usuário (opção "a") em 2026-11-09, emenda do R27.
+- **Motivo:** o cache que o próprio fluxo grava não pode nascer inválido, e a idade e o manifesto ainda protegem contra doc velho.
+- **Por que não é bug:** `test_stack_cache_check_states` e `test_stack_cache_unknown_doc_version_flow` cobrem `ok (doc sem versão)`, 30 dias (ok), 31 dias (`velha`) e outro major (`versão mudou`).
+
+### F8-13: Biome com `linter.rules.preset: "recommended"`
+- **Problema:** o Biome 2.5+ marca `linter.rules.recommended` como obsoleto (aviso no Biome 2.6.6, limite registrado pelo Q).
+- **Decisão:** os `biome.json` dos perfis `typescript` e `tauri` usam `"rules": { "preset": "recommended" }`, que ativa o mesmo conjunto de regras recomendadas (sem as de `nursery`). Fonte: documentação do Biome via Context7 (`/biomejs/website`, referência de configuração e nota da versão 2.5).
+- **Motivo:** `recommended` será removido na próxima versão maior; `preset` é a forma atual e o `biome migrate --write` produz a mesma troca.
+- **Por que não é bug:** `test_biome_uses_preset_not_deprecated_recommended` confere os dois arquivos e os gates reais de `tests_slow/test_slow_ts_tauri.py` passam.

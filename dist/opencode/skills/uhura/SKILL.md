@@ -28,6 +28,7 @@ lockfile (new projects: the package registry). Never from Context7.
   a recent API, and there is no entry for it, resolve and cache it first.
 - **Refresh.** Run `python "<plugin-root>/scripts/stack_cache.py" check <repo> --json`. Any entry that is not
   `ok` (version changed, older than 30 days, docs for another version) is fetched again.
+  `ok (doc sem versão)` (docs version `desconhecida`, otherwise fresh) counts as `ok`.
 - **How to fetch.** `resolve-library-id` then `query-docs`, preferring the ID that carries the version in
   use. Distil a practical summary of at most 30 lines into a temporary file.
 - **How to write.** Always through

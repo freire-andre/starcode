@@ -61,7 +61,9 @@ class RegistryTests(unittest.TestCase):
                                  capture_output=True, text=True, encoding="utf-8",
                                  env={**os.environ, "PYTHONIOENCODING": "utf-8"})
             self.assertEqual(res.returncode, 2)
-            self.assertIn("registro pypi indisponível para inexistente:", res.stdout + res.stderr)
+            self.assertEqual(
+                (res.stdout + res.stderr).strip(),
+                "registro pypi indisponível para inexistente: pacote inexistente na fixture")
             self.assertEqual(list(Path(d).iterdir()), [])
 
     def test_registry_http_errors_become_registry_error(self) -> None:
