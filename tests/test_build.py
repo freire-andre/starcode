@@ -47,6 +47,17 @@ class BuildTests(unittest.TestCase):
             for skill in ("uhura", "scotty", "nova-missao"):
                 self.assertTrue((base / "skills" / skill / "SKILL.md").is_file(), f"{cli}/{skill}")
 
+    def test_build_fase9_skills_and_scripts_in_all_clis(self):  # C35
+        build.build(self.src, self.out)
+        for cli in build.CLIS:
+            base = self.out / "dist" / cli
+            for skill in ("worf", "guinan", "diagnostico"):
+                self.assertTrue((base / "skills" / skill / "SKILL.md").is_file(), f"{cli}/{skill}")
+            for rel in ("scripts/review/review_gate.py", "scripts/review/post_review.py",
+                        "scripts/review/scan_bypasses.py", "scripts/harness/track_a_correctness.py",
+                        "scripts/harness/references/PROTOCOL.md", "scripts/lessons.py", "scripts/diagnostico.py"):
+                self.assertTrue((base / rel).is_file(), f"{cli}/{rel}")
+
     def test_check_flags_stale_profile(self):
         build.build(self.src, self.out)
         other = Path(self._tmp.name) / "other"
