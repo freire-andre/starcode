@@ -8,6 +8,8 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-09
+
 ### Adicionado
 
 - Claude Code: `hooks/scripts/crew_hook.py` mostra o cabeçalho do tripulante e marca o status sozinho (sem depender do modelo), com `sessions.json` ao lado do `crew.json`; entradas vencem em 15 min (hook) ou 60 min (CLI) e o `crew.json` é recalculado a cada escrita.
@@ -15,11 +17,6 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 - Codex: `crew_hook.py --cli codex` mostra o cabeçalho e marca o status por hook (leitura do `SKILL.md` pelo shell ou `$starcode:<skill>` no prompt), registrado em `dist/codex/hooks/hooks.json`; as skills do Codex deixam de pedir `crew_live.py start/stop`.
 - Banner do Codex: aviso quando os hooks da tripulação ainda não têm confiança em `hooks.state`.
 - Antigravity e OpenCode: `crew_hook.py --cli antigravity|opencode` marca o status por hook e manda o modelo repetir o cabeçalho (`injectSteps` no agy, `ctx.session.synthetic` no OpenCode); grupo `starcode-crew` em `dist/antigravity/hooks.json` e as skills dos dois CLIs deixam de pedir `crew_live.py start/stop`.
-
-## [1.2.0] - não lançada
-
-### Adicionado
-
 - Fase 8: perfis de stack em `profiles/` (`python-flask`, `rust`, `tauri`, `typescript`, `gpui` experimental, `postgresql`, `mysql`) com templates de marcadores `{{version:<pacote>}}`, CI e `.gitignore`; o `tools/build.py` copia `profiles/` para `dist/<cli>/profiles/` nos 4 CLIs.
 - Fase 8: skills `uhura` (cache de documentação em `.specs/stack/`), `scotty` (detecta e registra a stack em `.starcode/stack.json`) e `nova-missao` (Kirk: projeto novo a partir de um perfil), com evals de roteamento.
 - Fase 8: `scripts/scaffold.py` (versões pelos registros, série testada, `--pin`, `--allow-new`) e `scripts/ephemeral_db.py` (banco efêmero em Docker, `--reuse-env`).
