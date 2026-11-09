@@ -85,7 +85,7 @@ def compute_verdict(findings: list) -> str:
 
 
 def blank(v) -> bool:
-    return v is None or (isinstance(v, str) and not v.strip())
+    return not (isinstance(v, str) and v.strip())
 
 
 def check_finding(label: str, f: dict) -> list[str]:

@@ -129,6 +129,12 @@ class ReviewGateTests(unittest.TestCase):
             code, out = gate(d)
             self.assertEqual(code, 1, name)
             self.assertIn(f"W1: security: campo {name} ausente", out)
+            for bad in ([], {}, 0, "   "):
+                d = copy.deepcopy(base)
+                d["findings"][0][name] = bad
+                code, out = gate(d)
+                self.assertEqual(code, 1, f"{name}={bad!r}")
+                self.assertIn(f"W1: security: campo {name} ausente", out, f"{name}={bad!r}")
         d = copy.deepcopy(base)
         d["findings"][0]["state"] = "maybe"
         code, out = gate(d)
