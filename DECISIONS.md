@@ -664,3 +664,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** os scripts do the-judge ficam em `scripts/review/` e os do harness-eval em `scripts/harness/`, cada um com o comentário `Origem:` no topo; `CREDITS.md` lista as fontes.
 - **Motivo:** separar facilita a licença CC-BY-4.0 e as atualizações.
 - **Por que não é bug:** `tests/test_credits_f9.py` confere fontes e comentários; `tests/test_build.py` confere os 4 `dist/<cli>/`.
+
+### F9-9: campos de segurança do review exigem texto não vazio
+- **Problema:** o Q achou que o `review_gate.py` aceitava `attacker: []` (valor não textual vazio) num achado de segurança.
+- **Decisão:** cada campo textual de segurança e `evidence`/`missing_fact`/`reason` exigem string não vazia após strip; o resto vira `security: campo <nome> ausente`.
+- **Motivo:** o portão de evidência (plano §3.1) só vale se cada resposta existir de fato.
+- **Por que não é bug:** `tests/test_review_gate.py::test_gate_security_fields_required` testa `[]`, `{}`, `0` e espaço; correção em 9e7679a.
