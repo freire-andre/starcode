@@ -595,3 +595,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** a linha de `routing/` (24 frases: 14 que devem disparar e 10 que não devem) vive em `evals/README.md`; arquivo gerado nunca se edita à mão.
 - **Motivo:** a cópia gerada é descartada a cada build.
 - **Por que não é bug:** `build.py --check` verde prova que fonte e `dist/` coincidem.
+
+### F8-11: `new` aceita pasta só com `.specs/` e Biome ignora `.specs`
+- **Problema:** no aceite real (`docs/aceite/fase-8.md`, achados 1 e 2), a `nova-missao` grava o cache `.specs/stack/` antes do `scaffold.py new` (R31), e o `new` recusava a pasta não vazia (exit 2); além disso, o `biome check` do perfil tauri formatava os `.md` do cache.
+- **Decisão:** o `new` aceita a pasta quando ela contém só `.specs/` (qualquer outro conteúdo continua exit 2, e o `.specs/` preexistente é preservado se o `new` falhar); os `biome.json` dos perfis `tauri` e `typescript` excluem `.specs`.
+- **Motivo:** o cache de stack é gravado antes do scaffold por desenho, então a pasta "quase vazia" é o caso normal do Kirk, e o gate não deve mexer em arquivos de cache.
+- **Por que não é bug:** testes em `tests/test_scaffold.py` e `tests/test_profile_ts_tauri.py` e os cenários 1 e 2 do aceite, aprovados.
