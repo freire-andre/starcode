@@ -47,7 +47,7 @@ class DiagnosticoTests(unittest.TestCase):
             (self.bin / "npx.cmd").write_text(f'@"{sys.executable}" "%~dp0fake_npx.py" %*\r\n', encoding="utf-8")
         else:
             sh = self.bin / "npx"
-            sh.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$(dirname "$0")/fake_npx.py" "$@"\n', encoding="utf-8")
+            sh.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{self.bin / "fake_npx.py"}" "$@"\n', encoding="utf-8")
             sh.chmod(0o755)
 
     def tearDown(self) -> None:
