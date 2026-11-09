@@ -52,8 +52,10 @@ def build_payload(data: dict, event: str, intended: str | None) -> dict:
     for f in findings:
         emoji = EMOJI.get(f.get("severity"), "")
         if is_inline(f):
+            text = f.get("body", "")
+            lead = "" if emoji and str(text).lstrip().startswith(emoji) else f"{emoji} "
             comments.append({"path": f["path"], "line": f["line"], "side": "RIGHT",
-                             "body": f"{emoji} **{f.get('severity')}** ({f.get('id', '?')}): {f.get('body', '')}"})
+                             "body": f"{lead}**{f.get('severity')}** ({f.get('id', '?')}): {text}"})
         else:
             where = f"{f.get('path')}:{f.get('line')}" if f.get("path") else "geral"
             tag = "hardening" if f.get("hardening") is True else f.get("severity")

@@ -670,3 +670,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** cada campo textual de segurança e `evidence`/`missing_fact`/`reason` exigem string não vazia após strip; o resto vira `security: campo <nome> ausente`.
 - **Motivo:** o portão de evidência (plano §3.1) só vale se cada resposta existir de fato.
 - **Por que não é bug:** `tests/test_review_gate.py::test_gate_security_fields_required` testa `[]`, `{}`, `0` e espaço; correção em 9e7679a.
+
+### F9-10: emoji do comentário inline sem repetição
+- **Problema:** o comentário inline saía como `🔴 **blocker** (W1): 🔴 ...`, porque o `body` do achado já abre com o emoji da severidade.
+- **Decisão:** `post_review.py` só põe o emoji da severidade no prefixo quando o `body` (após `lstrip`) não começa com ele; senão o prefixo vai sem emoji e o do `body` fica.
+- **Motivo:** o emoji aparece uma vez só, sem mudar o formato dos achados que não o trazem.
+- **Por que não é bug:** `tests/test_review_post.py::test_inline_comment_does_not_repeat_severity_emoji` confere os dois casos.
