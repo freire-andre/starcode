@@ -91,6 +91,6 @@ Pastas vazias, sem cache (o cenário pede só `new` + `gates`); `new` saiu com 0
 
 1. **Corrigido (`bb5a320`)**: `scaffold.py new` recusava a pasta com o cache (`pasta não vazia`). Agora aceita a pasta que contém só `.specs/`; qualquer outro conteúdo continua recusado com exit 2, e uma falha do `new` não apaga o `.specs/` que já existia.
 2. **Corrigido (`bb5a320`)**: o `biome.json` dos perfis `tauri` e `typescript` agora exclui `.specs`; o gate `npx biome check .` passa com o cache presente.
-3. **Pendência**: `Doc version` fica sempre `desconhecida` (os IDs do perfil não têm versão e o Context7 não informa a versão dos docs); `stack_cache.py check` mostra `outra versão` logo após o `write`. Ajustar a regra do `check` para esse valor ou definir como obter a versão dos docs.
-4. **Pendência**: o `biome.json` dos perfis usa `linter.rules.recommended`, que o Biome 2.6 marca como obsoleto (informativo, não falha).
+3. **Corrigido (`9534c36`)**: `Doc version` fica sempre `desconhecida` (os IDs do perfil não têm versão e o Context7 não informa a versão dos docs). `stack_cache.py check` agora julga a entrada só pela idade e pela versão do manifesto e mostra `ok (doc sem versão)` (exit 0) logo após o `write` (R27 emendado).
+4. **Corrigido (`cfa0307`)**: o `biome.json` dos perfis `tauri` e `typescript` usava `linter.rules.recommended`, obsoleto no Biome 2.6; agora usa `linter.rules.preset: "recommended"`, mesmo conjunto de regras, e os gates reais passam.
 5. **Limpeza**: as pastas em `F:/Projetos/starcode-missoes/` (`flask-pg-aceite`, `tauri-aceite`, `aceite-*`, `serie-fora`, `fixtures`) ficam para o usuário. Só `flask-pg-aceite` e `tauri-aceite` são repositórios git (commit inicial, sem remoto).
