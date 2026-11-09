@@ -37,6 +37,9 @@ def norm_lib(lib: str) -> str:
     return file_name(lib)[:-3]
 
 
+UNKNOWN_DOC = "desconhecida"
+
+
 def parse_date(text: str, what: str) -> date:
     if not DATE_RE.match(text):
         raise UsageError(f"{what} deve ser AAAA-MM-DD: {text!r}")
@@ -60,6 +63,8 @@ def cmd_write(a) -> int:
                        ("--doc-version", a.doc_version), ("--verified", a.verified)):
         if not val.strip() or "\n" in val:
             raise UsageError(f"{label} inválido")
+    if a.doc_version != UNKNOWN_DOC and not parts(a.doc_version):
+        raise UsageError("doc-version inválida: use uma versão (ex.: 3.1) ou desconhecida")
     try:
         raw = Path(a.summary_file).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
@@ -182,7 +187,9 @@ def classify(e: dict, current: str | None, today: date) -> str:
         return "inválida"
     if current and not same_prefix(current, proj):
         return "versão mudou"
-    unknown_doc = not parts(doc)
+    unknown_doc = doc == UNKNOWN_DOC
+    if not unknown_doc and not parts(doc):
+        return "inválida"
     if not unknown_doc and not same_prefix(doc, proj, 2):
         return "outra versão"
     try:

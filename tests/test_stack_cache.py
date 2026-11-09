@@ -113,6 +113,28 @@ class StackCacheTests(unittest.TestCase):
             '[project]\nname="x"\ndependencies = ["flask>=4.0.0"]\n', encoding="utf-8")
         code, out, _ = run("check", self.repo, "--today", "2026-11-09")
         self.assertEqual((code, out.strip()), (1, "flask: versão mudou"))
+        (self.repo / "pyproject.toml").unlink()
+        self._rejects_non_literal_doc_version()
+
+    def _rejects_non_literal_doc_version(self):
+        # só o literal "desconhecida" pula a comparação (achado do Q2, R27)
+        import shutil
+        stack = self.repo / ".specs" / "stack"
+        shutil.rmtree(stack)
+        code, _, err = self.write(doc="abc")
+        self.assertEqual(code, 2)
+        self.assertIn("doc-version inválida: use uma versão (ex.: 3.1) ou desconhecida", err)
+        self.assertFalse(stack.exists())
+        # entrada escrita à mão com valor sem versão numérica é inválida
+        stack.mkdir(parents=True)
+        base = ("# flask\n**Context7 ID**: /pallets/flask\n**Project version**: 3.1.3\n"
+                "**Doc version**: {}\n**Fetched**: 2026-11-09\n**Verified**: context7\n## Summary\nx\n")
+        (stack / "flask.md").write_text(base.format("abc"), encoding="utf-8")
+        code, out, _ = run("check", self.repo, "--today", "2026-11-09")
+        self.assertEqual((code, out.strip()), (1, "flask: inválida"))
+        (stack / "flask.md").write_text(base.format("desconhecida"), encoding="utf-8")
+        code, out, _ = run("check", self.repo, "--today", "2026-11-09")
+        self.assertEqual((code, out.strip()), (0, "flask: ok (doc sem versão)"))
 
     def test_stack_cache_check_all_ok_and_manifest(self):
         self.write("flask", date="2026-11-08")

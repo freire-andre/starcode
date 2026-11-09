@@ -607,6 +607,7 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** em `scripts/stack_cache.py`, `Doc version` `desconhecida` pula só a comparação de `outra versão`; a entrada continua julgada pela idade (mais de 30 dias é `velha`) e pela versão do manifesto (`versão mudou`). Se passar nas duas, o estado é `ok (doc sem versão)` e conta como `ok` no exit (0). Decisão do usuário (opção "a") em 2026-11-09, emenda do R27.
 - **Motivo:** o cache que o próprio fluxo grava não pode nascer inválido, e a idade e o manifesto ainda protegem contra doc velho.
 - **Por que não é bug:** `test_stack_cache_check_states` e `test_stack_cache_unknown_doc_version_flow` cobrem `ok (doc sem versão)`, 30 dias (ok), 31 dias (`velha`) e outro major (`versão mudou`).
+- **Emenda (segundo Q):** só o literal `desconhecida` é aceito para pular a comparação. No `check`, qualquer outro `Doc version` sem versão numérica válida é `inválida` (exit 1); no `write`, `--doc-version` tem de ser uma versão numérica ou `desconhecida`, senão sai com exit 2 (`doc-version inválida: use uma versão (ex.: 3.1) ou desconhecida`) sem gravar nada. O teste `test_stack_cache_unknown_doc_version_flow` cobre o caso `abc`.
 
 ### F8-13: Biome com `linter.rules.preset: "recommended"`
 - **Problema:** o Biome 2.5+ marca `linter.rules.recommended` como obsoleto (aviso no Biome 2.6.6, limite registrado pelo Q).
