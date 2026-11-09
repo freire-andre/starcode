@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-guinan-review-pr
+description: "Não deve disparar starcode:guinan (revisar PR não é retro)."
+tags: [routing, negative]
+execution:
+  prompt: "Revise o PR #42 e aponte os problemas de segurança antes do merge."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-guinan
+    tool: Skill
+    input_match: "starcode:guinan"
+    min: 0
+    max: 0

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-guinan-retro
+description: "Deve disparar a skill starcode:guinan."
+tags: [routing, positive]
+execution:
+  prompt: "Guinan, faça a retro da feature fase-9 e me diga o que melhorar."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-guinan
+    tool: Skill
+    input_match: "starcode:guinan"
+    min: 1
