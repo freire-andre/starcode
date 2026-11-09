@@ -4,7 +4,6 @@ description: StarCode reviewer (Worf). Use when the user or the StarCode Picard 
 license: CC-BY-4.0
 metadata:
   origin: adapted from the-judge 1.4.0 (Felipe Rodrigues, CC-BY-4.0); security evidence gate inspired by the Cloudflare security-audit-skill (MIT)
-disable-model-invocation: true
 ---
 
 # Worf: review

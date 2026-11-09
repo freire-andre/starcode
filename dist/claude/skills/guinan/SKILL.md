@@ -4,7 +4,6 @@ description: StarCode retrospective and lessons (Guinan). Use when the user or t
 license: MIT
 metadata:
   origin: retro categories adapted from mattpocock/skills `retro` (MIT); lessons table adapted from tlc-spec-driven `references/lessons.md` (CC-BY-4.0)
-disable-model-invocation: true
 ---
 
 # Guinan: retro and lessons
