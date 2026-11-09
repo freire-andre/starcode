@@ -112,7 +112,8 @@ class ScaffoldTests(ScaffoldCase):
             folder = self.tmp / "ok-dir"
             code, _, err = run("new", str(folder), "--profile", "fakeapp", "--name", bad)
             self.assertEqual(code, 2, bad)
-            self.assertIn("nome inválido: use minúsculas, dígitos e hífen, começando por letra", err)
+            self.assertEqual(err.strip(),
+                             "nome inválido: use minúsculas, dígitos e hífen, começando por letra")
             self.assertFalse(folder.exists())
 
     def test_scaffold_rejects_non_empty_dir(self) -> None:
@@ -153,11 +154,22 @@ class ScaffoldTests(ScaffoldCase):
         self.assertTrue((folder / ".specs" / "k.json").is_file())
 
     def test_scaffold_rejects_unknown_combo(self) -> None:
-        for argv in (["--profile", "faketauri", "--db", "fakedb"], ["--profile", "nada"]):
+        # a lista esperada sai dos profile.yaml das fixtures, não de valid_summary
+        docs = {d.name: scaffold.loads((d / "profile.yaml").read_text(encoding="utf-8"))
+                for d in sorted(PROFILES.iterdir()) if (d / "profile.yaml").is_file()}
+        apps = [n for n, d in docs.items() if d["kind"] == "app"]
+        dbs = [n for n, d in docs.items() if d["kind"] == "db"]
+        combos = [f"{a}+{b}" for a in apps for b in docs[a].get("combinesWith") or [] if b in dbs]
+        valid = (f"perfis de app: {', '.join(apps)}; perfis de banco: {', '.join(dbs)}; "
+                 f"combinações válidas: {', '.join(combos)}")
+        self.assertEqual((apps, dbs, combos), (["fakeapp", "faketauri"], ["fakedb"], ["fakeapp+fakedb"]))
+        cases = ((["--profile", "faketauri", "--db", "fakedb"], "combinação inexistente: faketauri+fakedb"),
+                 (["--profile", "nada"], "perfil inexistente: nada"))
+        for argv, head in cases:
             folder = self.tmp / "combo"
             code, _, err = run("new", str(folder), *argv)
             self.assertEqual(code, 2)
-            self.assertIn("fakeapp+fakedb", err)
+            self.assertEqual(err.strip(), f"{head}. Válidos — {valid}")
             self.assertFalse(folder.exists())
 
     def test_scaffold_cleans_up_on_failure(self) -> None:
