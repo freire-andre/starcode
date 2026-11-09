@@ -1,6 +1,6 @@
 # fase-8-uhura-scotty-kirk proofs
 
-**HEAD**: f01208a
+**HEAD**: 3c7a412
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 53 pass, 0 fail
@@ -78,7 +78,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 523 tests in 215.939s
+Ran 525 tests in 201.539s
 
 OK
 ```
@@ -95,7 +95,7 @@ test_tauri_template_gates_pass (test_slow_ts_tauri.TsTauriGatesTests.test_tauri_
 test_typescript_template_gates_pass (test_slow_ts_tauri.TsTauriGatesTests.test_typescript_template_gates_pass) ... ok
 
 ----------------------------------------------------------------------
-Ran 7 tests in 451.287s
+Ran 7 tests in 392.708s
 
 OK
 ```
