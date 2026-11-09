@@ -1,0 +1,8 @@
+# Substitui o [tool.ruff] do pyproject.toml (o ruff.toml tem precedência) e deixa de fora
+# scripts/ephemeral_db.py, que é copiado do StarCode e não segue o estilo do projeto.
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["scripts"]
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
