@@ -53,8 +53,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| R8 aceita campos de segurança não textuais e vazios; um achado com `attacker: []` passa pelo gate. | `scripts/review/review_gate.py:72` (`blank` só considera `None` e string vazia); sondagem: `review_gate.check({... attacker: [], ...})` imprimiu `[]` (nenhuma violação). | Exigir string não vazia para cada campo textual de segurança e testar `[]`, `{}` e whitespace. || 9e7679a |
-| Asserção mais fraca que o critério: C11 testa apenas `assertIn` para a linha de fallback do comentário, sem verificar o texto completo e o veredito exato exigidos por R15. C39 aceita qualquer nível `L0`–`L4` e qualquer fração numérica, sem comparar com o nível/score citados no aceite. | `tests/test_review_post.py:test_post_own_pr_falls_back_to_comment`; `tests/test_acceptance_doc_f9.py:test_fase9_acceptance_sections` | Comparar a linha completa do comentário com valor esperado; validar o nível e score do aceite contra a saída produzida. || 6e26b43 |
+| R8 aceita campos de segurança não textuais e vazios; um achado com `attacker: []` passa pelo gate. | `scripts/review/review_gate.py:72` (`blank` só considera `None` e string vazia); sondagem: `review_gate.check({... attacker: [], ...})` imprimiu `[]` (nenhuma violação). | Exigir string não vazia para cada campo textual de segurança e testar `[]`, `{}` e whitespace. | 9e7679a |
+| Asserção mais fraca que o critério: C11 testa apenas `assertIn` para a linha de fallback do comentário, sem verificar o texto completo e o veredito exato exigidos por R15. C39 aceita qualquer nível `L0`–`L4` e qualquer fração numérica, sem comparar com o nível/score citados no aceite. | `tests/test_review_post.py:test_post_own_pr_falls_back_to_comment`; `tests/test_acceptance_doc_f9.py:test_fase9_acceptance_sections` | Comparar a linha completa do comentário com valor esperado; validar o nível e score do aceite contra a saída produzida. | 6e26b43 |
 
 ## Limits
 
