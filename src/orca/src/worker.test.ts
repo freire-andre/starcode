@@ -1,0 +1,275 @@
+// Testes do worker da Ponte, com um executor falso no lugar dos processos filhos.
+import { assert, mockHost, mountWorker, test } from 'orca/testing'
+import * as main from './worker'
+
+type Call = { cmd: string; args: string[]; cwd?: string }
+type Reply = { stdout: string } | Error
+
+const WS_A = { id: 'ws-a', kind: 'worktree', name: 'a', path: 'C:/wt/a', branch: 'feat/a', hostId: null }
+const WS_B = { id: 'ws-b', kind: 'worktree', name: 'b', path: 'C:/wt/b', branch: 'feat/b', hostId: null }
+const CTX_A = { branch: 'feat/a', displayName: 'a', terminals: [] }
+const CTX_B = { branch: 'feat/b', displayName: 'b', terminals: [] }
+
+function snapshot(path: string, over: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 1,
+    worktree: path,
+    starcode: true,
+    crew: [],
+    gitMode: { mode: 3, label: 'branch + PR', recordedAt: null },
+    feature: {
+      slug: 'fase-10-ponte',
+      phase: 'build',
+      size: 'GRANDE',
+      done: false,
+      linear: ['SC-17', 'SC-18'],
+      integrationBranch: null,
+      progress: { done: 1, total: 4, percent: 25 },
+      breaker: 'closed',
+      files: { context: null, spec: null, tasks: null, handoff: null },
+    },
+    workers: [],
+    errors: [],
+    ...over,
+  }
+}
+
+const LINEAR_OK = JSON.stringify({
+  ok: true,
+  result: {
+    issue: { identifier: 'SC-116', title: 'T2', state: { name: 'In Progress' }, url: 'https://linear.app/x/SC-116' },
+  },
+})
+
+type Fake = {
+  calls: Call[]
+  snaps: () => Call[]
+  linear: () => Call[]
+  python: (path: string) => Reply | Promise<Reply>
+  orca: () => Reply | Promise<Reply>
+}
+
+function install(): Fake {
+  const fake: Fake = {
+    calls: [],
+    snaps: () => fake.calls.filter((c) => c.args.includes('snapshot')),
+    linear: () => fake.calls.filter((c) => c.cmd === 'orca'),
+    python: (path) => ({ stdout: JSON.stringify(snapshot(path)) }),
+    orca: () => ({ stdout: LINEAR_OK }),
+  }
+  ;(globalThis as any).__ponteExec = async (cmd: string, args: string[], opts: { cwd?: string }) => {
+    fake.calls.push({ cmd, args, cwd: opts?.cwd })
+    const reply = cmd === 'orca' ? await fake.orca() : await fake.python(args[args.indexOf('--path') + 1])
+    if (reply instanceof Error) throw reply
+    return reply
+  }
+  return fake
+}
+
+function hostFor(ctx: unknown, workspaces = [WS_A, WS_B], agents: unknown[] = []) {
+  return mockHost({
+    results: {
+      'workspace.readContext': ctx,
+      'workspace.list': { workspaces, truncated: false },
+      'agents.list': { agents },
+      'statusBar.update': { ok: true },
+    },
+  })
+}
+
+const EVENTS = ['workspace.changed', 'agent.status.changed']
+const COMMANDS = ['starcode-ponte.refresh']
+
+async function until(cond: () => boolean, ms = 3000) {
+  const end = Date.now() + ms
+  while (!cond()) {
+    if (Date.now() > end) throw new Error('tempo esgotado esperando a condição')
+    await new Promise((r) => setTimeout(r, 10))
+  }
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+const AGENT_EVT = { workspaceId: 'ws-a', paneKey: 'p1', state: 'working', receivedAt: 1 } as const
+const mount = (host: ReturnType<typeof hostFor>) => mountWorker(main, { host, events: EVENTS, commands: COMMANDS })
+
+test('worker acha o worktree em foco pelo ramo', async () => {
+  const fake = install()
+  const worker = await mount(hostFor(CTX_B))
+  const state: any = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'ok')
+  assert.equal(fake.snaps().length, 1)
+  const args = fake.snaps()[0].args
+  assert.equal(args[args.indexOf('--path') + 1], 'C:/wt/b')
+  assert.ok(args.includes('--json'))
+  await worker.deactivate()
+})
+
+test('worker sem worktree em foco', async () => {
+  const fake = install()
+  let worker = await mount(hostFor(null))
+  let state: any = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'sem-worktree')
+  assert.equal(state.snapshot, null)
+  await worker.deactivate()
+  worker = await mount(hostFor({ branch: 'outro', displayName: 'x', terminals: [] }))
+  state = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'sem-worktree')
+  assert.equal(fake.snaps().length, 0)
+  await worker.deactivate()
+})
+
+test('worker publica o estado após agent.status.changed', async () => {
+  install()
+  const worker = await mount(hostFor(CTX_A))
+  await worker.emit('agent.status.changed', { ...AGENT_EVT })
+  await until(() => worker.posts.some((p) => p.event === 'ponte.state'))
+  const post: any = worker.posts.find((p) => p.event === 'ponte.state')
+  assert.equal(post.payload.status, 'ok')
+  assert.equal(post.payload.snapshot.worktree, 'C:/wt/a')
+  await worker.deactivate()
+})
+
+test('worker agrupa eventos em 300 ms', async () => {
+  const fake = install()
+  const worker = await mount(hostFor(CTX_A))
+  await worker.emit('agent.status.changed', { ...AGENT_EVT })
+  await worker.emit('workspace.changed', { context: CTX_A })
+  await worker.emit('agent.status.changed', { ...AGENT_EVT })
+  assert.equal(fake.snaps().length, 0)
+  await until(() => worker.posts.length >= 1)
+  await sleep(500)
+  assert.equal(fake.snaps().length, 1)
+  assert.equal(worker.posts.filter((p) => p.event === 'ponte.state').length, 1)
+  await worker.deactivate()
+})
+
+test('worker descarta snapshot de foco antigo', async () => {
+  const fake = install()
+  let release: () => void = () => {}
+  const gate = new Promise<void>((r) => (release = r))
+  fake.python = async (path) => {
+    if (path === 'C:/wt/a') await gate
+    return { stdout: JSON.stringify(snapshot(path)) }
+  }
+  const host = hostFor(CTX_A)
+  const worker = await mount(host)
+  const slow = worker.request('ponte.state', {})
+  await until(() => fake.snaps().length === 1)
+  host.respond('workspace.readContext', CTX_B)
+  const fast: any = await worker.request('ponte.state', {})
+  assert.equal(fast.snapshot.worktree, 'C:/wt/b')
+  release()
+  await slow
+  const posted = worker.posts.filter((p) => p.event === 'ponte.state') as any[]
+  assert.ok(posted.length >= 1)
+  assert.ok(posted.every((p) => p.payload.snapshot.worktree === 'C:/wt/b'))
+  await worker.deactivate()
+})
+
+test('worker consulta a issue e guarda em cache por 60 s', async () => {
+  const fake = install()
+  const worker = await mount(hostFor(CTX_A))
+  const first: any = await worker.request('ponte.state', {})
+  assert.deepEqual(first.issue, {
+    id: 'SC-116',
+    title: 'T2',
+    state: 'In Progress',
+    url: 'https://linear.app/x/SC-116',
+  })
+  assert.deepEqual(fake.linear()[0].args, ['linear', 'issue', '--current', '--json'])
+  assert.equal(fake.linear()[0].cwd, 'C:/wt/a')
+  await worker.request('ponte.state', {})
+  assert.equal(fake.linear().length, 1)
+  await worker.deactivate()
+})
+
+test('worker sem Linear mostra o ID do Handoff', async () => {
+  const fake = install()
+  fake.orca = () => new Error('linear fora do ar')
+  const worker = await mount(hostFor(CTX_A))
+  const state: any = await worker.request('ponte.state', {})
+  assert.equal(state.issue.id, 'SC-17')
+  assert.equal(state.issueNote, 'Linear indisponível')
+  await worker.request('ponte.state', {})
+  assert.equal(fake.linear().length, 1)
+  await worker.deactivate()
+
+  const sem = install()
+  sem.orca = () => ({ stdout: JSON.stringify({ ok: true, result: { issue: null } }) })
+  const w2 = await mount(hostFor(CTX_A))
+  const s2: any = await w2.request('ponte.state', {})
+  assert.equal(s2.issue.id, 'SC-17')
+  assert.equal(s2.issueNote, 'Sem issue vinculada')
+  await w2.deactivate()
+})
+
+test('worker com snapshot falho marca desatualizado', async () => {
+  const fake = install()
+  const worker = await mount(hostFor(CTX_A))
+  const good: any = await worker.request('ponte.state', {})
+  assert.equal(good.status, 'ok')
+  fake.python = () => new Error('boom\nsegunda linha')
+  const bad: any = await worker.request('ponte.state', {})
+  assert.equal(bad.status, 'erro')
+  assert.equal(bad.stale, true)
+  assert.equal(bad.error, 'boom')
+  assert.equal(bad.snapshot.worktree, 'C:/wt/a')
+  await worker.deactivate()
+})
+
+test('worker atualiza a barra de status', async () => {
+  const fake = install()
+  const host = hostFor(CTX_A)
+  const worker = await mount(host)
+  const last = () => host.callsOf('statusBar.update').at(-1) as any
+  await worker.request('ponte.state', {})
+  assert.equal(last().id, 'ponte')
+  assert.equal(last().text, '🖖 fase-10-ponte · build · modo 3')
+  assert.equal(last().tone, 'neutral')
+  assert.equal(last().visible, true)
+
+  host.respond('agents.list', {
+    agents: [{ terminalId: 't1', title: 'x', agent: 'claude', state: 'blocked', stateStartedAt: 1 }],
+  })
+  await worker.request('ponte.state', {})
+  assert.equal(last().tone, 'warning')
+
+  host.respond('agents.list', { agents: [] })
+  fake.python = (p) => ({
+    stdout: JSON.stringify(snapshot(p, { feature: { ...(snapshot(p).feature as object), breaker: 'open' } })),
+  })
+  await worker.request('ponte.state', {})
+  assert.equal(last().tone, 'warning')
+
+  fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { feature: null })) })
+  await worker.request('ponte.state', {})
+  assert.equal(last().text, '🖖 StarCode · modo 3')
+
+  fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { starcode: false, feature: null, gitMode: null })) })
+  await worker.request('ponte.state', {})
+  assert.equal(last().visible, false)
+  await worker.deactivate()
+})
+
+test('atualizar agora ignora o cache', async () => {
+  const fake = install()
+  const worker = await mount(hostFor(CTX_A))
+  await worker.request('ponte.state', {})
+  await worker.request('ponte.state', {})
+  assert.equal(fake.linear().length, 1)
+  await worker.request('ponte.state', { force: true })
+  assert.equal(fake.linear().length, 2)
+  await worker.command('starcode-ponte.refresh')
+  assert.equal(fake.linear().length, 3)
+  assert.equal(fake.snaps().length, 4)
+  await worker.deactivate()
+})
+
+test('ponte.open e ponte.launchPicard respondem not_implemented', async () => {
+  install()
+  const worker = await mount(hostFor(CTX_A))
+  await assert.rejects(worker.request('ponte.open', { file: 'spec' }), /not_implemented/)
+  await assert.rejects(worker.request('ponte.launchPicard', {}), /not_implemented/)
+  await worker.deactivate()
+})

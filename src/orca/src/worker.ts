@@ -1,0 +1,241 @@
+// Worker da Ponte do StarCode: acha o worktree em foco, roda o ponte.py e o Linear,
+// publica o estado aos painéis e atualiza a barra de status. Só lê; nunca escreve estado.
+import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import type { OrcaWorkerApi } from 'orca/worker'
+import type { PonteAgent, PonteIssue, PonteSnapshot, PonteState } from './protocol'
+
+const DEBOUNCE_MS = 300
+const TIMEOUT_MS = 10_000
+const ISSUE_TTL_MS = 60_000
+const LOG_MAX = 20
+
+type ExecResult = { stdout: string }
+type Exec = (cmd: string, args: string[], opts: { cwd?: string; timeout: number }) => Promise<ExecResult>
+
+const realExec: Exec = (cmd, args, opts) =>
+  new Promise((resolveExec, reject) => {
+    execFile(
+      cmd,
+      args,
+      { cwd: opts.cwd, timeout: opts.timeout, windowsHide: true, maxBuffer: 8 * 1024 * 1024, encoding: 'utf8' },
+      (err, stdout, stderr) => {
+        if (err) {
+          const e = err as Error & { code?: unknown }
+          const first = String(stderr || '').trim().split(/\r?\n/)[0]
+          if (first && e.code !== 'ENOENT') e.message = first
+          reject(e)
+        } else resolveExec({ stdout: String(stdout) })
+      },
+    )
+  })
+
+// Só para testes: injeta um executor no lugar do processo filho.
+function getExec(): Exec {
+  return ((globalThis as { __ponteExec?: Exec }).__ponteExec ?? realExec) as Exec
+}
+
+function ponteScript(): string {
+  let root = process.cwd()
+  try {
+    root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+  } catch {
+    /* mantém o cwd */
+  }
+  const candidates = [resolve(root, 'scripts', 'ponte.py'), resolve(root, '..', '..', 'scripts', 'ponte.py')]
+  return candidates.find((p) => existsSync(p)) ?? candidates[0]
+}
+
+function firstLine(err: unknown): string {
+  const text = err instanceof Error ? err.message : String(err)
+  return text.trim().split(/\r?\n/)[0] || 'erro desconhecido'
+}
+
+async function runSnapshot(path: string): Promise<PonteSnapshot> {
+  const exec = getExec()
+  const args = [ponteScript(), 'snapshot', '--path', path, '--json']
+  let out: ExecResult | undefined
+  let lastErr: unknown
+  for (const py of ['python', 'python3']) {
+    try {
+      out = await exec(py, args, { timeout: TIMEOUT_MS })
+      break
+    } catch (err) {
+      lastErr = err
+      if ((err as { code?: unknown }).code !== 'ENOENT') throw err
+    }
+  }
+  if (!out) throw lastErr ?? new Error('python não encontrado')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(out.stdout)
+  } catch {
+    throw new Error('saída do ponte.py não é JSON')
+  }
+  const snap = parsed as PonteSnapshot & { error?: string }
+  if (!snap || typeof snap !== 'object' || snap.error) throw new Error(snap?.error ?? 'snapshot inválido')
+  return snap
+}
+
+type IssueResult = { issue: PonteIssue | null; note: string | null }
+
+async function queryIssue(path: string): Promise<IssueResult> {
+  try {
+    const out = await getExec()('orca', ['linear', 'issue', '--current', '--json'], { cwd: path, timeout: TIMEOUT_MS })
+    const json = JSON.parse(out.stdout)
+    const issue = json?.result?.issue
+    if (json?.ok && issue?.identifier) {
+      return {
+        issue: {
+          id: String(issue.identifier),
+          title: issue.title ?? null,
+          state: issue.state?.name ?? null,
+          url: issue.url ?? null,
+        },
+        note: null,
+      }
+    }
+    return { issue: null, note: 'Sem issue vinculada' }
+  } catch {
+    return { issue: null, note: 'Linear indisponível' }
+  }
+}
+
+function statusText(snap: PonteSnapshot): string {
+  const mode = snap.gitMode ? ` · modo ${snap.gitMode.mode}` : ''
+  if (snap.feature) return `🖖 ${snap.feature.slug} · ${snap.feature.phase}${mode}`
+  return `🖖 StarCode${mode}`
+}
+
+export default function activate(orca: OrcaWorkerApi): void {
+  const issueCache = new Map<string, { at: number; result: IssueResult }>()
+  let seq = 0
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let lastGood: PonteState | null = null
+  const log: { at: number; text: string }[] = []
+
+  const note = (text: string) => {
+    log.push({ at: Date.now(), text })
+    if (log.length > LOG_MAX) log.shift()
+  }
+
+  async function listAgents(): Promise<PonteAgent[]> {
+    try {
+      const res = (await orca.host.call('agents.list', {})) as { agents?: PonteAgent[] }
+      return res?.agents ?? []
+    } catch {
+      return []
+    }
+  }
+
+  async function updateBar(state: PonteState): Promise<void> {
+    const snap = state.snapshot
+    const visible = !!snap && snap.starcode && state.status !== 'sem-worktree'
+    const params: Record<string, unknown> = { id: 'ponte', visible }
+    if (snap && visible) {
+      const blocked = state.agents.some((a) => a.state === 'blocked' || a.state === 'waiting')
+      params.text = statusText(snap)
+      params.tone = snap.feature?.breaker === 'open' || blocked ? 'warning' : 'neutral'
+    }
+    try {
+      await orca.host.call('statusBar.update', params as never)
+    } catch (err) {
+      orca.log(`statusBar.update falhou: ${firstLine(err)}`)
+    }
+  }
+
+  async function issueFor(path: string, snap: PonteSnapshot, force: boolean): Promise<IssueResult> {
+    let entry = issueCache.get(path)
+    if (!entry || force || Date.now() - entry.at >= ISSUE_TTL_MS) {
+      entry = { at: Date.now(), result: await queryIssue(path) }
+      issueCache.set(path, entry)
+    }
+    const { issue, note: why } = entry.result
+    if (issue) return { issue, note: null }
+    const id = snap.feature?.linear?.[0]
+    return { issue: id ? { id, title: null, state: null, url: null } : null, note: why }
+  }
+
+  async function refresh(force = false): Promise<PonteState> {
+    const mine = ++seq
+    const stale = () => mine !== seq
+    const now = Date.now()
+    const base = { updatedAt: now, log: [...log] }
+    let state: PonteState
+    try {
+      const ctx = (await orca.host.call('workspace.readContext', {})) as { branch: string } | null
+      let path: string | null = null
+      if (ctx) {
+        const list = (await orca.host.call('workspace.list', {})) as {
+          workspaces: { kind: string; path: string; branch: string | null }[]
+        }
+        path = list.workspaces.find((w) => w.kind === 'worktree' && w.branch === ctx.branch)?.path ?? null
+      }
+      if (!path) {
+        state = {
+          status: 'sem-worktree', stale: false, snapshot: null, issue: null,
+          issueNote: null, agents: [], error: null, ...base,
+        }
+      } else {
+        try {
+          const snap = await runSnapshot(path)
+          const [issueRes, agents] = await Promise.all([
+            snap.starcode ? issueFor(path, snap, force) : Promise.resolve<IssueResult>({ issue: null, note: null }),
+            listAgents(),
+          ])
+          state = {
+            status: 'ok', stale: false, snapshot: snap, issue: issueRes.issue,
+            issueNote: issueRes.note, agents, error: null, ...base,
+          }
+          lastGood = state
+        } catch (err) {
+          const msg = firstLine(err)
+          note(`snapshot falhou: ${msg}`)
+          state = {
+            status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
+            issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
+            agents: lastGood?.agents ?? [], error: msg, ...base, log: [...log],
+          }
+        }
+      }
+    } catch (err) {
+      const msg = firstLine(err)
+      state = {
+        status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
+        issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
+        agents: lastGood?.agents ?? [], error: msg, ...base,
+      }
+    }
+    if (stale()) return state
+    if (state.status === 'erro' && !state.snapshot) state.stale = false
+    await updateBar(state.status === 'erro' && lastGood ? { ...lastGood, status: 'erro' } : state)
+    if (!stale()) orca.panels.post('ponte.state', state)
+    return state
+  }
+
+  function schedule(): void {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      timer = null
+      void refresh().catch((err) => orca.log(`refresh falhou: ${firstLine(err)}`))
+    }, DEBOUNCE_MS)
+  }
+
+  orca.events.on('workspace.changed', schedule)
+  orca.events.on('agent.status.changed', schedule)
+
+  orca.panels.handle('ponte.state', async (input) => refresh(!!input?.force))
+  orca.panels.handle('ponte.open', async () => {
+    throw Object.assign(new Error('not_implemented'), { code: 'not_implemented' })
+  })
+  orca.panels.handle('ponte.launchPicard', async () => {
+    throw Object.assign(new Error('not_implemented'), { code: 'not_implemented' })
+  })
+
+  orca.commands.register('starcode-ponte.refresh', async () => {
+    await refresh(true)
+    return 'Ponte atualizada'
+  })
+}

@@ -1,0 +1,55 @@
+{
+  "manifestVersion": 2,
+  "id": "starcode-ponte",
+  "name": "StarCode Ponte",
+  "version": "1.3.0",
+  "description": "Painel da Ponte do StarCode: tripulação, modo Git, issue, fase SDD e workers do worktree em foco.",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "src/worker.ts",
+  "contributes": {
+    "panels": [
+      {
+        "id": "ponte",
+        "title": "Ponte",
+        "icon": "rocket",
+        "entry": "src/panel.tsx",
+        "ui": "components"
+      }
+    ],
+    "events": [
+      { "on": "workspace.changed" },
+      { "on": "agent.status.changed" }
+    ],
+    "commands": [
+      {
+        "id": "starcode-ponte.toggle",
+        "title": "StarCode: mostrar ou esconder a Ponte",
+        "action": "sidebar.right.toggle"
+      },
+      {
+        "id": "starcode-ponte.refresh",
+        "title": "StarCode: atualizar a Ponte"
+      }
+    ],
+    "statusBarItems": [
+      {
+        "id": "ponte",
+        "text": "🖖 StarCode",
+        "icon": "rocket",
+        "tooltip": "Ponte do StarCode",
+        "command": "starcode-ponte.toggle"
+      }
+    ]
+  },
+  "capabilities": [
+    { "kind": "workspace:read" },
+    { "kind": "agent:read" },
+    { "kind": "workspace:write" },
+    { "kind": "agent:launch" },
+    { "kind": "storage:own" }
+  ]
+}
