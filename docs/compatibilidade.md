@@ -27,6 +27,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | Fluxo StarCode completo (aceite da Fase 4) | ✅ ¹¹ | ✅ ¹¹ | ✅ ¹² | ✅ ¹³ |
 | Cabeçalho por hook | ✅ | ✅ (após confiança) | ✅ (o modelo repete) | ✅ (o modelo repete) |
 | Perfis de stack (`dist/<cli>/profiles/`) e skills `uhura`, `scotty`, `nova-missao` | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ |
+| Skills `worf`, `guinan`, `diagnostico` e `scripts/review/`, `scripts/harness/` | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ |
 
 ## Notas
 
@@ -65,6 +66,8 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 13. **Aceite da Fase 4, OpenCode**: aprovado em 2026-11-05 (`docs/aceite/fase-4.md`, seção OpenCode). O roteiro pede `openrouter/deepseek/deepseek-v4-pro`, mas o usuário trocou para o gratuito `openrouter/nvidia/nemotron-3.5-super-vl:free` (a 1ª execução parou no T1). Picard e equipe em nemotron, Q no codex; `run_gates.py done` deu VEREDITO VERDE e PROJ-17 a PROJ-19 foram publicadas pelo `orca linear`. O formato `skills.paths` do `opencode.json` foi confirmado no OpenCode 2.2.3 (as 8 skills carregaram). Ressalva: hook de bloqueio e banner do `starcode` não foram exercitados.
 
 14. **Fase 8, perfis**: o `tools/build.py` copia `profiles/` (7 perfis: `python-flask`, `rust`, `tauri`, `typescript`, `gpui`, `postgresql`, `mysql`) e gera as skills `uhura`, `scotty` e `nova-missao` nos 4 CLIs (`tests/test_build.py`); a prova é de build, não de sessão real (o aceite da Fase 8 é à parte). Ferramentas por perfil, iguais nos 4 CLIs: `python-flask` e os bancos usam `uv` (os bancos também `docker`); `rust` e `gpui` usam `cargo`; `typescript` usa `node` e `npm`; `tauri` usa `node`, `npm` e `cargo`. O banco efêmero só funciona com Docker instalado e em execução.
+
+15. **Fase 9, Worf, Guinan e diagnóstico**: o `tools/build.py` gera as skills `worf`, `guinan` e `diagnostico` e copia `scripts/review/`, `scripts/harness/`, `scripts/lessons.py` e `scripts/diagnostico.py` nos 4 CLIs (`tests/test_build.py`); a prova é de build, não de sessão real. O `diagnostico` usa `npx` (harness-score fixado) e precisa de Node.
 
 ## Fase 4: extras por CLI
 

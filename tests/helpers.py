@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
-for p in (ROOT / "scripts", ROOT / "scripts" / "config", ROOT / "scripts" / "gates", ROOT / "hooks" / "scripts", ROOT / "tools"):
+for p in (ROOT / "scripts", ROOT / "scripts" / "config", ROOT / "scripts" / "gates", ROOT / "scripts" / "review", ROOT / "hooks" / "scripts", ROOT / "tools"):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 

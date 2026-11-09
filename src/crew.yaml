@@ -131,7 +131,7 @@ crew:
     emoji: "🛡️"
     role: Segurança e review
     skill: worf
-    invocation: user
+    invocation: both
     release: "1.3"
     subagent: true
     default: {cli: claude, model: claude-opus-5-5}
@@ -141,7 +141,7 @@ crew:
     emoji: "🍸"
     role: Retro e lições
     skill: guinan
-    invocation: user
+    invocation: both
     release: "1.3"
     subagent: false
     default: {cli: claude, model: claude-haiku-5-5}
@@ -153,3 +153,7 @@ skills:
     owner: picard
     invocation: both
     release: "1.0"
+  diagnostico:
+    owner: laforge
+    invocation: user
+    release: "1.3"

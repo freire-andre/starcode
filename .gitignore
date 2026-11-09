@@ -15,3 +15,6 @@ Thumbs.db
 # Resultados dos evals
 evals/results/
 dist/claude/evals/results/
+
+# Resultados do harness-eval (diagnostico)
+.harness-eval/

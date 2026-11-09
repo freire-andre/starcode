@@ -29,7 +29,9 @@
     "q",
     "uhura",
     "scotty",
-    "kirk"
+    "kirk",
+    "worf",
+    "guinan"
   ],
   "crew": {
     "picard": {
@@ -207,7 +209,7 @@
       "emoji": "🛡️",
       "role": "Segurança e review",
       "skill": "worf",
-      "invocation": "user",
+      "invocation": "both",
       "release": "1.3",
       "subagent": true,
       "default": {
@@ -224,7 +226,7 @@
       "emoji": "🍸",
       "role": "Retro e lições",
       "skill": "guinan",
-      "invocation": "user",
+      "invocation": "both",
       "release": "1.3",
       "subagent": false,
       "default": {

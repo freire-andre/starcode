@@ -1,0 +1,17 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Rodada 2: os 2 achados da rodada 1 foram resolvidos (W1 em f97ce19, W2 em fe552a2, integrados em bc42aa8). Nenhum blocker novo. test_diagnostico passa no Linux (WSL): antes da correção, 4 falhas e 1 erro, iguais aos do CI. A suíte passa com 573 testes no Windows. A confirmação final do CI do Ubuntu vem depois do push.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido em f97ce19: o shim usa o caminho absoluto do fake_npx.py (tests/test_diagnostico.py:50)",
+    "W2": "resolvido em fe552a2: o emoji não se repete quando o body já abre com ele (scripts/review/post_review.py:55)"
+  },
+  "research": ["https://github.com/freire-andre/starcode/actions/runs/42678656552/job/129366862666"],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "exit 0"},
+    {"command": "python scripts/check_decisions.py", "result": "exit 0"},
+    {"command": "python -m unittest discover -s tests (Windows)", "result": "exit 0, 573 testes"},
+    {"command": "wsl: python3 -m unittest test_diagnostico", "result": "OK (antes da correção: 4 falhas, 1 erro)"}
+  ]
+}

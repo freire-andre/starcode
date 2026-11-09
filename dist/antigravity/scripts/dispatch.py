@@ -49,6 +49,7 @@ for p in (HERE, HERE / "gates", HERE / "config"):
 
 import gates_common as gc  # noqa: E402
 import handoff  # noqa: E402
+import lessons  # noqa: E402
 import validate_config  # noqa: E402
 import starcode_common as sc  # noqa: E402
 import tasks_export  # noqa: E402
@@ -368,7 +369,28 @@ def checks_context(task: vt.Task, lines: list[str]) -> list[str]:
     return ["", "Checks desta task (linhas exatas de `## Checks`):", *runlines, *out, "", PROOF_RULE]
 
 
+MAX_LESSONS = 10
+
+
+def lessons_section(root: Path) -> str:
+    """`## Lessons` with up to 10 most recent confirmed lessons; '' when there is none (R25)."""
+    try:
+        data = lessons._load(root)
+    except lessons.StoreError as exc:
+        print(f"aviso: lessons.json inválido, briefing sem lições ({exc})", file=sys.stderr)
+        return ""
+    rows = lessons._recent([x for x in data["lessons"] if x["status"] == "confirmed"])[:MAX_LESSONS]
+    if not rows:
+        return ""
+    body = "\n".join(f"- {x['id']}: {x['text']}" for x in rows)
+    return f"\n## Lessons\n\n{body}\n"
+
+
 def worker_brief(slug: str, ticket: str, root: Path) -> str:
+    return _worker_brief(slug, ticket, root) + lessons_section(root)
+
+
+def _worker_brief(slug: str, ticket: str, root: Path) -> str:
     fdir0 = gc.resolve_feature(slug, root, "spec.md")
     if not (fdir0 / "tasks.md").exists():
         require_committed(fdir0, ("spec.md",))
@@ -409,7 +431,7 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     left = re.findall(r"\{\{[^}]+\}\}", text)
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do Q: {', '.join(sorted(set(left)))}")
-    return f"Repositório: {proj.as_posix()}\n\n" + text
+    return f"Repositório: {proj.as_posix()}\n\n" + text + lessons_section(root)
 
 
 def family(spec: str) -> str:

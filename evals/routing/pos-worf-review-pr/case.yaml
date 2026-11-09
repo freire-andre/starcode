@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-worf-review-pr
+description: "Deve disparar a skill starcode:worf."
+tags: [routing, positive]
+execution:
+  prompt: "Worf, revise o PR #42 antes do merge."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-worf
+    tool: Skill
+    input_match: "starcode:worf"
+    min: 1

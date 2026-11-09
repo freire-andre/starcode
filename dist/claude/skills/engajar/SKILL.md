@@ -86,7 +86,7 @@ if it is still open after that round; "public contract" only if someone outside 
 |---|---|
 | PEQUENA | LaForge with inline checks (≤5 steps; more than that → reclassify) |
 | MÉDIA | short Troi → Spock (brief spec with `## Checks`) → approval → LaForge |
-| GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → one question: approval 2 + publication → Linear writes → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket |
+| GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → one question: approval 2 + publication → Linear writes → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket → Guinan → PR → Worf → merge authorization |
 
 Issue for PEQUENA/MÉDIA: the issue linked to the worktree (`orca linear issue --current`); if there is
 none, offer to create one without a project, with confirmation (PEQUENA: now; MÉDIA: inside the spec approval

@@ -1,0 +1,9 @@
+diff --git a/a.py b/a.py
+--- a/a.py
++++ b/a.py
+@@ -5,4 +5,4 @@ def f():
+ context = 1  # noqa
+-removed = 2  # noqa
++clean = 3
+\ No newline at end of file
+ other = 4  # noqa
