@@ -182,13 +182,16 @@ def classify(e: dict, current: str | None, today: date) -> str:
         return "inválida"
     if current and not same_prefix(current, proj):
         return "versão mudou"
-    if not parts(doc) or not same_prefix(doc, proj, 2):
+    unknown_doc = not parts(doc)
+    if not unknown_doc and not same_prefix(doc, proj, 2):
         return "outra versão"
     try:
         age = (today - datetime.strptime(e["Fetched"], "%Y-%m-%d").date()).days
     except ValueError:
         return "inválida"
-    return "velha" if age > MAX_AGE_DAYS else "ok"
+    if age > MAX_AGE_DAYS:
+        return "velha"
+    return "ok (doc sem versão)" if unknown_doc else "ok"
 
 
 def cmd_check(a) -> int:
@@ -207,7 +210,7 @@ def cmd_check(a) -> int:
     else:
         for r in rows:
             print(f"{r['lib']}: {r['state']}")
-    return 0 if all(r["state"] == "ok" for r in rows) else 1
+    return 0 if all(r["state"].startswith("ok") for r in rows) else 1
 
 
 class _Parser(argparse.ArgumentParser):
