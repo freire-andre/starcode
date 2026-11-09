@@ -55,6 +55,8 @@ apply to every crew member, in every CLI. Skill-specific rules live in each skil
 - Execution (Phase 3): the Picard creates the integration branch, dispatches one LaForge worker per ticket
   and the Q worker, and integrates; workers never decide the next step. Flow:
   `skills/engajar/references/execute.md`.
+- Review and retro: the Worf reviews the PR before the merge authorization; the Guinan runs the retro after
+  `done` and before the PR, recording lessons in `.specs/LESSONS.md`.
 - If a record cannot be written, tell the user immediately and do not move to the next step.
 - On resume: read `STATE.md`, the feature files, Git and Linear. **Git evidence beats notes.**
 - **Circuit breaker (D27):** 3 failed attempts on the same error (stable error id) = stop. Show the 3
