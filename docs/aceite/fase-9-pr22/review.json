@@ -1,0 +1,34 @@
+{
+  "round": 1,
+  "verdict": "REQUEST_CHANGES",
+  "summary": "TL;DR: REQUEST_CHANGES. O PR adiciona tests/fixtures/review/planted/planted_bypass.py com dois bypasses sem justificativa: verify=False numa chamada HTTP (blocker) e @unittest.skip sem motivo (should-fix). A escada determinística passou (build --check, check_decisions, validate --strict, 571 testes). Varredura: 2 candidatos, os 2 viraram achados. Arquivos mecânicos: nenhum.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "blocker",
+      "category": "bypass",
+      "path": "tests/fixtures/review/planted/planted_bypass.py",
+      "line": 8,
+      "body": "🔴 `fetch` desliga a verificação de TLS com `verify=False` (tests/fixtures/review/planted/planted_bypass.py:8), sem justificativa nem link de issue. Com `verify=False` o requests aceita qualquer certificado e ignora hostname e validade, o que abre espaço para MitM. Correção: remover o argumento (o padrão é `verify=True`) ou apontar `verify` para o bundle de CA do ambiente.",
+      "evidence": ["tests/fixtures/review/planted/planted_bypass.py:8", "/websites/requests_readthedocs_io", "https://requests.readthedocs.io/en/latest/user/advanced/"]
+    },
+    {
+      "id": "W2",
+      "severity": "should-fix",
+      "category": "bypass",
+      "path": "tests/fixtures/review/planted/planted_bypass.py",
+      "line": 12,
+      "body": "🟠 `test_fetch` é pulado com `@unittest.skip(\"\")`, sem motivo nem issue (tests/fixtures/review/planted/planted_bypass.py:12). O teste nunca roda e a suíte segue verde sem cobrir `fetch`. Correção: remover o skip ou escrever o motivo com o link da issue de acompanhamento.",
+      "evidence": ["tests/fixtures/review/planted/planted_bypass.py:12"]
+    }
+  ],
+  "carryover": {},
+  "research": ["/websites/requests_readthedocs_io", "https://requests.readthedocs.io/en/latest/user/advanced/"],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "exit 0"},
+    {"command": "python scripts/check_decisions.py", "result": "exit 0"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "exit 0"},
+    {"command": "python -m unittest discover -s tests", "result": "exit 0, 571 testes"},
+    {"command": "gh pr diff 22 | python dist/claude/scripts/review/scan_bypasses.py", "result": "2 candidatos (tls-bypass :8, test-dodge :12)"}
+  ]
+}
