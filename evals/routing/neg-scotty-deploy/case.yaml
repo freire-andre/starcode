@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-scotty-deploy
+description: "Não deve disparar starcode:scotty (DevOps genérico)."
+tags: [routing, negative]
+execution:
+  prompt: "Escreva um Dockerfile para publicar o meu app Node em produção na AWS."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-scotty
+    tool: Skill
+    input_match: "starcode:scotty"
+    min: 0
+    max: 0

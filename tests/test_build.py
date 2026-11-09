@@ -13,7 +13,7 @@ import build
 
 
 def copy_source(dest: Path) -> None:
-    for name in ("skills", "hooks", "scripts", "src", "schemas", "tools"):
+    for name in ("skills", "hooks", "scripts", "src", "schemas", "tools", "profiles"):
         shutil.copytree(ROOT / name, dest / name, ignore=shutil.ignore_patterns("__pycache__"))
     if (ROOT / "evals").is_dir():
         shutil.copytree(ROOT / "evals", dest / "evals", ignore=shutil.ignore_patterns("results"))
@@ -34,6 +34,26 @@ class BuildTests(unittest.TestCase):
         res = subprocess.run([sys.executable, str(ROOT / "tools" / "build.py"), "--check"],
                              capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(res.returncode, 0, res.stdout)
+
+    def test_build_copies_profiles_and_new_skills(self):
+        build.build(self.src, self.out)
+        names = sorted(p.name for p in (ROOT / "profiles").iterdir() if p.is_dir())
+        self.assertEqual(len(names), 7, names)
+        for cli in build.CLIS:
+            base = self.out / "dist" / cli
+            for name in names:
+                self.assertTrue((base / "profiles" / name / "profile.yaml").is_file(), f"{cli}/{name}")
+                self.assertTrue((base / "profiles" / name / "template").is_dir(), f"{cli}/{name}")
+            for skill in ("uhura", "scotty", "nova-missao"):
+                self.assertTrue((base / "skills" / skill / "SKILL.md").is_file(), f"{cli}/{skill}")
+
+    def test_check_flags_stale_profile(self):
+        build.build(self.src, self.out)
+        other = Path(self._tmp.name) / "other"
+        build.build(self.src, other)
+        (other / "dist" / "claude" / "profiles" / "rust" / "profile.yaml").write_text("name: rust\n", encoding="utf-8")
+        problems = build.compare(self.out, other)
+        self.assertTrue(any("dist/claude/profiles/rust/profile.yaml" in p for p in problems), problems[:5])
 
     def test_layout_per_cli(self):
         build.build(self.src, self.out)
@@ -72,7 +92,8 @@ class BuildTests(unittest.TestCase):
         crew = json.loads((self.out / "dist" / "claude" / "crew.json").read_text(encoding="utf-8"))
         self.assertEqual(crew["available"][:4], ["picard", "spock", "troi", "data"])
         self.assertIn("q", crew["available"])  # Phase 3: skills/q exists
-        self.assertNotIn("uhura", crew["available"])  # no skills/uhura yet
+        self.assertIn("uhura", crew["available"])  # Phase 8: skills/uhura exists
+        self.assertNotIn("worf", crew["available"])  # no skills/worf yet (Phase 9)
         self.assertEqual(crew["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
 
     def test_crew_json_carries_cost_tiers(self):

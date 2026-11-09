@@ -1,0 +1,2 @@
+{"pypi": {"fakelib": ["4.0.0", "3.1.0", "3.0.5"], "fakedev": ["1.0.0"], "fakedriver": ["1.4.0"]},
+ "dockerhub": {"postgres": ["17"]}}

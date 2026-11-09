@@ -169,6 +169,16 @@ before any new `batch`.
   and **never in mode 1**. Modes 3/4: push and PR follow `git-modes.md` (each confirmed right before).
 - Then `--phase done` and `python "P/scripts/crew_live.py" progress <slug> --phase done` (100%).
 
+## Text for the PR and the Linear comments (Uhura)
+Whenever you open a PR or comment on Linear (start, integrated, blocked, cancelled, done), have the text
+drafted by the `uhura` skill instead of writing it yourself, from `skills/uhura/references/pr-body.md` and
+`skills/uhura/references/linear-comments.md`, handing it the facts (issue ID, diff summary, gate results,
+Q verdict).
+- **Claude:** a subagent with Uhura's model (`crew.yaml`) that follows the skill.
+- **Other CLIs:** the session itself follows the skill.
+In both cases Uhura returns text only: you confirm it and run `gh pr create` and `orca linear comment`
+yourself, as `git-modes.md` requires.
+
 ## 6. Resume and the circuit breaker (D27)
 - On resume with a `**Dispatched:**` not integrated: `orca orchestration worker-show <dispatch>` before
   anything else. Running → wait (step 2.7). Finished → step 3. **Never start a second worker for the same

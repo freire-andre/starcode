@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-nova-missao-existing
+description: "Não deve disparar starcode:nova-missao (repositório existente)."
+tags: [routing, negative]
+execution:
+  prompt: "Adicione uma rota /health ao projeto Flask que já existe neste repositório."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-nova-missao
+    tool: Skill
+    input_match: "starcode:nova-missao"
+    min: 0
+    max: 0

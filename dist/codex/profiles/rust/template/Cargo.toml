@@ -1,0 +1,13 @@
+[package]
+name = "{{name}}"
+version = "0.1.0"
+edition = "2021"
+description = "{{description}}"
+
+[lib]
+name = "{{module}}"
+path = "src/lib.rs"
+
+[[bin]]
+name = "{{name}}"
+path = "src/main.rs"

@@ -1,0 +1,15 @@
+name: fakeapp
+kind: app
+combinesWith: [fakedb]
+tools: [python]
+install: [python -c pass]
+gates:
+  lint: [python gate_ok.py lint]
+  typecheck: [python gate_ok.py typecheck]
+  unit: [python gate_ok.py unit]
+  build:
+    - run: python check_cwd.py
+      cwd: sub
+deps:
+  - {name: fakelib, registry: pypi, main: true, tested: "3", docs: {id: /x/fakelib, at: 2026-11-08}}
+  - {name: fakedev, registry: pypi, main: false, dev: true}

@@ -533,3 +533,84 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** no modo `--cli opencode` a linha do papel é sempre `<papel> · opencode · padrão do CLI` (escolha do usuário em 2026-11-08: "2, padrão do CLI"), substituindo a parte do OpenCode em R4 da F7-16 (253f028).
 - **Motivo:** o cabeçalho não deve afirmar um modelo que pode não ser o que roda; "padrão do CLI" é honesto.
 - **Por que não é bug:** Claude, Codex e Antigravity continuam mostrando o modelo como antes; o `crew.json` e o `sessions.json` não mudam.
+
+## Decisões da Fase 8 (2026-11-08, SC-99)
+
+### F8-1: Templates fixos e um script, sem geração livre pelo modelo
+- **Problema:** deixar o modelo escrever a estrutura de cada projeto novo produz resultados diferentes a cada execução e mistura versões de memória com versões reais.
+- **Decisão:** cada stack é um perfil em `profiles/<nome>/` (`profile.yaml` mais `template/` com marcadores `{{name}}`, `{{description}}`, `{{module}}` e `{{version:<pacote>}}`); o `scripts/scaffold.py` copia o template, injeta o perfil de banco e troca os marcadores; o `tools/build.py` copia `profiles/` para `dist/<cli>/profiles/` nos 4 CLIs e o `--check` acusa perfil desatualizado.
+- **Motivo:** o template é revisado uma vez e testado; o script é determinístico e igual nos 4 CLIs.
+- **Por que não é bug:** o modelo (Kirk) só escolhe o perfil e chama o script; nenhum número de versão fica escrito no template (`test_templates_have_no_hardcoded_versions`).
+
+### F8-2: Versões pelas APIs dos registros
+- **Problema:** versões escritas de memória ficam velhas e inventam números que não existem.
+- **Decisão:** `scaffold.py versions` consulta a API de cada registro (PyPI, npm, crates.io, Docker Hub); o marcador `{{version:<pacote>}}` recebe esse número, nunca um valor escrito no template.
+- **Motivo:** D10 pede versões do registro de pacotes; o registro é a fonte que o gerenciador de pacotes usa de fato.
+- **Por que não é bug:** sem rede ou com registro fora do ar o script falha com mensagem clara e não gera projeto com versão chutada.
+
+### F8-3: Série testada (`tested`) e Context7 antes do scaffold
+- **Problema:** a última versão do registro pode ter quebrado o template, e o Context7 só vale para a versão que foi consultada.
+- **Decisão:** toda dependência principal do `profile.yaml` declara `tested` (major para versões 1 ou mais, `major.minor` para 0.x) e `docs` (Context7 ID e data da consulta); o scaffold usa a última versão da série testada e só passa dela com `--allow-new`; a documentação dessas versões entra no cache do Uhura (`.specs/stack/`) antes de o código ser gerado.
+- **Motivo:** o template é escrito contra uma série; a documentação precisa ser a da versão que vai para o projeto.
+- **Por que não é bug:** `--pin` fixa a série testada; uma série nova só entra por decisão explícita do usuário.
+
+### F8-4: `.starcode/stack.json`
+- **Problema:** depois do scaffold (ou num projeto existente) o StarCode precisa saber qual perfil, quais versões e quais gates valem, sem refazer a detecção.
+- **Decisão:** o scaffold grava `.starcode/stack.json` com perfis e versões resolvidas; `detect` lê manifestos e lockfiles de um projeto existente e `record` grava o mesmo arquivo; o Scotty e o Data leem os gates do perfil por ele.
+- **Motivo:** um arquivo só, legível e versionável, em vez de reconstruir o estado a cada skill.
+- **Por que não é bug:** sem o arquivo as skills pedem `detect`; arquivo corrompido é recusado, nunca corrigido em silêncio.
+
+### F8-5: Banco efêmero só em Docker, com `--reuse-env`
+- **Problema:** os gates de integração precisam de um banco, e nunca podem apontar para um banco real.
+- **Decisão:** `scripts/ephemeral_db.py run <engine> -- <comando>` sobe um container (porta livre em `127.0.0.1`, dados fictícios), exporta `DATABASE_URL` só para o comando e remove o container no fim; não há instância local temporária. `--reuse-env` reaproveita um `DATABASE_URL` local já definido, sem subir container (T2).
+- **Motivo:** o Docker dá isolamento e remoção garantidos; instalar banco na máquina do usuário não é aceitável.
+- **Por que não é bug:** sem Docker o gate de integração fica indisponível com o motivo, e a verificação é registrada como degradada.
+
+### F8-6: CI do banco em `ci-db.yml` separado e `ruff.toml` sem `scripts/`
+- **Problema:** o CI do app não tem banco, e o `scripts/ephemeral_db.py` copiado para o projeto não segue o estilo do template.
+- **Decisão:** os perfis `postgresql` e `mysql` entregam `.github/workflows/ci-db.yml` (T9) como arquivo à parte; o `ci.yml` do app continua só com os gates do app. O `ruff.toml` dos perfis de banco exclui `scripts/` (T9).
+- **Motivo:** o app com banco ganha dois jobs independentes, e o lint não reprova um script do StarCode.
+- **Por que não é bug:** `test_app_templates_have_ci_and_gitignore` confere o `ci.yml` de cada app e o `ci-db.yml` de cada banco.
+
+### F8-7: Biome para TypeScript
+- **Problema:** TypeScript pede lint e formato; ESLint com Prettier são duas ferramentas e muita configuração.
+- **Decisão:** os perfis `typescript` e `tauri` usam o Biome (`npx biome check .`) para lint e formato, mais `tsc --noEmit` e `vitest`.
+- **Motivo:** uma ferramenta, uma configuração (`biome.json`), um comando de gate.
+- **Por que não é bug:** o gate exato está em R2 e é conferido por `test_profiles_gate_commands_exact`.
+
+### F8-8: GPUI experimental
+- **Problema:** o GPUI ainda não tem versão 1 e muda de API entre releases.
+- **Decisão:** o perfil `gpui` tem `experimental: true` e `tested: "0.2"` (major.minor).
+- **Motivo:** o usuário precisa saber que o template pode quebrar numa série nova.
+- **Por que não é bug:** o campo é conferido por `test_profiles_all_seven_with_required_fields`.
+
+### F8-9: Kirk sem grill-me e sem remoto
+- **Problema:** o Kirk (`nova-missao`) cria projetos do zero; a entrevista longa (grill-me) e criar repositório remoto estão fora do que ele deve fazer sozinho.
+- **Decisão:** `nova-missao` faz poucas perguntas (nome, descrição, perfil e banco), roda o scaffold e os gates e para; não faz `git remote add`, não cria repositório no GitHub e não faz push.
+- **Motivo:** D11: push e criação de remoto exigem confirmação na hora; o Kirk não é um fluxo de feature.
+- **Por que não é bug:** `nova-missao` só dispara para projeto novo, nunca para um repositório que já existe (eval `neg-nova-missao-existing`).
+
+### F8-10: Resumo dos evals vem da fonte
+- **Problema:** `uhura`, `scotty` e `nova-missao` entraram no roteamento, e o T7 editou só a cópia gerada `dist/claude/evals/README.md`, o que deixou o `build.py --check` vermelho.
+- **Decisão:** a linha de `routing/` (24 frases: 14 que devem disparar e 10 que não devem) vive em `evals/README.md`; arquivo gerado nunca se edita à mão.
+- **Motivo:** a cópia gerada é descartada a cada build.
+- **Por que não é bug:** `build.py --check` verde prova que fonte e `dist/` coincidem.
+
+### F8-11: `new` aceita pasta só com `.specs/` e Biome ignora `.specs`
+- **Problema:** no aceite real (`docs/aceite/fase-8.md`, achados 1 e 2), a `nova-missao` grava o cache `.specs/stack/` antes do `scaffold.py new` (R31), e o `new` recusava a pasta não vazia (exit 2); além disso, o `biome check` do perfil tauri formatava os `.md` do cache.
+- **Decisão:** o `new` aceita a pasta quando ela contém só `.specs/` (qualquer outro conteúdo continua exit 2, e o `.specs/` preexistente é preservado se o `new` falhar); os `biome.json` dos perfis `tauri` e `typescript` excluem `.specs`.
+- **Motivo:** o cache de stack é gravado antes do scaffold por desenho, então a pasta "quase vazia" é o caso normal do Kirk, e o gate não deve mexer em arquivos de cache.
+- **Por que não é bug:** testes em `tests/test_scaffold.py` e `tests/test_profile_ts_tauri.py` e os cenários 1 e 2 do aceite, aprovados.
+
+### F8-12: `Doc version` desconhecida é `ok (doc sem versão)` no `check`
+- **Problema:** o Context7 muitas vezes não informa a versão dos docs, então o `write` grava `Doc version: desconhecida`; o `check` comparava esse valor com a versão do projeto e devolvia `outra versão` (exit 1) logo após o `write`, o que travava o bootstrap (achado do Q, C27).
+- **Decisão:** em `scripts/stack_cache.py`, `Doc version` `desconhecida` pula só a comparação de `outra versão`; a entrada continua julgada pela idade (mais de 30 dias é `velha`) e pela versão do manifesto (`versão mudou`). Se passar nas duas, o estado é `ok (doc sem versão)` e conta como `ok` no exit (0). Decisão do usuário (opção "a") em 2026-11-09, emenda do R27.
+- **Motivo:** o cache que o próprio fluxo grava não pode nascer inválido, e a idade e o manifesto ainda protegem contra doc velho.
+- **Por que não é bug:** `test_stack_cache_check_states` e `test_stack_cache_unknown_doc_version_flow` cobrem `ok (doc sem versão)`, 30 dias (ok), 31 dias (`velha`) e outro major (`versão mudou`).
+- **Emenda (segundo Q):** só o literal `desconhecida` é aceito para pular a comparação. No `check`, qualquer outro `Doc version` sem versão numérica válida é `inválida` (exit 1); no `write`, `--doc-version` tem de ser uma versão numérica ou `desconhecida`, senão sai com exit 2 (`doc-version inválida: use uma versão (ex.: 3.1) ou desconhecida`) sem gravar nada. O teste `test_stack_cache_unknown_doc_version_flow` cobre o caso `abc`.
+
+### F8-13: Biome com `linter.rules.preset: "recommended"`
+- **Problema:** o Biome 2.5+ marca `linter.rules.recommended` como obsoleto (aviso no Biome 2.6.6, limite registrado pelo Q).
+- **Decisão:** os `biome.json` dos perfis `typescript` e `tauri` usam `"rules": { "preset": "recommended" }`, que ativa o mesmo conjunto de regras recomendadas (sem as de `nursery`). Fonte: documentação do Biome via Context7 (`/biomejs/website`, referência de configuração e nota da versão 2.5).
+- **Motivo:** `recommended` será removido na próxima versão maior; `preset` é a forma atual e o `biome migrate --write` produz a mesma troca.
+- **Por que não é bug:** `test_biome_uses_preset_not_deprecated_recommended` confere os dois arquivos e os gates reais de `tests_slow/test_slow_ts_tauri.py` passam.

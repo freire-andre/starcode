@@ -1,0 +1,6 @@
+{"pypi": {"fakelib": ["3.1.0", "3.2.0rc1", "3.0.5"], "fakedev": ["1.0.0"], "fakedriver": ["1.4.0"]},
+ "dockerhub": {"postgres": ["17", "17.2", "18-rc"]},
+ "npm": {"@tauri-apps/cli": {"latest": "2.12.4", "versions": ["2.12.4", "3.0.0-alpha.6"]},
+         "@tauri-apps/api": {"latest": "2.12.4", "versions": ["2.12.4", "2.11.0"]}},
+ "crates": {"tauri": {"max_stable_version": "2.12.4", "versions": ["3.0.0-alpha.6", "2.12.4"]},
+            "tauri-build": {"max_stable_version": "2.6.0", "versions": ["3.0.0-alpha.6", "2.6.0"]}}}

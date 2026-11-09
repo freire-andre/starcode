@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-scotty-detect
+description: "Deve disparar a skill starcode:scotty."
+tags: [routing, positive]
+execution:
+  prompt: "Scotty, detecte a stack deste repositório e registre o perfil no .starcode/stack.json."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-scotty
+    tool: Skill
+    input_match: "starcode:scotty"
+    min: 1

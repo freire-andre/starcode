@@ -1,0 +1,4 @@
+{"npm": {"@tauri-apps/cli": {"latest": "3.0.0", "versions": ["3.0.0", "2.12.4"]},
+         "@tauri-apps/api": {"latest": "3.0.0", "versions": ["3.0.0"]}},
+ "crates": {"tauri": {"max_stable_version": "2.12.4", "versions": ["3.0.0-alpha.6", "2.12.4"]},
+            "tauri-build": {"max_stable_version": "2.6.0", "versions": ["2.6.0"]}}}

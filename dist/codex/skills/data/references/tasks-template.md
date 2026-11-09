@@ -66,6 +66,9 @@ Proof: run unit | <the line the test prints when it passes, pass marker included
 | `**Build**:` exists; every `run <name>` proof has a `**Run <name>**:` line and an expected line | `check_proofs.py` runs exactly these (Phase 3) |
 | No `## Checks` in spec.md of a LARGE/COMPLEX feature | checks live only in tasks.md (D24) |
 
+With `.starcode/stack.json` in the repo, `**Build**` and `**Run <name>**` come from
+`scaffold.py checks <repo>` (the lines are ready to paste); without it, from the manifests and CI.
+
 `**Linear**: <ID>` lines are written by `tasks_export.py record` after the issues exist; never by hand
 before that. `<ID-LINEAR>` in RULES stays literal: the worker reads its ticket ID from the worktree link.
 
