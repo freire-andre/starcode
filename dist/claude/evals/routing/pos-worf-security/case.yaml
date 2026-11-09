@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: routing-pos-worf-security
+description: "Deve disparar a skill starcode:worf."
+tags: [routing, positive]
+execution:
+  prompt: "Worf, faça o review de segurança desse PR e me diga se tem algum bypass de TLS ou de hook."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-worf
+    tool: Skill
+    input_match: "starcode:worf"
+    min: 1

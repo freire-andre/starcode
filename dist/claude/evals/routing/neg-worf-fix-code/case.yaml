@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-worf-fix-code
+description: "Não deve disparar starcode:worf (corrigir código não é review)."
+tags: [routing, negative]
+execution:
+  prompt: "Corrija o bug na função parse_date do utils.py: ela quebra com datas sem zero à esquerda."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-worf
+    tool: Skill
+    input_match: "starcode:worf"
+    min: 0
+    max: 0
