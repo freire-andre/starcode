@@ -614,3 +614,53 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** os `biome.json` dos perfis `typescript` e `tauri` usam `"rules": { "preset": "recommended" }`, que ativa o mesmo conjunto de regras recomendadas (sem as de `nursery`). Fonte: documentação do Biome via Context7 (`/biomejs/website`, referência de configuração e nota da versão 2.5).
 - **Motivo:** `recommended` será removido na próxima versão maior; `preset` é a forma atual e o `biome migrate --write` produz a mesma troca.
 - **Por que não é bug:** `test_biome_uses_preset_not_deprecated_recommended` confere os dois arquivos e os gates reais de `tests_slow/test_slow_ts_tauri.py` passam.
+
+## Decisões da Fase 9 (2026-11-09, SC-103)
+
+### F9-1: Review com publicação confirmada
+- **Problema:** o Worf poderia postar comentários no PR sem o usuário ver.
+- **Decisão:** `post_review.py` só publica depois de o usuário confirmar o texto, e nada é postado em modo seco.
+- **Motivo:** D11: ação voltada para fora exige confirmação na hora.
+- **Por que não é bug:** `tests/test_review_post.py` cobre a recusa sem confirmação.
+
+### F9-2: Rodada no `review.md`
+- **Problema:** reviews repetidos do mesmo PR se misturavam.
+- **Decisão:** cada passada do Worf grava uma rodada numerada no `review.md` da feature.
+- **Motivo:** o histórico mostra o que mudou entre rodadas.
+- **Por que não é bug:** `tests/test_review_gate.py` confere o formato da rodada.
+
+### F9-3: Portão de evidência de segurança
+- **Problema:** achado de segurança sem prova gera ruído e falso alarme.
+- **Decisão:** `review_gate.py` recusa achado de segurança sem evidência (arquivo, linha e caminho do dado); a regra foi escrita do zero, inspirada na Cloudflare security-audit-skill (MIT).
+- **Motivo:** sem evidência o achado vira pergunta, não bloqueio.
+- **Por que não é bug:** `tests/test_review_gate.py` cobre achado com e sem evidência.
+
+### F9-4: Lições por repo nos briefs e sinal `review_finding`
+- **Problema:** as lições dos reviews não voltavam para os briefs.
+- **Decisão:** `lessons.py` guarda lições por repo com o sinal novo `review_finding`, e o `dispatch.py` injeta as lições confirmadas nos briefs.
+- **Motivo:** o mesmo erro não deve se repetir de um ticket para outro.
+- **Por que não é bug:** `tests/test_lessons.py` e `tests/test_dispatch_lessons.py`.
+
+### F9-5: Guinan antes do PR e Worf depois do PR
+- **Problema:** a ordem das etapas no fluxo do Picard era indefinida.
+- **Decisão:** a Guinan roda antes do PR (retro e lições da feature) e o Worf roda depois do PR aberto (review do diff publicado).
+- **Motivo:** a retro alimenta as lições; o review precisa de um PR real para comentar.
+- **Por que não é bug:** `tests/test_flow_worf_guinan.py` confere a ordem.
+
+### F9-6: harness-score fixado via `npx` e Track A junto
+- **Problema:** o diagnóstico dependia de versão solta do `harness-score`.
+- **Decisão:** `diagnostico.py` roda `npx --yes harness-score@<versão fixada>` e o Track A (`scripts/harness/`) juntos; se o `npx` falhar, o relatório diz `não executado` e segue.
+- **Motivo:** versão fixa dá resultado reproduzível, e o Track A não depende de rede.
+- **Por que não é bug:** `tests/test_diagnostico.py`.
+
+### F9-7: Tracks B e C com aprovação por execução
+- **Problema:** os tracks B e C gastam modelo e tokens.
+- **Decisão:** o `diagnostico` pede aprovação de custo a cada execução dos tracks B e C; a aprovação de uma execução não vale para a próxima (aprovação por execução).
+- **Motivo:** D11: gasto voltado para fora exige confirmação na hora.
+- **Por que não é bug:** `tests/test_diagnostico_skill.py`.
+
+### F9-8: Scripts em `scripts/review/` e `scripts/harness/`
+- **Problema:** os scripts adaptados de terceiros se misturavam com os do StarCode.
+- **Decisão:** os scripts do the-judge ficam em `scripts/review/` e os do harness-eval em `scripts/harness/`, cada um com o comentário `Origem:` no topo; `CREDITS.md` lista as fontes.
+- **Motivo:** separar facilita a licença CC-BY-4.0 e as atualizações.
+- **Por que não é bug:** `tests/test_credits_f9.py` confere fontes e comentários; `tests/test_build.py` confere os 4 `dist/<cli>/`.
