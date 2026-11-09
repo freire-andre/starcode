@@ -18,8 +18,8 @@ class ReleaseDocsF9Tests(unittest.TestCase):
                       "scripts/review/", "scripts/harness/"):
             self.assertIn(termo.lower(), decisions.lower(), termo)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertRegex(changelog, r"(?m)^## \[1\.3\.0\] - não lançada$")
-        section = re.split(r"^## ", changelog.split("## [1.3.0] - não lançada", 1)[1], flags=re.M)[0]
+        self.assertRegex(changelog, r"(?m)^## \[1\.3\.0\] - 2026-11-09$")
+        section = re.split(r"^## ", changelog.split("## [1.3.0] - 2026-11-09", 1)[1], flags=re.M)[0]
         for termo in ("worf", "guinan", "diagnostico", "scripts/review/", "scripts/harness/", "lessons.py"):
             self.assertIn(termo, section, termo)
 

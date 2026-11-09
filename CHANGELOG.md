@@ -8,7 +8,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
-## [1.3.0] - não lançada
+## [1.3.0] - 2026-11-09
 
 ### Adicionado
 
@@ -16,6 +16,10 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 - Fase 9: `scripts/review/` (`review_gate.py`, `post_review.py`, `scan_bypasses.py`, adaptados do the-judge 1.4.0) e `scripts/harness/` (Track A do harness-eval 1.8.3).
 - Fase 9: `scripts/lessons.py` (lições por repo, sinal `review_finding`) e `scripts/diagnostico.py` (`harness-score` fixado via `npx` e Track A juntos); `.harness-eval/` no `.gitignore`.
 - Fase 9: 9 casos de roteamento em `evals/routing/` e fontes novas em `CREDITS.md`.
+
+### Corrigido
+
+- Review do Worf: o comentário inline não repete o emoji da severidade (F9-10).
 
 ## [1.2.0] - 2026-11-09
 
