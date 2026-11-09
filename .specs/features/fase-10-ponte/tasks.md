@@ -1,0 +1,478 @@
+# Fase 10 — Painel Orca "Ponte" (v1.4): Tasks
+
+**Approved**: 2026-11-09 - user: "sim"
+
+**Spec**: `.specs/features/fase-10-ponte/spec.md`
+**Status**: Approved
+**Integration branch**: `feature/fase-10-ponte`
+
+## Gate Commands
+
+| Level | When | Command |
+|---|---|---|
+| quick | task with unit tests only, no generator change | `python -m unittest discover -s tests -v` |
+| full | task that changes `scripts/`, `src/`, `tools/` or `tests/` (F3-1: `dist/` regenerated in the same commit) | `python tools/build.py && python tools/build.py --check && python -m unittest discover -s tests -v` |
+| plugin | task that changes `src/orca/` | `orca plugin validate src/orca --json && orca plugin test src/orca && orca plugin check src/orca --json && python tools/build.py && python tools/build.py --check && python -m unittest discover -s tests -v` |
+| build | records task, or after the last code task | `python tools/build.py && python tools/build.py --check && claude plugin validate dist/claude --strict && python scripts/check_decisions.py && python -m unittest discover -s tests -v` |
+
+## Tasks
+
+### T1: Snapshot do estado do worktree (ponte.py)
+**Linear**: SC-115
+**Depends on**: none
+**Requirements**: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10
+**Tests**: unit
+**Gate**: full
+
+#### TASK
+Criar `scripts/ponte.py` (só stdlib, sem rede), com o subcomando `snapshot --path <worktree> --json`, que imprime o JSON de "Data & Contracts" da spec (`schemaVersion` 1):
+- `crew`: um item por tripulante do `crew.json` da fonte (`src/crew.yaml` via o mesmo carregamento do `crew_live.crew_members()`), com `member`, `emoji`, `name`, `count` (contado de `sessions.json` com `crew_live.count_members`, mesma validade 15/60 min e mesma regra de hora futura/origem desconhecida), `lastAt` (hora ISO da sessão válida mais recente do tripulante, ou `null`) e `cliModel` (`"<cli> · <modelo>"` pela precedência D17: config do usuário > `crew.yaml`, como o banner já faz). `sessions.json` fica no worktree principal (`crew_live.live_dir`).
+- `gitMode`: `mode`, `label`, `recordedAt` de `<git-dir>/starcode/session.json` do próprio worktree (use o leitor do `git_mode.py`); sem arquivo, `null`.
+- `feature`: regra do R4 (Phase diferente de `done` com o arquivo do Handoff mais recente por `mtime`; senão a mais recente com `done: true`); campos do R5. `progress` vem de `.starcode/live/progress.json` (chave = slug) e, sem ela, da contagem de tasks (`crew_live.count_tasks`). `linear`: IDs `[A-Z]+-\d+` do campo `**Linear:**`, na ordem, mantendo faixas `SC-1..SC-9` como texto. `files.handoff` = arquivo onde está `## Handoff`.
+- `workers`: uma entrada por linha `**Dispatched:**` (`<label> · <issues> · base <hash> · dispatch <ctx> · model <m>`, vários despachos separados por `; ` quando houver), na ordem do arquivo.
+- `starcode: false` (R7), `errors` (R8: fonte ausente/ilegível/JSON inválido/>1 MiB vira item `{source, message}`, seção nula), saída 2 com `{"schemaVersion":1,"error":"worktree inválido: <path>"}` (R9).
+- Nunca escreve nada (R10). Leitura e escrita em UTF-8 explícito; `print(json.dumps(..., ensure_ascii=False))` com `sys.stdout.reconfigure(encoding="utf-8")`.
+
+Testes em `tests/test_ponte.py` (use `TempRepoCase` de `tests/helpers.py`) e fixtures em `tests/fixtures/ponte/`. Nomes obrigatórios dos testes (provas dos checks): `test_snapshot_keys`, `test_snapshot_crew_ttl`, `test_snapshot_git_mode`, `test_snapshot_feature_choice`, `test_snapshot_feature_fields`, `test_snapshot_workers`, `test_snapshot_sem_starcode`, `test_snapshot_fonte_invalida`, `test_snapshot_worktree_invalido`, `test_snapshot_somente_leitura`. Regenere o `dist/`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R1–R10; contrato em Data & Contracts). Checks: C1–C10.
+Reuse, sem duplicar: `scripts/crew_live.py` (`main_worktree`, `live_dir`, `crew_members`, `count_members`, `entry_valid`, `count_tasks`, `handoff_phase`), `scripts/handoff.py` (leitura dos campos do Handoff), `scripts/git_mode.py` (leitura do `session.json`), `hooks/scripts/banner.py` (como o banner monta `cli · modelo`). Exemplo real de Handoff com `**Dispatched:**` e `**Linear:**` com faixa: `.specs/features/fase-9-worf-guinan-diagnostico/tasks.md`. `tools/build.py` copia `scripts/` para `dist/<cli>/scripts/`.
+
+#### BOUNDARIES
+May change: `scripts/ponte.py`, `tests/test_ponte.py`, `tests/fixtures/ponte/`, `dist/`
+Do not touch: `scripts/crew_live.py`, `scripts/handoff.py`, `scripts/git_mode.py`, `src/`, `tools/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T2: Plugin da Orca: manifesto e worker
+**Linear**: SC-116
+**Depends on**: T1
+**Requirements**: R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R32, R35
+**Tests**: unit
+**Gate**: plugin
+**Runs alone**: yes
+
+#### TASK
+Criar o plugin em `src/orca/` partindo do modelo oficial (`orca plugin create <pasta temporária> --template worker-panel --json`, copie e adapte; nunca rode o create dentro do repo por cima de arquivos):
+- `src/orca/orca-plugin.json`: `id` `starcode-ponte`, `name` `StarCode Ponte`, `version` igual ao `VERSION` do repo, sem `publisher`, `engines.orca` `>=1.4.248`, `execution` `trusted-worker`, `pluginApi` 1, `main` `src/worker.ts`; painel `ponte` (`title` `Ponte`, `icon` `rocket`, `entry` `src/panel.tsx`, `ui` `components`); `contributes.events` `workspace.changed` e `agent.status.changed`; `contributes.commands` `starcode-ponte.toggle` (`action` `sidebar.right.toggle`) e `starcode-ponte.refresh` (worker); `contributes.statusBarItems` `ponte` (ícone `rocket`, `command` `starcode-ponte.toggle`); capabilities exatamente `workspace:read`, `agent:read`, `workspace:write`, `agent:launch`, `storage:own` (R35).
+- `src/orca/src/protocol.ts`: requisições `ponte.state`, `ponte.open`, `ponte.launchPicard` e o evento `ponte.state`, com o tipo do estado de "Data & Contracts".
+- `src/orca/src/worker.ts` (`export default function activate(orca)`):
+  - acha o caminho em foco cruzando `context.branch` com `workspace.list` (R11); sem casamento ou `context` nulo → `status: "sem-worktree"` (R12);
+  - roda `python <ponte.py> snapshot --path <path> --json` com `node:child_process` `execFile` (sem shell, tempo limite 10 s; tenta `python` e depois `python3`). `<ponte.py>` = `scripts/ponte.py` relativo à raiz do plugin (layout de `dist/orca`), e se não existir `../../scripts/ponte.py` (layout da fonte `src/orca`);
+  - `agent.status.changed` e `workspace.changed` → debounce de 300 ms → snapshot → `orca.panels.post('ponte.state', estado)` (R13, R14); resultado de um foco antigo é descartado (R15);
+  - issue: `orca linear issue --current --json` no `cwd` do worktree, limite 10 s, cache de 60 s por worktree (R16); falha/sem vínculo → primeiro ID de `feature.linear` com a nota "Linear indisponível" ou "Sem issue vinculada", sem repetir antes do cache vencer (R17);
+  - snapshot falho → `status: "erro"`, `stale: true`, último estado bom mantido (R18);
+  - barra de status `ponte` com `statusBar.update` (texto, `tone`, `visible`) pela regra do R19 (`warning` com disjuntor aberto ou com agente do foco em `blocked`/`waiting`, via `agents.list` e `agent.status.changed`);
+  - handler `ponte.state` com `{ force: true }` e o comando `starcode-ponte.refresh` ignoram o cache (R32).
+  - `ponte.open` e `ponte.launchPicard` respondem `not_implemented` (T4 implementa).
+- `src/orca/tsconfig.json` (estende `./.orca/types/tsconfig.json`, como no modelo); `.orca/` fica fora do Git (acrescente `src/orca/.orca/` ao `.gitignore`).
+- Testes em `src/orca/src/worker.test.ts` com `mountWorker`/`mockHost` de `orca/testing`, com o processo filho falso (injete um executor: `activate` usa `globalThis.__ponteExec` quando definido, só para testes). Nomes obrigatórios: `worker acha o worktree em foco pelo ramo`, `worker sem worktree em foco`, `worker publica o estado após agent.status.changed`, `worker agrupa eventos em 300 ms`, `worker descarta snapshot de foco antigo`, `worker consulta a issue e guarda em cache por 60 s`, `worker sem Linear mostra o ID do Handoff`, `worker com snapshot falho marca desatualizado`, `worker atualiza a barra de status`, `atualizar agora ignora o cache`.
+- Teste `unittest` `tests/test_orca_manifest.py` com `test_manifest_capabilities_e_engines` (R35) e `test_manifest_toggle_da_barra` (R20: comando `starcode-ponte.toggle` com `action` `sidebar.right.toggle` ligado ao item `ponte`).
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R11–R20, R32, R35; protocolo e manifesto em Data & Contracts). Checks: C11–C20, C32, C35.
+API: rode `orca skills get orca-plugin-authoring` e as referências `recipes`, `events`, `host-api`, `testing`, `manifest` (`--reference references/<nome>.md`). Fatos já sondados no Orca 1.4.255: `orca plugin test` imprime `✔ <nome do teste> (<ms>)` e ignora pastas `dist`; `node:child_process` funciona dentro de `mountWorker`; um comando não consegue abrir um painel específico (só ações nativas, daí o `sidebar.right.toggle`). O `scripts/ponte.py` (T1) já existe.
+
+#### BOUNDARIES
+May change: `src/orca/orca-plugin.json`, `src/orca/tsconfig.json`, `src/orca/src/protocol.ts`, `src/orca/src/worker.ts`, `src/orca/src/worker.test.ts`, `tests/test_orca_manifest.py`, `.gitignore`
+Do not touch: `scripts/`, `tools/`, `src/orca/src/panel.tsx`, `src/orca/src/scene-model.ts`, `src/orca/src/scene.ts`, `dist/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca rode `orca plugin enable`, `install` ou `dev load` com `--approve`: aprovação é do usuário.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T3: Painel Ponte (componentes)
+**Linear**: SC-117
+**Depends on**: T2
+**Requirements**: R21, R22, R23, R24, R25, R26, R27
+**Tests**: unit
+**Gate**: plugin
+
+#### TASK
+Criar `src/orca/src/panel.tsx` (painel de componentes, sem hooks nem DOM; estado em atoms com chave), em PT-BR:
+- ao abrir, `plugin.request('ponte.state', {}, { timeoutMs: 15000 })` e estado "carregando" até a resposta (R21); seções Tripulação, Modo Git, Issue, Fase SDD, Workers da Frota, Atalhos e a hora da última atualização com `RelativeTime`;
+- `plugin.on('ponte.state', ...)` redesenha sem ação do usuário (R22);
+- Tripulação: só `count > 0`, com emoji, nome, `cli · modelo` e contagem quando > 1; senão "Tripulação em repouso" (R23);
+- Fase SDD: slug, fase, tamanho, progresso `done/total (percent%)`, aviso "Disjuntor aberto" (R24);
+- Workers da Frota: uma linha por item; com `agents.list`/`agent.status.changed`, mostra o estado do agente cujo título contém o rótulo ou o ID da issue; senão "Nenhum worker despachado" (R25);
+- `starcode: false` → só "StarCode não configurado neste worktree" e Atualizar agora (R26); `sem-worktree` → "Nenhum worktree em foco";
+- erro de uma seção em `errors` → "indisponível" + motivo, sem esconder as outras (R27); `stale` → marca "desatualizado".
+- Atalhos nesta task: só o botão Atualizar agora (`ponte.state` com `force: true`); os outros três ficam para a T4.
+- `src/orca/src/panel.check.ts` com os cenários `ok`, `vazio`, `sem-starcode`, `erro-secao`, `desatualizado`.
+- Testes em `src/orca/src/panel.test.tsx` com `mount`/`mockHost`. Nomes obrigatórios: `painel pede o estado ao abrir`, `painel redesenha com ponte.state`, `painel mostra só tripulantes ativos`, `painel mostra fase e progresso`, `painel casa worker com agente`, `painel sem StarCode`, `painel com seção indisponível`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R21–R27; estados em States). Checks: C21–C27.
+API de componentes: `orca skills get orca-plugin-authoring --reference references/components.md` e `testing.md`. O protocolo e o worker (T2) já existem em `src/orca/src/protocol.ts` e `worker.ts`. Use `orca plugin shot src/orca --panel ponte` (ou o `dev watch --shot`) para olhar o painel desenhado.
+
+#### BOUNDARIES
+May change: `src/orca/src/panel.tsx`, `src/orca/src/panel.check.ts`, `src/orca/src/panel.test.tsx`
+Do not touch: `src/orca/src/worker.ts`, `src/orca/src/protocol.ts`, `src/orca/orca-plugin.json`, `scripts/`, `tools/`, `dist/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove plugin (`--approve`).
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T4: Atalhos e diário de bordo
+**Linear**: SC-118
+**Depends on**: T3
+**Requirements**: R28, R29, R30, R31, R44
+**Tests**: unit
+**Gate**: plugin
+
+#### TASK
+Implementar os três atalhos que faltam, no worker e no painel:
+- `ponte.open` (`{ file: "spec"|"tasks"|"handoff" }`): `editor.open` com o `workspaceId` em foco e o caminho de `snapshot.feature.files`; botão desabilitado quando o arquivo é `null` (R28).
+- Abrir a issue no Linear: `shell.openExternal(issue.url)` no clique; desabilitado sem URL (R29).
+- `ponte.launchPicard`: agente e modelo do Picard a partir do item `picard` de `snapshot.crew` (`cliModel`), `agent.launch` com `{ workspaceId, agent, prompt }`; prompt `/starcode:engajar` para `claude`, `$starcode:engajar` para `codex`, `engajar` para os demais; botão desabilitado até a resposta (R30). Agentes que a Orca lança: `claude`, `codex`, `antigravity`, `opencode` (lista do `orca orchestration worker-start --help`); outro → erro `not_launchable` e a mensagem "Agente " + nome + " não pode ser iniciado pela Orca" no painel (ex.: "Agente gemini não pode ser iniciado pela Orca"), sem lançar (R31).
+- Diário de bordo (R44): o worker acrescenta `{ at, text }` em PT-BR a cada mudança de estado de agente, de worktree em foco ou de fase (máximo 20, em memória) e envia em `log` dentro do `ponte.state` (tipo em `protocol.ts`); o painel mostra as 10 mais recentes na seção "Diário de bordo" com `RelativeTime`.
+- Testes novos em `src/orca/src/worker.test.ts` e `src/orca/src/panel.test.tsx`. Nomes obrigatórios: `atalho abre spec tasks e handoff`, `atalho abre a issue no navegador`, `atalho inicia o Picard uma vez`, `atalho recusa agente que a Orca não lança`, `diário guarda 20 entradas e o painel mostra 10`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R28–R31, R44). Checks: C28–C31, C44.
+`editor.open`/`agent.launch` pedem `workspace:write`/`agent:launch` (já no manifesto da T2); `shell.openExternal` precisa de um clique (`panel.press` no teste concede o gesto). Referência `host-api.md` da skill `orca-plugin-authoring`.
+
+#### BOUNDARIES
+May change: `src/orca/src/worker.ts`, `src/orca/src/worker.test.ts`, `src/orca/src/panel.tsx`, `src/orca/src/panel.test.tsx`, `src/orca/src/protocol.ts`
+Do not touch: `src/orca/orca-plugin.json`, `src/orca/src/scene-model.ts`, `src/orca/src/scene.ts`, `src/orca/src/scene.html`, `scripts/`, `tools/`, `dist/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove plugin (`--approve`).
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T5: Modelo da Cena da Ponte (buildScene)
+**Linear**: SC-119
+**Depends on**: T2
+**Requirements**: R38, R39, R40, R41, R42, R43
+**Tests**: unit
+**Gate**: plugin
+
+#### TASK
+Criar `src/orca/src/scene-model.ts`, módulo puro (sem DOM, sem host), com `buildScene(estado, agentes, agoraMs)` que devolve a cena a desenhar:
+- grade lógica fixa (ex.: 64×40 células) com uma estação por tripulante dos 12 (`picard` na cadeira central, `data`/`troi` ao lado, `laforge` na engenharia, os demais nas laterais), a área do turbolift e a área de engenharia para os workers (R38);
+- um personagem por tripulante: `sentado` + quadro de animação `Math.floor(agoraMs / 250) % 2` quando `count > 0`; `de-pe` no turbolift, parado, com `count = 0` (R39); cor da divisão (comando, operações, ciências) e o emoji do tripulante;
+- balão `!` no personagem ligado a um agente em `blocked`/`waiting` pela regra do R40 (worker cujo rótulo ou issue está no título do agente; senão o ativo de `lastAt` mais recente; senão o Picard);
+- um LaForge por worker na engenharia com o rótulo do ticket, até 6, e `maisN` com o restante; agente `done` → `concluido: true` (R41);
+- `starcode: false`, `sem-worktree` ou `erro` sem estado bom → cena vazia com `mensagem` igual às frases de R12, R18 e R26 (R42);
+- só dados: nada de canvas aqui (R43).
+Testes em `src/orca/src/scene-model.test.ts`. Nomes obrigatórios: `cena tem uma estação por tripulante e a engenharia`, `cena senta tripulante ativo e anima a cada 250 ms`, `cena põe o balão no personagem do agente bloqueado`, `cena desenha até 6 workers e +N`, `cena vazia mostra a frase do estado`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R38–R43; estado em Data & Contracts). Checks: C38–C42.
+Análise das referências: `.specs/features/fase-10-ponte/analise-referencias.md` (Pixel Agents e Habblaud: só a ideia; nada copiado). O tipo do estado está em `src/orca/src/protocol.ts` (T2); importe só o tipo. `orca plugin test src/orca` roda `*.test.ts` com `node:test`.
+
+#### BOUNDARIES
+May change: `src/orca/src/scene-model.ts`, `src/orca/src/scene-model.test.ts`
+Do not touch: `src/orca/src/protocol.ts`, `src/orca/src/worker.ts`, `src/orca/src/panel.tsx`, `src/orca/orca-plugin.json`, `scripts/`, `tools/`, `dist/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove plugin (`--approve`). Não copie código nem arte do Pixel Agents ou do Habblaud: escreva do zero.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T6: Painel HTML da Cena (desenho em canvas)
+**Linear**: SC-120
+**Depends on**: T5
+**Requirements**: R38, R43, R35
+**Tests**: unit
+**Gate**: plugin
+
+#### TASK
+- `src/orca/src/scene.html` + `src/orca/src/scene.ts`: painel HTML `ponte-cena` com um `<canvas>` que escala inteiro na largura do painel (`image-rendering: pixelated`, sem cortar estações). Pede `orca.plugin.request('ponte.state')` ao abrir, ouve `orca.plugin.on('ponte.state')` e `orca.on('agent.status.changed')`, chama `buildScene` e desenha com `requestAnimationFrame` (sem `setInterval`).
+- `paint(ctx, cena, escala)` exportado: desenha piso, consoles, estações, personagens (corpo em retângulos de pixel com a cor da divisão, emoji acima), balões `!`, `✓`, rótulos dos workers, `+N` e a `mensagem` central. Só `fillRect`/`fillText`/`strokeRect`: nenhuma imagem, `drawImage` ou arquivo de arte (R38). Lê só o resultado de `buildScene` (R43).
+- `src/orca/orca-plugin.json`: acrescenta o painel `ponte-cena` (`title` `Cena da Ponte`, `icon` `star`, `entry` `src/scene.html`, `ui` `html`).
+- Testes: `src/orca/src/scene.test.ts` com um contexto de canvas falso que grava as chamadas; nome obrigatório `pintura da cena só lê o modelo e não usa imagem`. Em `tests/test_orca_manifest.py`, estenda `test_manifest_capabilities_e_engines` para exigir os painéis `ponte` (components) e `ponte-cena` (html) (R35).
+- Olhe a cena desenhada com `orca plugin dev watch src/orca --shot src/orca/.orca/shots` e `orca plugin shot` do painel `ponte-cena`; ajuste até as 12 estações ficarem legíveis numa largura de 360 px.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R38, R43, R35; casos de borda da cena). Checks: C43, C35.
+Painéis HTML: referências `host-api.md` (frame: `orca.on`, `orca.plugin.request`) e `recipes.md` da skill `orca-plugin-authoring`; sem rede, sem pacote npm (imports só relativos ou `orca/*`). `buildScene` (T5) está em `src/orca/src/scene-model.ts`.
+
+#### BOUNDARIES
+May change: `src/orca/src/scene.html`, `src/orca/src/scene.ts`, `src/orca/src/scene.test.ts`, `src/orca/orca-plugin.json`, `tests/test_orca_manifest.py`
+Do not touch: `src/orca/src/scene-model.ts`, `src/orca/src/worker.ts`, `src/orca/src/panel.tsx`, `src/orca/src/protocol.ts`, `scripts/`, `tools/`, `dist/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove plugin (`--approve`). Não copie código nem arte do Pixel Agents ou do Habblaud: escreva do zero.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T7: Build de dist/orca e instalação local
+**Linear**: SC-121
+**Depends on**: T4, T6
+**Requirements**: R33, R34
+**Tests**: unit
+**Gate**: full
+
+#### TASK
+- `tools/build.py`: gerar `dist/orca/` com `src/orca/` (sem `.orca/` e sem `*.test.ts(x)`) e `dist/orca/scripts/` com `ponte.py` e os módulos que ele importa (copiados da fonte, mesma regra de "nunca editado à mão"). O `version` do manifesto em `dist/orca` vem do `VERSION`. O `--check` compara `dist/orca/` também (R33). `orca` não entra em `CLIS` das skills: é um alvo à parte.
+- `tools/install_local.py`: `--cli orca` → `orca plugin validate dist/orca --json`, depois `orca plugin install <abs>/dist/orca --json`. Exit 3 (`approval_required`): imprime a lista de acessos de `error.data` e o comando com `--approve <fingerprint>` que a Orca devolveu, sai com 3 e nunca passa `--approve` (R34). `--dry-run` só mostra o plano.
+- Testes: em `tests/test_build.py`, `test_build_gera_dist_orca` e `test_build_check_cobre_dist_orca`; em `tests/test_install_local.py`, `test_install_orca_valida_e_instala` e `test_install_orca_aprovacao_nunca_automatica` (binário e runner falsos, como os testes existentes). Regenere o `dist/`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R33, R34). Checks: C33, C34. O plugin completo (painéis `ponte` e `ponte-cena`, worker, cena) já está em `src/orca/` (T2–T6).
+`tools/build.py` (`build`, `compare`, `CLIS`, `copy_tree`) e `tools/install_local.py` (`BINARIES`, `_codex`, `_antigravity`, `main` com `runner`/`which` injetáveis). Ajuste o `test_build` existente se ele listar as pastas de `dist/`. A saída de exit 3 da Orca: `{"ok": false, "error": {"code": "approval_required", "data": {...}}}` (referência `cli.md` da skill `orca-plugin-authoring`).
+
+#### BOUNDARIES
+May change: `tools/build.py`, `tools/install_local.py`, `tests/test_build.py`, `tests/test_install_local.py`, `dist/`
+Do not touch: `src/orca/`, `scripts/`, `.github/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca rode a instalação real nem aprove plugin.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T8: Registros e CI
+**Linear**: SC-122
+**Depends on**: T7
+**Requirements**: R36
+**Tests**: unit
+**Gate**: build
+**Runs alone**: yes
+
+#### TASK
+- `DECISIONS.md`: entradas F10-1.. (pelo menos: estado lido em Python pelo `ponte.py`, worker só orquestra; `dist/orca` com instalação local sem catálogo; R20 com `sidebar.right.toggle` porque a API não abre painel; capabilities mínimas e aprovação sempre do usuário; Cena da Ponte em painel HTML com arte gerada por código, inspirada no Pixel Agents e no Habblaud, sem copiar código nem sprites).
+- `CREDITS.md`: Pixel Agents (`pixel-agents-hq/pixel-agents`, MIT) e Habblaud (`marmottajr/habblaud`, MIT) como inspiração da Cena da Ponte, sem código nem arte copiados.
+- `CHANGELOG.md`: `## [1.4.0] - não lançada` com o painel Ponte.
+- `docs/compatibilidade.md`: linha do painel Ponte (Orca ≥ 1.4.248, independente do CLI).
+- `README.md`: seção de instalação do painel (`python tools/install_local.py --cli orca`, aprovação na Orca).
+- `.github/workflows/ci.yml`: passo `orca plugin validate src/orca --json` que roda só se `orca` existir no PATH, senão imprime "orca ausente: validação do plugin pulada" e passa.
+- Testes `tests/test_release_docs_f10.py` (`test_release_docs_f10`) e, em `tests/test_ci_workflow.py`, `test_ci_valida_plugin_orca_condicional`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R36). Check: C36.
+Modelos: `tests/test_release_docs_f9.py`, entradas F9-n em `DECISIONS.md` (formato verificado por `scripts/check_decisions.py`), seção 1.3.0 do `CHANGELOG.md`.
+
+#### BOUNDARIES
+May change: `DECISIONS.md`, `CREDITS.md`, `CHANGELOG.md`, `docs/compatibilidade.md`, `README.md`, `.github/workflows/ci.yml`, `tests/test_release_docs_f10.py`, `tests/test_ci_workflow.py`
+Do not touch: `src/`, `scripts/`, `tools/`, `dist/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+### T9: Aceite real do painel e da cena
+**Linear**: SC-123
+**Depends on**: T8
+**Requirements**: R37
+**Tests**: unit
+**Gate**: build
+
+#### TASK
+Antes deste ticket o Picard instala o plugin com o usuário (`python tools/install_local.py --cli orca`, aprovação dada pelo usuário na Orca). Com o plugin instalado e habilitado:
+- Worktree A (este repo, feature com Handoff) e Worktree B (outro worktree, ex.: o sandbox `F:/Projetos/starcode-sandbox` ou um worktree sem StarCode): `orca plugin open local.starcode-ponte --panel ponte` (confira a chave com `orca plugin list --json`), foco em cada um, `orca plugin shot <chave> --panel ponte --out docs/aceite/fase-10/<nome>.png` e `--status-bar`.
+- Evento de agente: com o painel aberto, um agente muda de estado (ex.: este próprio worker), e uma nova captura mostra a mudança (tripulação ou hora de atualização).
+- Cena: `orca plugin shot <chave> --panel ponte-cena` com um tripulante ativo e, se houver, um worker; uma segunda captura depois de um evento de agente.
+- Atalhos: Atualizar agora e Abrir spec (o Iniciar o Picard só se o usuário estiver junto; senão "não executado" com o motivo).
+- `docs/aceite/fase-10.md` com as seções `## Instalação`, `## Worktree A`, `## Worktree B`, `## Evento de agente`, `## Cena`, `## Atalhos`, cada uma com `**Resultado**: aprovado` ou `reprovado` e o caminho da captura (R37). Achados que pedem código viram pendência, não correção aqui.
+- Teste `tests/test_acceptance_doc_f10.py` (`test_fase10_acceptance_sections`).
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R37 e Success). Check: C37.
+Modelo: `docs/aceite/fase-9.md` e `tests/test_acceptance_doc_f9.py`. CLI: `orca plugin open|shot|list` (referência `cli.md` da skill `orca-plugin-authoring`).
+
+#### BOUNDARIES
+May change: `docs/aceite/fase-10.md`, `docs/aceite/fase-10/`, `tests/test_acceptance_doc_f10.py`
+Do not touch: `src/`, `scripts/`, `tools/`, `dist/`, `.github/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instale nem desinstale plugin.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
+## Checks
+
+**Build**: `python tools/build.py --check`; `orca plugin validate src/orca --json`; `python scripts/check_decisions.py`
+**Run unit**: `python -m unittest discover -s tests -v`
+**Run plugin**: `orca plugin test src/orca`
+
+**C1** - O snapshot imprime as chaves do contrato com `schemaVersion` 1 e sai com 0 (R1)
+Proof: run unit | test_snapshot_keys ... ok
+
+**C2** - A tripulação conta só sessões válidas (15 min hook, 60 min cli) e traz `lastAt` e `cli · modelo` pela D17 (R2)
+Proof: run unit | test_snapshot_crew_ttl ... ok
+
+**C3** - `gitMode` traz mode, label e recordedAt do `session.json` do worktree, ou null sem ele (R3)
+Proof: run unit | test_snapshot_git_mode ... ok
+
+**C4** - A feature escolhida é a não `done` com o Handoff mais recente; todas `done` → a mais recente com `done: true` (R4)
+Proof: run unit | test_snapshot_feature_choice ... ok
+
+**C5** - A feature traz slug, phase, size, linear, integrationBranch, progress, breaker e os caminhos existentes (R5)
+Proof: run unit | test_snapshot_feature_fields ... ok
+
+**C6** - Cada `**Dispatched:**` vira um worker com label, issues, base, dispatch e model, na ordem (R6)
+Proof: run unit | test_snapshot_workers ... ok
+
+**C7** - Worktree sem `.starcode/config.json` nem `.specs/` → `starcode: false`, seções vazias, exit 0 (R7)
+Proof: run unit | test_snapshot_sem_starcode ... ok
+
+**C8** - Fonte ausente, JSON inválido ou maior que 1 MiB vira item em `errors` sem abortar (R8)
+Proof: run unit | test_snapshot_fonte_invalida ... ok
+
+**C9** - `--path` inexistente ou fora do Git imprime `worktree inválido: <path>` e sai com 2 (R9)
+Proof: run unit | test_snapshot_worktree_invalido ... ok
+
+**C10** - O snapshot não cria, altera nem apaga arquivo (árvore e mtimes iguais) (R10)
+Proof: run unit | test_snapshot_somente_leitura ... ok
+
+**C11** - O worker acha o caminho em foco cruzando o ramo com `workspace.list` (R11)
+Proof: run plugin | ✔ worker acha o worktree em foco pelo ramo
+
+**C12** - Sem casamento de ramo ou com contexto nulo, o estado é `sem-worktree` (R12)
+Proof: run plugin | ✔ worker sem worktree em foco
+
+**C13** - `agent.status.changed` gera um novo snapshot publicado em `ponte.state` (R13)
+Proof: run plugin | ✔ worker publica o estado após agent.status.changed
+
+**C14** - Eventos em menos de 300 ms geram um único snapshot (R14)
+Proof: run plugin | ✔ worker agrupa eventos em 300 ms
+
+**C15** - O resultado de um foco antigo é descartado (R15)
+Proof: run plugin | ✔ worker descarta snapshot de foco antigo
+
+**C16** - A issue vem de `orca linear issue --current --json` e fica em cache por 60 s (R16)
+Proof: run plugin | ✔ worker consulta a issue e guarda em cache por 60 s
+
+**C17** - Com o Linear falhando, o painel recebe o ID do Handoff e a nota "Linear indisponível", sem nova chamada antes do cache (R17)
+Proof: run plugin | ✔ worker sem Linear mostra o ID do Handoff
+
+**C18** - Snapshot falho → `status: erro`, `stale: true` e último estado bom mantido (R18)
+Proof: run plugin | ✔ worker com snapshot falho marca desatualizado
+
+**C19** - A barra de status mostra `🖖 <slug> · <phase> · modo <N>`, some sem StarCode e fica `warning` com disjuntor aberto ou agente em `blocked`/`waiting` (R19)
+Proof: run plugin | ✔ worker atualiza a barra de status
+
+**C20** - O item `ponte` da barra roda `starcode-ponte.toggle` com a ação `sidebar.right.toggle` (R20)
+Proof: run unit | test_manifest_toggle_da_barra ... ok
+
+**C21** - Ao abrir, o painel pede `ponte.state` e mostra as seis seções e a hora da atualização (R21)
+Proof: run plugin | ✔ painel pede o estado ao abrir
+
+**C22** - Um `ponte.state` publicado redesenha o painel sem ação do usuário (R22)
+Proof: run plugin | ✔ painel redesenha com ponte.state
+
+**C23** - A seção Tripulação mostra só `count > 0`, ou "Tripulação em repouso" (R23)
+Proof: run plugin | ✔ painel mostra só tripulantes ativos
+
+**C24** - A seção Fase SDD mostra slug, fase, tamanho, `done/total (percent%)` e "Disjuntor aberto" (R24)
+Proof: run plugin | ✔ painel mostra fase e progresso
+
+**C25** - Um worker cujo agente tem o rótulo no título mostra o estado do agente; sem workers, "Nenhum worker despachado" (R25)
+Proof: run plugin | ✔ painel casa worker com agente
+
+**C26** - Com `starcode: false`, o painel mostra só "StarCode não configurado neste worktree" e Atualizar agora (R26)
+Proof: run plugin | ✔ painel sem StarCode
+
+**C27** - Uma seção com erro mostra "indisponível" e o motivo, e as outras continuam (R27)
+Proof: run plugin | ✔ painel com seção indisponível
+
+**C28** - Abrir spec/tasks/Handoff chama `editor.open` com o caminho certo; arquivo ausente desabilita o botão (R28)
+Proof: run plugin | ✔ atalho abre spec tasks e handoff
+
+**C29** - Abrir a issue chama `shell.openExternal` com a URL; sem URL o botão fica desabilitado (R29)
+Proof: run plugin | ✔ atalho abre a issue no navegador
+
+**C30** - Iniciar o Picard chama `agent.launch` uma vez com o agente do Picard e o prompt de engajar (R30)
+Proof: run plugin | ✔ atalho inicia o Picard uma vez
+
+**C31** - Agente que a Orca não lança mostra a mensagem e não chama `agent.launch` (R31)
+Proof: run plugin | ✔ atalho recusa agente que a Orca não lança
+
+**C32** - Atualizar agora refaz snapshot e consulta ao Linear ignorando o cache (R32)
+Proof: run plugin | ✔ atualizar agora ignora o cache
+
+**C33** - O build gera `dist/orca` e o `--check` falha quando ele está desatualizado (R33)
+Proof: run unit | test_build_check_cobre_dist_orca ... ok
+
+**C34** - `install_local.py --cli orca` valida, instala e, com exit 3, mostra o pedido de aprovação sem passar `--approve` (R34)
+Proof: run unit | test_install_orca_aprovacao_nunca_automatica ... ok
+
+**C35** - O manifesto declara os painéis `ponte` e `ponte-cena`, só as cinco capabilities e `engines.orca` `>=1.4.248` (R35)
+Proof: run unit | test_manifest_capabilities_e_engines ... ok
+
+**C36** - DECISIONS tem F10-n, CREDITS cita Pixel Agents e Habblaud, CHANGELOG tem `## [1.4.0] - não lançada`, compatibilidade e README citam o painel (R36)
+Proof: run unit | test_release_docs_f10 ... ok
+
+**C37** - `docs/aceite/fase-10.md` tem as seis seções com `**Resultado**` e o caminho da captura (R37)
+Proof: run unit | test_fase10_acceptance_sections ... ok
+
+**C38** - A cena tem uma estação por tripulante (12), o turbolift e a área de engenharia (R38)
+Proof: run plugin | ✔ cena tem uma estação por tripulante e a engenharia
+
+**C39** - Tripulante com `count > 0` fica sentado e alterna 2 quadros a cada 250 ms; com 0 fica de pé no turbolift (R39)
+Proof: run plugin | ✔ cena senta tripulante ativo e anima a cada 250 ms
+
+**C40** - Agente em `blocked`/`waiting` põe o balão "!" no worker casado, senão no ativo mais recente, senão no Picard (R40)
+Proof: run plugin | ✔ cena põe o balão no personagem do agente bloqueado
+
+**C41** - Até 6 workers desenhados na engenharia com rótulo, o resto em "+N", e `done` com "✓" (R41)
+Proof: run plugin | ✔ cena desenha até 6 workers e +N
+
+**C42** - Sem StarCode, sem worktree ou com erro sem estado bom, a cena fica vazia com a frase do estado (R42)
+Proof: run plugin | ✔ cena vazia mostra a frase do estado
+
+**C43** - A pintura só lê o resultado de `buildScene` e nunca chama `drawImage` (R43, R38)
+Proof: run plugin | ✔ pintura da cena só lê o modelo e não usa imagem
+
+**C44** - O diário guarda no máximo 20 entradas e o painel mostra as 10 mais recentes (R44)
+Proof: run plugin | ✔ diário guarda 20 entradas e o painel mostra 10
+
+## Handoff
+
+**Phase:** published
+**Size:** GRANDE
+**Git mode:** 3
+**Next:** ramo de integração e primeiro ticket (T1)
+**Linear:** SC-17; SC-115..SC-123; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
+**Integration branch:** not created
+**Last integrated:** none
+**Dispatched:** none
+**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"
+**Attempts:** none
+**Reports:** none
+**Breaker:** closed
