@@ -183,7 +183,7 @@ Spec: `.specs/features/fase-8-uhura-scotty-kirk/spec.md` (R28–R30). Checks: C2
 `src/crew.yaml` já declara `uhura` (skill `uhura`, `subagent: true`, Haiku 5.5). Veja `skills/troi/SKILL.md` e `skills/spock/SKILL.md` para o formato (frontmatter `name`/`description`, `<plugin-root>`, linha do cabeçalho por hook) e `tests/test_data_skill.py` para testes de texto de skill.
 
 #### BOUNDARIES
-May change: `skills/uhura/`, `skills/engajar/references/execute.md`, `src/context/STARCODE.md`, `tests/test_uhura_skill.py`, `dist/`
+May change: `skills/uhura/`, `skills/engajar/references/execute.md`, `src/context/STARCODE.md`, `tests/test_uhura_skill.py`, `dist/`, `tests/test_build.py`, `tests/test_crew_hook.py`, `tests/test_ephemeral_db.py`, `tests/test_registry.py` (ampliado pelo Picard em 2026-11-08: testes que assumiam Uhura ausente e encoding)
 Do not touch: `skills/scotty/`, `skills/nova-missao/`, `skills/data/`, `scripts/`, `profiles/`
 
 #### RULES
@@ -214,7 +214,7 @@ Spec: `.specs/features/fase-8-uhura-scotty-kirk/spec.md` (R24, R31, R32). Checks
 `scripts/scaffold.py` vem da T3; `ephemeral_db.py list/down` da T2. `src/crew.yaml` já declara `scotty` (Sonnet 5.5, subagente).
 
 #### BOUNDARIES
-May change: `scripts/scaffold.py`, `skills/scotty/`, `skills/data/SKILL.md`, `skills/data/references/tasks-template.md`, `tests/test_scaffold_detect.py`, `tests/test_scotty_skill.py`, `dist/`
+May change: `scripts/scaffold.py`, `skills/scotty/`, `skills/data/SKILL.md`, `skills/data/references/tasks-template.md`, `tests/test_scaffold_detect.py`, `tests/test_scotty_skill.py`, `dist/`, `tests/test_build.py`, `tests/test_crew_live.py`, `tests/test_skills_cli.py` (só se um teste antigo assumir que a skill nova não existe; ampliado pelo Picard em 2026-11-08)
 Do not touch: `skills/uhura/`, `skills/nova-missao/`, `scripts/ephemeral_db.py`, `profiles/`
 
 #### RULES
@@ -244,7 +244,7 @@ Spec: `.specs/features/fase-8-uhura-scotty-kirk/spec.md` (R33–R35, R43, R44; e
 `src/crew.yaml` declara `kirk` com skill `nova-missao`, `invocation: user`, sem subagente. Veja `evals/README.md` e os casos em `evals/routing/`; graders `tool_used` com max 0 precisam de `min: 0` (lição da Fase 1).
 
 #### BOUNDARIES
-May change: `skills/nova-missao/`, `evals/routing/`, `tests/test_nova_missao_skill.py`, `dist/`
+May change: `skills/nova-missao/`, `evals/routing/`, `tests/test_nova_missao_skill.py`, `dist/`, `tests/test_build.py`, `tests/test_crew_live.py`, `tests/test_skills_cli.py` (só se um teste antigo assumir que a skill nova não existe; ampliado pelo Picard em 2026-11-08)
 Do not touch: `skills/uhura/`, `skills/scotty/`, `scripts/`, `profiles/`
 
 #### RULES
@@ -410,7 +410,7 @@ Spec: `.specs/features/fase-8-uhura-scotty-kirk/spec.md` (R1–R3, R6, R36, R38,
 `tools/build.py` hoje gera skills, hooks, scripts, crew.json e capabilities por CLI; `scripts/check_decisions.py` é o gate da CI para o `DECISIONS.md` (D30).
 
 #### BOUNDARIES
-May change: `tools/build.py`, `tests/test_build.py`, `tests/test_profiles.py`, `tests/test_release_docs_f8.py`, `DECISIONS.md`, `CHANGELOG.md`, `docs/compatibilidade.md`, `dist/`
+May change: `tools/build.py`, `tests/test_build.py`, `tests/test_profiles.py`, `tests/test_release_docs_f8.py`, `DECISIONS.md`, `CHANGELOG.md`, `docs/compatibilidade.md`, `dist/`, `evals/README.md` (ampliado pelo Picard em 2026-11-08: o T7 editou só a cópia gerada), `profiles/tauri/profile.yaml`, `profiles/typescript/profile.yaml` (só o campo `docs` das deps main; ampliado pelo Picard em 2026-11-08)
 Do not touch: `profiles/`, `scripts/`, `skills/`
 
 #### RULES
@@ -446,7 +446,7 @@ Spec: `.specs/features/fase-8-uhura-scotty-kirk/spec.md` (R37). Checks: C37.
 Aceites anteriores: `docs/aceite/fase-7.md` (formato). O time PROJ do sandbox não é usado nesta fase.
 
 #### BOUNDARIES
-May change: `docs/aceite/fase-8.md`, `tests/test_acceptance_doc_f8.py`
+May change: `docs/aceite/fase-8.md`, `tests/test_acceptance_doc_f8.py`, `scripts/scaffold.py`, `tests/test_scaffold.py`, `profiles/tauri/template/biome.json`, `profiles/typescript/template/biome.json`, `tests/test_profile_ts_tauri.py`, `dist/` (ampliado pelo Picard em 2026-11-08: correção dos achados 1 e 2 do aceite; `DECISIONS.md` para registrar a correção)
 Do not touch: `scripts/`, `skills/`, `profiles/`, `dist/`
 
 #### RULES
@@ -616,15 +616,15 @@ Proof: run slow | test_flask_mysql_gates_pass ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** despachar T1 (SC-88)
+**Next:** Q verifica a feature
 **Linear:** SC-15 (mãe); doc https://linear.app/cifren/document/spec-fase-8-uhura-scotty-e-kirk-v12-390cc72fd4d9; T1=SC-88 T2=SC-89 T3=SC-90 T4=SC-91 T5=SC-92 T6=SC-93 T7=SC-94 T8=SC-95 T9=SC-96 T10=SC-97 T11=SC-98 T12=SC-99 T13=SC-100
 **Integration branch:** feature/fase-8-uhura-scotty-kirk
-**Last integrated:** none
+**Last integrated:** f01208a
 **Dispatched:** none
 **Settled:** none
-**Attempts:** none
-**Reports:** none
+**Attempts:** gate-T1=1, aceite-T13=1
+**Reports:** 2026-11-08: T1: registry.py + testes + dist; 435 testes verdes; commit 9e1038a; 2026-11-08: T1 correção: HTTPError fechado; ae6e32f; suíte 435, 1 falha intermitente em 3 execuções (não reproduzida); 2026-11-08: T2: ephemeral_db.py + 6 testes; 52b97d5; suíte 441 OK sem PYTHONIOENCODING; com PYTHONIOENCODING=utf-8 3 testes novos (T1/T2) falham por decodificação: pendência para o ciclo pós-Q; 2026-11-08: T3: scaffold.py (leitor YAML embutido; chaves run/cwd nos gates) + testes; 9ff1fab; suíte 457 OK; 2026-11-08: T8: perfil python-flask; e252029; slow flask PASS com registro real; 2026-11-08: T4: stack_cache.py; 2c2209a; suíte 468 OK; 2026-11-08: T10: perfis rust e gpui; 5ab71ee; slow rust e gpui PASS (gpui 0.2.2, build Windows ok); 2026-11-08: T9: perfis postgresql/mysql; CI do banco em ci-db.yml separado; ruff.toml exclui scripts/; slow pg/mysql PASS com Docker real; 2026-11-08: T5: skill uhura e47add1; complemento despachado para test_build/test_crew_hook (assumiam uhura ausente) e encoding de T1/T2; 2026-11-08: T11: perfis typescript e tauri; d0b0c59; slow ts e tauri PASS (inclui tauri build --debug --no-bundle); 2026-11-08: T5: skill uhura e47add1 + complemento cf60350 (May change ampliado: 4 testes); suíte verde com e sem PYTHONIOENCODING; 2026-11-08: T6: scotty + detect/record + Data via checks; 8cdbc3a; suíte 501 OK; 2026-11-08: T7: nova-missao + 6 evals de roteamento; fa54664; suíte 507 OK; evals/README.md com contagem antiga (vai na T12); 2026-11-08: T7 integrado com dist/claude/evals/README.md editado à mão (fonte evals/README.md desatualizada): build --check vermelho em b7f54ed; correção no T12; 2026-11-08: 2026-11-08: T12: build com profiles nos 4 CLIs, testes de perfis e registros F8 (DECISIONS F8-1..10, CHANGELOG 1.2.0); be7fdf3 integrado em 533f0d6; build --check OK; suíte 517 OK com e sem PYTHONIOENCODING; 2026-11-08: 2026-11-08: T13: aceite 1e6a686; cenários 3-5 aprovados; 1 e 2 reprovados: scaffold new recusa pasta só com o cache .specs/ (ordem da skill) e biome check do tauri falha nos .md do cache; correção despachada no próprio T13 (May change ampliado); 2026-11-08: 2026-11-08: T13 correção: bb5a320 (scaffold new aceita pasta só com .specs; biome ignora .specs) + 61f93c7 (aceite com 5 cenários aprovados); integrado em dd1196a; suíte 523 OK nos dois modos; pendências do aceite para o Q: Doc version sempre desconhecida (check acusa outra versão logo após write) e recommended obsoleto no Biome 2.6; 2026-11-09: 2026-11-09: queda de energia interrompeu o worker da F8-11 (entrada já escrita, sem commit); redespachado no mesmo worktree; 2026-11-09: 2026-11-09: F8-11 integrada em f01208a (merge anterior ebd95fc desfeito localmente: check_commit vermelho por mensagem com maiúscula prescrita no brief; mensagem corrigida, gate verde)
 **Breaker:** closed
