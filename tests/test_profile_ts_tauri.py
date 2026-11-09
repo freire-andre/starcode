@@ -172,6 +172,13 @@ class TauriProfileTests(ProfileCase):
             self.assertIn(entry, ignore)
 
 
+class BiomeExcludesSpecsTests(unittest.TestCase):
+    def test_biome_excludes_specs_cache(self) -> None:
+        for name in ("typescript", "tauri"):
+            cfg = json.loads((PROFILES / name / "template" / "biome.json").read_text(encoding="utf-8"))
+            self.assertIn("!.specs", cfg["files"]["includes"], name)
+
+
 class NoHardcodedVersionTests(unittest.TestCase):
     def test_manifests_use_version_markers(self) -> None:
         for rel in ("typescript/template/package.json", "tauri/template/package.json",

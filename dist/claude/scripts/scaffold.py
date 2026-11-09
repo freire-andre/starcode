@@ -405,7 +405,8 @@ def validate_inputs(args, folder: Path) -> tuple[str, str]:
     desc = args.description if args.description is not None else f"Projeto {name}."
     if "\n" in desc or "\r" in desc or len(desc) > 200 or not desc.strip():
         raise ScaffoldError("descrição inválida: uma linha, até 200 caracteres")
-    if folder.exists() and (not folder.is_dir() or any(folder.iterdir())):
+    # só `.specs/` é aceito: é o cache que a skill nova-missao grava antes do `new` (R31)
+    if folder.exists() and (not folder.is_dir() or any(c.name != ".specs" for c in folder.iterdir())):
         raise ScaffoldError(f"pasta não vazia: {folder}")
     return name, desc
 
@@ -419,6 +420,7 @@ def cmd_new(args) -> int:
     ctx = {"name": name, "module": name.replace("-", "_"), "description": desc, "versions": res["versions"]}
 
     pre_existing = folder.exists()
+    keep_specs = pre_existing and (folder / ".specs").exists()
     top = folder
     while not pre_existing and not top.parent.exists():
         top = top.parent
@@ -444,7 +446,7 @@ def cmd_new(args) -> int:
         (folder / ".starcode" / "stack.json").write_text(
             json.dumps(stack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     except Exception as exc:  # noqa: BLE001 - qualquer falha desfaz o que esta execução criou
-        _cleanup(folder, top, pre_existing)
+        _cleanup(folder, top, pre_existing, keep_specs)
         code = exc.code if isinstance(exc, ScaffoldError) else 1
         print(f"falha na geração: {exc}", file=sys.stderr)
         return code if code == 1 else 1
@@ -456,12 +458,14 @@ def cmd_new(args) -> int:
     return 0
 
 
-def _cleanup(folder: Path, top: Path, pre_existing: bool) -> None:
+def _cleanup(folder: Path, top: Path, pre_existing: bool, keep_specs: bool = False) -> None:
     def onerr(func, path, _exc):  # arquivos somente leitura no Windows
         os.chmod(path, 0o700)
         func(path)
     if pre_existing:
         for child in folder.iterdir():
+            if keep_specs and child.name == ".specs":
+                continue  # já existia antes desta execução
             shutil.rmtree(child, onerror=onerr) if child.is_dir() else child.unlink()
     elif top.exists():
         shutil.rmtree(top, onerror=onerr)

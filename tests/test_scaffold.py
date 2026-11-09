@@ -124,6 +124,34 @@ class ScaffoldTests(ScaffoldCase):
         self.assertIn(f"pasta não vazia: {folder.resolve()}", err)
         self.assertEqual([p.name for p in folder.iterdir()], ["a.txt"])
 
+    def test_scaffold_accepts_dir_with_only_specs(self) -> None:
+        folder = self.tmp / "so-specs"
+        (folder / ".specs" / "stack").mkdir(parents=True)
+        (folder / ".specs" / "stack" / "cache.json").write_text("{}", encoding="utf-8")
+        code, _, err = run("new", str(folder), "--profile", "fakeapp")
+        self.assertEqual(code, 0, err)
+        self.assertTrue((folder / ".specs" / "stack" / "cache.json").is_file())
+        self.assertTrue((folder / ".starcode" / "stack.json").is_file())
+
+    def test_scaffold_rejects_specs_plus_other_file(self) -> None:
+        folder = self.tmp / "specs-e-mais"
+        (folder / ".specs").mkdir(parents=True)
+        (folder / "a.txt").write_text("x", encoding="utf-8")
+        code, _, err = run("new", str(folder), "--profile", "fakeapp")
+        self.assertEqual(code, 2)
+        self.assertIn(f"pasta não vazia: {folder.resolve()}", err)
+        self.assertEqual(sorted(p.name for p in folder.iterdir()), [".specs", "a.txt"])
+
+    def test_scaffold_failure_keeps_preexisting_specs(self) -> None:
+        folder = self.tmp / "falha-specs"
+        (folder / ".specs").mkdir(parents=True)
+        (folder / ".specs" / "k.json").write_text("{}", encoding="utf-8")
+        with mock.patch.object(scaffold, "apply_inject", side_effect=RuntimeError("boom")):
+            code, _, _ = run("new", str(folder), "--profile", "fakeapp", "--db", "fakedb")
+        self.assertEqual(code, 1)
+        self.assertEqual([p.name for p in folder.iterdir()], [".specs"])
+        self.assertTrue((folder / ".specs" / "k.json").is_file())
+
     def test_scaffold_rejects_unknown_combo(self) -> None:
         for argv in (["--profile", "faketauri", "--db", "fakedb"], ["--profile", "nada"]):
             folder = self.tmp / "combo"
