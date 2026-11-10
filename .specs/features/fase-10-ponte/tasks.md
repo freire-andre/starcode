@@ -324,6 +324,38 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instal
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T10: Correções do aceite real (cena, issue, largura)
+**Linear**: SC-124
+**Depends on**: T9
+**Requirements**: R16, R45, R46, R47
+**Tests**: plugin
+**Gate**: plugin
+
+#### TASK
+O aceite real (T9, `docs/aceite/fase-10.md`) achou três defeitos no plugin instalado. Corrija cada um com um teste que falha antes da correção:
+- Cena (R45): o painel `ponte-cena` saiu em branco e depois "stopped responding". `scene.html` carrega `<script type="module" src="./scene.ts">` (a Orca só transpila quando o `entry` do manifesto é `.ts`) e `scene.ts` importa `./scene-model` sem extensão. Troque o `entry` para `src/scene.ts`, faça o script criar o canvas quando a página não tiver `#cena`, e garanta que o import de `buildScene` chega ao navegador (caminho com extensão que a Orca serve, ou outra forma documentada na skill `orca-plugin-authoring`). Remova `scene.html` se ele deixar de ser usado. Teste: o manifesto aponta `ponte-cena` para `src/scene.ts` e o código do painel não tem import relativo sem extensão.
+- Issue (R16, R46): `orca linear issue --current` usa o worktree do terminal que chama e, no worker, responde `linear_no_linked_issue` mesmo com o worktree vinculado. Leia `linkedLinearIssue` de `orca worktree show --worktree path:<caminho> --json` e consulte `orca linear issue <ID> --json` (mesmo limite de 10 s e cache de 60 s por worktree). Sem vínculo → fallback do Handoff com a nota; o painel mostra a nota junto do ID quando título e estado faltam.
+- Largura (R47): com 237 px os botões "Abrir tasks" e "Iniciar o Picard" ficam cortados e há rolagem horizontal. Quebre os botões em linhas (componente/propriedade de quebra da Orca) e acrescente um cenário de 240 px ao `panel.check.ts`.
+Atualize o `dist/orca` com `python tools/build.py` e acrescente uma entrada F10-n em DECISIONS (cena com entry `.ts`, issue pelo vínculo do worktree).
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R16, R45, R46, R47). Checks: C16, C45, C46, C47. Aceite: `docs/aceite/fase-10.md`.
+Teste real feito pelo Picard: `orca linear issue SC-123 --json` → ok, título e estado; `orca linear issue --current --json` num worktree vinculado → `linear_no_linked_issue`; `orca worktree show --worktree path:<caminho> --json` → `linkedLinearIssue: "SC-123"`.
+Referências da API: `entry` de painel aceita `.ts` e, num painel `html`, a Orca gera a página em volta (manifesto, `engines.orca >=1.4.246`).
+
+#### BOUNDARIES
+May change: `src/orca/`, `dist/orca/`, `tests/test_orca_manifest.py`, `.specs/DECISIONS.md`
+Do not touch: `scripts/`, `tools/`, `.github/`, `docs/aceite/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instale nem desinstale plugin; se precisar carregar o plugin na Orca para provar a cena, pergunte ao Picard.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ## Checks
 
 **Build**: `python tools/build.py --check`; `orca plugin validate src/orca --json`; `python scripts/check_decisions.py`
@@ -375,8 +407,8 @@ Proof: run plugin | ✔ worker agrupa eventos em 300 ms
 **C15** - O resultado de um foco antigo é descartado (R15)
 Proof: run plugin | ✔ worker descarta snapshot de foco antigo
 
-**C16** - A issue vem de `orca linear issue --current --json` e fica em cache por 60 s (R16)
-Proof: run plugin | ✔ worker consulta a issue e guarda em cache por 60 s
+**C16** - A issue vem do `linkedLinearIssue` do worktree via `orca linear issue <ID> --json` e fica em cache por 60 s (R16)
+Proof: run plugin | ✔ worker consulta a issue vinculada e guarda em cache por 60 s
 
 **C17** - Com o Linear falhando, o painel recebe o ID do Handoff e a nota "Linear indisponível", sem nova chamada antes do cache (R17)
 Proof: run plugin | ✔ worker sem Linear mostra o ID do Handoff
@@ -462,17 +494,26 @@ Proof: run plugin | ✔ pintura da cena só lê o modelo e não usa imagem
 **C44** - O diário guarda no máximo 20 entradas e o painel mostra as 10 mais recentes (R44)
 Proof: run plugin | ✔ diário guarda 20 entradas e o painel mostra 10
 
+**C45** - O painel `ponte-cena` tem `entry` `src/scene.ts`, o script cria o canvas quando falta e o código do painel não tem import relativo sem extensão (R45)
+Proof: run plugin | ✔ cena cria o canvas e importa com caminho servido
+
+**C46** - Sem issue vinculada ou com o Linear falhando, o painel mostra a nota junto do ID do Handoff (R46)
+Proof: run plugin | ✔ painel mostra a nota da issue do Handoff
+
+**C47** - Com 240 px os botões dos Atalhos quebram em linhas, sem rolagem horizontal (R47)
+Proof: run plugin | ✔ painel estreito quebra os atalhos
+
 ## Handoff
 
-**Phase:** published
+**Phase:** execute
 **Size:** GRANDE
 **Git mode:** 3
 **Next:** ramo de integração e primeiro ticket (T1)
-**Linear:** SC-17; SC-115..SC-123; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
-**Integration branch:** not created
-**Last integrated:** none
+**Linear:** SC-17; SC-115..SC-124; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
+**Integration branch:** feature/fase-10-ponte
+**Last integrated:** T9 (7bd654d) via 6b940d7
 **Dispatched:** none
-**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"
-**Attempts:** none
-**Reports:** none
+**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"; 2026-11-10: aceite real com 3 defeitos; user: "Ticket de correção (Recommended)"; T10 (SC-124) com R45-R47 e R16 emendado
+**Attempts:** gate-T7=1
+**Reports:** 2026-11-09: T1: ponte.py snapshot + 10 testes + dist; suíte 583 OK; commit 531e244; integrado em a3d315c; 2026-11-09: T2: manifesto, worker, protocol, 11 testes do plugin, test_orca_manifest; validate falha até a T3 criar src/panel.tsx (manifesto aponta para ele, fatiamento do Data); commit 359b579; integrado em 90b14a4; 2026-11-10: T3: painel de componentes + check + 7 testes; validate/check/test do plugin verdes (18 testes); commit f25debb; integrado em d83029b; 2026-11-10: T5: buildScene + 5 testes; no ramo de integração validate/check/test verdes (23 testes); commit 49837b5; integrado em ac10fc8; 2026-11-10: T4: atalhos (editor.open, openExternal, agent.launch com trava, recusa) e diário de bordo; plugin 32 testes verdes; commit 4bcc434; integrado em 7b0be63; 2026-11-10: T6: painel HTML ponte-cena (canvas, sem drawImage), 2 testes, manifesto com 2 painéis; integração: plugin 34 testes; commit 961a09f; integrado em deb24a6; 2026-11-10: T7 r1: dist/orca/ponte.py falha ao ler a tripulação (falta crew.json gerado; cai em miniyaml); suíte 592 OK; redespacho no mesmo worktree; 2026-11-10: T7: dist/orca + install_local --cli orca + crew.json (r2) + regressão por subprocesso; suíte 593 OK; integrado em 291fb1d; 2026-11-10: T8: DECISIONS F10-n, CREDITS, CHANGELOG 1.4.0, compatibilidade, README, CI condicional; check_decisions OK; aviso: cabeçalho do commit com 101 caracteres (aceito); integrado em 7392422; 2026-11-10: T9: aceite com 3 aprovados (instalação, worktree A, worktree B) e 3 reprovados (evento de agente, cena em branco, atalhos não clicáveis pela CLI); pendências de código: cena (entry html carrega .ts sem transpilar), issue via --current ignora o cwd, botões cortados em 237 px; integrado em 6b940d7
 **Breaker:** closed

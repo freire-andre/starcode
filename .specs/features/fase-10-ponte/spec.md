@@ -67,7 +67,7 @@ Discovery: `.specs/features/fase-10-ponte/context.md`. Issue: SC-17.
 - **R13** - WHEN o worker recebe `agent.status.changed` THEN the system SHALL refazer o snapshot do worktree em foco e enviar o novo estado aos painéis abertos (`orca.panels.post('ponte.state', ...)`).
 - **R14** - WHEN chegam vários eventos em menos de 300 ms THEN the system SHALL rodar um único snapshot depois do último (debounce de 300 ms).
 - **R15** - IF o foco muda enquanto um snapshot está em andamento THEN the system SHALL descartar o resultado antigo e publicar só o do worktree em foco atual.
-- **R16** - WHEN o snapshot tem uma issue do Linear (Handoff ou `orca linear issue --current`) THEN the system SHALL obter ID, título e estado com `orca linear issue --current --json` no worktree em foco e guardar o resultado em cache por 60 s por worktree.
+- **R16** - WHEN o worktree em foco tem issue do Linear vinculada na Orca (`linkedLinearIssue` de `orca worktree show --worktree path:<caminho> --json`) THEN the system SHALL obter ID, título e estado com `orca linear issue <ID> --json` e guardar o resultado em cache por 60 s por worktree (emenda 2026-11-10: `orca linear issue --current` usa o worktree do terminal que chama, não o `cwd`, e no worker sempre responde "não vinculado").
 - **R17** - IF `orca linear issue` falha, demora mais de 10 s ou o worktree não tem issue vinculada THEN the system SHALL mostrar só o primeiro ID do campo `**Linear:**` (ou nada) com a nota "Linear indisponível" ou "Sem issue vinculada", sem repetir a chamada antes de vencer o cache.
 - **R18** - IF o `python` não roda, o `ponte.py` sai com código diferente de 0 ou demora mais de 10 s THEN the system SHALL mostrar o estado `erro` com a primeira linha do erro e manter o último estado bom com a marca "desatualizado".
 - **R19** - WHEN o estado do worktree em foco muda THEN the system SHALL atualizar o item da barra de status `ponte` com o texto `🖖 <slug> · <phase> · modo <N>`. Sem feature: `🖖 StarCode · modo <N>`. Sem StarCode: o item fica escondido (`visible: false`). O `tone` é `warning` com o disjuntor aberto ou com algum agente do worktree em foco em `blocked` ou `waiting`, e `neutral` nos outros casos.
@@ -103,6 +103,9 @@ Discovery: `.specs/features/fase-10-ponte/context.md`. Issue: SC-17.
 ### Diário de bordo
 
 - **R44** - WHEN o worker publica um estado com mudança de estado de agente, de worktree em foco ou de fase THEN the system SHALL acrescentar uma entrada `{ at, text }` em PT-BR ao diário (no máximo 20, as mais antigas saem), enviá-lo junto com `ponte.state` e mostrar as 10 mais recentes na seção "Diário de bordo" do painel de componentes. O diário vive só na memória do worker.
+- **R45** - WHEN o painel `ponte-cena` carrega na Orca instalada THEN the system SHALL desenhar a cena: o `entry` do painel é o módulo `src/scene.ts` (a Orca transpila e gera a página), o script cria o canvas quando a página não tem um, e todo import em tempo de execução do código do painel usa um caminho que a Orca serve (emenda 2026-11-10: o aceite real mostrou a cena em branco porque `scene.html` carregava `./scene.ts` sem transpilar e importava `./scene-model` sem extensão).
+- **R46** - IF a issue do painel vem do Handoff (sem vínculo ou com o Linear falhando) THEN the system SHALL mostrar a nota ("Sem issue vinculada" ou "Linear indisponível") junto do ID, em vez de título e estado vazios (emenda 2026-11-10).
+- **R47** - WHEN o painel `ponte` tem 240 px de largura ou menos THEN the system SHALL quebrar os botões dos Atalhos em linhas, sem rolagem horizontal nem botão cortado (emenda 2026-11-10: com 237 px "Abrir tasks" e "Iniciar o Picard" ficavam cortados).
 
 ### Build, instalação e registros
 
@@ -173,6 +176,7 @@ Manifesto: `id` `starcode-ponte`, sem `publisher`, `execution: trusted-worker`, 
 | Clique na barra de status (R20) | abrir o painel (impossível: a API não abre painel) · `sidebar.right.toggle` (mostra a barra lateral do painel) | adjusted - user: "sim" (2026-11-09, aprovação da spec ajustada) |
 | Cena viva (Pixel Agents / Habblaud) | segundo painel HTML com a ponte em pixel art gerada por código, na Fase 10 · deixar para outra fase · copiar código/sprites (licença dos sprites do Pixel Agents não declarada) | adjusted - user: "sim" (2026-11-09, depois do pedido "verifique se da pra colocar algo") |
 | Issue do worktree | ID, título e estado via `orca linear issue --current` com cache · só o ID | approved - user: "ID, título e estado (Recommended)" |
+| Defeitos do aceite real (cena em branco, issue errada, botões cortados) | ticket de correção antes do Q · deixar para a rodada pós-Q · entregar com pendências | adjusted - user: "Ticket de correção (Recommended)" (2026-11-10, depois do aceite da T9) |
 
 Padrões da descoberta (não perguntados, valem com a aprovação desta spec): a leitura do estado fica em Python (`ponte.py`) e o worker só orquestra; feature exibida, worktree sem StarCode, workers, agente do Picard e idioma seguem a tabela Gray Areas do `context.md`.
 
