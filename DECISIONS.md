@@ -730,3 +730,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o usuário aceitou as duas limitações (aprovado com limitações). O painel passa a dizer "Picard iniciado em segundo plano" e avisa no botão; a Issue segue pelo ID do Handoff. Nada é contornado no plugin.
 - **Motivo:** as duas vêm do comportamento da Orca 1.4.x, fora do alcance do plugin.
 - **Por que não é bug:** `docs/aceite/fase-10.md` (`## Reaceite`) registra o caso e `test_fase10_limitacoes_registradas` exige o registro.
+
+### F10-10: correção pós-Q da Ponte (R8, ids repetidos, checks fracas)
+- **Problema:** o Q achou que `scripts/ponte.py` ignorava em silêncio um Handoff acima de 1 MiB nas features não escolhidas, que `linear_ids` devolvia IDs repetidos e que as checks C8, C21 e C26 não falhariam se a condição fosse falsa.
+- **Decisão:** `handoff_of` passa a registrar em `errors` o Handoff acima de 1 MiB ou ilegível, com a fonte e o motivo, sem abortar o snapshot (R8), e erros idênticos não se repetem; `linear_ids` deduplica mantendo a ordem; C8 cobre fonte ilegível e Handoff grande, C21 verifica `plugin.request('ponte.state')` com `timeoutMs: 15000` e C26 verifica que só aparecem a frase e o Atualizar agora.
+- **Motivo:** R8 pede que toda fonte inválida apareça em `errors`, e o painel não deve mostrar o mesmo ID duas vezes.
+- **Por que não é bug:** `test_snapshot_handoff_grande_vira_erro`, `test_linear_ids_sem_duplicatas` e `test_snapshot_fonte_invalida` cobrem o código; os testes `painel pede o estado ao abrir` e `painel sem StarCode` cobrem o painel.
