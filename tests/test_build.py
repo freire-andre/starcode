@@ -47,6 +47,25 @@ class BuildTests(unittest.TestCase):
         self.assertNotIn("orca", build.CLIS)
         self.assertFalse((self.out / "dist" / "claude" / "skills" / "orca").exists())
 
+    def test_dist_orca_snapshot_le_a_tripulacao(self):
+        build.build(self.src, self.out)
+        orca = self.out / "dist" / "orca"
+        self.assertTrue((orca / "crew.json").is_file())
+        self.assertEqual(list(orca.rglob("__pycache__")), [])
+        repo = Path(self._tmp.name) / "repo"
+        (repo / ".starcode").mkdir(parents=True)
+        (repo / ".specs").mkdir()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)  # ponte.py exige um worktree git
+        (repo / ".starcode" / "config.json").write_text("{}", encoding="utf-8")
+        res = subprocess.run([sys.executable, "-B", str(orca / "scripts" / "ponte.py"), "snapshot",
+                              "--path", str(repo), "--json"],
+                             capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        snap = json.loads(res.stdout)
+        self.assertEqual(snap["errors"], [])
+        self.assertEqual(len(snap["crew"]), 12)
+        self.assertEqual(list(orca.rglob("__pycache__")), [])
+
     def test_build_check_cobre_dist_orca(self):  # C33
         build.build(self.src, self.out)
         self.assertEqual(build.compare(self.out, self.out), [])

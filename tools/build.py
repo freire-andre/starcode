@@ -240,6 +240,17 @@ def claude_frontmatter(text: str, invocation: str) -> str:
     return head + "\n" + extra.rstrip("\n") + sep + body
 
 
+def crew_json_doc(src: dict) -> dict:
+    return {
+        "schemaVersion": src["crew_doc"].get("schemaVersion", 1),
+        "version": src["version"],
+        "families": src["crew_doc"].get("families", {}),
+        "costTiers": src["crew_doc"].get("costTiers", {}),
+        "available": src["available"],
+        "crew": src["crew"],
+    }
+
+
 def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
     """Runtime pieces every adapter needs: scripts, hook scripts, core context, crew data, schemas."""
     copy_tree(root / "scripts", out / "scripts")
@@ -250,15 +261,7 @@ def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
         copy_tree(root / "profiles", out / "profiles")
     if (root / "src" / "briefs").is_dir():  # worker briefs (q-verify.md), read by scripts/dispatch.py
         copy_tree(root / "src" / "briefs", out / "briefs")
-    crew_json = {
-        "schemaVersion": src["crew_doc"].get("schemaVersion", 1),
-        "version": src["version"],
-        "families": src["crew_doc"].get("families", {}),
-        "costTiers": src["crew_doc"].get("costTiers", {}),
-        "available": src["available"],
-        "crew": src["crew"],
-    }
-    write_json(out / "crew.json", crew_json)
+    write_json(out / "crew.json", crew_json_doc(src))
     write_json(out / "capabilities.json", {"schemaVersion": 1, "cli": cli, "extras": src["capabilities"][cli]})
 
 
@@ -425,6 +428,8 @@ def build_orca(src: dict, out: Path, root: Path) -> None:
     doc = json.loads(manifest.read_text(encoding="utf-8"))
     doc["version"] = src["version"]
     write_json(out / "orca-plugin.json", doc)
+    # starcode_common.load_crew() lê PLUGIN_ROOT/crew.json (PLUGIN_ROOT = dist/orca); sem ele cai em miniyaml.
+    write_json(out / "crew.json", crew_json_doc(src))
     for rel in script_closure(root):
         target = out / "scripts" / rel
         target.parent.mkdir(parents=True, exist_ok=True)
