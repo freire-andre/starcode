@@ -386,6 +386,39 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instal
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T12: Atalhos, log de erros e turbolift (correções do reaceite manual)
+**Linear**: SC-126
+**Depends on**: T11
+**Requirements**: R28, R30, R39, R48
+**Tests**: plugin
+**Gate**: plugin
+
+#### TASK
+No reaceite manual do usuário (plugin instalado, foco em `F:/Projetos/StarCode`):
+- Abrir spec, Abrir tasks e Abrir Handoff mostraram "path: path must be relative and inside the workspace": o snapshot traz caminhos absolutos (`F:/Projetos/StarCode/.specs/...`) e `editor.open` exige caminho relativo ao worktree. Converta para relativo à raiz do worktree em foco, com `/`, aceitando `\` e letra de unidade em maiúscula ou minúscula; caminho fora do worktree → erro `file_missing` (R28).
+- Iniciar Picard: a tela mudou e nenhum terminal novo ficou no worktree, sem erro visível. Registre o `terminalId` devolvido no log (`console.log`) e mostre "Picard iniciado" no painel; erro do `agent.launch` vai para o log e para a linha de erro do painel (R30, R48). Confira na skill `orca-plugin-authoring` (host-api) se o `agent` e o `prompt` estão no formato que a Orca espera e registre o que achar no relatório.
+- Issue: num worktree sem vínculo o painel mostrou "Linear indisponível" (o CLI responde `linkedLinearIssue: null` em 0,6 s). Toda falha de processo externo vai para o log com a ação e a mensagem; `linkedLinearIssue` nulo → "Sem issue vinculada"; só falha do processo ou JSON inválido → "Linear indisponível" (R48). Se o `orca` não for achado pelo worker, tente também o binário ao lado do `process.execPath` ou a variável de ambiente que a Orca expõe, e diga no relatório.
+- Turbolift: os 11 inativos ficam no mesmo ponto com rótulos sobrepostos. Distribua em posições distintas na área do turbolift (grade), sem rótulo sobreposto (R39), mantendo `buildScene` pura.
+Teste que falha antes para cada item; atualize `dist/orca` com `python tools/build.py`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R28, R30, R39, R48). Checks: C28, C30, C39, C49, C50.
+Prints do usuário: erro "path: path must be relative and inside the workspace" nos três botões; Diário com "Agente Claude Code: concluído." (evento de agente funcionando).
+`agent.launch`: "Starts an agent's CLI in a new terminal of a workspace, in the background, and returns as soon as it starts; a `prompt` is sent once the agent is ready" → `{ terminalId }`. `editor.open`: `{ workspaceId, path }`, caminho de um arquivo dentro do workspace.
+
+#### BOUNDARIES
+May change: `src/orca/`, `dist/orca/`
+Do not touch: `scripts/`, `tools/`, `tests/`, `.github/`, `docs/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instale nem desinstale plugin; não clique no Iniciar Picard do plugin instalado.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ## Checks
 
 **Build**: `python tools/build.py --check`; `orca plugin validate src/orca --json`; `python scripts/check_decisions.py`
@@ -473,7 +506,7 @@ Proof: run plugin | ✔ painel sem StarCode
 **C27** - Uma seção com erro mostra "indisponível" e o motivo, e as outras continuam (R27)
 Proof: run plugin | ✔ painel com seção indisponível
 
-**C28** - Abrir spec/tasks/Handoff chama `editor.open` com o caminho certo; arquivo ausente desabilita o botão (R28)
+**C28** - Abrir spec/tasks/Handoff chama `editor.open` com o caminho relativo ao worktree; arquivo ausente desabilita o botão (R28)
 Proof: run plugin | ✔ atalho abre spec tasks e handoff
 
 **C29** - Abrir a issue chama `shell.openExternal` com a URL; sem URL o botão fica desabilitado (R29)
@@ -536,17 +569,23 @@ Proof: run plugin | ✔ painel estreito quebra os atalhos
 **C48** - Com vários workspaces no mesmo ramo, o worker escolhe o de `name` igual ao `displayName` do foco (R11)
 Proof: run plugin | ✔ worker desempata ramo igual pelo nome
 
+**C49** - Falha de processo externo, `editor.open` ou `agent.launch` gera uma linha no log com a ação e a mensagem, e vínculo nulo mostra "Sem issue vinculada" (R48)
+Proof: run plugin | ✔ worker registra falhas no log
+
+**C50** - Os tripulantes inativos ficam em posições distintas no turbolift, sem rótulo sobreposto (R39)
+Proof: run plugin | ✔ cena distribui os inativos no turbolift
+
 ## Handoff
 
 **Phase:** execute
 **Size:** GRANDE
 **Git mode:** 3
 **Next:** ramo de integração e primeiro ticket (T1)
-**Linear:** SC-17; SC-115..SC-125; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
+**Linear:** SC-17; SC-115..SC-126; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
 **Integration branch:** feature/fase-10-ponte
-**Last integrated:** T10 (8ba401c, a18ab7b) via 2ef3055
+**Last integrated:** T11 (ada3c2e) via 80a0aaf
 **Dispatched:** none
-**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"; 2026-11-10: aceite real com 3 defeitos; user: "Ticket de correção (Recommended)"; T10 (SC-124) com R45-R47 e R16 emendado; 2026-11-10: reaceite: reinstalação sem nova aprovação (mesmo acesso); cena desenha; foco em main casava ApuraBolsa; T11 (SC-125) com R11/R12 emendados, sob a escolha "Ticket de correção"
+**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"; 2026-11-10: aceite real com 3 defeitos; user: "Ticket de correção (Recommended)"; T10 (SC-124) com R45-R47 e R16 emendado; 2026-11-10: reaceite: reinstalação sem nova aprovação (mesmo acesso); cena desenha; foco em main casava ApuraBolsa; T11 (SC-125) com R11/R12 emendados, sob a escolha "Ticket de correção"; 2026-11-10: reaceite manual do usuário: evento de agente ok; Abrir spec/tasks/Handoff com 'path must be relative'; Iniciar Picard sem terminal; T12 (SC-126) com R28/R30/R39 emendados e R48, sob a escolha "Ticket de correção"
 **Attempts:** gate-T7=1, gate-T10=1
-**Reports:** 2026-11-09: T1: ponte.py snapshot + 10 testes + dist; suíte 583 OK; commit 531e244; integrado em a3d315c; 2026-11-09: T2: manifesto, worker, protocol, 11 testes do plugin, test_orca_manifest; validate falha até a T3 criar src/panel.tsx (manifesto aponta para ele, fatiamento do Data); commit 359b579; integrado em 90b14a4; 2026-11-10: T3: painel de componentes + check + 7 testes; validate/check/test do plugin verdes (18 testes); commit f25debb; integrado em d83029b; 2026-11-10: T5: buildScene + 5 testes; no ramo de integração validate/check/test verdes (23 testes); commit 49837b5; integrado em ac10fc8; 2026-11-10: T4: atalhos (editor.open, openExternal, agent.launch com trava, recusa) e diário de bordo; plugin 32 testes verdes; commit 4bcc434; integrado em 7b0be63; 2026-11-10: T6: painel HTML ponte-cena (canvas, sem drawImage), 2 testes, manifesto com 2 painéis; integração: plugin 34 testes; commit 961a09f; integrado em deb24a6; 2026-11-10: T7 r1: dist/orca/ponte.py falha ao ler a tripulação (falta crew.json gerado; cai em miniyaml); suíte 592 OK; redespacho no mesmo worktree; 2026-11-10: T7: dist/orca + install_local --cli orca + crew.json (r2) + regressão por subprocesso; suíte 593 OK; integrado em 291fb1d; 2026-11-10: T8: DECISIONS F10-n, CREDITS, CHANGELOG 1.4.0, compatibilidade, README, CI condicional; check_decisions OK; aviso: cabeçalho do commit com 101 caracteres (aceito); integrado em 7392422; 2026-11-10: T9: aceite com 3 aprovados (instalação, worktree A, worktree B) e 3 reprovados (evento de agente, cena em branco, atalhos não clicáveis pela CLI); pendências de código: cena (entry html carrega .ts sem transpilar), issue via --current ignora o cwd, botões cortados em 237 px; integrado em 6b940d7; 2026-11-10: T10 r1: plugin 37/37, validate/check ok; suíte 1 falha: test_build exige src/scene.html removido; May change ampliado (tests/test_build.py); devolvido ao worker; 2026-11-10: T10 r2: test_build ajustado; suíte 596 OK; plugin 37/37; integrado em 2ef3055; falta reinstalar e refazer o aceite com o usuário
+**Reports:** 2026-11-09: T1: ponte.py snapshot + 10 testes + dist; suíte 583 OK; commit 531e244; integrado em a3d315c; 2026-11-09: T2: manifesto, worker, protocol, 11 testes do plugin, test_orca_manifest; validate falha até a T3 criar src/panel.tsx (manifesto aponta para ele, fatiamento do Data); commit 359b579; integrado em 90b14a4; 2026-11-10: T3: painel de componentes + check + 7 testes; validate/check/test do plugin verdes (18 testes); commit f25debb; integrado em d83029b; 2026-11-10: T5: buildScene + 5 testes; no ramo de integração validate/check/test verdes (23 testes); commit 49837b5; integrado em ac10fc8; 2026-11-10: T4: atalhos (editor.open, openExternal, agent.launch com trava, recusa) e diário de bordo; plugin 32 testes verdes; commit 4bcc434; integrado em 7b0be63; 2026-11-10: T6: painel HTML ponte-cena (canvas, sem drawImage), 2 testes, manifesto com 2 painéis; integração: plugin 34 testes; commit 961a09f; integrado em deb24a6; 2026-11-10: T7 r1: dist/orca/ponte.py falha ao ler a tripulação (falta crew.json gerado; cai em miniyaml); suíte 592 OK; redespacho no mesmo worktree; 2026-11-10: T7: dist/orca + install_local --cli orca + crew.json (r2) + regressão por subprocesso; suíte 593 OK; integrado em 291fb1d; 2026-11-10: T8: DECISIONS F10-n, CREDITS, CHANGELOG 1.4.0, compatibilidade, README, CI condicional; check_decisions OK; aviso: cabeçalho do commit com 101 caracteres (aceito); integrado em 7392422; 2026-11-10: T9: aceite com 3 aprovados (instalação, worktree A, worktree B) e 3 reprovados (evento de agente, cena em branco, atalhos não clicáveis pela CLI); pendências de código: cena (entry html carrega .ts sem transpilar), issue via --current ignora o cwd, botões cortados em 237 px; integrado em 6b940d7; 2026-11-10: T10 r1: plugin 37/37, validate/check ok; suíte 1 falha: test_build exige src/scene.html removido; May change ampliado (tests/test_build.py); devolvido ao worker; 2026-11-10: T10 r2: test_build ajustado; suíte 596 OK; plugin 37/37; integrado em 2ef3055; falta reinstalar e refazer o aceite com o usuário; 2026-11-10: T11: pickFocus (ramo + nome); plugin 38/38; suíte 596 OK; integrado em 80a0aaf; 2026-11-10: reaceite r2 (Picard, capturas): painel e cena seguem o worktree principal (modo 3, fase-10-ponte, 11/11, Data); cena desenha 12 estações; pendências: issue mostra 'Linear indisponível' num worktree sem vínculo (o CLI responde linkedLinearIssue null em 0,6 s: o exec do 'orca' falha dentro do worker, erro engolido sem log); tripulantes inativos empilhados no turbolift
 **Breaker:** closed

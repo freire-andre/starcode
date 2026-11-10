@@ -85,16 +85,16 @@ Discovery: `.specs/features/fase-10-ponte/context.md`. Issue: SC-17.
 
 ### Atalhos
 
-- **R28** - WHEN o usuário pressiona Abrir spec, Abrir tasks ou Abrir Handoff THEN the system SHALL abrir o arquivo correspondente da feature numa aba do editor da Orca (`editor.open`). O Handoff abre o arquivo onde está a seção `## Handoff`. O botão de um arquivo que não existe fica desabilitado.
+- **R28** - WHEN o usuário pressiona Abrir spec, Abrir tasks ou Abrir Handoff THEN the system SHALL abrir o arquivo correspondente da feature numa aba do editor da Orca (`editor.open` com o caminho relativo à raiz do worktree em foco, separado por `/`; emenda 2026-11-10: o reaceite mostrou "path must be relative and inside the workspace" com o caminho absoluto do snapshot). O Handoff abre o arquivo onde está a seção `## Handoff`. O botão de um arquivo que não existe fica desabilitado.
 - **R29** - WHEN o usuário pressiona Abrir a issue no Linear THEN the system SHALL abrir a URL da issue no navegador (`shell.openExternal`). Sem URL conhecida, o botão fica desabilitado.
-- **R30** - WHEN o usuário pressiona Iniciar o Picard THEN the system SHALL iniciar um agente no worktree em foco (`agent.launch`), com o agente do Picard pela precedência D17 e o prompt `/starcode:engajar` (Claude) ou o equivalente do CLI, e desabilitar o botão até o lançamento responder.
+- **R30** - WHEN o usuário pressiona Iniciar o Picard THEN the system SHALL iniciar um agente no worktree em foco (`agent.launch`), com o agente do Picard pela precedência D17 e o prompt `/starcode:engajar` (Claude) ou o equivalente do CLI, e desabilitar o botão até o lançamento responder; com sucesso, o painel mostra "Picard iniciado" e o worker registra o `terminalId` no log do plugin (emenda 2026-11-10: no reaceite a tela mudou e nenhum terminal novo ficou no worktree, sem erro visível).
 - **R31** - IF o agente do Picard não é um agente que a Orca lança THEN the system SHALL mostrar "Agente " seguido do nome do agente e " não pode ser iniciado pela Orca" (ex.: "Agente gemini não pode ser iniciado pela Orca") e não lançar nada.
 - **R32** - WHEN o usuário pressiona Atualizar agora THEN the system SHALL refazer o snapshot e a consulta ao Linear ignorando o cache.
 
 ### Cena da Ponte
 
 - **R38** - WHEN o painel `ponte-cena` abre THEN the system SHALL desenhar num canvas a ponte em pixel art gerada por código (sem arquivo de imagem), com uma estação fixa para cada um dos 12 tripulantes e uma área de engenharia para os workers, usando o mesmo estado `ponte.state` do painel de componentes.
-- **R39** - WHILE um tripulante tem `count > 0` the system SHALL desenhá-lo sentado na sua estação com a animação "trabalhando" (2 quadros alternados a cada 250 ms). Com `count = 0`, ele fica de pé na área do turbolift, parado.
+- **R39** - WHILE um tripulante tem `count > 0` the system SHALL desenhá-lo sentado na sua estação com a animação "trabalhando" (2 quadros alternados a cada 250 ms). Com `count = 0`, ele fica de pé na área do turbolift, parado, em posições distintas (sem dois tripulantes no mesmo ponto) e sem rótulo sobreposto (emenda 2026-11-10: no reaceite os 11 inativos ficaram empilhados).
 - **R40** - WHEN um agente da Orca está em `blocked` ou `waiting` THEN the system SHALL mostrar um balão "!" acima do personagem ligado a ele: o LaForge do worker cujo rótulo ou issue aparece no título do agente, ou, sem casamento, o tripulante ativo com `lastAt` mais recente (Picard se nenhum estiver ativo).
 - **R41** - WHEN há workers em `workers` THEN the system SHALL desenhar um LaForge na área de engenharia por worker, com o rótulo do ticket embaixo, até 6, e um marcador "+N" para os demais. Worker com agente `done` mostra "✓".
 - **R42** - IF o estado é `starcode: false`, `sem-worktree` ou `erro` sem estado bom anterior THEN the system SHALL desenhar a ponte vazia com a frase do estado (as mesmas de R12, R18 e R26) no centro.
@@ -106,6 +106,7 @@ Discovery: `.specs/features/fase-10-ponte/context.md`. Issue: SC-17.
 - **R45** - WHEN o painel `ponte-cena` carrega na Orca instalada THEN the system SHALL desenhar a cena: o `entry` do painel é o módulo `src/scene.ts` (a Orca transpila e gera a página), o script cria o canvas quando a página não tem um, e todo import em tempo de execução do código do painel usa um caminho que a Orca serve (emenda 2026-11-10: o aceite real mostrou a cena em branco porque `scene.html` carregava `./scene.ts` sem transpilar e importava `./scene-model` sem extensão).
 - **R46** - IF a issue do painel vem do Handoff (sem vínculo ou com o Linear falhando) THEN the system SHALL mostrar a nota ("Sem issue vinculada" ou "Linear indisponível") junto do ID, em vez de título e estado vazios (emenda 2026-11-10).
 - **R47** - WHEN o painel `ponte` tem 240 px de largura ou menos THEN the system SHALL quebrar os botões dos Atalhos em linhas, sem rolagem horizontal nem botão cortado (emenda 2026-11-10: com 237 px "Abrir tasks" e "Iniciar o Picard" ficavam cortados).
+- **R48** - IF uma chamada externa do worker falha (processo `orca` ou `python`, `editor.open`, `agent.launch`) THEN the system SHALL registrar no log do plugin (`console.error`) uma linha com a ação e a mensagem do erro, sem stack trace e sem segredo, e a issue sem vínculo confirmado pelo `orca worktree show` mostra "Sem issue vinculada", nunca "Linear indisponível" (emenda 2026-11-10: no reaceite a issue de um worktree sem vínculo mostrou "Linear indisponível" e o erro não apareceu em `orca plugin logs`).
 
 ### Build, instalação e registros
 
@@ -176,7 +177,7 @@ Manifesto: `id` `starcode-ponte`, sem `publisher`, `execution: trusted-worker`, 
 | Clique na barra de status (R20) | abrir o painel (impossível: a API não abre painel) · `sidebar.right.toggle` (mostra a barra lateral do painel) | adjusted - user: "sim" (2026-11-09, aprovação da spec ajustada) |
 | Cena viva (Pixel Agents / Habblaud) | segundo painel HTML com a ponte em pixel art gerada por código, na Fase 10 · deixar para outra fase · copiar código/sprites (licença dos sprites do Pixel Agents não declarada) | adjusted - user: "sim" (2026-11-09, depois do pedido "verifique se da pra colocar algo") |
 | Issue do worktree | ID, título e estado via `orca linear issue --current` com cache · só o ID | approved - user: "ID, título e estado (Recommended)" |
-| Defeitos do aceite real (cena em branco, issue errada, botões cortados; depois, worktree errado com ramos iguais em repositórios diferentes) | ticket de correção antes do Q · deixar para a rodada pós-Q · entregar com pendências | adjusted - user: "Ticket de correção (Recommended)" (2026-11-10, depois do aceite da T9) |
+| Defeitos do aceite real (cena em branco, issue errada, botões cortados; depois, worktree errado com ramos iguais em repositórios diferentes; depois, atalhos de arquivo e Picard no reaceite manual) | ticket de correção antes do Q · deixar para a rodada pós-Q · entregar com pendências | adjusted - user: "Ticket de correção (Recommended)" (2026-11-10, depois do aceite da T9) |
 
 Padrões da descoberta (não perguntados, valem com a aprovação desta spec): a leitura do estado fica em Python (`ponte.py`) e o worker só orquestra; feature exibida, worktree sem StarCode, workers, agente do Picard e idioma seguem a tabela Gray Areas do `context.md`.
 
