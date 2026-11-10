@@ -8,6 +8,14 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.4.0] - não lançada
+
+### Adicionado
+
+- Painel Ponte para a Orca: plugin em `dist/orca` (instalação local por `python tools/install_local.py --cli orca`, sem catálogo), com a Cena da Ponte em HTML e arte gerada por código; o `ponte.py` lê o estado (`crew.json`, `progress.json`) e a aprovação do plugin é sempre do usuário.
+- CI: passo `orca plugin validate src/orca --json`, que só roda se `orca` existir no PATH.
+- Créditos: Pixel Agents e Habblaud como inspiração da Cena da Ponte, sem código nem arte copiados.
+
 ## [1.3.0] - 2026-11-09
 
 ### Adicionado

@@ -89,6 +89,19 @@ O StarCode mantém dois arquivos pequenos para um painel visual, em `.starcode/l
 Numa statusline própria em Python, importe o arquivo e chame `segment(cwd)` (devolve `""` quando não há o que
 mostrar).
 
+## Painel Ponte (Orca)
+
+A Ponte é um painel da Orca com a tripulação e o progresso do StarCode. Ela exige Orca 1.4.248 ou mais nova e
+não depende do CLI de agente. Não há catálogo: instale do repositório.
+
+```
+python tools/build.py                           # gera dist/orca
+python tools/install_local.py --cli orca        # instala o plugin da Orca localmente
+```
+
+Depois, aprove o plugin na Orca (a aprovação é sempre sua; nenhum script aprova por você) e abra a barra
+lateral direita (`sidebar.right.toggle`) para ver a Ponte.
+
 ## Desenvolvimento
 
 ```
