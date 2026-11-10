@@ -62,8 +62,8 @@ Discovery: `.specs/features/fase-10-ponte/context.md`. Issue: SC-17.
 
 ### Worker do plugin
 
-- **R11** - WHEN o worker recebe `workspace.changed` com `context` não nulo THEN the system SHALL achar o caminho do worktree em foco cruzando `context.branch` com `workspace.list` e rodar o snapshot desse caminho.
-- **R12** - IF nenhum workspace de `workspace.list` casa com o ramo do foco, ou `context` é nulo THEN the system SHALL devolver ao painel o estado `sem-worktree` com a frase "Nenhum worktree em foco".
+- **R11** - WHEN o worker recebe `workspace.changed` com `context` não nulo THEN the system SHALL achar o caminho do worktree em foco em `workspace.list` pelo workspace com o mesmo ramo (`branch`, aceitando a forma `refs/heads/<ramo>`) e o mesmo nome (`name` igual a `context.displayName`); com um único workspace no ramo, ele vale mesmo sem casar o nome; e rodar o snapshot desse caminho (emenda 2026-11-10: o aceite real mostrou três worktrees de repositórios diferentes no ramo `main`, e o primeiro, de outro repositório, era escolhido).
+- **R12** - IF nenhum workspace de `workspace.list` casa com o ramo do foco, vários casam com o ramo e nenhum com o nome, ou `context` é nulo THEN the system SHALL devolver ao painel o estado `sem-worktree` com a frase "Nenhum worktree em foco".
 - **R13** - WHEN o worker recebe `agent.status.changed` THEN the system SHALL refazer o snapshot do worktree em foco e enviar o novo estado aos painéis abertos (`orca.panels.post('ponte.state', ...)`).
 - **R14** - WHEN chegam vários eventos em menos de 300 ms THEN the system SHALL rodar um único snapshot depois do último (debounce de 300 ms).
 - **R15** - IF o foco muda enquanto um snapshot está em andamento THEN the system SHALL descartar o resultado antigo e publicar só o do worktree em foco atual.
@@ -176,7 +176,7 @@ Manifesto: `id` `starcode-ponte`, sem `publisher`, `execution: trusted-worker`, 
 | Clique na barra de status (R20) | abrir o painel (impossível: a API não abre painel) · `sidebar.right.toggle` (mostra a barra lateral do painel) | adjusted - user: "sim" (2026-11-09, aprovação da spec ajustada) |
 | Cena viva (Pixel Agents / Habblaud) | segundo painel HTML com a ponte em pixel art gerada por código, na Fase 10 · deixar para outra fase · copiar código/sprites (licença dos sprites do Pixel Agents não declarada) | adjusted - user: "sim" (2026-11-09, depois do pedido "verifique se da pra colocar algo") |
 | Issue do worktree | ID, título e estado via `orca linear issue --current` com cache · só o ID | approved - user: "ID, título e estado (Recommended)" |
-| Defeitos do aceite real (cena em branco, issue errada, botões cortados) | ticket de correção antes do Q · deixar para a rodada pós-Q · entregar com pendências | adjusted - user: "Ticket de correção (Recommended)" (2026-11-10, depois do aceite da T9) |
+| Defeitos do aceite real (cena em branco, issue errada, botões cortados; depois, worktree errado com ramos iguais em repositórios diferentes) | ticket de correção antes do Q · deixar para a rodada pós-Q · entregar com pendências | adjusted - user: "Ticket de correção (Recommended)" (2026-11-10, depois do aceite da T9) |
 
 Padrões da descoberta (não perguntados, valem com a aprovação desta spec): a leitura do estado fica em Python (`ponte.py`) e o worker só orquestra; feature exibida, worktree sem StarCode, workers, agente do Picard e idioma seguem a tabela Gray Areas do `context.md`.
 

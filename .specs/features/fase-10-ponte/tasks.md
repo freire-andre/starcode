@@ -356,6 +356,36 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instal
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T11: Worktree em foco com ramos iguais (correção do reaceite)
+**Linear**: SC-125
+**Depends on**: T10
+**Requirements**: R11, R12
+**Tests**: plugin
+**Gate**: plugin
+
+#### TASK
+No reaceite depois da T10, com o foco em `F:/Projetos/StarCode` (ramo `main`), o painel e a cena mostraram "StarCode não configurado neste worktree": `workspace.list` tem três worktrees no ramo `main` (ApuraBolsa, OuveAI, StarCode, de repositórios diferentes) e o worker pega o primeiro só pelo ramo. Corrija com teste que falha antes:
+- Uma função única em `worker.ts` resolve o foco (hoje o casamento está duplicado em `focus()` e em `refresh()`): mesmo ramo (aceitando `refs/heads/<ramo>` dos dois lados) e `name === context.displayName`; um único workspace no ramo vale mesmo sem casar o nome; vários no ramo e nenhum com o nome → `sem-worktree` (R12).
+- Testes: `worker acha o worktree em foco pelo ramo` continua; novo `worker desempata ramo igual pelo nome` (três workspaces no `main`, o do meio com o `displayName` do contexto, espera o caminho dele); novo cenário em `worker sem worktree em foco` para ramo repetido sem nome casado.
+Atualize `dist/orca` com `python tools/build.py`.
+
+#### CONTEXT
+Spec: `.specs/features/fase-10-ponte/spec.md` (R11, R12). Checks: C11, C12, C48.
+Tipos da Orca (`orca plugin types src/orca`): `workspace.readContext` → `{ branch, displayName, terminals } | null`; `workspace.list` → `{ workspaces: { id, kind, name, path, branch, hostId }[] }`. `orca worktree list --json` mostra `displayName` "StarCode" para `F:\Projetos\StarCode` e `branch` `refs/heads/main`.
+
+#### BOUNDARIES
+May change: `src/orca/`, `dist/orca/`
+Do not touch: `scripts/`, `tools/`, `tests/`, `.github/`, `docs/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Nunca aprove, instale nem desinstale plugin.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ## Checks
 
 **Build**: `python tools/build.py --check`; `orca plugin validate src/orca --json`; `python scripts/check_decisions.py`
@@ -395,7 +425,7 @@ Proof: run unit | test_snapshot_somente_leitura ... ok
 **C11** - O worker acha o caminho em foco cruzando o ramo com `workspace.list` (R11)
 Proof: run plugin | ✔ worker acha o worktree em foco pelo ramo
 
-**C12** - Sem casamento de ramo ou com contexto nulo, o estado é `sem-worktree` (R12)
+**C12** - Sem casamento de ramo, com ramo repetido sem nome casado ou com contexto nulo, o estado é `sem-worktree` (R12)
 Proof: run plugin | ✔ worker sem worktree em foco
 
 **C13** - `agent.status.changed` gera um novo snapshot publicado em `ponte.state` (R13)
@@ -503,17 +533,20 @@ Proof: run plugin | ✔ painel mostra a nota da issue do Handoff
 **C47** - Com 240 px os botões dos Atalhos quebram em linhas, sem rolagem horizontal (R47)
 Proof: run plugin | ✔ painel estreito quebra os atalhos
 
+**C48** - Com vários workspaces no mesmo ramo, o worker escolhe o de `name` igual ao `displayName` do foco (R11)
+Proof: run plugin | ✔ worker desempata ramo igual pelo nome
+
 ## Handoff
 
 **Phase:** execute
 **Size:** GRANDE
 **Git mode:** 3
 **Next:** ramo de integração e primeiro ticket (T1)
-**Linear:** SC-17; SC-115..SC-124; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
+**Linear:** SC-17; SC-115..SC-125; doc https://linear.app/cifren/document/spec-fase-10-painel-orca-ponte-74f5047c87b7
 **Integration branch:** feature/fase-10-ponte
-**Last integrated:** T9 (7bd654d) via 6b940d7
-**Dispatched:** T10 · SC-124 · base 6281c1b · dispatch ctx_71fb33cd0f0e · model claude-sonnet-5-5
-**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"; 2026-11-10: aceite real com 3 defeitos; user: "Ticket de correção (Recommended)"; T10 (SC-124) com R45-R47 e R16 emendado
-**Attempts:** gate-T7=1
-**Reports:** 2026-11-09: T1: ponte.py snapshot + 10 testes + dist; suíte 583 OK; commit 531e244; integrado em a3d315c; 2026-11-09: T2: manifesto, worker, protocol, 11 testes do plugin, test_orca_manifest; validate falha até a T3 criar src/panel.tsx (manifesto aponta para ele, fatiamento do Data); commit 359b579; integrado em 90b14a4; 2026-11-10: T3: painel de componentes + check + 7 testes; validate/check/test do plugin verdes (18 testes); commit f25debb; integrado em d83029b; 2026-11-10: T5: buildScene + 5 testes; no ramo de integração validate/check/test verdes (23 testes); commit 49837b5; integrado em ac10fc8; 2026-11-10: T4: atalhos (editor.open, openExternal, agent.launch com trava, recusa) e diário de bordo; plugin 32 testes verdes; commit 4bcc434; integrado em 7b0be63; 2026-11-10: T6: painel HTML ponte-cena (canvas, sem drawImage), 2 testes, manifesto com 2 painéis; integração: plugin 34 testes; commit 961a09f; integrado em deb24a6; 2026-11-10: T7 r1: dist/orca/ponte.py falha ao ler a tripulação (falta crew.json gerado; cai em miniyaml); suíte 592 OK; redespacho no mesmo worktree; 2026-11-10: T7: dist/orca + install_local --cli orca + crew.json (r2) + regressão por subprocesso; suíte 593 OK; integrado em 291fb1d; 2026-11-10: T8: DECISIONS F10-n, CREDITS, CHANGELOG 1.4.0, compatibilidade, README, CI condicional; check_decisions OK; aviso: cabeçalho do commit com 101 caracteres (aceito); integrado em 7392422; 2026-11-10: T9: aceite com 3 aprovados (instalação, worktree A, worktree B) e 3 reprovados (evento de agente, cena em branco, atalhos não clicáveis pela CLI); pendências de código: cena (entry html carrega .ts sem transpilar), issue via --current ignora o cwd, botões cortados em 237 px; integrado em 6b940d7
+**Last integrated:** T10 (8ba401c, a18ab7b) via 2ef3055
+**Dispatched:** none
+**Settled:** 2026-11-09: spec aprovada: user "sim"; 2026-11-09: pedido do usuário: analisar Pixel Agents/Habblaud; análise em analise-referencias.md; spec volta a Draft com R38-R44; 2026-11-09: spec ajustada e tasks aprovadas e publicadas: user "sim"; 2026-11-10: aceite real com 3 defeitos; user: "Ticket de correção (Recommended)"; T10 (SC-124) com R45-R47 e R16 emendado; 2026-11-10: reaceite: reinstalação sem nova aprovação (mesmo acesso); cena desenha; foco em main casava ApuraBolsa; T11 (SC-125) com R11/R12 emendados, sob a escolha "Ticket de correção"
+**Attempts:** gate-T7=1, gate-T10=1
+**Reports:** 2026-11-09: T1: ponte.py snapshot + 10 testes + dist; suíte 583 OK; commit 531e244; integrado em a3d315c; 2026-11-09: T2: manifesto, worker, protocol, 11 testes do plugin, test_orca_manifest; validate falha até a T3 criar src/panel.tsx (manifesto aponta para ele, fatiamento do Data); commit 359b579; integrado em 90b14a4; 2026-11-10: T3: painel de componentes + check + 7 testes; validate/check/test do plugin verdes (18 testes); commit f25debb; integrado em d83029b; 2026-11-10: T5: buildScene + 5 testes; no ramo de integração validate/check/test verdes (23 testes); commit 49837b5; integrado em ac10fc8; 2026-11-10: T4: atalhos (editor.open, openExternal, agent.launch com trava, recusa) e diário de bordo; plugin 32 testes verdes; commit 4bcc434; integrado em 7b0be63; 2026-11-10: T6: painel HTML ponte-cena (canvas, sem drawImage), 2 testes, manifesto com 2 painéis; integração: plugin 34 testes; commit 961a09f; integrado em deb24a6; 2026-11-10: T7 r1: dist/orca/ponte.py falha ao ler a tripulação (falta crew.json gerado; cai em miniyaml); suíte 592 OK; redespacho no mesmo worktree; 2026-11-10: T7: dist/orca + install_local --cli orca + crew.json (r2) + regressão por subprocesso; suíte 593 OK; integrado em 291fb1d; 2026-11-10: T8: DECISIONS F10-n, CREDITS, CHANGELOG 1.4.0, compatibilidade, README, CI condicional; check_decisions OK; aviso: cabeçalho do commit com 101 caracteres (aceito); integrado em 7392422; 2026-11-10: T9: aceite com 3 aprovados (instalação, worktree A, worktree B) e 3 reprovados (evento de agente, cena em branco, atalhos não clicáveis pela CLI); pendências de código: cena (entry html carrega .ts sem transpilar), issue via --current ignora o cwd, botões cortados em 237 px; integrado em 6b940d7; 2026-11-10: T10 r1: plugin 37/37, validate/check ok; suíte 1 falha: test_build exige src/scene.html removido; May change ampliado (tests/test_build.py); devolvido ao worker; 2026-11-10: T10 r2: test_build ajustado; suíte 596 OK; plugin 37/37; integrado em 2ef3055; falta reinstalar e refazer o aceite com o usuário
 **Breaker:** closed
