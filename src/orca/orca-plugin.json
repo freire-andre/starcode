@@ -18,6 +18,13 @@
         "icon": "rocket",
         "entry": "src/panel.tsx",
         "ui": "components"
+      },
+      {
+        "id": "ponte-cena",
+        "title": "Cena da Ponte",
+        "icon": "star",
+        "entry": "src/scene.html",
+        "ui": "html"
       }
     ],
     "events": [

@@ -25,6 +25,8 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(self.m["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
         panels = {p["id"]: p for p in self.m["contributes"]["panels"]}
         self.assertEqual(panels["ponte"]["ui"], "components")
+        self.assertEqual(panels["ponte-cena"]["ui"], "html")
+        self.assertEqual(panels["ponte-cena"]["entry"], "src/scene.html")
         events = sorted(e["on"] for e in self.m["contributes"]["events"])
         self.assertEqual(events, ["agent.status.changed", "workspace.changed"])
 
