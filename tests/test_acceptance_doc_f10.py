@@ -43,7 +43,7 @@ class AcceptanceDocF10Tests(unittest.TestCase):
         self.assertIn("1.3.0", parts["Instalação"])
 
     def test_fase10_limitacoes_registradas(self):
-        """R49: as duas limitações da Orca ficam em DECISIONS, compatibilidade e aceite."""
+        # R49: as duas limitações da Orca ficam em DECISIONS, compatibilidade e aceite.
         docs = {
             "DECISIONS.md": (ROOT / "DECISIONS.md").read_text(encoding="utf-8"),
             "docs/compatibilidade.md": (ROOT / "docs" / "compatibilidade.md").read_text(encoding="utf-8"),
