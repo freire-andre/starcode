@@ -11,6 +11,7 @@ const loadingAtom = atom<boolean>('ponte.loading', true)
 const failAtom = atom<string | null>('ponte.fail', null)
 const launchingAtom = atom<boolean>('ponte.launching', false)
 const shortcutErrAtom = atom<string | null>('ponte.shortcutErr', null)
+const shortcutOkAtom = atom<string | null>('ponte.shortcutOk', null)
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -26,9 +27,11 @@ function openIssue(url: string): void {
 
 function launchPicard(): void {
   set(shortcutErrAtom, null)
+  set(shortcutOkAtom, null)
   set(launchingAtom, true)
   plugin
     .request('ponte.launchPicard', {})
+    .then(() => set(shortcutOkAtom, 'Picard iniciado'))
     .catch((e: unknown) => set(shortcutErrAtom, msg(e)))
     .finally(() => set(launchingAtom, false))
 }
@@ -185,6 +188,7 @@ function Shortcuts(props: { s: PonteState | null }) {
   const files = s?.snapshot?.feature?.files
   const launching = read(launchingAtom)
   const err = read(shortcutErrAtom)
+  const ok = read(shortcutOkAtom)
   const url = s?.issue?.url ?? null
   return (
     <Stack gap="xs">
@@ -198,6 +202,7 @@ function Shortcuts(props: { s: PonteState | null }) {
         <Button size="sm" disabled={launching || !s?.snapshot?.starcode} onPress={launchPicard}>Iniciar Picard</Button>
       </Row>
       {err ? <Text tone="danger" size="sm">{err}</Text> : null}
+      {ok && !err ? <Text size="sm">{ok}</Text> : null}
     </Stack>
   )
 }

@@ -165,6 +165,7 @@ test('atalho inicia o Picard uma vez', async () => {
   await p.settled()
   assert.equal(n, 1)
   assert.equal(p.find(alvo)!.disabled, false)
+  assert.ok(text(p).includes('Picard iniciado'))
 })
 
 test('atalho recusa agente que a Orca não lança', async () => {

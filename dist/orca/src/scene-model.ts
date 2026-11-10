@@ -47,7 +47,7 @@ export const FRAME_MS = 250
 export const MSG_SEM_WORKTREE = 'Nenhum worktree em foco'
 export const MSG_SEM_STARCODE = 'StarCode não configurado neste worktree'
 
-const TURBOLIFT: Retangulo = { x: 2, y: 28, largura: 8, altura: 10 }
+const TURBOLIFT: Retangulo = { x: 2, y: 27, largura: 12, altura: 11 }
 const ENGENHARIA: Retangulo = { x: 42, y: 2, largura: 20, altura: 30 }
 
 const CORES: Record<Divisao, string> = {
@@ -74,6 +74,14 @@ const TRIPULACAO: Membro[] = [
   { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 32, y: 8 },
   { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 10, y: 24 },
 ]
+
+/** Vaga fixa do tripulante inativo no turbolift: grade de 2 colunas, sem rótulos sobrepostos. */
+function vagaTurbolift(slot: number): Celula {
+  return {
+    x: TURBOLIFT.x + 3 + (slot % 2) * 6,
+    y: TURBOLIFT.y + 3 + Math.floor(slot / 2) * 1.5,
+  }
+}
 
 function casaWorker(agente: PonteAgent, worker: PonteWorker): boolean {
   const titulo = (agente.title ?? '').toLowerCase()
@@ -118,7 +126,6 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
   const snap = estado.snapshot
   const quadro = (Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
   const porMembro = new Map(snap.crew.map(c => [c.member, c]))
-  const turboliftX = TURBOLIFT.x + 2
 
   // Workers da engenharia: até 6, grade de 3 colunas.
   const visiveis = snap.workers.slice(0, MAX_WORKERS)
@@ -155,7 +162,7 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     balaoMembros.add(alvo)
   }
 
-  const personagens: Personagem[] = TRIPULACAO.map(m => {
+  const personagens: Personagem[] = TRIPULACAO.map((m, slot) => {
     const c = porMembro.get(m.id)
     const ativo = (c?.count ?? 0) > 0
     return {
@@ -166,8 +173,8 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
       cor: CORES[m.divisao],
       pose: ativo ? 'sentado' : 'de-pe',
       quadro: ativo ? quadro : 0,
-      x: ativo ? m.x : turboliftX,
-      y: ativo ? m.y : TURBOLIFT.y + 4,
+      x: ativo ? m.x : vagaTurbolift(slot).x,
+      y: ativo ? m.y : vagaTurbolift(slot).y,
       balao: balaoMembros.has(m.id),
     }
   })
