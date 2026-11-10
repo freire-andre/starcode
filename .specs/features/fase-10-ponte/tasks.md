@@ -344,7 +344,7 @@ Teste real feito pelo Picard: `orca linear issue SC-123 --json` → ok, título 
 Referências da API: `entry` de painel aceita `.ts` e, num painel `html`, a Orca gera a página em volta (manifesto, `engines.orca >=1.4.246`).
 
 #### BOUNDARIES
-May change: `src/orca/`, `dist/orca/`, `tests/test_orca_manifest.py`, `DECISIONS.md`
+May change: `src/orca/`, `dist/orca/`, `tests/test_orca_manifest.py`, `DECISIONS.md`, `tests/test_build.py`
 Do not touch: `scripts/`, `tools/`, `.github/`, `docs/aceite/`
 
 #### RULES
