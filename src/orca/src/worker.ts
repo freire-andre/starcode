@@ -118,6 +118,19 @@ function statusText(snap: PonteSnapshot): string {
   return `🖖 StarCode${mode}`
 }
 
+type FocusCtx = { branch: string; displayName?: string | null }
+type FocusWs = { id: string; kind: string; name?: string; path: string; branch: string | null }
+
+const shortRef = (b: string | null | undefined) => (b ?? '').replace(/^refs\/heads\//, '')
+
+// Resolve o worktree em foco: mesmo ramo; com vários no ramo, o de name igual ao displayName.
+function pickFocus(ctx: FocusCtx, workspaces: FocusWs[]): { id: string; path: string } | null {
+  const branch = shortRef(ctx.branch)
+  const same = workspaces.filter((w) => w.kind === 'worktree' && shortRef(w.branch) === branch)
+  const w = same.length === 1 ? same[0] : same.find((x) => x.name === ctx.displayName)
+  return w ? { id: w.id, path: w.path } : null
+}
+
 export default function activate(orca: OrcaWorkerApi): void {
   const issueCache = new Map<string, { at: number; result: IssueResult }>()
   let seq = 0
@@ -154,13 +167,10 @@ export default function activate(orca: OrcaWorkerApi): void {
   }
 
   async function focus(): Promise<{ id: string; path: string } | null> {
-    const ctx = (await orca.host.call('workspace.readContext', {})) as { branch: string } | null
+    const ctx = (await orca.host.call('workspace.readContext', {})) as FocusCtx | null
     if (!ctx) return null
-    const list = (await orca.host.call('workspace.list', {})) as {
-      workspaces: { id: string; kind: string; path: string; branch: string | null }[]
-    }
-    const w = list.workspaces.find((x) => x.kind === 'worktree' && x.branch === ctx.branch)
-    return w ? { id: w.id, path: w.path } : null
+    const list = (await orca.host.call('workspace.list', {})) as { workspaces: FocusWs[] }
+    return pickFocus(ctx, list.workspaces)
   }
 
   async function listAgents(): Promise<PonteAgent[]> {
@@ -207,14 +217,8 @@ export default function activate(orca: OrcaWorkerApi): void {
     const base = { updatedAt: now }
     let state: PonteState
     try {
-      const ctx = (await orca.host.call('workspace.readContext', {})) as { branch: string } | null
-      let path: string | null = null
-      if (ctx) {
-        const list = (await orca.host.call('workspace.list', {})) as {
-          workspaces: { kind: string; path: string; branch: string | null }[]
-        }
-        path = list.workspaces.find((w) => w.kind === 'worktree' && w.branch === ctx.branch)?.path ?? null
-      }
+      const where = await focus()
+      const path = where?.path ?? null
       if (!path) {
         state = {
           status: 'sem-worktree', stale: false, snapshot: null, issue: null,

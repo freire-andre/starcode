@@ -115,6 +115,18 @@ test('worker acha o worktree em foco pelo ramo', async () => {
   await worker.deactivate()
 })
 
+test('worker desempata ramo igual pelo nome', async () => {
+  const fake = install()
+  const mk = (n: string, p: string) => ({ id: `ws-${n}`, kind: 'worktree', name: n, path: p, branch: 'refs/heads/main', hostId: null })
+  const ws = [mk('ApuraBolsa', 'F:/Projetos/ApuraBolsa'), mk('StarCode', 'F:/Projetos/StarCode'), mk('OuveAI', 'F:/Projetos/OuveAI')]
+  const worker = await mount(hostFor({ branch: 'main', displayName: 'StarCode', terminals: [] }, ws))
+  const state: any = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'ok')
+  const args = fake.snaps()[0].args
+  assert.equal(args[args.indexOf('--path') + 1], 'F:/Projetos/StarCode')
+  await worker.deactivate()
+})
+
 test('worker sem worktree em foco', async () => {
   const fake = install()
   let worker = await mount(hostFor(null))
@@ -123,6 +135,12 @@ test('worker sem worktree em foco', async () => {
   assert.equal(state.snapshot, null)
   await worker.deactivate()
   worker = await mount(hostFor({ branch: 'outro', displayName: 'x', terminals: [] }))
+  state = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'sem-worktree')
+  assert.equal(fake.snaps().length, 0)
+  await worker.deactivate()
+  const mk = (n: string) => ({ id: `ws-${n}`, kind: 'worktree', name: n, path: `C:/wt/${n}`, branch: 'main', hostId: null })
+  worker = await mount(hostFor({ branch: 'refs/heads/main', displayName: 'Outro', terminals: [] }, [mk('x'), mk('y')]))
   state = await worker.request('ponte.state', {})
   assert.equal(state.status, 'sem-worktree')
   assert.equal(fake.snaps().length, 0)
