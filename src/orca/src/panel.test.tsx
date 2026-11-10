@@ -53,6 +53,9 @@ test('painel pede o estado ao abrir', async () => {
     assert.ok(t.includes(s), s)
   }
   assert.ok(p.find({ type: 'RelativeTime' } as never))
+  const pedidos = h.callsOf('plugin.request').filter((c: any) => c.name === 'ponte.state')
+  assert.equal(pedidos.length, 1)
+  assert.equal((pedidos[0] as any).timeoutMs, 15000)
 })
 
 test('painel redesenha com ponte.state', async () => {
@@ -92,7 +95,10 @@ test('painel sem StarCode', async () => {
   const p = await mount(panel, { host: host(estado({ snapshot: { ...dados, starcode: false } })) })
   const t = text(p)
   assert.ok(t.includes('StarCode não configurado neste worktree') && t.includes('Atualizar agora'))
-  assert.ok(!t.includes('Tripulação'))
+  for (const secao of ['Tripulação', 'Modo Git', 'Issue', 'Fase SDD', 'Workers da Frota']) {
+    assert.ok(!t.includes(secao), secao)
+  }
+  assert.equal(p.find({ type: 'Button', text: 'Atualizar agora' })!.disabled, false)
   const q = await mount(panel, { host: host(estado({ status: 'sem-worktree', snapshot: null })) })
   assert.ok(text(q).includes('Nenhum worktree em foco'))
 })

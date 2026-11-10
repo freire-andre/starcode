@@ -42,7 +42,9 @@ class Snapshot:
         self.errors: list[dict[str, str]] = []
 
     def error(self, source: str, message: str) -> None:
-        self.errors.append({"source": source, "message": message})
+        item = {"source": source, "message": message}
+        if item not in self.errors:
+            self.errors.append(item)
 
     def read_text(self, path: Path, source: str) -> str | None:
         """Text of a source, or None with an `errors` item (unreadable, too big)."""
@@ -127,7 +129,7 @@ def build_git_mode(snap: Snapshot) -> dict | None:
 
 
 def linear_ids(value: str) -> list[str]:
-    return LINEAR_TOKEN_RE.findall(value or "")
+    return list(dict.fromkeys(LINEAR_TOKEN_RE.findall(value or "")))
 
 
 def parse_dispatched(value: str) -> list[dict]:
@@ -145,18 +147,16 @@ def parse_dispatched(value: str) -> list[dict]:
     return workers
 
 
-def handoff_of(fdir: Path) -> tuple[Path | None, dict[str, str]]:
-    """(file that holds `## Handoff`, its fields); read-only, tolerant of unreadable files."""
+def handoff_of(snap: Snapshot, fdir: Path) -> tuple[Path | None, dict[str, str]]:
+    """(file that holds `## Handoff`, its fields); read-only; a file too big or unreadable is an `errors` item."""
     for art in handoff.ARTIFACTS:
         f = fdir / art
         if not f.is_file():
             continue
-        try:
-            if f.stat().st_size > MAX_BYTES:
-                continue
-            lines = f.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeDecodeError):
+        text = snap.read_text(f, f".specs/features/{fdir.name}/{art}")
+        if text is None:
             continue
+        lines = text.splitlines()
         bounds = handoff.section_bounds(lines)
         if bounds:
             return f, handoff.read_fields(lines, bounds)
@@ -170,7 +170,7 @@ def choose_feature(snap: Snapshot) -> tuple[Path, Path | None, dict[str, str]] |
         return None
     candidates = []
     for fdir in sorted(p for p in base.iterdir() if p.is_dir()):
-        hf, fields = handoff_of(fdir)
+        hf, fields = handoff_of(snap, fdir)
         ref = hf or next((fdir / a for a in handoff.ARTIFACTS if (fdir / a).is_file()), None)
         if ref is None:
             continue
