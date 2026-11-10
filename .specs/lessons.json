@@ -46,6 +46,66 @@
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
       "updated": "2026-11-09T18:54:53Z"
+    },
+    {
+      "id": "L4",
+      "text": "Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-10-ponte"
+      ],
+      "sources": [
+        "verification.md: achado R8 (scripts/ponte.py handoff_of)"
+      ],
+      "scope": "",
+      "created": "2026-11-10T14:38:54Z",
+      "updated": "2026-11-10T14:38:54Z"
+    },
+    {
+      "id": "L5",
+      "text": "Faça o teste afirmar a chamada e o valor exigidos (método, timeout) e a ausência do que a palavra 'só' exclui, porque os testes conferiam só a presença das seções e passariam com o requisito falso.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-10-ponte"
+      ],
+      "sources": [
+        "verification.md: achado C8/C21/C26"
+      ],
+      "scope": "",
+      "created": "2026-11-10T14:38:54Z",
+      "updated": "2026-11-10T14:38:54Z"
+    },
+    {
+      "id": "L6",
+      "text": "Defina e teste a semântica de duplicatas ao extrair IDs de texto livre, porque linear_ids devolvia o mesmo ID repetido e o painel podia mostrá-lo duas vezes.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "fase-10-ponte"
+      ],
+      "sources": [
+        "verification.md: achado linear_ids"
+      ],
+      "scope": "",
+      "created": "2026-11-10T14:38:54Z",
+      "updated": "2026-11-10T14:38:54Z"
+    },
+    {
+      "id": "L7",
+      "text": "Não use docstring em teste Python citado por uma check, porque o unittest -v imprime a docstring e separa o nome do '... ok' que a prova procura.",
+      "signal": "gate_fail",
+      "status": "candidate",
+      "features": [
+        "fase-10-ponte"
+      ],
+      "sources": [
+        "proofs.md r1: C51 (tests/test_acceptance_doc_f10.py)"
+      ],
+      "scope": "tests",
+      "created": "2026-11-10T14:38:54Z",
+      "updated": "2026-11-10T14:38:54Z"
     }
   ]
 }
