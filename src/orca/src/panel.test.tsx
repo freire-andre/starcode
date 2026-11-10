@@ -191,3 +191,20 @@ test('diário guarda 20 entradas e o painel mostra 10', async () => {
   const vazio = await mount(panel, { host: host(base) })
   assert.ok(text(vazio).includes('Sem registros'))
 })
+
+test('painel mostra a nota da issue do Handoff', async () => {
+  const doHandoff = { id: 'SC-17', title: null, state: null, url: null }
+  const p = await mount(panel, { host: host(estado({ issue: doHandoff, issueNote: 'Sem issue vinculada' })) })
+  const t = text(p)
+  assert.ok(t.includes('SC-17') && t.includes('Sem issue vinculada'))
+  const q = await mount(panel, { host: host(estado({ issue: doHandoff, issueNote: 'Linear indisponível' })) })
+  assert.ok(text(q).includes('Linear indisponível'))
+  // com título e estado, a nota não aparece
+  assert.ok(!text(await mount(panel, { host: host(base) })).includes('Linear indisponível'))
+})
+
+test('painel estreito quebra os atalhos', async () => {
+  const p = await mount(panel, { host: host(base) })
+  const linhas = (JSON.stringify(p.tree()).match(/"wrap":true/g) ?? []).length
+  assert.ok(linhas >= 2, 'as linhas de botões dos Atalhos devem quebrar')
+})

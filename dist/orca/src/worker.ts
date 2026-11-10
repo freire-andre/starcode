@@ -86,8 +86,13 @@ async function runSnapshot(path: string): Promise<PonteSnapshot> {
 type IssueResult = { issue: PonteIssue | null; note: string | null }
 
 async function queryIssue(path: string): Promise<IssueResult> {
+  const exec = getExec()
   try {
-    const out = await getExec()('orca', ['linear', 'issue', '--current', '--json'], { cwd: path, timeout: TIMEOUT_MS })
+    // O worker não é o terminal do worktree: `--current` não serve. Lê o vínculo do worktree e consulta a issue pelo ID.
+    const wt = await exec('orca', ['worktree', 'show', '--worktree', `path:${path}`, '--json'], { timeout: TIMEOUT_MS })
+    const linked = JSON.parse(wt.stdout)?.result?.worktree?.linkedLinearIssue
+    if (typeof linked !== 'string' || !linked.trim()) return { issue: null, note: 'Sem issue vinculada' }
+    const out = await exec('orca', ['linear', 'issue', linked.trim(), '--json'], { timeout: TIMEOUT_MS })
     const json = JSON.parse(out.stdout)
     const issue = json?.result?.issue
     if (json?.ok && issue?.identifier) {
@@ -101,7 +106,7 @@ async function queryIssue(path: string): Promise<IssueResult> {
         note: null,
       }
     }
-    return { issue: null, note: 'Sem issue vinculada' }
+    return { issue: null, note: 'Linear indisponível' }
   } catch {
     return { issue: null, note: 'Linear indisponível' }
   }

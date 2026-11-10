@@ -23,7 +23,7 @@
         "id": "ponte-cena",
         "title": "Cena da Ponte",
         "icon": "star",
-        "entry": "src/scene.html",
+        "entry": "src/scene.ts",
         "ui": "html"
       }
     ],

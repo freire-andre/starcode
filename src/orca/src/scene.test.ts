@@ -1,9 +1,9 @@
 // Testes da pintura da cena (contexto de canvas falso que grava as chamadas).
 import { assert, test } from 'orca/testing'
-import { buildScene } from './scene-model'
-import { paint } from './scene'
+import { buildScene } from './scene-model.ts'
+import { obterCanvas, paint } from './scene.ts'
 import type { Pincel } from './scene'
-import type { PonteState } from './protocol'
+import type { PonteState } from './protocol.ts'
 
 const MEMBROS = ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy', 'q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan']
 
@@ -57,4 +57,30 @@ test('pintura da cena vazia mostra a mensagem central', () => {
   const g = gravador()
   paint(g.ctx, cena, 5)
   assert.ok(g.textos.includes('StarCode não configurado neste worktree'))
+})
+
+test('cena cria o canvas e importa com caminho servido', async () => {
+  // 1) sem #cena na página, o script cria o canvas e o põe no corpo
+  const filhos: unknown[] = []
+  const criar = (tag: string) => {
+    const el: any = { tag, style: {}, filhos: [] as unknown[], appendChild(n: unknown) { el.filhos.push(n); return n } }
+    return el
+  }
+  const doc: any = { getElementById: () => null, createElement: criar, body: { appendChild: (n: unknown) => filhos.push(n) } }
+  const canvas: any = obterCanvas(doc)
+  assert.equal(canvas.tag, 'canvas')
+  assert.equal(canvas.id, 'cena')
+  assert.ok(filhos.length === 1)
+  // com #cena existente, reaproveita
+  const ja: any = { tag: 'canvas' }
+  assert.equal(obterCanvas({ ...doc, getElementById: () => ja }), ja)
+  // 2) nenhum import relativo do painel fica sem extensão
+  const { readFileSync } = await import('node:fs')
+  const { fileURLToPath } = await import('node:url')
+  for (const arq of ['scene.ts', 'scene-model.ts', 'panel.tsx', 'worker.ts', 'protocol.ts']) {
+    const src = readFileSync(fileURLToPath(new URL(`./${arq}`, import.meta.url)), 'utf8')
+    for (const m of src.matchAll(/^\s*(?:import|export)\b(?!\s+type\b)[^'"\n]*from\s+['"](\.[^'"]*)['"]/gm)) {
+      assert.ok(/\.(ts|tsx|js|json)$/.test(m[1]), `${arq}: import sem extensão ${m[1]}`)
+    }
+  }
 })

@@ -135,6 +135,7 @@ function Body(props: { s: PonteState }) {
               { label: 'ID', value: s.issue.id },
               { label: 'Título', value: s.issue.title ?? '—' },
               { label: 'Estado', value: s.issue.state ?? '—' },
+              ...(s.issueNote && (!s.issue.title || !s.issue.state) ? [{ label: 'Nota', value: s.issueNote }] : []),
             ]}
           />
         ) : (
@@ -187,12 +188,12 @@ function Shortcuts(props: { s: PonteState | null }) {
   const url = s?.issue?.url ?? null
   return (
     <Stack gap="xs">
-      <Row gap="sm" align="center">
+      <Row gap="sm" align="center" wrap>
         <Button size="sm" disabled={!files?.spec} onPress={() => openFile('spec')}>Abrir spec</Button>
         <Button size="sm" disabled={!files?.tasks} onPress={() => openFile('tasks')}>Abrir tasks</Button>
         <Button size="sm" disabled={!files?.handoff} onPress={() => openFile('handoff')}>Abrir Handoff</Button>
       </Row>
-      <Row gap="sm" align="center">
+      <Row gap="sm" align="center" wrap>
         <Button size="sm" disabled={!url} onPress={() => (url ? openIssue(url) : undefined)}>Abrir issue no Linear</Button>
         <Button size="sm" disabled={launching || !s?.snapshot?.starcode} onPress={launchPicard}>Iniciar Picard</Button>
       </Row>

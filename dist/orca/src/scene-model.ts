@@ -1,5 +1,5 @@
 // Modelo da cena da Ponte: só dados, sem DOM e sem host. A pintura (canvas) lê este resultado.
-import type { PonteAgent, PonteState, PonteWorker } from './protocol'
+import type { PonteAgent, PonteState, PonteWorker } from './protocol.ts'
 
 export type Divisao = 'comando' | 'operacoes' | 'ciencias'
 export type Pose = 'sentado' | 'de-pe'

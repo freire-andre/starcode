@@ -718,3 +718,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** os workers rodam o plugin só em teste (`orca plugin test/check`); a instalação real e a aprovação na Orca são do usuário (T9).
 - **Motivo:** liga o F10-4 ao fluxo de trabalho: quem aprova é quem é dono do ambiente.
 - **Por que não é bug:** `tests/test_ci_workflow.py::test_ci_valida_plugin_orca_condicional` só valida o plugin, sem instalar.
+
+### F10-8: cena com `entry` `.ts` e issue pelo vínculo do worktree (T10, aceite real)
+- **Problema:** no plugin instalado a cena saiu em branco (o `scene.html` carregava `./scene.ts` sem transpilar e importava `./scene-model` sem extensão) e `orca linear issue --current` respondia `linear_no_linked_issue` no worker, que não é o terminal do worktree.
+- **Decisão:** o painel `ponte-cena` usa `entry` `src/scene.ts` (a Orca transpila e gera a página), o script cria o canvas quando falta e os imports usam `.ts`; o worker lê `linkedLinearIssue` de `orca worktree show --worktree path:<caminho> --json` e consulta `orca linear issue <ID> --json`, com a nota do Handoff quando não há vínculo.
+- **Motivo:** o aceite real (T9) mostrou que só o `entry` `.ts` é transpilado e que `--current` olha o terminal que chama, não o `cwd` do worker.
+- **Por que não é bug:** `tests/test_orca_manifest.py` confere o `entry` `src/scene.ts`; os testes `cena cria o canvas e importa com caminho servido` e `worker consulta a issue vinculada e guarda em cache por 60 s` cobrem os dois casos.
