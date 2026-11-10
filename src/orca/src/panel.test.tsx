@@ -1,5 +1,5 @@
 // Testes do painel da Ponte, com o worker simulado por `mockHost`.
-import { assert, mockHost, mount, test } from 'orca/testing'
+import { assert, hostError, mockHost, mount, test } from 'orca/testing'
 import * as panel from './panel'
 import type { PonteSnapshot, PonteState } from './protocol'
 
@@ -103,4 +103,91 @@ test('painel com seção indisponível', async () => {
   const t = text(p)
   assert.ok(t.includes('indisponível') && t.includes('tripulação ilegível (OSError)'))
   assert.ok(t.includes('Fase SDD') && t.includes('Workers da Frota'))
+})
+
+const ARQ = { context: null, spec: 'a/spec.md', tasks: null, handoff: 'a/handoff.md' }
+const comArquivos = () =>
+  estado({
+    snapshot: { ...dados, feature: { ...dados.feature!, files: ARQ } },
+    issue: { id: 'SC-118', title: 'T4', state: 'In Progress', url: 'https://linear.app/x/SC-118' },
+  })
+
+test('atalho abre spec tasks e handoff', async () => {
+  const pedidos: unknown[] = []
+  const h = mockHost({
+    requests: {
+      'ponte.state': comArquivos,
+      'ponte.open': (i) => {
+        pedidos.push(i)
+        return { opened: true }
+      },
+    },
+  })
+  const p = await mount(panel, { host: h })
+  assert.equal(p.find({ type: 'Button', text: 'Abrir spec' })!.disabled, false)
+  assert.equal(p.find({ type: 'Button', text: 'Abrir tasks' })!.disabled, true)
+  assert.equal(p.find({ type: 'Button', text: 'Abrir Handoff' })!.disabled, false)
+  await p.press({ type: 'Button', text: 'Abrir spec' })
+  await p.press({ type: 'Button', text: 'Abrir Handoff' })
+  assert.deepEqual(pedidos, [{ file: 'spec' }, { file: 'handoff' }])
+})
+
+test('atalho abre a issue no navegador', async () => {
+  const h = host(comArquivos)
+  const p = await mount(panel, { host: h })
+  await p.press({ type: 'Button', text: 'Abrir issue no Linear' })
+  assert.deepEqual(h.callsOf('shell.openExternal'), [{ url: 'https://linear.app/x/SC-118' }])
+  const q = await mount(panel, { host: host(base) })
+  assert.equal(q.find({ type: 'Button', text: 'Abrir issue no Linear' })!.disabled, true)
+})
+
+test('atalho inicia o Picard uma vez', async () => {
+  let n = 0
+  let release: () => void = () => {}
+  const gate = new Promise<void>((r) => (release = r))
+  const h = mockHost({
+    requests: {
+      'ponte.state': comArquivos,
+      'ponte.launchPicard': async () => {
+        n++
+        await gate
+        return { terminalId: 't9' }
+      },
+    },
+  })
+  const p = await mount(panel, { host: h })
+  const alvo = { type: 'Button', text: 'Iniciar Picard' }
+  const primeiro = p.press(alvo)
+  await new Promise((r) => setTimeout(r, 20))
+  assert.equal(p.find(alvo)!.disabled, true)
+  release()
+  await primeiro
+  await p.settled()
+  assert.equal(n, 1)
+  assert.equal(p.find(alvo)!.disabled, false)
+})
+
+test('atalho recusa agente que a Orca não lança', async () => {
+  const h = mockHost({
+    requests: {
+      'ponte.state': comArquivos,
+      'ponte.launchPicard': () => {
+        throw hostError('not_launchable', 'Agente gemini não pode ser iniciado pela Orca')
+      },
+    },
+  })
+  const p = await mount(panel, { host: h })
+  await p.press({ type: 'Button', text: 'Iniciar Picard' })
+  assert.ok(text(p).includes('Agente gemini não pode ser iniciado pela Orca'))
+})
+
+test('diário guarda 20 entradas e o painel mostra 10', async () => {
+  const log = Array.from({ length: 20 }, (_, i) => ({ at: AT + i, text: `evento ${i}.` }))
+  const p = await mount(panel, { host: host(estado({ log })) })
+  const t = text(p)
+  assert.ok(t.includes('Diário de bordo'))
+  for (let i = 10; i < 20; i++) assert.ok(t.includes(`evento ${i}.`), `evento ${i}`)
+  for (let i = 0; i < 10; i++) assert.ok(!t.includes(`evento ${i}.`), `sem evento ${i}`)
+  const vazio = await mount(panel, { host: host(base) })
+  assert.ok(text(vazio).includes('Sem registros'))
 })

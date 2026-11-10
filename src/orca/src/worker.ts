@@ -11,6 +11,10 @@ const DEBOUNCE_MS = 300
 const TIMEOUT_MS = 10_000
 const ISSUE_TTL_MS = 60_000
 const LOG_MAX = 20
+const LAUNCHABLE = ['claude', 'codex', 'antigravity', 'opencode']
+const STATE_PT: Record<string, string> = {
+  working: 'trabalhando', blocked: 'bloqueado', waiting: 'aguardando', done: 'concluído',
+}
 
 type ExecResult = { stdout: string }
 type Exec = (cmd: string, args: string[], opts: { cwd?: string; timeout: number }) => Promise<ExecResult>
@@ -115,10 +119,43 @@ export default function activate(orca: OrcaWorkerApi): void {
   let timer: ReturnType<typeof setTimeout> | null = null
   let lastGood: PonteState | null = null
   const log: { at: number; text: string }[] = []
+  let launching = false
+  let seen: { path: string; name: string; phase: string | null; agents: Map<string, string> } | null = null
 
   const note = (text: string) => {
     log.push({ at: Date.now(), text })
     if (log.length > LOG_MAX) log.shift()
+  }
+
+  /** Acrescenta ao diário o que mudou desde o último estado bom. */
+  function track(path: string, snap: PonteSnapshot, agents: PonteAgent[]): void {
+    const name = path.split(/[\/]/).filter(Boolean).pop() ?? path
+    const phase = snap.feature?.phase ?? null
+    const map = new Map<string, string>()
+    agents.forEach((a, i) => map.set(a.terminalId ?? a.title ?? `#${i}`, a.state))
+    if (seen) {
+      if (seen.path !== path) note(`Worktree em foco: ${name}.`)
+      else if (seen.phase !== phase && seen.phase && phase) note(`Fase: ${seen.phase} → ${phase}.`)
+      if (seen.path === path) {
+        agents.forEach((a, i) => {
+          const key = a.terminalId ?? a.title ?? `#${i}`
+          if (seen!.agents.get(key) !== a.state) {
+            note(`Agente ${a.title ?? a.agent ?? key}: ${STATE_PT[a.state] ?? a.state}.`)
+          }
+        })
+      }
+    }
+    seen = { path, name, phase, agents: map }
+  }
+
+  async function focus(): Promise<{ id: string; path: string } | null> {
+    const ctx = (await orca.host.call('workspace.readContext', {})) as { branch: string } | null
+    if (!ctx) return null
+    const list = (await orca.host.call('workspace.list', {})) as {
+      workspaces: { id: string; kind: string; path: string; branch: string | null }[]
+    }
+    const w = list.workspaces.find((x) => x.kind === 'worktree' && x.branch === ctx.branch)
+    return w ? { id: w.id, path: w.path } : null
   }
 
   async function listAgents(): Promise<PonteAgent[]> {
@@ -162,7 +199,7 @@ export default function activate(orca: OrcaWorkerApi): void {
     const mine = ++seq
     const stale = () => mine !== seq
     const now = Date.now()
-    const base = { updatedAt: now, log: [...log] }
+    const base = { updatedAt: now }
     let state: PonteState
     try {
       const ctx = (await orca.host.call('workspace.readContext', {})) as { branch: string } | null
@@ -176,7 +213,7 @@ export default function activate(orca: OrcaWorkerApi): void {
       if (!path) {
         state = {
           status: 'sem-worktree', stale: false, snapshot: null, issue: null,
-          issueNote: null, agents: [], error: null, ...base,
+          issueNote: null, agents: [], error: null, log: [], ...base,
         }
       } else {
         try {
@@ -187,8 +224,9 @@ export default function activate(orca: OrcaWorkerApi): void {
           ])
           state = {
             status: 'ok', stale: false, snapshot: snap, issue: issueRes.issue,
-            issueNote: issueRes.note, agents, error: null, ...base,
+            issueNote: issueRes.note, agents, error: null, log: [], ...base,
           }
+          if (!stale()) track(path, snap, agents)
           lastGood = state
         } catch (err) {
           const msg = firstLine(err)
@@ -196,7 +234,7 @@ export default function activate(orca: OrcaWorkerApi): void {
           state = {
             status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
             issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
-            agents: lastGood?.agents ?? [], error: msg, ...base, log: [...log],
+            agents: lastGood?.agents ?? [], error: msg, log: [], ...base,
           }
         }
       }
@@ -205,9 +243,10 @@ export default function activate(orca: OrcaWorkerApi): void {
       state = {
         status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
         issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
-        agents: lastGood?.agents ?? [], error: msg, ...base,
+        agents: lastGood?.agents ?? [], error: msg, log: [], ...base,
       }
     }
+    state.log = [...log]
     if (stale()) return state
     if (state.status === 'erro' && !state.snapshot) state.stale = false
     await updateBar(state.status === 'erro' && lastGood ? { ...lastGood, status: 'erro' } : state)
@@ -227,11 +266,41 @@ export default function activate(orca: OrcaWorkerApi): void {
   orca.events.on('agent.status.changed', schedule)
 
   orca.panels.handle('ponte.state', async (input) => refresh(!!input?.force))
-  orca.panels.handle('ponte.open', async () => {
-    throw Object.assign(new Error('not_implemented'), { code: 'not_implemented' })
+  async function currentSnapshot(path: string): Promise<PonteSnapshot> {
+    const cached = lastGood?.snapshot
+    return cached && cached.worktree === path ? cached : runSnapshot(path)
+  }
+
+  orca.panels.handle('ponte.open', async (input) => {
+    const where = await focus()
+    if (!where) throw Object.assign(new Error('Nenhum worktree em foco'), { code: 'no_worktree' })
+    const snap = await runSnapshot(where.path)
+    const rel = snap.feature?.files?.[input.file] ?? null
+    if (!rel) throw Object.assign(new Error('file_missing'), { code: 'file_missing' })
+    await orca.host.call('editor.open', { workspaceId: where.id, path: rel })
+    return { opened: true }
   })
+
   orca.panels.handle('ponte.launchPicard', async () => {
-    throw Object.assign(new Error('not_implemented'), { code: 'not_implemented' })
+    if (launching) throw Object.assign(new Error('Picard já está sendo iniciado'), { code: 'busy' })
+    launching = true
+    try {
+      const where = await focus()
+      if (!where) throw Object.assign(new Error('Nenhum worktree em foco'), { code: 'no_worktree' })
+      const snap = await currentSnapshot(where.path)
+      const picard = snap.crew.find((c) => c.member === 'picard')
+      const agent = (picard?.cliModel ?? 'claude').split('·')[0].trim().toLowerCase() || 'claude'
+      if (!LAUNCHABLE.includes(agent)) {
+        throw Object.assign(new Error(`Agente ${agent} não pode ser iniciado pela Orca`), { code: 'not_launchable' })
+      }
+      const prompt = agent === 'claude' ? '/starcode:engajar' : agent === 'codex' ? '$starcode:engajar' : 'engajar'
+      const res = (await orca.host.call('agent.launch', { workspaceId: where.id, agent, prompt })) as {
+        terminalId: string
+      }
+      return { terminalId: res.terminalId }
+    } finally {
+      launching = false
+    }
   })
 
   orca.commands.register('starcode-ponte.refresh', async () => {

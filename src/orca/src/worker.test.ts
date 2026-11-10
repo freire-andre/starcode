@@ -266,10 +266,119 @@ test('atualizar agora ignora o cache', async () => {
   await worker.deactivate()
 })
 
-test('ponte.open e ponte.launchPicard respondem not_implemented', async () => {
+const FILES = { context: null, spec: 'specs/spec.md', tasks: 'specs/tasks.md', handoff: null }
+const PICARD = { member: 'picard', emoji: '🛸', name: 'Picard', count: 1, lastAt: null, cliModel: 'claude · claude-opus-5-5' }
+
+function withFeature(files: Record<string, string | null>, crew: unknown[] = [PICARD]) {
+  return (p: string) => ({
+    stdout: JSON.stringify(
+      snapshot(p, { crew, feature: { ...(snapshot(p).feature as object), files } }),
+    ),
+  })
+}
+
+function launchHost() {
+  return mockHost({
+    results: {
+      'workspace.readContext': CTX_A,
+      'workspace.list': { workspaces: [WS_A, WS_B], truncated: false },
+      'agents.list': { agents: [] },
+      'statusBar.update': { ok: true },
+      'editor.open': { opened: true },
+      'agent.launch': { terminalId: 'term-1' },
+    },
+  })
+}
+
+test('atalho abre spec tasks e handoff', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES)
+  const host = launchHost()
+  const worker = await mount(host)
+  assert.deepEqual(await worker.request('ponte.open', { file: 'spec' }), { opened: true })
+  await worker.request('ponte.open', { file: 'tasks' })
+  assert.deepEqual(host.callsOf('editor.open'), [
+    { workspaceId: 'ws-a', path: 'specs/spec.md' },
+    { workspaceId: 'ws-a', path: 'specs/tasks.md' },
+  ])
+  await assert.rejects(worker.request('ponte.open', { file: 'handoff' }), /file_missing/)
+  assert.equal(host.callsOf('editor.open').length, 2)
+  await worker.deactivate()
+})
+
+test('atalho inicia o Picard uma vez', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES)
+  const host = launchHost()
+  const worker = await mount(host)
+  assert.deepEqual(await worker.request('ponte.launchPicard', {}), { terminalId: 'term-1' })
+  assert.deepEqual(host.callsOf('agent.launch'), [
+    { workspaceId: 'ws-a', agent: 'claude', prompt: '/starcode:engajar' },
+  ])
+  await worker.deactivate()
+
+  const codex = install()
+  codex.python = withFeature(FILES, [{ ...PICARD, cliModel: 'codex · gpt' }])
+  const h2 = launchHost()
+  const w2 = await mount(h2)
+  await w2.request('ponte.launchPicard', {})
+  assert.equal((h2.callsOf('agent.launch')[0] as any).prompt, '$starcode:engajar')
+  await w2.deactivate()
+
+  const oc = install()
+  oc.python = withFeature(FILES, [{ ...PICARD, cliModel: 'opencode · x' }])
+  const h3 = launchHost()
+  const w3 = await mount(h3)
+  await w3.request('ponte.launchPicard', {})
+  assert.deepEqual(h3.callsOf('agent.launch'), [{ workspaceId: 'ws-a', agent: 'opencode', prompt: 'engajar' }])
+  await w3.deactivate()
+})
+
+test('atalho recusa agente que a Orca não lança', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES, [{ ...PICARD, cliModel: 'gemini · pro' }])
+  const host = launchHost()
+  const worker = await mount(host)
+  await assert.rejects(
+    worker.request('ponte.launchPicard', {}),
+    /Agente gemini não pode ser iniciado pela Orca/,
+  )
+  assert.equal(host.callsOf('agent.launch').length, 0)
+  await worker.deactivate()
+})
+
+test('diário guarda 20 entradas e o painel mostra 10', async () => {
   install()
-  const worker = await mount(hostFor(CTX_A))
-  await assert.rejects(worker.request('ponte.open', { file: 'spec' }), /not_implemented/)
-  await assert.rejects(worker.request('ponte.launchPicard', {}), /not_implemented/)
+  const host = launchHost()
+  const worker = await mount(host)
+  await worker.request('ponte.state', {})
+  const estados = ['working', 'blocked', 'waiting', 'done']
+  let last: any
+  for (let i = 0; i < 30; i++) {
+    host.respond('agents.list', {
+      agents: [{ terminalId: 't1', title: 'T3', agent: 'claude', state: estados[i % 4], stateStartedAt: i }],
+    })
+    last = await worker.request('ponte.state', {})
+  }
+  assert.equal(last.log.length, 20)
+  assert.ok(last.log.every((e: any) => typeof e.at === 'number' && typeof e.text === 'string'))
+  assert.match(last.log[19].text, /T3/)
+  await worker.deactivate()
+})
+
+test('diário registra mudança de worktree e de fase', async () => {
+  const fake = install()
+  const host = launchHost()
+  const worker = await mount(host)
+  await worker.request('ponte.state', {})
+  host.respond('workspace.readContext', CTX_B)
+  await worker.request('ponte.state', {})
+  fake.python = (p) => ({
+    stdout: JSON.stringify(snapshot(p, { feature: { ...(snapshot(p).feature as object), phase: 'verify' } })),
+  })
+  const s: any = await worker.request('ponte.state', {})
+  const texts = s.log.map((e: any) => e.text).join('|')
+  assert.match(texts, /Worktree em foco: b/)
+  assert.match(texts, /Fase: build → verify/)
   await worker.deactivate()
 })
