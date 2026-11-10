@@ -1,8 +1,8 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
-import { buildScene } from './scene-model'
-import type { Cena } from './scene-model'
-import type { PonteAgent, PonteState } from './protocol'
+import { buildScene } from './scene-model.ts'
+import type { Cena } from './scene-model.ts'
+import type { PonteAgent, PonteState } from './protocol.ts'
 
 /** Contexto mínimo do canvas que a pintura usa (permite um contexto falso nos testes). */
 export interface Pincel {
@@ -165,8 +165,32 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
   requestAnimationFrame(laco)
 }
 
-const frame = (globalThis as { orca?: OrcaFrame }).orca
-if (frame && typeof document !== 'undefined') {
-  const canvas = document.getElementById('cena')
-  if (canvas instanceof HTMLCanvasElement) iniciar(frame, canvas)
+/** O mínimo do documento que a ligação usa (permite um documento falso nos testes). */
+export interface Pagina {
+  getElementById(id: string): unknown
+  createElement(tag: string): any
+  body: { appendChild(n: unknown): unknown }
 }
+
+/** Devolve o canvas `#cena` da página; quando a Orca gera a página em volta, cria o canvas no corpo (R45). */
+export function obterCanvas(doc: Pagina): HTMLCanvasElement {
+  const existente = doc.getElementById('cena')
+  if (existente) return existente as HTMLCanvasElement
+  const palco = doc.createElement('div')
+  palco.id = 'palco'
+  palco.style.width = '100%'
+  const canvas = doc.createElement('canvas')
+  canvas.id = 'cena'
+  canvas.width = 64
+  canvas.height = 40
+  canvas.style.display = 'block'
+  canvas.style.width = '100%'
+  canvas.style.height = 'auto'
+  canvas.style.imageRendering = 'pixelated'
+  palco.appendChild(canvas)
+  doc.body.appendChild(palco)
+  return canvas as HTMLCanvasElement
+}
+
+const frame = (globalThis as { orca?: OrcaFrame }).orca
+if (frame && typeof document !== 'undefined') iniciar(frame, obterCanvas(document))

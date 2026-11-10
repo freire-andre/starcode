@@ -45,5 +45,18 @@ export default defineCheck({
   'erro-secao': reply(
     estado({ snapshot: snap({ errors: [{ source: 'src/crew.yaml', message: 'tripulação ilegível (OSError)' }] }) }),
   ),
+  // 240 px: todos os botões dos Atalhos ativos e a issue do Handoff com nota; as linhas quebram (R47)
+  'estreito-240': reply(
+    estado({
+      snapshot: snap({
+        feature: {
+          ...snap().feature!,
+          files: { context: 'c.md', spec: 'spec.md', tasks: 'tasks.md', handoff: 'handoff.md' },
+        },
+      }),
+      issue: { id: 'SC-117', title: null, state: null, url: 'https://linear.app/x/SC-117' },
+      issueNote: 'Sem issue vinculada',
+    }),
+  ),
   desatualizado: reply(estado({ stale: true, error: 'python não roda' })),
 })

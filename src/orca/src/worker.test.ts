@@ -34,6 +34,9 @@ function snapshot(path: string, over: Record<string, unknown> = {}) {
   }
 }
 
+const WORKTREE_OK = JSON.stringify({ ok: true, result: { worktree: { linkedLinearIssue: 'SC-116' } } })
+const WORKTREE_SEM = JSON.stringify({ ok: true, result: { worktree: { linkedLinearIssue: null } } })
+
 const LINEAR_OK = JSON.stringify({
   ok: true,
   result: {
@@ -47,19 +50,26 @@ type Fake = {
   linear: () => Call[]
   python: (path: string) => Reply | Promise<Reply>
   orca: () => Reply | Promise<Reply>
+  worktree: () => Reply | Promise<Reply>
+  worktrees: () => Call[]
 }
 
 function install(): Fake {
   const fake: Fake = {
     calls: [],
     snaps: () => fake.calls.filter((c) => c.args.includes('snapshot')),
-    linear: () => fake.calls.filter((c) => c.cmd === 'orca'),
+    linear: () => fake.calls.filter((c) => c.cmd === 'orca' && c.args[0] === 'linear'),
+    worktrees: () => fake.calls.filter((c) => c.cmd === 'orca' && c.args[0] === 'worktree'),
     python: (path) => ({ stdout: JSON.stringify(snapshot(path)) }),
     orca: () => ({ stdout: LINEAR_OK }),
+    worktree: () => ({ stdout: WORKTREE_OK }),
   }
   ;(globalThis as any).__ponteExec = async (cmd: string, args: string[], opts: { cwd?: string }) => {
     fake.calls.push({ cmd, args, cwd: opts?.cwd })
-    const reply = cmd === 'orca' ? await fake.orca() : await fake.python(args[args.indexOf('--path') + 1])
+    const reply =
+      cmd === 'orca'
+        ? args[0] === 'worktree' ? await fake.worktree() : await fake.orca()
+        : await fake.python(args[args.indexOf('--path') + 1])
     if (reply instanceof Error) throw reply
     return reply
   }
@@ -167,7 +177,7 @@ test('worker descarta snapshot de foco antigo', async () => {
   await worker.deactivate()
 })
 
-test('worker consulta a issue e guarda em cache por 60 s', async () => {
+test('worker consulta a issue vinculada e guarda em cache por 60 s', async () => {
   const fake = install()
   const worker = await mount(hostFor(CTX_A))
   const first: any = await worker.request('ponte.state', {})
@@ -177,10 +187,12 @@ test('worker consulta a issue e guarda em cache por 60 s', async () => {
     state: 'In Progress',
     url: 'https://linear.app/x/SC-116',
   })
-  assert.deepEqual(fake.linear()[0].args, ['linear', 'issue', '--current', '--json'])
-  assert.equal(fake.linear()[0].cwd, 'C:/wt/a')
+  assert.deepEqual(fake.worktrees()[0].args, ['worktree', 'show', '--worktree', 'path:C:/wt/a', '--json'])
+  assert.deepEqual(fake.linear()[0].args, ['linear', 'issue', 'SC-116', '--json'])
+  assert.ok(!fake.linear()[0].args.includes('--current'))
   await worker.request('ponte.state', {})
   assert.equal(fake.linear().length, 1)
+  assert.equal(fake.worktrees().length, 1)
   await worker.deactivate()
 })
 
@@ -196,12 +208,21 @@ test('worker sem Linear mostra o ID do Handoff', async () => {
   await worker.deactivate()
 
   const sem = install()
-  sem.orca = () => ({ stdout: JSON.stringify({ ok: true, result: { issue: null } }) })
+  sem.worktree = () => ({ stdout: WORKTREE_SEM })
   const w2 = await mount(hostFor(CTX_A))
   const s2: any = await w2.request('ponte.state', {})
   assert.equal(s2.issue.id, 'SC-17')
   assert.equal(s2.issueNote, 'Sem issue vinculada')
+  assert.equal(sem.linear().length, 0)
   await w2.deactivate()
+
+  const falha = install()
+  falha.worktree = () => new Error('orca fora do ar')
+  const w3 = await mount(hostFor(CTX_A))
+  const s3: any = await w3.request('ponte.state', {})
+  assert.equal(s3.issue.id, 'SC-17')
+  assert.equal(s3.issueNote, 'Linear indisponível')
+  await w3.deactivate()
 })
 
 test('worker com snapshot falho marca desatualizado', async () => {
