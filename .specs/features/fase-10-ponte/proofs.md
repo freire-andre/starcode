@@ -1,9 +1,9 @@
 # fase-10-ponte proofs
 
-**HEAD**: 9bd4f37
+**HEAD**: 4a73a95
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 54 pass, 0 fail
+**Result**: 53 pass, 1 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -60,7 +60,7 @@
 | C51 | `run unit / test_fase10_limitacoes_registradas ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `orca plugin validate src/orca --json` | pass |
-| Build | `python scripts/check_decisions.py` | pass |
+| Build | `python scripts/check_decisions.py` | fail - check_decisions: FALHOU. skills/, scripts/ ou hooks/ mudaram em ca7c8ba fix(ponte): reporta handoff  |
 
 ## Output
 
@@ -79,7 +79,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 597 tests in 310.866s
+Ran 599 tests in 323.364s
 
 OK
 ```
@@ -87,12 +87,12 @@ OK
 `Run plugin` - exit 0
 
 ```
-✔ atalho abre spec tasks e handoff (2.7665ms)
-✔ atalho inicia o Picard uma vez (3.5032ms)
-✔ atalho recusa agente que a Orca não lança (0.8252ms)
-✔ diário guarda 20 entradas e o painel mostra 10 (9.8017ms)
-✔ diário registra mudança de worktree e de fase (1.2382ms)
-✔ worker registra falhas no log (4.7964ms)
+✔ atalho abre spec tasks e handoff (3.3031ms)
+✔ atalho inicia o Picard uma vez (4.3591ms)
+✔ atalho recusa agente que a Orca não lança (0.809ms)
+✔ diário guarda 20 entradas e o painel mostra 10 (12.5444ms)
+✔ diário registra mudança de worktree e de fase (1.7801ms)
+✔ worker registra falhas no log (6.1416ms)
 ℹ tests 40
 ℹ suites 0
 ℹ pass 40
@@ -100,6 +100,6 @@ OK
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1858.8793
+ℹ duration_ms 1870.5887
 4 test file(s) passed (node).
 ```
