@@ -3,7 +3,7 @@
 **Verdict**: FAIL
 **Proofs**: `proofs.md` at 9bd4f37
 **HEAD**: 0384fc0
-**Verifier**: pending (o coordenador registra CLI e modelos)
+**Verifier**: codex · requested padrão do CLI · effective GPT-6-Luna medium
 
 ## Checks
 
@@ -65,9 +65,9 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| A leitura ignora Handoff acima de 1 MiB sem erro, contrariando R8. | `scripts/ponte.py:109` (`handoff_of` faz `continue` para tamanho acima do limite) | Acrescentar o erro da fonte e preservar o tratamento tolerante. | |
-| C8 não prova fontes ilegíveis nem artefatos Handoff acima de 1 MiB; C21 não verifica `plugin.request` nem timeout; C26 não verifica que somente a frase e Atualizar agora aparecem. | `tests/test_ponte.py:test_snapshot_fonte_invalida`; `src/orca/src/panel.test.tsx:test_painel_pede_o_estado_ao_abrir`, `test_painel_sem_StarCode` | Adicionar casos que falhem quando essas condições concretas não forem satisfeitas. | |
-| Regra silenciosa sem check: `linear_ids` preserva IDs duplicados, embora a saída represente IDs da issue e duplicatas possam aparecer no painel. | `scripts/ponte.py:91`; comando: `python` com `linear_ids("SC-17; SC-17; SC-18")` → `['SC-17', 'SC-17', 'SC-18']` | Deduplicar IDs mantendo a ordem ou definir e testar explicitamente a semântica de duplicatas. | |
+| A leitura ignora Handoff acima de 1 MiB sem erro, contrariando R8. | `scripts/ponte.py:109` (`handoff_of` faz `continue` para tamanho acima do limite) | Acrescentar o erro da fonte e preservar o tratamento tolerante. || ca7c8ba (fix), 0232e19 (F10-10); provas no HEAD 29aff98 |
+| C8 não prova fontes ilegíveis nem artefatos Handoff acima de 1 MiB; C21 não verifica `plugin.request` nem timeout; C26 não verifica que somente a frase e Atualizar agora aparecem. | `tests/test_ponte.py:test_snapshot_fonte_invalida`; `src/orca/src/panel.test.tsx:test_painel_pede_o_estado_ao_abrir`, `test_painel_sem_StarCode` | Adicionar casos que falhem quando essas condições concretas não forem satisfeitas. || ca7c8ba (fix), 0232e19 (F10-10); provas no HEAD 29aff98 |
+| Regra silenciosa sem check: `linear_ids` preserva IDs duplicados, embora a saída represente IDs da issue e duplicatas possam aparecer no painel. | `scripts/ponte.py:91`; comando: `python` com `linear_ids("SC-17; SC-17; SC-18")` → `['SC-17', 'SC-17', 'SC-18']` | Deduplicar IDs mantendo a ordem ou definir e testar explicitamente a semântica de duplicatas. || ca7c8ba (fix), 0232e19 (F10-10); provas no HEAD 29aff98 |
 
 ## Limits
 
