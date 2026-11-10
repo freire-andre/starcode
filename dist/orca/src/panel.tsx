@@ -31,7 +31,7 @@ function launchPicard(): void {
   set(launchingAtom, true)
   plugin
     .request('ponte.launchPicard', {})
-    .then(() => set(shortcutOkAtom, 'Picard iniciado'))
+    .then(() => set(shortcutOkAtom, 'Picard iniciado em segundo plano'))
     .catch((e: unknown) => set(shortcutErrAtom, msg(e)))
     .finally(() => set(launchingAtom, false))
 }
@@ -201,6 +201,7 @@ function Shortcuts(props: { s: PonteState | null }) {
         <Button size="sm" disabled={!url} onPress={() => (url ? openIssue(url) : undefined)}>Abrir issue no Linear</Button>
         <Button size="sm" disabled={launching || !s?.snapshot?.starcode} onPress={launchPicard}>Iniciar Picard</Button>
       </Row>
+      <Text muted size="sm">O agente abre em segundo plano, sem aba visível.</Text>
       {err ? <Text tone="danger" size="sm">{err}</Text> : null}
       {ok && !err ? <Text size="sm">{ok}</Text> : null}
     </Stack>

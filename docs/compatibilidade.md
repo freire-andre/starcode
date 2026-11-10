@@ -37,6 +37,11 @@ O painel Ponte depende só da Orca, não do CLI de agente.
 |---|---|
 | Painel Ponte (plugin `dist/orca`, instalação local) | Orca ≥ 1.4.248 (independente do CLI) |
 
+Limitações da Orca no reaceite da Fase 10 (`docs/aceite/fase-10.md`, DECISIONS F10-9):
+
+- Iniciar Picard abre o Claude Code em segundo plano, sem aba visível e sem enviar o prompt `/starcode:engajar`.
+- O `orca` chamado de dentro do worker do plugin falha com `node:internal/modules/cjs/loader:1575`; a Issue mostra só o ID do Handoff com "Linear indisponível".
+
 ## Notas
 
 1. **Antigravity**: `agy plugin validate dist/antigravity --strict` passa, com um aviso de falta de logo. `agy plugin install <pasta>` copia o plugin para `~/.gemini/config/plugins/<nome>`. O formato nativo:

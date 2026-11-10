@@ -724,3 +724,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o painel `ponte-cena` usa `entry` `src/scene.ts` (a Orca transpila e gera a página), o script cria o canvas quando falta e os imports usam `.ts`; o worker lê `linkedLinearIssue` de `orca worktree show --worktree path:<caminho> --json` e consulta `orca linear issue <ID> --json`, com a nota do Handoff quando não há vínculo.
 - **Motivo:** o aceite real (T9) mostrou que só o `entry` `.ts` é transpilado e que `--current` olha o terminal que chama, não o `cwd` do worker.
 - **Por que não é bug:** `tests/test_orca_manifest.py` confere o `entry` `src/scene.ts`; os testes `cena cria o canvas e importa com caminho servido` e `worker consulta a issue vinculada e guarda em cache por 60 s` cobrem os dois casos.
+
+### F10-9: duas limitações da Orca aceitas no reaceite (T13)
+- **Problema:** no reaceite o Iniciar Picard abre o Claude Code em segundo plano, sem aba visível e sem enviar o prompt `/starcode:engajar`; e o `orca` chamado de dentro do worker falha com `node:internal/modules/cjs/loader:1575`, então a Issue mostra só o ID do Handoff com "Linear indisponível".
+- **Decisão:** o usuário aceitou as duas limitações (aprovado com limitações). O painel passa a dizer "Picard iniciado em segundo plano" e avisa no botão; a Issue segue pelo ID do Handoff. Nada é contornado no plugin.
+- **Motivo:** as duas vêm do comportamento da Orca 1.4.x, fora do alcance do plugin.
+- **Por que não é bug:** `docs/aceite/fase-10.md` (`## Reaceite`) registra o caso e `test_fase10_limitacoes_registradas` exige o registro.
