@@ -1,7 +1,7 @@
 // Painel da Ponte: só componentes, sem hooks nem DOM; o estado fica em atoms com chave.
 import {
   Badge, Box, Button, Callout, Heading, KeyValue, List, ListItem, Progress, RelativeTime,
-  Row, Separator, Skeleton, Stack, Text, atom, plugin, read, set, update,
+  Row, Separator, Skeleton, Stack, Text, atom, plugin, read, set, shell, update,
 } from 'orca'
 import type { PanelContext } from 'orca'
 import type { PonteAgent, PonteState, PonteWorker } from './protocol'
@@ -9,6 +9,29 @@ import type { PonteAgent, PonteState, PonteWorker } from './protocol'
 const stateAtom = atom<PonteState | null>('ponte.state', null)
 const loadingAtom = atom<boolean>('ponte.loading', true)
 const failAtom = atom<string | null>('ponte.fail', null)
+const launchingAtom = atom<boolean>('ponte.launching', false)
+const shortcutErrAtom = atom<string | null>('ponte.shortcutErr', null)
+
+const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+function openFile(file: 'spec' | 'tasks' | 'handoff'): void {
+  set(shortcutErrAtom, null)
+  plugin.request('ponte.open', { file }).catch((e: unknown) => set(shortcutErrAtom, msg(e)))
+}
+
+function openIssue(url: string): void {
+  set(shortcutErrAtom, null)
+  shell.openExternal(url).catch((e: unknown) => set(shortcutErrAtom, msg(e)))
+}
+
+function launchPicard(): void {
+  set(shortcutErrAtom, null)
+  set(launchingAtom, true)
+  plugin
+    .request('ponte.launchPicard', {})
+    .catch((e: unknown) => set(shortcutErrAtom, msg(e)))
+    .finally(() => set(launchingAtom, false))
+}
 
 function request(force: boolean): void {
   update(loadingAtom, () => true)
@@ -156,6 +179,48 @@ function Body(props: { s: PonteState }) {
   )
 }
 
+function Shortcuts(props: { s: PonteState | null }) {
+  const { s } = props
+  const files = s?.snapshot?.feature?.files
+  const launching = read(launchingAtom)
+  const err = read(shortcutErrAtom)
+  const url = s?.issue?.url ?? null
+  return (
+    <Stack gap="xs">
+      <Row gap="sm" align="center">
+        <Button size="sm" disabled={!files?.spec} onPress={() => openFile('spec')}>Abrir spec</Button>
+        <Button size="sm" disabled={!files?.tasks} onPress={() => openFile('tasks')}>Abrir tasks</Button>
+        <Button size="sm" disabled={!files?.handoff} onPress={() => openFile('handoff')}>Abrir Handoff</Button>
+      </Row>
+      <Row gap="sm" align="center">
+        <Button size="sm" disabled={!url} onPress={() => (url ? openIssue(url) : undefined)}>Abrir issue no Linear</Button>
+        <Button size="sm" disabled={launching || !s?.snapshot?.starcode} onPress={launchPicard}>Iniciar Picard</Button>
+      </Row>
+      {err ? <Text tone="danger" size="sm">{err}</Text> : null}
+    </Stack>
+  )
+}
+
+function Journal(props: { log: { at: number; text: string }[] }) {
+  const recent = props.log.slice(-10).reverse()
+  return (
+    <Section title="Diário de bordo">
+      {recent.length === 0 ? (
+        <Text muted>Sem registros</Text>
+      ) : (
+        <Stack gap="xs">
+          {recent.map((e) => (
+            <Row gap="sm" align="center">
+              <Text size="xs" muted><RelativeTime at={e.at} /></Text>
+              <Text size="sm">{e.text}</Text>
+            </Row>
+          ))}
+        </Stack>
+      )}
+    </Section>
+  )
+}
+
 export default function Panel() {
   const s = read(stateAtom)
   const loading = read(loadingAtom)
@@ -176,7 +241,9 @@ export default function Panel() {
             </Text>
           ) : null}
         </Row>
+        <Shortcuts s={s} />
       </Section>
+      <Journal log={s?.log ?? []} />
     </Box>
   )
 }
