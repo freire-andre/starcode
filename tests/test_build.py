@@ -37,7 +37,8 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(manifest["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
         self.assertTrue((orca / "src" / "panel.tsx").is_file())
         self.assertTrue((orca / "src" / "worker.ts").is_file())
-        self.assertTrue((orca / "src" / "scene.html").is_file())
+        self.assertTrue((orca / "src" / "scene.ts").is_file())
+        self.assertFalse((orca / "src" / "scene.html").exists())
         self.assertFalse((orca / ".orca").exists())
         self.assertEqual(list(orca.rglob("*.test.ts*")), [])
         scripts = {p.relative_to(orca / "scripts").as_posix() for p in (orca / "scripts").rglob("*.py")}
