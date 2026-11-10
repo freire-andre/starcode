@@ -40,6 +40,9 @@ jobs:
         run: python scripts/check_decisions.py
       - name: plugin validate
         run: claude plugin validate dist/claude --strict
+      - name: orca plugin validate
+        shell: bash
+        run: 'if command -v orca >/dev/null 2>&1; then orca plugin validate src/orca --json; else echo "orca ausente: validação do plugin pulada"; fi'
 
   eval:
     if: github.event_name == 'workflow_dispatch'

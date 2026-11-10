@@ -10,6 +10,8 @@ O StarCode é privado ("All rights reserved", ver `LICENSE`). Os itens abaixo s�
 | harness-eval 1.8.3 (Tech Leads Club) | CC-BY-4.0 | Track A e protocolo do diagnóstico, copiados com ajuste de UTF-8 | `scripts/harness/` (`doc_scope.py`, `inventory_extract.py`, `merge_agreement.py`, `merge_usefulness.py`, `slim_fanin.py`, `surfaces_extract.py`, `track_a_correctness.py`, `references/`) |
 | Cloudflare security-audit-skill | MIT | Portão de evidência dos achados de segurança do Worf (inspiração, reescrito) | `scripts/review/review_gate.py`, `skills/worf/references/security-evidence.md` |
 | harness-score | executado via `npx`, não copiado (versão fixada no script) | Pontuação de maturidade do diagnóstico | `scripts/diagnostico.py` |
+| Pixel Agents (`pixel-agents-hq/pixel-agents`) | MIT | Inspiração da Cena da Ponte (agentes como personagens numa sala); sem código nem arte copiados | `src/orca/` (painel Ponte) |
+| Habblaud (`marmottajr/habblaud`) | MIT | Inspiração da Cena da Ponte (sala em perspectiva com personagens); sem código nem arte copiados | `src/orca/` (painel Ponte) |
 | superpowers | MIT | Práticas genéricas, escritas do zero (tabela "desculpa × realidade") | `skills/engajar/references/gate-excuses.md` |
 
 Star Trek e os nomes dos personagens pertencem aos seus donos. O StarCode só usa os nomes como apelidos dos papéis, sem nenhuma afiliação.

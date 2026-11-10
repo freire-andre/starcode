@@ -29,6 +29,14 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | Perfis de stack (`dist/<cli>/profiles/`) e skills `uhura`, `scotty`, `nova-missao` | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ |
 | Skills `worf`, `guinan`, `diagnostico` e `scripts/review/`, `scripts/harness/` | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ |
 
+## Painel Ponte
+
+O painel Ponte depende só da Orca, não do CLI de agente.
+
+| Recurso | Versão mínima |
+|---|---|
+| Painel Ponte (plugin `dist/orca`, instalação local) | Orca ≥ 1.4.248 (independente do CLI) |
+
 ## Notas
 
 1. **Antigravity**: `agy plugin validate dist/antigravity --strict` passa, com um aviso de falta de logo. `agy plugin install <pasta>` copia o plugin para `~/.gemini/config/plugins/<nome>`. O formato nativo:

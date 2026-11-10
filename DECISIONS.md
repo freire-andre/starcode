@@ -676,3 +676,45 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `post_review.py` só põe o emoji da severidade no prefixo quando o `body` (após `lstrip`) não começa com ele; senão o prefixo vai sem emoji e o do `body` fica.
 - **Motivo:** o emoji aparece uma vez só, sem mudar o formato dos achados que não o trazem.
 - **Por que não é bug:** `tests/test_review_post.py::test_inline_comment_does_not_repeat_severity_emoji` confere os dois casos.
+
+### F10-1: o `ponte.py` lê o estado em Python e o worker só orquestra
+- **Problema:** o painel Ponte precisa mostrar a tripulação e o progresso, e um worker não deve guardar estado nem decidir o que mostrar.
+- **Decisão:** o `ponte.py` lê o estado (`crew.json`, `progress.json`) direto em Python e monta o que o painel exibe; o worker só orquestra (abre o painel e pede a atualização).
+- **Motivo:** um caminho só para o estado deixa o painel testável sem a Orca e sem modelo.
+- **Por que não é bug:** `tests/test_ponte.py` roda o `snapshot` do `ponte.py` sobre arquivos de estado de exemplo.
+
+### F10-2: `dist/orca` com instalação local, sem catálogo
+- **Problema:** a Orca não tem catálogo de plugins para o StarCode publicar o painel.
+- **Decisão:** `tools/build.py` gera `dist/orca` e `tools/install_local.py --cli orca` instala o plugin direto da pasta, sem catálogo.
+- **Motivo:** a instalação local funciona hoje e não depende de publicar nada fora do repositório.
+- **Por que não é bug:** `tests/test_build.py` confere o `dist/orca`; `tests/test_install_local.py` confere a instalação.
+
+### F10-3: R20 usa `sidebar.right.toggle`
+- **Problema:** a API do plugin da Orca não abre um painel por conta própria.
+- **Decisão:** o R20 abre a Ponte pelo atalho `sidebar.right.toggle` da barra lateral direita, e o texto da spec diz isso em vez de prometer "abrir o painel".
+- **Motivo:** prometer o que a API não faz deixaria a spec falsa.
+- **Por que não é bug:** `tests/test_orca_manifest.py::test_manifest_toggle_da_barra` confere a ação `sidebar.right.toggle` no manifesto.
+
+### F10-4: capabilities mínimas e aprovação sempre do usuário
+- **Problema:** um plugin com capabilities demais, ou aprovado sozinho, daria à Orca acesso que o usuário não pediu.
+- **Decisão:** o manifesto declara só as capabilities que o painel usa, e a aprovação do plugin na Orca é sempre do usuário; nenhum worker ou script aprova.
+- **Motivo:** D11: o que muda o ambiente do usuário exige confirmação dele.
+- **Por que não é bug:** `tests/test_orca_manifest.py::test_manifest_capabilities_e_engines` confere a lista de capabilities.
+
+### F10-5: Cena da Ponte em painel HTML com arte gerada por código
+- **Problema:** a Ponte precisa de uma cena animada com a tripulação, e copiar sprites ou código de terceiros traria licença e dívida.
+- **Decisão:** a Cena da Ponte é um painel HTML cuja arte é gerada por código (canvas/SVG escritos do zero), inspirada no Pixel Agents e no Habblaud, sem copiar código nem sprites; `CREDITS.md` registra as duas inspirações.
+- **Motivo:** a ideia é livre, a arte e o código são nossos, e o painel não carrega arquivos binários.
+- **Por que não é bug:** `tests/test_release_docs_f10.py` confere os créditos; o painel não carrega arquivos de imagem, e `CREDITS.md` diz que nada foi copiado.
+
+### F10-6: o `dist/orca` precisa do `crew.json` gerado (rodada 2 da T7)
+- **Problema:** na T7 o `dist/orca` saiu sem o `crew.json`, e o `ponte.py` caía em `miniyaml`, que só existe em `tools/` e não vai para o plugin instalado.
+- **Decisão:** `tools/build.py` grava o `crew.json` em `dist/orca` e o `ponte.py` lê a tripulação dele, sem importar `miniyaml`.
+- **Motivo:** o plugin instalado só leva o que está em `dist/orca`; depender de `tools/` quebra fora do repositório.
+- **Por que não é bug:** `tests/test_build.py` confere o `crew.json` em `dist/orca`; correção em 8c64378.
+
+### F10-7: workers testam o plugin; a instalação real é do usuário
+- **Problema:** um worker instalar o plugin na Orca do usuário mudaria o ambiente dele sem pedido.
+- **Decisão:** os workers rodam o plugin só em teste (`orca plugin test/check`); a instalação real e a aprovação na Orca são do usuário (T9).
+- **Motivo:** liga o F10-4 ao fluxo de trabalho: quem aprova é quem é dono do ambiente.
+- **Por que não é bug:** `tests/test_ci_workflow.py::test_ci_valida_plugin_orca_condicional` só valida o plugin, sem instalar.
