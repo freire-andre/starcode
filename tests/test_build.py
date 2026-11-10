@@ -30,6 +30,34 @@ class BuildTests(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
+    def test_build_gera_dist_orca(self):  # C33
+        build.build(self.src, self.out)
+        orca = self.out / "dist" / "orca"
+        manifest = json.loads((orca / "orca-plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["version"], (ROOT / "VERSION").read_text(encoding="utf-8").strip())
+        self.assertTrue((orca / "src" / "panel.tsx").is_file())
+        self.assertTrue((orca / "src" / "worker.ts").is_file())
+        self.assertTrue((orca / "src" / "scene.html").is_file())
+        self.assertFalse((orca / ".orca").exists())
+        self.assertEqual(list(orca.rglob("*.test.ts*")), [])
+        scripts = {p.relative_to(orca / "scripts").as_posix() for p in (orca / "scripts").rglob("*.py")}
+        self.assertTrue({"ponte.py", "crew_live.py", "handoff.py", "starcode_common.py",
+                         "config/validate_config.py"} <= scripts, scripts)
+        self.assertEqual((orca / "scripts" / "ponte.py").read_bytes(), (ROOT / "scripts" / "ponte.py").read_bytes())
+        self.assertNotIn("orca", build.CLIS)
+        self.assertFalse((self.out / "dist" / "claude" / "skills" / "orca").exists())
+
+    def test_build_check_cobre_dist_orca(self):  # C33
+        build.build(self.src, self.out)
+        self.assertEqual(build.compare(self.out, self.out), [])
+        other = Path(self._tmp.name) / "other"
+        build.build(self.src, other)
+        (other / "dist" / "orca" / "src" / "panel.tsx").write_text("// editado à mão\n", encoding="utf-8")
+        (other / "dist" / "orca" / "scripts" / "ponte.py").unlink()
+        problems = build.compare(self.out, other)
+        self.assertIn("diferente: dist/orca/src/panel.tsx", problems)
+        self.assertIn("faltando: dist/orca/scripts/ponte.py", problems)
+
     def test_repo_dist_is_up_to_date(self):
         res = subprocess.run([sys.executable, str(ROOT / "tools" / "build.py"), "--check"],
                              capture_output=True, text=True, encoding="utf-8")
