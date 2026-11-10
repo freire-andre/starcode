@@ -195,6 +195,40 @@ class SnapshotTests(PonteCase):
         self.assertIn(".specs/features/fase-x/tasks.md", {e["source"] for e in out["errors"]})
         (self.repo / ".specs" / "features" / "fase-x" / "tasks.md").unlink()
         self.assertEqual(run_cli(self.repo).returncode, 0)
+        # unreadable source (a directory where the file should be) and a Handoff above 1 MiB
+        sessions = self.repo / ".starcode" / "live" / "sessions.json"
+        sessions.unlink()
+        sessions.mkdir()
+        self.feature("fase-x", "tasks-ativa.md", "tasks.md")
+        big = self.repo / ".specs" / "features" / "fase-x" / "tasks.md"
+        big.write_text("x" * BIG, encoding="utf-8")
+        out = ponte.snapshot(self.repo)
+        sources = {e["source"]: e["message"] for e in out["errors"]}
+        self.assertIn("ilegível", sources[".starcode/live/sessions.json"])
+        self.assertIn("1 MiB", sources[".specs/features/fase-x/tasks.md"])
+        self.assertTrue(out["starcode"])
+        self.assertEqual(run_cli(self.repo).returncode, 0)
+
+    def test_snapshot_handoff_grande_vira_erro(self) -> None:
+        self.write_repo_config()
+        self.feature("fase-x", "tasks-ativa.md", "tasks.md", mtime=2_000_000)
+        old = self.feature("fase-y", "tasks-ativa.md", "tasks.md", mtime=1_000_000)
+        old.write_text(old.read_text(encoding="utf-8") + "x" * BIG, encoding="utf-8")
+        os.utime(old, (1_000_000, 1_000_000))
+        data = self.snap()
+        self.assertEqual(data["feature"]["slug"], "fase-x")
+        errors = [e for e in data["errors"] if e["source"] == ".specs/features/fase-y/tasks.md"]
+        self.assertEqual(len(errors), 1)
+        self.assertIn("1 MiB", errors[0]["message"])
+        # the chosen feature's oversized Handoff is reported once, not twice
+        big = self.repo / ".specs" / "features" / "fase-x" / "tasks.md"
+        big.write_text(big.read_text(encoding="utf-8") + "x" * BIG, encoding="utf-8")
+        errors = [e for e in self.snap()["errors"] if e["source"] == ".specs/features/fase-x/tasks.md"]
+        self.assertEqual(len(errors), 1)
+
+    def test_linear_ids_sem_duplicatas(self) -> None:
+        self.assertEqual(ponte.linear_ids("SC-17; SC-17; SC-18"), ["SC-17", "SC-18"])
+        self.assertEqual(ponte.linear_ids("SC-9, SC-17, SC-9"), ["SC-9", "SC-17"])
 
     def test_snapshot_worktree_invalido(self) -> None:
         missing = self.tmp / "nao-existe"
