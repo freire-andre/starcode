@@ -94,3 +94,26 @@ test('cena vazia mostra a frase do estado', () => {
   assert.equal(comBom.vazia, false)
   assert.equal(comBom.mensagem, null)
 })
+
+test('cena distribui os inativos no turbolift', () => {
+  const cena = buildScene(estado(), [], 0)
+  const lift = cena.turbolift
+  const inativos = cena.personagens.filter(p => p.pose === 'de-pe')
+  assert.equal(inativos.length, 12)
+  const pontos = new Set(inativos.map(p => `${p.x},${p.y}`))
+  assert.equal(pontos.size, inativos.length)
+  for (const p of inativos) {
+    assert.ok(p.x >= lift.x && p.x < lift.x + lift.largura && p.y >= lift.y && p.y < lift.y + lift.altura, p.membro)
+  }
+  // sem rótulo sobreposto: rótulo com fonte de 1,3 célula: ~0,72 célula por letra, 1,5 de altura
+  for (let i = 0; i < inativos.length; i++) {
+    for (let j = i + 1; j < inativos.length; j++) {
+      const a = inativos[i], b = inativos[j]
+      const meia = (0.72 * (a.nome.length + b.nome.length)) / 2
+      const sobrepoe = Math.abs(a.x - b.x) < meia && Math.abs(a.y - b.y) < 1.5
+      assert.ok(!sobrepoe, `${a.membro} x ${b.membro}`)
+    }
+  }
+  // determinístico (função pura)
+  assert.deepEqual(buildScene(estado(), [], 0).personagens, cena.personagens)
+})

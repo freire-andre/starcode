@@ -1,5 +1,5 @@
 // Testes do worker da Ponte, com um executor falso no lugar dos processos filhos.
-import { assert, mockHost, mountWorker, test } from 'orca/testing'
+import { assert, hostError, mockHost, mountWorker, test } from 'orca/testing'
 import * as main from './worker'
 
 type Call = { cmd: string; args: string[]; cwd?: string }
@@ -305,7 +305,7 @@ test('atualizar agora ignora o cache', async () => {
   await worker.deactivate()
 })
 
-const FILES = { context: null, spec: 'specs/spec.md', tasks: 'specs/tasks.md', handoff: null }
+const FILES = { context: null, spec: 'C:/wt/a/specs/spec.md', tasks: 'c:\\wt\\a\\specs\\tasks.md', handoff: null }
 const PICARD = { member: 'picard', emoji: '🛸', name: 'Picard', count: 1, lastAt: null, cliModel: 'claude · claude-opus-5-5' }
 
 function withFeature(files: Record<string, string | null>, crew: unknown[] = [PICARD]) {
@@ -342,6 +342,11 @@ test('atalho abre spec tasks e handoff', async () => {
   ])
   await assert.rejects(worker.request('ponte.open', { file: 'handoff' }), /file_missing/)
   assert.equal(host.callsOf('editor.open').length, 2)
+  // caminho fora do worktree em foco → file_missing, sem chamar o editor
+  fake.python = withFeature({ ...FILES, handoff: 'C:/outro/handoff.md' })
+  await worker.request('ponte.state', { force: true })
+  await assert.rejects(worker.request('ponte.open', { file: 'handoff' }), /file_missing/)
+  assert.equal(host.callsOf('editor.open').length, 2)
   await worker.deactivate()
 })
 
@@ -354,6 +359,8 @@ test('atalho inicia o Picard uma vez', async () => {
   assert.deepEqual(host.callsOf('agent.launch'), [
     { workspaceId: 'ws-a', agent: 'claude', prompt: '/starcode:engajar' },
   ])
+  const st: any = await worker.request('ponte.state', {})
+  assert.match(st.log.map((e: any) => e.text).join('|'), /Picard iniciado.*term-1/)
   await worker.deactivate()
 
   const codex = install()
@@ -420,4 +427,66 @@ test('diário registra mudança de worktree e de fase', async () => {
   assert.match(texts, /Worktree em foco: b/)
   assert.match(texts, /Fase: build → verify/)
   await worker.deactivate()
+})
+
+test('worker registra falhas no log', async () => {
+  const logs = (st: any) => st.log.map((e: any) => e.text).join('|')
+
+  // processo externo (worktree show) falha → linha com a ação e a mensagem
+  const fake = install()
+  fake.worktree = () => new Error('orca fora do ar')
+  const w1 = await mount(hostFor(CTX_A))
+  const s1: any = await w1.request('ponte.state', { force: true })
+  assert.equal(s1.issueNote, 'Linear indisponível')
+  assert.match(logs(s1), /orca worktree show.*orca fora do ar/)
+  await w1.deactivate()
+
+  // JSON inválido do CLI → "Linear indisponível" e log
+  const f2 = install()
+  f2.worktree = () => ({ stdout: 'não é json' })
+  const w2 = await mount(hostFor(CTX_A))
+  const s2: any = await w2.request('ponte.state', {})
+  assert.equal(s2.issueNote, 'Linear indisponível')
+  assert.match(logs(s2), /orca worktree show/)
+  await w2.deactivate()
+
+  // vínculo nulo não é falha: "Sem issue vinculada" e nada no log
+  const f3 = install()
+  f3.worktree = () => ({ stdout: WORKTREE_SEM })
+  const w3 = await mount(hostFor(CTX_A))
+  const s3: any = await w3.request('ponte.state', {})
+  assert.equal(s3.issueNote, 'Sem issue vinculada')
+  assert.ok(!/orca worktree show/.test(logs(s3)))
+  await w3.deactivate()
+
+  // orca fora do PATH (ENOENT): tenta o binário ao lado do executável antes de desistir
+  const f4 = install()
+  const enoent = Object.assign(new Error('spawn orca ENOENT'), { code: 'ENOENT' })
+  f4.worktree = () => enoent
+  const w4 = await mount(hostFor(CTX_A))
+  const s4: any = await w4.request('ponte.state', {})
+  assert.equal(s4.issueNote, 'Linear indisponível')
+  assert.ok(f4.calls.filter((c) => c.cmd !== 'orca' && c.cmd !== 'python' && c.args[0] === 'worktree').length >= 1)
+  await w4.deactivate()
+
+  // editor.open e agent.launch falham → linha no log e erro devolvido ao painel
+  const f5 = install()
+  f5.python = withFeature(FILES)
+  const h5 = mockHost({
+    results: {
+      'workspace.readContext': CTX_A,
+      'workspace.list': { workspaces: [WS_A, WS_B], truncated: false },
+      'agents.list': { agents: [] },
+      'statusBar.update': { ok: true },
+      'editor.open': () => { throw hostError('internal', 'sem permissão') },
+      'agent.launch': () => { throw hostError('internal', 'agente indisponível') },
+    },
+  })
+  const w5 = await mount(h5)
+  await assert.rejects(w5.request('ponte.open', { file: 'spec' }), /sem permissão/)
+  await assert.rejects(w5.request('ponte.launchPicard', {}), /agente indisponível/)
+  const s5: any = await w5.request('ponte.state', {})
+  assert.match(logs(s5), /editor\.open.*sem permissão/)
+  assert.match(logs(s5), /agent\.launch.*agente indisponível/)
+  await w5.deactivate()
 })

@@ -2,7 +2,7 @@
 // publica o estado aos painéis e atualiza a barra de status. Só lê; nunca escreve estado.
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { OrcaWorkerApi } from 'orca/worker'
 import type { PonteAgent, PonteIssue, PonteSnapshot, PonteState } from './protocol'
@@ -83,16 +83,68 @@ async function runSnapshot(path: string): Promise<PonteSnapshot> {
   return snap
 }
 
-type IssueResult = { issue: PonteIssue | null; note: string | null }
+/** Binários do `orca` a tentar quando o PATH do worker não o acha: variável da Orca e o ao lado do executável. */
+function orcaFallbacks(): string[] {
+  const out: string[] = []
+  for (const k of ['ORCA_CLI_PATH', 'ORCA_CLI', 'ORCA_BIN']) {
+    const v = process.env[k]
+    if (v) out.push(v)
+  }
+  try {
+    const dir = dirname(process.execPath)
+    const exe = process.platform === 'win32' ? 'orca.exe' : 'orca'
+    out.push(join(dir, 'resources', 'bin', exe), join(dir, 'bin', exe), join(dir, exe))
+  } catch {
+    /* sem execPath */
+  }
+  return out
+}
 
-async function queryIssue(path: string): Promise<IssueResult> {
+async function execOrca(args: string[]): Promise<ExecResult> {
   const exec = getExec()
   try {
+    return await exec('orca', args, { timeout: TIMEOUT_MS })
+  } catch (err) {
+    if ((err as { code?: unknown }).code !== 'ENOENT') throw err
+    let last: unknown = err
+    for (const bin of orcaFallbacks()) {
+      try {
+        return await exec(bin, args, { timeout: TIMEOUT_MS })
+      } catch (e) {
+        last = e
+        if ((e as { code?: unknown }).code !== 'ENOENT') throw e
+      }
+    }
+    throw last
+  }
+}
+
+/** Caminho do arquivo relativo à raiz do worktree, com `/`; null quando está fora dela. */
+function relativeToWorktree(file: string, root: string): string | null {
+  const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').replace(/^([A-Za-z]):/, (_, d: string) => `${d.toLowerCase()}:`)
+  const f = norm(file)
+  const r = norm(root)
+  const absolute = /^[a-z]:\//.test(f) || f.startsWith('/')
+  let rel: string
+  if (!absolute) rel = f.replace(/^\.\//, '')
+  else if (f.toLowerCase().startsWith(`${r.toLowerCase()}/`)) rel = f.slice(r.length + 1)
+  else return null
+  return rel && !rel.split('/').includes('..') ? rel : null
+}
+
+type IssueResult = { issue: PonteIssue | null; note: string | null }
+
+async function queryIssue(path: string, fail: (action: string, err: unknown) => void): Promise<IssueResult> {
+  let action = 'orca worktree show'
+  try {
     // O worker não é o terminal do worktree: `--current` não serve. Lê o vínculo do worktree e consulta a issue pelo ID.
-    const wt = await exec('orca', ['worktree', 'show', '--worktree', `path:${path}`, '--json'], { timeout: TIMEOUT_MS })
-    const linked = JSON.parse(wt.stdout)?.result?.worktree?.linkedLinearIssue
+    const wt = await execOrca(['worktree', 'show', '--worktree', `path:${path}`, '--json'])
+    const worktree = JSON.parse(wt.stdout)?.result?.worktree
+    if (!worktree || typeof worktree !== 'object') throw new Error('resposta sem worktree')
+    const linked = worktree.linkedLinearIssue
     if (typeof linked !== 'string' || !linked.trim()) return { issue: null, note: 'Sem issue vinculada' }
-    const out = await exec('orca', ['linear', 'issue', linked.trim(), '--json'], { timeout: TIMEOUT_MS })
+    action = 'orca linear issue'
+    const out = await execOrca(['linear', 'issue', linked.trim(), '--json'])
     const json = JSON.parse(out.stdout)
     const issue = json?.result?.issue
     if (json?.ok && issue?.identifier) {
@@ -106,8 +158,10 @@ async function queryIssue(path: string): Promise<IssueResult> {
         note: null,
       }
     }
+    fail(action, new Error('resposta sem issue'))
     return { issue: null, note: 'Linear indisponível' }
-  } catch {
+  } catch (err) {
+    fail(action, err)
     return { issue: null, note: 'Linear indisponível' }
   }
 }
@@ -143,6 +197,13 @@ export default function activate(orca: OrcaWorkerApi): void {
   const note = (text: string) => {
     log.push({ at: Date.now(), text })
     if (log.length > LOG_MAX) log.shift()
+  }
+
+  /** Falha de processo externo ou de chamada ao host: uma linha no diário e no log do worker. */
+  const fail = (action: string, err: unknown) => {
+    const text = `${action} falhou: ${firstLine(err)}`
+    note(text)
+    console.log(`[starcode-ponte] ${text}`)
   }
 
   /** Acrescenta ao diário o que mudou desde o último estado bom. */
@@ -201,7 +262,7 @@ export default function activate(orca: OrcaWorkerApi): void {
   async function issueFor(path: string, snap: PonteSnapshot, force: boolean): Promise<IssueResult> {
     let entry = issueCache.get(path)
     if (!entry || force || Date.now() - entry.at >= ISSUE_TTL_MS) {
-      entry = { at: Date.now(), result: await queryIssue(path) }
+      entry = { at: Date.now(), result: await queryIssue(path, (a, e) => fail(a, e)) }
       issueCache.set(path, entry)
     }
     const { issue, note: why } = entry.result
@@ -284,9 +345,16 @@ export default function activate(orca: OrcaWorkerApi): void {
     const where = await focus()
     if (!where) throw Object.assign(new Error('Nenhum worktree em foco'), { code: 'no_worktree' })
     const snap = await runSnapshot(where.path)
-    const rel = snap.feature?.files?.[input.file] ?? null
+    const file = snap.feature?.files?.[input.file] ?? null
+    const rel = file ? relativeToWorktree(file, where.path) : null
     if (!rel) throw Object.assign(new Error('file_missing'), { code: 'file_missing' })
-    await orca.host.call('editor.open', { workspaceId: where.id, path: rel })
+    try {
+      await orca.host.call('editor.open', { workspaceId: where.id, path: rel })
+    } catch (err) {
+      fail('editor.open', err)
+      schedule()
+      throw err
+    }
     return { opened: true }
   })
 
@@ -303,9 +371,17 @@ export default function activate(orca: OrcaWorkerApi): void {
         throw Object.assign(new Error(`Agente ${agent} não pode ser iniciado pela Orca`), { code: 'not_launchable' })
       }
       const prompt = agent === 'claude' ? '/starcode:engajar' : agent === 'codex' ? '$starcode:engajar' : 'engajar'
-      const res = (await orca.host.call('agent.launch', { workspaceId: where.id, agent, prompt })) as {
-        terminalId: string
+      let res: { terminalId: string }
+      try {
+        res = (await orca.host.call('agent.launch', { workspaceId: where.id, agent, prompt })) as { terminalId: string }
+      } catch (err) {
+        fail('agent.launch', err)
+        schedule()
+        throw err
       }
+      note(`Picard iniciado (terminal ${res.terminalId}).`)
+      console.log(`[starcode-ponte] agent.launch: terminalId ${res.terminalId}`)
+      schedule()
       return { terminalId: res.terminalId }
     } finally {
       launching = false
