@@ -1,7 +1,7 @@
 // Testes do worker da Ponte, com um executor falso no lugar dos processos filhos.
 import { assert, hostError, mockHost, mountWorker, test } from 'orca/testing'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as main from './worker'
 
@@ -237,9 +237,10 @@ test('worker sem Linear mostra o ID do Handoff', async () => {
 
   const sem = install()
   sem.worktree = () => ({ stdout: WORKTREE_SEM })
+  sem.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { feature: { ...(snapshot(p).feature as object), linear: [] } })) })
   const w2 = await mount(hostFor(CTX_A))
   const s2: any = await w2.request('ponte.state', {})
-  assert.equal(s2.issue.id, 'SC-17')
+  assert.equal(s2.issue, null)
   assert.equal(s2.issueNote, 'Sem issue vinculada')
   assert.equal(sem.linear().length, 0)
   await w2.deactivate()
@@ -479,6 +480,7 @@ test('worker registra falhas no log', async () => {
   // vínculo nulo não é falha: "Sem issue vinculada" e nada no log
   const f3 = install()
   f3.worktree = () => ({ stdout: WORKTREE_SEM })
+  f3.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { feature: { ...(snapshot(p).feature as object), linear: [] } })) })
   const w3 = await mount(hostFor(CTX_A))
   const s3: any = await w3.request('ponte.state', {})
   assert.equal(s3.issueNote, 'Sem issue vinculada')
@@ -604,31 +606,15 @@ test('diário não repete a mesma falha', async () => {
   await worker.deactivate()
 })
 
-test('issue do snapshot só ganha url derivada de uma url real do CLI', async () => {
+test('issue do snapshot sem CLI fica sem url', async () => {
   const fake = install()
   fake.worktree = () => new Error('orca fora do ar')
   const worker = await mount(hostFor(CTX_A))
-  let st: any = await worker.request('ponte.state', {})
+  const st: any = await worker.request('ponte.state', {})
   assert.equal(st.issue.id, 'SC-17')
   assert.equal(st.issue.url, null)
   assert.equal(st.issueNote, 'Linear indisponível pelo CLI')
   await worker.deactivate()
-
-  const real = install()
-  real.orca = () => ({
-    stdout: JSON.stringify({
-      ok: true,
-      result: { issue: { identifier: 'SC-116', title: 'T2', state: { name: 'Todo' }, url: 'https://linear.app/minha-ws/issue/SC-116/t2' } },
-    }),
-  })
-  const w2 = await mount(hostFor(CTX_A))
-  st = await w2.request('ponte.state', {})
-  assert.equal(st.issue.url, 'https://linear.app/minha-ws/issue/SC-116/t2')
-  real.worktree = () => new Error('orca fora do ar')
-  st = await w2.request('ponte.state', { force: true })
-  assert.equal(st.issue.id, 'SC-17')
-  assert.equal(st.issue.url, 'https://linear.app/minha-ws/issue/SC-17')
-  await w2.deactivate()
 })
 
 async function withCliEnv<T>(vars: Record<string, string | undefined>, execPath: string, fn: () => Promise<T>): Promise<T> {
@@ -707,4 +693,132 @@ test('orca nunca executa o próprio executável do processo', async () => {
     assert.ok(!fake.calls.some((c) => c.cmd === 'orca' || c.cmd.toLowerCase() === app.toLowerCase()))
     await worker.deactivate()
   })
+})
+
+const RUNTIME_DOWN = JSON.stringify({
+  ok: false,
+  error: { code: 'runtime_unavailable', message: 'APPDATA is not set, so the Orca runtime metadata path cannot be resolved.' },
+})
+
+async function withoutEnv<T>(names: string[], fn: () => Promise<T>): Promise<T> {
+  const old: Record<string, string | undefined> = {}
+  for (const k of names) {
+    old[k] = process.env[k]
+    delete process.env[k]
+  }
+  try {
+    return await fn()
+  } finally {
+    for (const k of names) if (old[k] !== undefined) process.env[k] = old[k]
+  }
+}
+
+test('falha do CLI com JSON ok:false usa code e message', async () => {
+  const fake = install()
+  fake.worktree = () => Object.assign(new Error('Command failed: orca.exe worktree show'), { code: 1, stderr: '', stdout: RUNTIME_DOWN })
+  const worker = await mount(hostFor(CTX_A))
+  const st: any = await worker.request('ponte.state', {})
+  const diary = st.log.map((e: any) => e.text).join('|')
+  assert.match(diary, /orca worktree show falhou: runtime_unavailable: APPDATA is not set/)
+  assert.ok(!diary.includes('Command failed'))
+  const logs = worker.logs.join('\n')
+  assert.match(logs, /runtime_unavailable: APPDATA is not set/)
+  await worker.deactivate()
+
+  const zero = install()
+  zero.worktree = () => ({ stdout: RUNTIME_DOWN })
+  const w2 = await mount(hostFor(CTX_A))
+  const s2: any = await w2.request('ponte.state', {})
+  assert.match(s2.log.map((e: any) => e.text).join('|'), /runtime_unavailable: APPDATA is not set/)
+  await w2.deactivate()
+})
+
+test('orca.log lista quais variáveis de base estão definidas, sem valores', async () => {
+  await withEnv({ APPDATA: 'C:/segredo-appdata', HOMEPATH: '\\segredo-home' }, async () => {
+    await withoutEnv(['LOCALAPPDATA'], async () => {
+      const fake = install()
+      fake.worktree = () => Object.assign(new Error('falhou'), { code: 1, stderr: '' })
+      const worker = await mount(hostFor(CTX_A))
+      await worker.request('ponte.state', {})
+      const logs = worker.logs.join('\n')
+      const base = /base: ([^·]*)/.exec(logs)?.[1] ?? ''
+      assert.match(base, /\bAPPDATA\b/)
+      assert.match(base, /\bHOMEPATH\b/)
+      assert.ok(!/\bLOCALAPPDATA\b/.test(base))
+      assert.ok(!logs.includes('segredo-appdata'))
+      assert.ok(!logs.includes('segredo-home'))
+      await worker.deactivate()
+    })
+  })
+})
+
+test('env do CLI ganha as pastas do usuário quando faltam, sem sobrescrever', async () => {
+  const win = process.platform === 'win32'
+  const names = win ? ['APPDATA', 'LOCALAPPDATA', 'USERPROFILE'] : ['HOME']
+  await withoutEnv(names, async () => {
+    const home = homedir()
+    const fake = install()
+    const worker = await mount(hostFor(CTX_A))
+    await worker.request('ponte.state', {})
+    const env = fake.worktrees()[0].env!
+    if (win) {
+      assert.equal(env.USERPROFILE, home)
+      assert.equal(env.APPDATA, join(home, 'AppData', 'Roaming'))
+      assert.equal(env.LOCALAPPDATA, join(home, 'AppData', 'Local'))
+    } else {
+      assert.equal(env.HOME, home)
+    }
+    await worker.deactivate()
+  })
+  const custom = win ? { APPDATA: 'X:/meu-appdata' } : { HOME: '/meu-home' }
+  await withEnv(custom, async () => {
+    const fake = install()
+    const worker = await mount(hostFor(CTX_A))
+    await worker.request('ponte.state', {})
+    const env = fake.worktrees()[0].env!
+    for (const [k, v] of Object.entries(custom)) assert.equal(env[k], v)
+    await worker.deactivate()
+  })
+})
+
+test('worktree sem vínculo consulta a issue do snapshot', async () => {
+  const fake = install()
+  fake.worktree = () => ({ stdout: WORKTREE_SEM })
+  fake.orca = () => ({
+    stdout: JSON.stringify({
+      ok: true,
+      result: { issue: { identifier: 'SC-17', title: 'Fase 10', state: { name: 'In Progress' }, url: 'https://linear.app/ws/issue/SC-17/fase-10' } },
+    }),
+  })
+  const worker = await mount(hostFor(CTX_A))
+  const st: any = await worker.request('ponte.state', {})
+  assert.equal(fake.linear().length, 1)
+  assert.equal(fake.linear()[0].args[2], 'SC-17')
+  assert.equal(st.issue.id, 'SC-17')
+  assert.equal(st.issue.title, 'Fase 10')
+  assert.equal(st.issue.state, 'In Progress')
+  assert.equal(st.issue.url, 'https://linear.app/ws/issue/SC-17/fase-10')
+  assert.equal(st.issueNote, null)
+  await worker.deactivate()
+})
+
+test('url da issue montada só pelo urlKey do worktree quando a consulta falha', async () => {
+  const fake = install()
+  fake.worktree = () => ({
+    stdout: JSON.stringify({ ok: true, result: { worktree: { linkedLinearIssue: 'SC-116', linkedLinearIssueOrganizationUrlKey: 'minha-org' } } }),
+  })
+  fake.orca = () => new Error('linear fora do ar')
+  const worker = await mount(hostFor(CTX_A))
+  const st: any = await worker.request('ponte.state', {})
+  assert.equal(st.issue.id, 'SC-116')
+  assert.equal(st.issue.url, 'https://linear.app/minha-org/issue/SC-116')
+  assert.equal(st.issueNote, 'Linear indisponível pelo CLI')
+  await worker.deactivate()
+
+  const sem = install()
+  sem.orca = () => new Error('linear fora do ar')
+  const w2 = await mount(hostFor(CTX_A))
+  const s2: any = await w2.request('ponte.state', {})
+  assert.equal(s2.issue.url, null)
+  await w2.deactivate()
 })
