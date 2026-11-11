@@ -241,6 +241,12 @@ function relativeToWorktree(file: string, root: string): string | null {
   return rel && !rel.split('/').includes('..') ? rel : null
 }
 
+/** Erro de tempo do execFile: processo morto, sinal ou ETIMEDOUT. */
+function isTimeout(err: unknown): boolean {
+  const e = err as { killed?: unknown; signal?: unknown; code?: unknown } | null
+  return !!e && (e.killed === true || !!e.signal || e.code === 'ETIMEDOUT')
+}
+
 /** Modelo real do `cliModel` ("claude · opus"); vazio quando é o padrão do CLI. */
 function realModel(cliModel: string | null | undefined): string | null {
   const m = (cliModel ?? '').split('·')[1]?.trim() ?? ''
@@ -547,6 +553,14 @@ export default function activate(orca: OrcaWorkerApi): void {
         return { terminalId, visible: true }
       } catch (err) {
         fail('orca agent launch', err)
+        // Timeout: o CLI pode já ter aberto o Picard; voltar à API abriria um segundo.
+        if (isTimeout(err)) {
+          schedule()
+          throw Object.assign(
+            new Error('O CLI da Orca não respondeu a tempo; confira se o Picard abriu antes de tentar de novo'),
+            { code: 'launch_timeout' },
+          )
+        }
       }
       let res: { terminalId: string }
       try {

@@ -459,6 +459,19 @@ test('atalho sem modelo real não manda --model e aceita resposta sem terminal',
   await worker.deactivate()
 })
 
+test('atalho não repete o Picard quando o CLI estoura o tempo', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES)
+  fake.orca = () => Object.assign(new Error('Command failed'), { killed: true, signal: 'SIGTERM' })
+  const host = launchHost()
+  const worker = await mount(host)
+  await assert.rejects(worker.request('ponte.launchPicard', {}), /launch_timeout|não respondeu a tempo/)
+  assert.equal(host.callsOf('agent.launch').length, 0)
+  const st: any = await worker.request('ponte.state', {})
+  assert.match(st.log.map((e: any) => e.text).join('|'), /orca agent launch falhou/)
+  await worker.deactivate()
+})
+
 test('atalho cai no agent.launch quando o CLI falha', async () => {
   const fake = install()
   fake.python = withFeature(FILES)
