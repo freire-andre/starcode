@@ -1,8 +1,8 @@
 // Worker da Ponte do StarCode: acha o worktree em foco, roda o ponte.py e o Linear,
 // publica o estado aos painéis e atualiza a barra de status. Só lê; nunca escreve estado.
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { existsSync, statSync } from 'node:fs'
+import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { OrcaWorkerApi } from 'orca/worker'
 import type { PonteAgent, PonteIssue, PonteSnapshot, PonteState } from './protocol'
@@ -74,12 +74,6 @@ function orcaEnv(): Record<string, string | undefined> {
   return env
 }
 
-function isLoaderError(err: unknown): boolean {
-  const e = err as ExecError
-  if (e?.code === 'MODULE_NOT_FOUND') return true
-  return /node:internal\/modules|Cannot find module|MODULE_NOT_FOUND/.test(`${e?.message ?? ''}\n${e?.stderr ?? ''}`)
-}
-
 /** Diagnóstico para o orca.log: até 8 linhas do stderr e só os NOMES das variáveis NODE_/ELECTRON_/ORCA_. */
 function diagnostics(err: unknown): string | null {
   const e = err as ExecError
@@ -127,51 +121,62 @@ async function runSnapshot(path: string): Promise<PonteSnapshot> {
   return snap
 }
 
-/** Binários do `orca` a tentar quando o PATH do worker não o acha: variável da Orca e o ao lado do executável. */
-function orcaFallbacks(): string[] {
-  const out: string[] = []
+const samePath = (a: string, b: string) => resolve(a).replace(/\\/g, '/').toLowerCase() === resolve(b).replace(/\\/g, '/').toLowerCase()
+
+function isFile(p: string): boolean {
+  try {
+    return existsSync(p) && statSync(p).isFile()
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Caminhos explícitos do CLI, em ordem: variáveis da Orca, `resources/bin` e `bin` ao lado do executável,
+ * e o PATH procurado à mão. Nunca o nome solto `orca`: no Windows o CreateProcess olha primeiro a pasta
+ * do executável e acharia o Orca.exe (o app). Nunca o próprio process.execPath.
+ */
+function orcaCandidates(): string[] {
+  const exe = process.platform === 'win32' ? 'orca.exe' : 'orca'
+  const raw: string[] = []
   for (const k of ['ORCA_CLI_PATH', 'ORCA_CLI', 'ORCA_BIN']) {
     const v = process.env[k]
-    if (v) out.push(v)
+    if (v) raw.push(v)
   }
+  let self = ''
   try {
-    const dir = dirname(process.execPath)
-    const exe = process.platform === 'win32' ? 'orca.exe' : 'orca'
-    out.push(join(dir, 'resources', 'bin', exe), join(dir, 'bin', exe), join(dir, exe))
+    self = process.execPath
+    const dir = dirname(self)
+    raw.push(join(dir, 'resources', 'bin', exe), join(dir, 'bin', exe))
   } catch {
     /* sem execPath */
+  }
+  for (const dir of (process.env.PATH ?? process.env.Path ?? '').split(delimiter)) {
+    if (dir.trim()) raw.push(join(dir.trim().replace(/^"|"$/g, ''), exe))
+  }
+  const out: string[] = []
+  for (const p of raw) {
+    if (self && samePath(p, self)) continue
+    if (out.some((o) => samePath(o, p))) continue
+    if (isFile(p)) out.push(p)
   }
   return out
 }
 
-/** Roda o `orca` com env limpo; com erro do loader, tenta de novo uma vez com cwd no worktree. */
-async function execOrca(args: string[], cwd?: string): Promise<ExecResult> {
-  try {
-    return await execOrcaOnce(args)
-  } catch (err) {
-    if (!cwd || !isLoaderError(err)) throw err
-    return execOrcaOnce(args, cwd)
-  }
-}
-
-async function execOrcaOnce(args: string[], cwd?: string): Promise<ExecResult> {
+/** Roda o CLI do `orca` por caminho explícito e com env limpo; ENOENT passa ao próximo candidato. */
+async function execOrca(args: string[]): Promise<ExecResult> {
   const exec = getExec()
-  const opts: ExecOpts = { timeout: TIMEOUT_MS, env: orcaEnv(), ...(cwd ? { cwd } : {}) }
-  try {
-    return await exec('orca', args, opts)
-  } catch (err) {
-    if ((err as { code?: unknown }).code !== 'ENOENT') throw err
-    let last: unknown = err
-    for (const bin of orcaFallbacks()) {
-      try {
-        return await exec(bin, args, opts)
-      } catch (e) {
-        last = e
-        if ((e as { code?: unknown }).code !== 'ENOENT') throw e
-      }
+  const opts: ExecOpts = { timeout: TIMEOUT_MS, env: orcaEnv() }
+  let last: unknown = Object.assign(new Error('CLI do orca não encontrado'), { code: 'ENOENT' })
+  for (const bin of orcaCandidates()) {
+    try {
+      return await exec(bin, args, opts)
+    } catch (e) {
+      last = e
+      if ((e as { code?: unknown }).code !== 'ENOENT') throw e
     }
-    throw last
   }
+  throw last
 }
 
 /** Caminho do arquivo relativo à raiz do worktree, com `/`; null quando está fora dela. */
@@ -205,14 +210,14 @@ async function queryIssue(
   let action = 'orca worktree show'
   try {
     // O worker não é o terminal do worktree: `--current` não serve. Lê o vínculo do worktree e consulta a issue pelo ID.
-    const wt = await execOrca(['worktree', 'show', '--worktree', `path:${path}`, '--json'], path)
+    const wt = await execOrca(['worktree', 'show', '--worktree', `path:${path}`, '--json'])
     const worktree = JSON.parse(wt.stdout)?.result?.worktree
     if (!worktree || typeof worktree !== 'object') throw new Error('resposta sem worktree')
     ok(action)
     const linked = worktree.linkedLinearIssue
     if (typeof linked !== 'string' || !linked.trim()) return { issue: null, note: 'Sem issue vinculada' }
     action = 'orca linear issue'
-    const out = await execOrca(['linear', 'issue', linked.trim(), '--json'], path)
+    const out = await execOrca(['linear', 'issue', linked.trim(), '--json'])
     const json = JSON.parse(out.stdout)
     const issue = json?.result?.issue
     if (json?.ok && issue?.identifier) {
