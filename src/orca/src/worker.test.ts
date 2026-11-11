@@ -2,7 +2,7 @@
 import { assert, hostError, mockHost, mountWorker, test } from 'orca/testing'
 import * as main from './worker'
 
-type Call = { cmd: string; args: string[]; cwd?: string }
+type Call = { cmd: string; args: string[]; cwd?: string; env?: Record<string, string | undefined> }
 type Reply = { stdout: string } | Error
 
 const WS_A = { id: 'ws-a', kind: 'worktree', name: 'a', path: 'C:/wt/a', branch: 'feat/a', hostId: null }
@@ -64,8 +64,8 @@ function install(): Fake {
     orca: () => ({ stdout: LINEAR_OK }),
     worktree: () => ({ stdout: WORKTREE_OK }),
   }
-  ;(globalThis as any).__ponteExec = async (cmd: string, args: string[], opts: { cwd?: string }) => {
-    fake.calls.push({ cmd, args, cwd: opts?.cwd })
+  ;(globalThis as any).__ponteExec = async (cmd: string, args: string[], opts: { cwd?: string; env?: Record<string, string | undefined> }) => {
+    fake.calls.push({ cmd, args, cwd: opts?.cwd, env: opts?.env })
     const reply =
       cmd === 'orca'
         ? args[0] === 'worktree' ? await fake.worktree() : await fake.orca()
@@ -220,7 +220,7 @@ test('worker sem Linear mostra o ID do Handoff', async () => {
   const worker = await mount(hostFor(CTX_A))
   const state: any = await worker.request('ponte.state', {})
   assert.equal(state.issue.id, 'SC-17')
-  assert.equal(state.issueNote, 'Linear indisponível')
+  assert.equal(state.issueNote, 'Linear indisponível pelo CLI')
   await worker.request('ponte.state', {})
   assert.equal(fake.linear().length, 1)
   await worker.deactivate()
@@ -239,7 +239,7 @@ test('worker sem Linear mostra o ID do Handoff', async () => {
   const w3 = await mount(hostFor(CTX_A))
   const s3: any = await w3.request('ponte.state', {})
   assert.equal(s3.issue.id, 'SC-17')
-  assert.equal(s3.issueNote, 'Linear indisponível')
+  assert.equal(s3.issueNote, 'Linear indisponível pelo CLI')
   await w3.deactivate()
 })
 
@@ -254,6 +254,22 @@ test('worker com snapshot falho marca desatualizado', async () => {
   assert.equal(bad.stale, true)
   assert.equal(bad.error, 'boom')
   assert.equal(bad.snapshot.worktree, 'C:/wt/a')
+  await worker.deactivate()
+})
+
+test('worker mostra o erro do ponte.py quando ele sai com 2', async () => {
+  const fake = install()
+  fake.python = () =>
+    Object.assign(new Error('Command failed: python ponte.py snapshot'), {
+      code: 2,
+      stdout: JSON.stringify({ schemaVersion: 1, error: 'worktree inválido: X' }),
+    })
+  const worker = await mount(hostFor(CTX_A))
+  const state: any = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'erro')
+  assert.equal(state.error, 'worktree inválido: X')
+  const posted = worker.posts.filter((p) => p.event === 'ponte.state') as any[]
+  assert.equal(posted[posted.length - 1].payload.error, 'worktree inválido: X')
   await worker.deactivate()
 })
 
@@ -437,7 +453,7 @@ test('worker registra falhas no log', async () => {
   fake.worktree = () => new Error('orca fora do ar')
   const w1 = await mount(hostFor(CTX_A))
   const s1: any = await w1.request('ponte.state', { force: true })
-  assert.equal(s1.issueNote, 'Linear indisponível')
+  assert.equal(s1.issueNote, 'Linear indisponível pelo CLI')
   assert.match(logs(s1), /orca worktree show.*orca fora do ar/)
   await w1.deactivate()
 
@@ -446,7 +462,7 @@ test('worker registra falhas no log', async () => {
   f2.worktree = () => ({ stdout: 'não é json' })
   const w2 = await mount(hostFor(CTX_A))
   const s2: any = await w2.request('ponte.state', {})
-  assert.equal(s2.issueNote, 'Linear indisponível')
+  assert.equal(s2.issueNote, 'Linear indisponível pelo CLI')
   assert.match(logs(s2), /orca worktree show/)
   await w2.deactivate()
 
@@ -465,7 +481,7 @@ test('worker registra falhas no log', async () => {
   f4.worktree = () => enoent
   const w4 = await mount(hostFor(CTX_A))
   const s4: any = await w4.request('ponte.state', {})
-  assert.equal(s4.issueNote, 'Linear indisponível')
+  assert.equal(s4.issueNote, 'Linear indisponível pelo CLI')
   assert.ok(f4.calls.filter((c) => c.cmd !== 'orca' && c.cmd !== 'python' && c.args[0] === 'worktree').length >= 1)
   await w4.deactivate()
 
@@ -489,4 +505,149 @@ test('worker registra falhas no log', async () => {
   assert.match(logs(s5), /editor\.open.*sem permissão/)
   assert.match(logs(s5), /agent\.launch.*agente indisponível/)
   await w5.deactivate()
+})
+
+const DIRTY_ENV = {
+  NODE_OPTIONS: '--segredo-node',
+  NODE_PATH: 'C:/np',
+  NODE_REPL_EXTERNAL_MODULE: 'x.js',
+  ELECTRON_RUN_AS_NODE: '1',
+  ORCA_NODE_OPTIONS: '--segredo-orca',
+  ORCA_CLI_COMMAND: 'cmd',
+  ORCA_USER_DATA_PATH: 'C:/ud',
+}
+
+async function withEnv<T>(vars: Record<string, string>, fn: () => Promise<T>): Promise<T> {
+  const old: Record<string, string | undefined> = {}
+  for (const k of Object.keys(vars)) {
+    old[k] = process.env[k]
+    process.env[k] = vars[k]
+  }
+  try {
+    return await fn()
+  } finally {
+    for (const k of Object.keys(vars)) {
+      if (old[k] === undefined) delete process.env[k]
+      else process.env[k] = old[k]
+    }
+  }
+}
+
+const LOADER = 'node:internal/modules/cjs/loader:1575\n  throw err;\nError: Cannot find module'
+
+test('falha de processo externo grava stderr e nomes de variáveis no orca.log', async () => {
+  await withEnv(DIRTY_ENV, async () => {
+    const fake = install()
+    const stderr = Array.from({ length: 10 }, (_, i) => `linha ${i + 1}`).join('\n')
+    fake.worktree = () => Object.assign(new Error('linha 1'), { code: 1, stderr })
+    const worker = await mount(hostFor(CTX_A))
+    const state: any = await worker.request('ponte.state', {})
+    const logs = worker.logs.join('\n')
+    assert.match(logs, /linha 1\b/)
+    assert.match(logs, /linha 8\b/)
+    assert.ok(!/linha 9\b/.test(logs))
+    for (const k of Object.keys(DIRTY_ENV)) assert.ok(logs.includes(k), k)
+    assert.ok(!logs.includes('--segredo-node'))
+    assert.ok(!logs.includes('--segredo-orca'))
+    const diary = state.log.map((e: any) => e.text).join('|')
+    assert.ok(!diary.includes('linha 2'))
+    assert.ok(!diary.includes('NODE_OPTIONS'))
+    await worker.deactivate()
+  })
+})
+
+test('orca roda com env limpo e python com o env herdado', async () => {
+  await withEnv(DIRTY_ENV, async () => {
+    const fake = install()
+    const worker = await mount(hostFor(CTX_A))
+    await worker.request('ponte.state', {})
+    const orcaCalls = fake.calls.filter((c) => c.cmd === 'orca')
+    assert.ok(orcaCalls.length >= 2)
+    for (const c of orcaCalls) {
+      assert.ok(c.env, 'env passado ao orca')
+      for (const k of ['NODE_OPTIONS', 'NODE_PATH', 'NODE_REPL_EXTERNAL_MODULE', 'ELECTRON_RUN_AS_NODE', 'ORCA_NODE_OPTIONS', 'ORCA_CLI_COMMAND']) {
+        assert.equal(c.env![k], undefined, k)
+      }
+      assert.equal(c.env!.ORCA_USER_DATA_PATH, 'C:/ud')
+    }
+    assert.equal(fake.snaps()[0].env, undefined)
+    await worker.deactivate()
+  })
+})
+
+test('orca com erro do loader tenta de novo uma vez no diretório do worktree', async () => {
+  const fake = install()
+  let n = 0
+  fake.worktree = () => (++n === 1 ? Object.assign(new Error('node:internal/modules/cjs/loader:1575'), { code: 1, stderr: LOADER }) : { stdout: WORKTREE_OK })
+  const worker = await mount(hostFor(CTX_A))
+  const state: any = await worker.request('ponte.state', {})
+  const wts = fake.worktrees()
+  assert.equal(wts.length, 2)
+  assert.equal(wts[0].cwd, undefined)
+  assert.equal(wts[1].cwd, 'C:/wt/a')
+  assert.ok(wts[1].env)
+  assert.equal(state.issue.id, 'SC-116')
+  await worker.deactivate()
+
+  const sempre = install()
+  sempre.worktree = () => Object.assign(new Error('node:internal/modules/cjs/loader:1575'), { code: 1, stderr: LOADER })
+  const w2 = await mount(hostFor(CTX_A))
+  await w2.request('ponte.state', {})
+  assert.equal(sempre.worktrees().length, 2)
+  await w2.deactivate()
+
+  const outro = install()
+  outro.worktree = () => Object.assign(new Error('orca fora do ar'), { code: 1, stderr: 'orca fora do ar' })
+  const w3 = await mount(hostFor(CTX_A))
+  await w3.request('ponte.state', {})
+  assert.equal(outro.worktrees().length, 1)
+  await w3.deactivate()
+})
+
+test('diário não repete a mesma falha', async () => {
+  const fake = install()
+  let msg = 'orca fora do ar'
+  fake.worktree = () => new Error(msg)
+  const worker = await mount(hostFor(CTX_A))
+  const count = (st: any) => st.log.filter((e: any) => /orca worktree show falhou/.test(e.text)).length
+  let st: any
+  for (let i = 0; i < 3; i++) st = await worker.request('ponte.state', { force: true })
+  assert.equal(count(st), 1)
+  msg = 'outra falha'
+  st = await worker.request('ponte.state', { force: true })
+  assert.equal(count(st), 2)
+  fake.worktree = () => ({ stdout: WORKTREE_OK })
+  st = await worker.request('ponte.state', { force: true })
+  assert.equal(st.issue.id, 'SC-116')
+  fake.worktree = () => new Error(msg)
+  st = await worker.request('ponte.state', { force: true })
+  assert.equal(count(st), 3)
+  await worker.deactivate()
+})
+
+test('issue do snapshot só ganha url derivada de uma url real do CLI', async () => {
+  const fake = install()
+  fake.worktree = () => new Error('orca fora do ar')
+  const worker = await mount(hostFor(CTX_A))
+  let st: any = await worker.request('ponte.state', {})
+  assert.equal(st.issue.id, 'SC-17')
+  assert.equal(st.issue.url, null)
+  assert.equal(st.issueNote, 'Linear indisponível pelo CLI')
+  await worker.deactivate()
+
+  const real = install()
+  real.orca = () => ({
+    stdout: JSON.stringify({
+      ok: true,
+      result: { issue: { identifier: 'SC-116', title: 'T2', state: { name: 'Todo' }, url: 'https://linear.app/minha-ws/issue/SC-116/t2' } },
+    }),
+  })
+  const w2 = await mount(hostFor(CTX_A))
+  st = await w2.request('ponte.state', {})
+  assert.equal(st.issue.url, 'https://linear.app/minha-ws/issue/SC-116/t2')
+  real.worktree = () => new Error('orca fora do ar')
+  st = await w2.request('ponte.state', { force: true })
+  assert.equal(st.issue.id, 'SC-17')
+  assert.equal(st.issue.url, 'https://linear.app/minha-ws/issue/SC-17')
+  await w2.deactivate()
 })

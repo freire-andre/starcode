@@ -17,17 +17,27 @@ const STATE_PT: Record<string, string> = {
 }
 
 type ExecResult = { stdout: string }
-type Exec = (cmd: string, args: string[], opts: { cwd?: string; timeout: number }) => Promise<ExecResult>
+type ExecOpts = { cwd?: string; timeout: number; env?: Record<string, string | undefined> }
+type Exec = (cmd: string, args: string[], opts: ExecOpts) => Promise<ExecResult>
+type ExecError = Error & { code?: unknown; stdout?: string; stderr?: string }
+
+const STDERR_LINES = 8
+// Variáveis que o launcher nativo do orca.exe lê e que o worker do plugin herda do Electron.
+const ORCA_ENV_DROP = [
+  'NODE_OPTIONS', 'NODE_PATH', 'NODE_REPL_EXTERNAL_MODULE', 'ELECTRON_RUN_AS_NODE', 'ORCA_NODE_OPTIONS', 'ORCA_CLI_COMMAND',
+]
 
 const realExec: Exec = (cmd, args, opts) =>
   new Promise((resolveExec, reject) => {
     execFile(
       cmd,
       args,
-      { cwd: opts.cwd, timeout: opts.timeout, windowsHide: true, maxBuffer: 8 * 1024 * 1024, encoding: 'utf8' },
+      { cwd: opts.cwd, env: opts.env, timeout: opts.timeout, windowsHide: true, maxBuffer: 8 * 1024 * 1024, encoding: 'utf8' },
       (err, stdout, stderr) => {
         if (err) {
-          const e = err as Error & { code?: unknown }
+          const e = err as ExecError
+          e.stdout = String(stdout ?? '')
+          e.stderr = String(stderr ?? '')
           const first = String(stderr || '').trim().split(/\r?\n/)[0]
           if (first && e.code !== 'ENOENT') e.message = first
           reject(e)
@@ -57,6 +67,40 @@ function firstLine(err: unknown): string {
   return text.trim().split(/\r?\n/)[0] || 'erro desconhecido'
 }
 
+/** Env do processo sem as variáveis que quebram o launcher do orca.exe. */
+function orcaEnv(): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { ...process.env }
+  for (const k of ORCA_ENV_DROP) delete env[k]
+  return env
+}
+
+function isLoaderError(err: unknown): boolean {
+  const e = err as ExecError
+  if (e?.code === 'MODULE_NOT_FOUND') return true
+  return /node:internal\/modules|Cannot find module|MODULE_NOT_FOUND/.test(`${e?.message ?? ''}\n${e?.stderr ?? ''}`)
+}
+
+/** Diagnóstico para o orca.log: até 8 linhas do stderr e só os NOMES das variáveis NODE_/ELECTRON_/ORCA_. */
+function diagnostics(err: unknown): string | null {
+  const e = err as ExecError
+  if (!e || typeof e !== 'object' || typeof e.stderr !== 'string') return null
+  const lines = String(e.stderr ?? '').split(/\r?\n/).filter((l) => l.trim()).slice(0, STDERR_LINES)
+  const names = Object.keys(process.env).filter((k) => /^(NODE_|ELECTRON_|ORCA_)/i.test(k)).sort()
+  return `stderr: ${lines.length ? lines.join(' | ') : '(vazio)'} · env: ${names.join(', ') || '(nenhuma)'}`
+}
+
+// O ponte.py recusa o worktree com JSON `{error}` no stdout e exit 2; essa mensagem vale mais que o stderr.
+function stdoutError(err: unknown): Error | null {
+  const out = (err as { stdout?: unknown })?.stdout
+  if (typeof out !== 'string' || !out.trim()) return null
+  try {
+    const msg = (JSON.parse(out) as { error?: unknown })?.error
+    return typeof msg === 'string' && msg ? new Error(msg) : null
+  } catch {
+    return null
+  }
+}
+
 async function runSnapshot(path: string): Promise<PonteSnapshot> {
   const exec = getExec()
   const args = [ponteScript(), 'snapshot', '--path', path, '--json']
@@ -68,7 +112,7 @@ async function runSnapshot(path: string): Promise<PonteSnapshot> {
       break
     } catch (err) {
       lastErr = err
-      if ((err as { code?: unknown }).code !== 'ENOENT') throw err
+      if ((err as { code?: unknown }).code !== 'ENOENT') throw stdoutError(err) ?? err
     }
   }
   if (!out) throw lastErr ?? new Error('python não encontrado')
@@ -100,16 +144,27 @@ function orcaFallbacks(): string[] {
   return out
 }
 
-async function execOrca(args: string[]): Promise<ExecResult> {
-  const exec = getExec()
+/** Roda o `orca` com env limpo; com erro do loader, tenta de novo uma vez com cwd no worktree. */
+async function execOrca(args: string[], cwd?: string): Promise<ExecResult> {
   try {
-    return await exec('orca', args, { timeout: TIMEOUT_MS })
+    return await execOrcaOnce(args)
+  } catch (err) {
+    if (!cwd || !isLoaderError(err)) throw err
+    return execOrcaOnce(args, cwd)
+  }
+}
+
+async function execOrcaOnce(args: string[], cwd?: string): Promise<ExecResult> {
+  const exec = getExec()
+  const opts: ExecOpts = { timeout: TIMEOUT_MS, env: orcaEnv(), ...(cwd ? { cwd } : {}) }
+  try {
+    return await exec('orca', args, opts)
   } catch (err) {
     if ((err as { code?: unknown }).code !== 'ENOENT') throw err
     let last: unknown = err
     for (const bin of orcaFallbacks()) {
       try {
-        return await exec(bin, args, { timeout: TIMEOUT_MS })
+        return await exec(bin, args, opts)
       } catch (e) {
         last = e
         if ((e as { code?: unknown }).code !== 'ENOENT') throw e
@@ -134,20 +189,34 @@ function relativeToWorktree(file: string, root: string): string | null {
 
 type IssueResult = { issue: PonteIssue | null; note: string | null }
 
-async function queryIssue(path: string, fail: (action: string, err: unknown) => void): Promise<IssueResult> {
+const CLI_DOWN = 'Linear indisponível pelo CLI'
+
+/** Base `https://linear.app/<ws>/issue/` tirada de uma URL real devolvida pelo CLI; nunca inventa o slug. */
+function issueUrlBase(url: string | null | undefined): string | null {
+  const m = /^(https:\/\/linear\.app\/[^/]+\/issue\/)[A-Za-z0-9]+-\d+(?:[/?#]|$)/.exec(url ?? '')
+  return m ? m[1] : null
+}
+
+async function queryIssue(
+  path: string,
+  fail: (action: string, err: unknown) => void,
+  ok: (action: string) => void,
+): Promise<IssueResult> {
   let action = 'orca worktree show'
   try {
     // O worker não é o terminal do worktree: `--current` não serve. Lê o vínculo do worktree e consulta a issue pelo ID.
-    const wt = await execOrca(['worktree', 'show', '--worktree', `path:${path}`, '--json'])
+    const wt = await execOrca(['worktree', 'show', '--worktree', `path:${path}`, '--json'], path)
     const worktree = JSON.parse(wt.stdout)?.result?.worktree
     if (!worktree || typeof worktree !== 'object') throw new Error('resposta sem worktree')
+    ok(action)
     const linked = worktree.linkedLinearIssue
     if (typeof linked !== 'string' || !linked.trim()) return { issue: null, note: 'Sem issue vinculada' }
     action = 'orca linear issue'
-    const out = await execOrca(['linear', 'issue', linked.trim(), '--json'])
+    const out = await execOrca(['linear', 'issue', linked.trim(), '--json'], path)
     const json = JSON.parse(out.stdout)
     const issue = json?.result?.issue
     if (json?.ok && issue?.identifier) {
+      ok(action)
       return {
         issue: {
           id: String(issue.identifier),
@@ -159,10 +228,10 @@ async function queryIssue(path: string, fail: (action: string, err: unknown) => 
       }
     }
     fail(action, new Error('resposta sem issue'))
-    return { issue: null, note: 'Linear indisponível' }
+    return { issue: null, note: CLI_DOWN }
   } catch (err) {
     fail(action, err)
-    return { issue: null, note: 'Linear indisponível' }
+    return { issue: null, note: CLI_DOWN }
   }
 }
 
@@ -192,6 +261,9 @@ export default function activate(orca: OrcaWorkerApi): void {
   let lastGood: PonteState | null = null
   const log: { at: number; text: string }[] = []
   let launching = false
+  let urlBase: string | null = null
+  // Última falha registrada no diário por ação: a mesma mensagem não se repete até mudar ou haver sucesso.
+  const lastFail = new Map<string, string>()
   let seen: { path: string; name: string; phase: string | null; agents: Map<string, string> } | null = null
 
   const note = (text: string) => {
@@ -199,11 +271,19 @@ export default function activate(orca: OrcaWorkerApi): void {
     if (log.length > LOG_MAX) log.shift()
   }
 
-  /** Falha de processo externo ou de chamada ao host: uma linha no diário e no log do worker. */
+  /** Falha de processo externo ou de chamada ao host: uma linha no diário (sem repetir) e o diagnóstico no orca.log. */
   const fail = (action: string, err: unknown) => {
-    const text = `${action} falhou: ${firstLine(err)}`
+    const msg = firstLine(err)
+    const text = `${action} falhou: ${msg}`
+    const diag = diagnostics(err)
+    if (diag) orca.log(`${text} · ${diag}`)
+    if (lastFail.get(action) === msg) return
+    lastFail.set(action, msg)
     note(text)
     console.log(`[starcode-ponte] ${text}`)
+  }
+  const ok = (action: string) => {
+    lastFail.delete(action)
   }
 
   /** Acrescenta ao diário o que mudou desde o último estado bom. */
@@ -262,13 +342,15 @@ export default function activate(orca: OrcaWorkerApi): void {
   async function issueFor(path: string, snap: PonteSnapshot, force: boolean): Promise<IssueResult> {
     let entry = issueCache.get(path)
     if (!entry || force || Date.now() - entry.at >= ISSUE_TTL_MS) {
-      entry = { at: Date.now(), result: await queryIssue(path, (a, e) => fail(a, e)) }
+      entry = { at: Date.now(), result: await queryIssue(path, (a, e) => fail(a, e), ok) }
       issueCache.set(path, entry)
+      urlBase = issueUrlBase(entry.result.issue?.url) ?? urlBase
     }
     const { issue, note: why } = entry.result
     if (issue) return { issue, note: null }
     const id = snap.feature?.linear?.[0]
-    return { issue: id ? { id, title: null, state: null, url: null } : null, note: why }
+    const url = id && urlBase ? `${urlBase}${id}` : null
+    return { issue: id ? { id, title: null, state: null, url } : null, note: why }
   }
 
   async function refresh(force = false): Promise<PonteState> {
@@ -288,6 +370,7 @@ export default function activate(orca: OrcaWorkerApi): void {
       } else {
         try {
           const snap = await runSnapshot(path)
+          ok('snapshot')
           const [issueRes, agents] = await Promise.all([
             snap.starcode ? issueFor(path, snap, force) : Promise.resolve<IssueResult>({ issue: null, note: null }),
             listAgents(),
@@ -300,7 +383,7 @@ export default function activate(orca: OrcaWorkerApi): void {
           lastGood = state
         } catch (err) {
           const msg = firstLine(err)
-          note(`snapshot falhou: ${msg}`)
+          fail('snapshot', err)
           state = {
             status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
             issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
