@@ -85,3 +85,56 @@ test('cena cria o canvas e importa com caminho servido', async () => {
     }
   }
 })
+
+function alfa(cor: string): number {
+  const m = /^rgba\([^)]*,\s*([\d.]+)\)$/.exec(cor)
+  return m ? Number(m[1]) : 1
+}
+
+test('cena acende o ativo e conta os ativos no telão', () => {
+  const agora = Date.parse('2026-01-01T00:10:00Z')
+  const s = estado()
+  s.snapshot!.workers = []
+  s.snapshot!.crew = s.snapshot!.crew.map(c =>
+    c.member === 'spock' ? { ...c, count: 1, lastAt: '2026-01-01T00:05:00Z' } :
+    c.member === 'worf' ? { ...c, count: 3, lastAt: '2026-01-01T00:09:30Z' } : c)
+  const cena = buildScene(s, [], agora)
+  const por = (m: string) => cena.personagens.find(p => p.membro === m)!
+  const tempo = (m: string) => cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === m)?.texto
+  // ativo: console aceso com brilho na cor da divisão e "há N min" embaixo
+  const spock = por('spock')
+  assert.equal(spock.opacidade, 1)
+  assert.ok(spock.brilho)
+  assert.ok(spock.brilho!.largura > spock.console.largura)
+  assert.equal(tempo('spock'), 'há 5 min')
+  assert.equal(tempo('worf'), 'há 0 min')
+  const nome = cena.rotulos.find(r => r.tipo === 'nome' && r.dono === 'spock')!
+  assert.ok(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === 'spock')!.y > nome.y)
+  // livre: no máximo 40% de opacidade, console apagado, sem tempo
+  const data = por('data')
+  assert.ok(data.opacidade <= 0.4)
+  assert.equal(data.brilho, null)
+  assert.equal(tempo('data'), undefined)
+  // telão conta os ativos
+  const telao = (c: typeof cena) => c.rotulos.filter(r => r.tipo === 'telao').map(r => r.texto)
+  assert.ok(telao(cena).includes('2 tripulantes ativos'))
+  const um = estado()
+  assert.ok(telao(buildScene(um, [], agora)).includes('1 tripulante ativo'))
+  um.snapshot!.crew = um.snapshot!.crew.map(c => ({ ...c, count: 0 }))
+  assert.ok(telao(buildScene(um, [], agora)).includes('tripulação em repouso'))
+  // pintura: o brilho sai na cor da divisão, o livre sai com alfa <= 0.4 e o ativo opaco
+  const estilos: { op: string; cor: string; texto?: string }[] = []
+  const ctx: Pincel = {
+    fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '',
+    fillRect() { estilos.push({ op: 'fillRect', cor: ctx.fillStyle }) },
+    strokeRect() { estilos.push({ op: 'strokeRect', cor: ctx.strokeStyle }) },
+    fillText(t: string) { estilos.push({ op: 'fillText', cor: ctx.fillStyle, texto: t }) },
+  }
+  paint(ctx, cena, 5)
+  const corDoTexto = (t: string) => estilos.find(e => e.op === 'fillText' && e.texto === t)!.cor
+  assert.ok(alfa(corDoTexto('data')) <= 0.4, corDoTexto('data'))
+  assert.equal(alfa(corDoTexto('spock')), 1)
+  assert.equal(alfa(corDoTexto('há 5 min')), 1)
+  const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(',')
+  assert.ok(estilos.some(e => e.op === 'fillRect' && e.cor.replace(/\s/g, '').includes(rgb(spock.cor))), 'brilho na cor da divisão')
+})
