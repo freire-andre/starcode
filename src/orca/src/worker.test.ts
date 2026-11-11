@@ -125,6 +125,16 @@ test('worker acha o worktree em foco pelo ramo', async () => {
   await worker.deactivate()
 })
 
+test('worker roda o python sem gravar bytecode', async () => {
+  const fake = install()
+  const worker = await mount(hostFor(CTX_B))
+  await worker.request('ponte.state', {})
+  const call = fake.snaps()[0]
+  assert.equal(call.args[0], '-B')
+  assert.equal(call.env?.PYTHONDONTWRITEBYTECODE, '1')
+  await worker.deactivate()
+})
+
 test('worker desempata ramo igual pelo nome', async () => {
   const fake = install()
   const mk = (n: string, p: string) => ({ id: `ws-${n}`, kind: 'worktree', name: n, path: p, branch: 'refs/heads/main', hostId: null })
@@ -638,7 +648,8 @@ test('orca roda com env limpo e python com o env herdado', async () => {
       }
       assert.equal(c.env!.ORCA_USER_DATA_PATH, 'C:/ud')
     }
-    assert.equal(fake.snaps()[0].env, undefined)
+    assert.equal(fake.snaps()[0].env?.NODE_OPTIONS, process.env.NODE_OPTIONS)
+    assert.equal(fake.snaps()[0].env?.PYTHONDONTWRITEBYTECODE, '1')
     await worker.deactivate()
   })
 })

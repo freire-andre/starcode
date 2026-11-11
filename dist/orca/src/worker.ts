@@ -137,12 +137,12 @@ function stdoutError(err: unknown): Error | null {
 
 async function runSnapshot(path: string): Promise<PonteSnapshot> {
   const exec = getExec()
-  const args = [ponteScript(), 'snapshot', '--path', path, '--json']
+  const args = ['-B', ponteScript(), 'snapshot', '--path', path, '--json']
   let out: ExecResult | undefined
   let lastErr: unknown
   for (const py of ['python', 'python3']) {
     try {
-      out = await exec(py, args, { timeout: TIMEOUT_MS })
+      out = await exec(py, args, { timeout: TIMEOUT_MS, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } })
       break
     } catch (err) {
       lastErr = err
