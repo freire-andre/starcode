@@ -28,3 +28,4 @@ APPROVE. O PR entrega o painel Ponte (`ponte.py` somente leitura, worker e paine
 ## Pesquisa
 
 - https://nodejs.org/api/child_process.html: com `execFile`, um exit diferente de 0 vira `error` no callback.
+**Posted**: 2026-11-11 - https://github.com/freire-andre/starcode/pull/24#pullrequestreview-5864187846
