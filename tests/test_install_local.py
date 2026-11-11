@@ -51,7 +51,7 @@ class InstallLocalTests(unittest.TestCase):
         self.tmp = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
         self.root = self.tmp / "repo"
-        for cli in ("codex", "antigravity", "opencode"):
+        for cli in ("codex", "antigravity", "opencode", "orca"):
             (self.root / "dist" / cli).mkdir(parents=True)
         for s in ("engajar", "spock"):
             (self.root / "dist/opencode/skills" / s).mkdir(parents=True)
@@ -313,6 +313,58 @@ class InstallLocalTests(unittest.TestCase):
             self.assertEqual(fake.calls, [])
         self.assertFalse(self.home.exists())
 
+
+    ORCA_DENIED = {"ok": False, "error": {"code": "approval_required", "message": "approval needed", "data": {
+        "accesses": ["worker: runs code", "panel: ponte"], "fingerprint": "ap1-abc123",
+        "command": "orca plugin install X --approve ap1-abc123"}}}
+
+    def test_install_orca_valida_e_instala(self):  # C34
+        rc, _, _, fake = self.run_cli("--cli", "orca")
+        self.assertEqual(rc, 0)
+        self.assertEqual(fake.calls[0], ["/bin/orca", "plugin", "validate", "dist/orca", "--json"])
+        target = str((self.root / "dist" / "orca").resolve())
+        self.assertEqual(fake.calls[1], ["/bin/orca", "plugin", "install", target, "--json"])
+        self.assertEqual(len(fake.calls), 2)
+
+    def test_install_orca_validate_failure_skips_install(self):
+        rc, _, _, fake = self.run_cli("--cli", "orca", fake=Fake(fail_on="validate"))
+        self.assertEqual(rc, 1)
+        self.assertEqual(len(fake.calls), 1)
+
+    def test_install_orca_dry_run_only_prints_the_plan(self):
+        rc, out, _, fake = self.run_cli("--cli", "orca", "--dry-run")
+        self.assertEqual(rc, 0)
+        self.assertEqual(fake.calls, [])
+        self.assertIn("plugin validate dist/orca --json", out)
+
+    def test_install_orca_aprovacao_nunca_automatica(self):  # C34
+        denied = self.ORCA_DENIED
+
+        def runner(cmd, **kw):
+            fake.calls.append(list(cmd))
+            if "install" in cmd:
+                return SimpleNamespace(returncode=3, stdout=json.dumps(denied), stderr="")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        fake = Fake()
+        rc, out, err, _ = self.run_cli("--cli", "orca", fake=runner)
+        self.assertEqual(rc, 3)
+        self.assertEqual(len(fake.calls), 2)
+        self.assertFalse(any("--approve" in c for c in fake.calls))
+        self.assertIn("worker: runs code", out + err)
+        self.assertIn("--approve ap1-abc123", out + err)
+
+    def test_install_orca_aprovacao_monta_comando_com_fingerprint(self):
+        denied = {"ok": False, "error": {"code": "approval_required", "data": {
+            "accesses": ["worker"], "fingerprint": "ap1-zzz"}}}
+
+        def runner(cmd, **kw):
+            rc = 3 if "install" in cmd else 0
+            return SimpleNamespace(returncode=rc, stdout=json.dumps(denied) if rc else "", stderr="")
+
+        rc, out, err, _ = self.run_cli("--cli", "orca", fake=runner)
+        self.assertEqual(rc, 3)
+        self.assertIn("--approve ap1-zzz", out + err)
 
 if __name__ == "__main__":
     unittest.main()

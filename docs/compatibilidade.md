@@ -29,6 +29,19 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | Perfis de stack (`dist/<cli>/profiles/`) e skills `uhura`, `scotty`, `nova-missao` | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ |
 | Skills `worf`, `guinan`, `diagnostico` e `scripts/review/`, `scripts/harness/` | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ |
 
+## Painel Ponte
+
+O painel Ponte depende só da Orca, não do CLI de agente.
+
+| Recurso | Versão mínima |
+|---|---|
+| Painel Ponte (plugin `dist/orca`, instalação local) | Orca ≥ 1.4.248 (independente do CLI) |
+
+Limitações da Orca no reaceite da Fase 10 (`docs/aceite/fase-10.md`, DECISIONS F10-9):
+
+- Iniciar Picard abre o Claude Code em segundo plano, sem aba visível e sem enviar o prompt `/starcode:engajar`.
+- O `orca` chamado de dentro do worker do plugin falha com `node:internal/modules/cjs/loader:1575`; a Issue mostra só o ID do Handoff com "Linear indisponível". Corrigido na F10-14: o worker passa a chamar o CLI por caminho explícito e com o env completo.
+
 ## Notas
 
 1. **Antigravity**: `agy plugin validate dist/antigravity --strict` passa, com um aviso de falta de logo. `agy plugin install <pasta>` copia o plugin para `~/.gemini/config/plugins/<nome>`. O formato nativo:

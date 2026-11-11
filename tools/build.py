@@ -19,6 +19,7 @@ Capabilities: src/capabilities.yaml -> dist/<cli>/capabilities.json (unavailable
 from __future__ import annotations
 
 import argparse
+import ast
 import filecmp
 import json
 import re
@@ -239,6 +240,17 @@ def claude_frontmatter(text: str, invocation: str) -> str:
     return head + "\n" + extra.rstrip("\n") + sep + body
 
 
+def crew_json_doc(src: dict) -> dict:
+    return {
+        "schemaVersion": src["crew_doc"].get("schemaVersion", 1),
+        "version": src["version"],
+        "families": src["crew_doc"].get("families", {}),
+        "costTiers": src["crew_doc"].get("costTiers", {}),
+        "available": src["available"],
+        "crew": src["crew"],
+    }
+
+
 def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
     """Runtime pieces every adapter needs: scripts, hook scripts, core context, crew data, schemas."""
     copy_tree(root / "scripts", out / "scripts")
@@ -249,15 +261,7 @@ def emit_common(src: dict, out: Path, root: Path, cli: str) -> None:
         copy_tree(root / "profiles", out / "profiles")
     if (root / "src" / "briefs").is_dir():  # worker briefs (q-verify.md), read by scripts/dispatch.py
         copy_tree(root / "src" / "briefs", out / "briefs")
-    crew_json = {
-        "schemaVersion": src["crew_doc"].get("schemaVersion", 1),
-        "version": src["version"],
-        "families": src["crew_doc"].get("families", {}),
-        "costTiers": src["crew_doc"].get("costTiers", {}),
-        "available": src["available"],
-        "crew": src["crew"],
-    }
-    write_json(out / "crew.json", crew_json)
+    write_json(out / "crew.json", crew_json_doc(src))
     write_json(out / "capabilities.json", {"schemaVersion": 1, "cli": cli, "extras": src["capabilities"][cli]})
 
 
@@ -374,12 +378,71 @@ BUILDERS = {"claude": build_claude, "codex": build_codex, "antigravity": build_a
             "opencode": build_opencode}
 
 
+ORCA_SKIP_PARTS = {".orca", "node_modules"}
+ORCA_ENTRY_SCRIPT = "ponte"
+# Onde procurar os módulos que o ponte.py importa (mesmo layout do repositório: scripts/, scripts/gates, scripts/config).
+ORCA_SCRIPT_DIRS = ("", "gates", "config")
+
+
+def _is_orca_test(path: Path) -> bool:
+    return path.name.endswith((".test.ts", ".test.tsx"))
+
+
+def script_closure(root: Path, entry: str = ORCA_ENTRY_SCRIPT) -> list[Path]:
+    """Caminhos (relativos a scripts/) de `entry` e dos módulos locais que ele importa, direta ou transitivamente."""
+    base = root / "scripts"
+    found: dict[str, Path] = {}
+    pending = [entry]
+    while pending:
+        name = pending.pop()
+        if name in found:
+            continue
+        path = next((base / d / f"{name}.py" for d in ORCA_SCRIPT_DIRS if (base / d / f"{name}.py").is_file()), None)
+        if path is None:
+            continue
+        found[name] = path.relative_to(base)
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                pending.extend(a.name.split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                pending.append(node.module.split(".")[0])
+    if entry not in found:
+        raise BuildError(f"scripts/{entry}.py não encontrado (necessário para dist/orca)")
+    return sorted(found.values())
+
+
+def build_orca(src: dict, out: Path, root: Path) -> None:
+    """dist/orca: o plugin da Orca (src/orca sem .orca/ e sem testes) + os scripts que o worker chama."""
+    plugin = root / "src" / "orca"
+    manifest = plugin / "orca-plugin.json"
+    if not manifest.is_file():
+        raise BuildError("src/orca/orca-plugin.json não encontrado")
+    for f in sorted(plugin.rglob("*")):
+        rel = f.relative_to(plugin)
+        if (not f.is_file() or any(p in ORCA_SKIP_PARTS or p in IGNORED_PARTS for p in rel.parts)
+                or f.suffix in SKIP_SUFFIXES or _is_orca_test(f)):
+            continue
+        target = out / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(f.read_bytes())
+    doc = json.loads(manifest.read_text(encoding="utf-8"))
+    doc["version"] = src["version"]
+    write_json(out / "orca-plugin.json", doc)
+    # starcode_common.load_crew() lê PLUGIN_ROOT/crew.json (PLUGIN_ROOT = dist/orca); sem ele cai em miniyaml.
+    write_json(out / "crew.json", crew_json_doc(src))
+    for rel in script_closure(root):
+        target = out / "scripts" / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((root / "scripts" / rel).read_bytes())
+
+
 def build(root: Path, dest_root: Path) -> list[Path]:
     """Build everything under dest_root (mirrors the repo layout). Returns written top-level paths."""
     src = load_source(root)
     dist = dest_root / "dist"
     for cli in CLIS:
         BUILDERS[cli](src, dist / cli, root)
+    build_orca(src, dist / "orca", root)  # alvo à parte: não entra em CLIS (skills)
     write_json(dest_root / ".claude-plugin" / "marketplace.json", {
         "name": NAME,
         "description": "StarCode private marketplace.",

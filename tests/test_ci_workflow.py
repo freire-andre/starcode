@@ -134,6 +134,16 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertIn("refs/tags/v", str(job["if"]))
         self.assertIn('python tools/release.py check --tag "${{ github.ref_name }}"', _runs("release-check"))
 
+    def test_ci_valida_plugin_orca_condicional(self):
+        step = next((s for s in _steps("checks") if "orca plugin validate" in str(s.get("run", ""))), None)
+        self.assertIsNotNone(step, "passo orca plugin validate ausente")
+        run = str(step["run"])
+        self.assertIn("orca plugin validate src/orca --json", run)
+        self.assertIn("command -v orca", run)
+        self.assertIn("orca ausente: validação do plugin pulada", run)
+        self.assertEqual(step.get("shell"), "bash")
+        self.assertNotIn("continue-on-error", str(step))
+
 
 if __name__ == "__main__":
     unittest.main()

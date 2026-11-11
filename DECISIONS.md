@@ -676,3 +676,92 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `post_review.py` só põe o emoji da severidade no prefixo quando o `body` (após `lstrip`) não começa com ele; senão o prefixo vai sem emoji e o do `body` fica.
 - **Motivo:** o emoji aparece uma vez só, sem mudar o formato dos achados que não o trazem.
 - **Por que não é bug:** `tests/test_review_post.py::test_inline_comment_does_not_repeat_severity_emoji` confere os dois casos.
+
+### F10-1: o `ponte.py` lê o estado em Python e o worker só orquestra
+- **Problema:** o painel Ponte precisa mostrar a tripulação e o progresso, e um worker não deve guardar estado nem decidir o que mostrar.
+- **Decisão:** o `ponte.py` lê o estado (`crew.json`, `progress.json`) direto em Python e monta o que o painel exibe; o worker só orquestra (abre o painel e pede a atualização).
+- **Motivo:** um caminho só para o estado deixa o painel testável sem a Orca e sem modelo.
+- **Por que não é bug:** `tests/test_ponte.py` roda o `snapshot` do `ponte.py` sobre arquivos de estado de exemplo.
+
+### F10-2: `dist/orca` com instalação local, sem catálogo
+- **Problema:** a Orca não tem catálogo de plugins para o StarCode publicar o painel.
+- **Decisão:** `tools/build.py` gera `dist/orca` e `tools/install_local.py --cli orca` instala o plugin direto da pasta, sem catálogo.
+- **Motivo:** a instalação local funciona hoje e não depende de publicar nada fora do repositório.
+- **Por que não é bug:** `tests/test_build.py` confere o `dist/orca`; `tests/test_install_local.py` confere a instalação.
+
+### F10-3: R20 usa `sidebar.right.toggle`
+- **Problema:** a API do plugin da Orca não abre um painel por conta própria.
+- **Decisão:** o R20 abre a Ponte pelo atalho `sidebar.right.toggle` da barra lateral direita, e o texto da spec diz isso em vez de prometer "abrir o painel".
+- **Motivo:** prometer o que a API não faz deixaria a spec falsa.
+- **Por que não é bug:** `tests/test_orca_manifest.py::test_manifest_toggle_da_barra` confere a ação `sidebar.right.toggle` no manifesto.
+
+### F10-4: capabilities mínimas e aprovação sempre do usuário
+- **Problema:** um plugin com capabilities demais, ou aprovado sozinho, daria à Orca acesso que o usuário não pediu.
+- **Decisão:** o manifesto declara só as capabilities que o painel usa, e a aprovação do plugin na Orca é sempre do usuário; nenhum worker ou script aprova.
+- **Motivo:** D11: o que muda o ambiente do usuário exige confirmação dele.
+- **Por que não é bug:** `tests/test_orca_manifest.py::test_manifest_capabilities_e_engines` confere a lista de capabilities.
+
+### F10-5: Cena da Ponte em painel HTML com arte gerada por código
+- **Problema:** a Ponte precisa de uma cena animada com a tripulação, e copiar sprites ou código de terceiros traria licença e dívida.
+- **Decisão:** a Cena da Ponte é um painel HTML cuja arte é gerada por código (canvas/SVG escritos do zero), inspirada no Pixel Agents e no Habblaud, sem copiar código nem sprites; `CREDITS.md` registra as duas inspirações.
+- **Motivo:** a ideia é livre, a arte e o código são nossos, e o painel não carrega arquivos binários.
+- **Por que não é bug:** `tests/test_release_docs_f10.py` confere os créditos; o painel não carrega arquivos de imagem, e `CREDITS.md` diz que nada foi copiado.
+
+### F10-6: o `dist/orca` precisa do `crew.json` gerado (rodada 2 da T7)
+- **Problema:** na T7 o `dist/orca` saiu sem o `crew.json`, e o `ponte.py` caía em `miniyaml`, que só existe em `tools/` e não vai para o plugin instalado.
+- **Decisão:** `tools/build.py` grava o `crew.json` em `dist/orca` e o `ponte.py` lê a tripulação dele, sem importar `miniyaml`.
+- **Motivo:** o plugin instalado só leva o que está em `dist/orca`; depender de `tools/` quebra fora do repositório.
+- **Por que não é bug:** `tests/test_build.py` confere o `crew.json` em `dist/orca`; correção em 8c64378.
+
+### F10-7: workers testam o plugin; a instalação real é do usuário
+- **Problema:** um worker instalar o plugin na Orca do usuário mudaria o ambiente dele sem pedido.
+- **Decisão:** os workers rodam o plugin só em teste (`orca plugin test/check`); a instalação real e a aprovação na Orca são do usuário (T9).
+- **Motivo:** liga o F10-4 ao fluxo de trabalho: quem aprova é quem é dono do ambiente.
+- **Por que não é bug:** `tests/test_ci_workflow.py::test_ci_valida_plugin_orca_condicional` só valida o plugin, sem instalar.
+
+### F10-8: cena com `entry` `.ts` e issue pelo vínculo do worktree (T10, aceite real)
+- **Problema:** no plugin instalado a cena saiu em branco (o `scene.html` carregava `./scene.ts` sem transpilar e importava `./scene-model` sem extensão) e `orca linear issue --current` respondia `linear_no_linked_issue` no worker, que não é o terminal do worktree.
+- **Decisão:** o painel `ponte-cena` usa `entry` `src/scene.ts` (a Orca transpila e gera a página), o script cria o canvas quando falta e os imports usam `.ts`; o worker lê `linkedLinearIssue` de `orca worktree show --worktree path:<caminho> --json` e consulta `orca linear issue <ID> --json`, com a nota do Handoff quando não há vínculo.
+- **Motivo:** o aceite real (T9) mostrou que só o `entry` `.ts` é transpilado e que `--current` olha o terminal que chama, não o `cwd` do worker.
+- **Por que não é bug:** `tests/test_orca_manifest.py` confere o `entry` `src/scene.ts`; os testes `cena cria o canvas e importa com caminho servido` e `worker consulta a issue vinculada e guarda em cache por 60 s` cobrem os dois casos.
+
+### F10-9: duas limitações da Orca aceitas no reaceite (T13)
+- **Problema:** no reaceite o Iniciar Picard abre o Claude Code em segundo plano, sem aba visível e sem enviar o prompt `/starcode:engajar`; e o `orca` chamado de dentro do worker falha com `node:internal/modules/cjs/loader:1575`, então a Issue mostra só o ID do Handoff com "Linear indisponível".
+- **Decisão:** o usuário aceitou as duas limitações (aprovado com limitações). O painel passa a dizer "Picard iniciado em segundo plano" e avisa no botão; a Issue segue pelo ID do Handoff. Nada é contornado no plugin.
+- **Motivo:** as duas vêm do comportamento da Orca 1.4.x, fora do alcance do plugin.
+- **Por que não é bug:** `docs/aceite/fase-10.md` (`## Reaceite`) registra o caso e `test_fase10_limitacoes_registradas` exige o registro.
+
+### F10-10: correção pós-Q da Ponte (R8, ids repetidos, checks fracas)
+- **Problema:** o Q achou que `scripts/ponte.py` ignorava em silêncio um Handoff acima de 1 MiB nas features não escolhidas, que `linear_ids` devolvia IDs repetidos e que as checks C8, C21 e C26 não falhariam se a condição fosse falsa.
+- **Decisão:** `handoff_of` passa a registrar em `errors` o Handoff acima de 1 MiB ou ilegível, com a fonte e o motivo, sem abortar o snapshot (R8), e erros idênticos não se repetem; `linear_ids` deduplica mantendo a ordem; C8 cobre fonte ilegível e Handoff grande, C21 verifica `plugin.request('ponte.state')` com `timeoutMs: 15000` e C26 verifica que só aparecem a frase e o Atualizar agora.
+- **Motivo:** R8 pede que toda fonte inválida apareça em `errors`, e o painel não deve mostrar o mesmo ID duas vezes.
+- **Por que não é bug:** `test_snapshot_handoff_grande_vira_erro`, `test_linear_ids_sem_duplicatas` e `test_snapshot_fonte_invalida` cobrem o código; os testes `painel pede o estado ao abrir` e `painel sem StarCode` cobrem o painel.
+
+### F10-11: novo visual da Cena da Ponte, vista de cima (R38, R39, R41, R42, R43, R50)
+- **Problema:** o usuário achou a cena confusa: estações sem nome, inativos empilhados no turbolift com rótulos sobrepostos, engenharia grande e vazia e desenho horizontal pequeno numa lateral alta.
+- **Decisão:** grade vertical de 48 x 72 com escala inteira (mínimo 5 px por célula, 240 px de largura): telão no topo (slug, fase, `done/total` e percentual, ou a frase do estado vazio), cadeira do Picard no centro, as outras 10 estações em volta com emoji e nome, LaForge no cabeçalho da faixa da engenharia (6 vagas, `✓` e `+N`) e a legenda embaixo; sem turbolift, o inativo fica esmaecido na própria estação. `buildScene` devolve `rotulos` com a caixa de cada texto (fonte mínima de 2 células = 10 px a 240 px) e a pintura só lê esse resultado.
+- **Motivo:** o teste precisa provar que nenhum rótulo se sobrepõe e que o texto é legível; isso só é possível se o modelo (puro) fornecer as caixas.
+- **Por que não é bug:** `cena sem rótulos sobrepostos`, `cena mostra o telão com fase e progresso` e os testes de C38, C39, C41, C42 e C43 cobrem o layout. Nenhum arquivo de `scripts/` mudou.
+
+### F10-12: Cena da Ponte com vida: arco, bonecos, contraste e engenharia compacta (R39, R41, R51, R52, R53)
+- **Problema:** na avaliação da T14 a cena pareceu um painel de caixas: estações iguais em grade, Picard sem destaque, ativo e livre quase iguais, engenharia com 6 vagas vazias ocupando um terço da altura e emoji num pedestal no lugar de personagem.
+- **Decisão:** grade de 48 x 92; as 11 estações (LaForge incluído) ficam num console em arco ao redor da cadeira do Picard (escala 1,5, no centro), sobre um piso com anel e plataforma; cada tripulante é um boneco em pixel art com cabeça e corpo na cor da divisão e o emoji como insígnia, sentado digitando (braços alternam a cada 250 ms) quando ativo e de pé parado quando livre. O ativo tem console aceso com brilho na cor da divisão e "há N min" de `lastAt` (horas ou dias quando passa de 60 min, para caber); o livre sai com 40% de opacidade; o telão conta os ativos. A engenharia desenha só os workers reais (também bonecos) ou uma linha "Nenhum worker na engenharia", e a altura liberada estica o arco (até 1,25x) na ponte.
+- **Motivo:** o usuário escolheu os quatro itens; colunas a 11 células e linhas a 12 garantem que nenhum rótulo se sobrepõe nem com todos ativos e com balão.
+- **Por que não é bug:** `cena compacta a engenharia sem workers`, `cena acende o ativo e conta os ativos no telão`, `cena desenha a ponte em arco com bonecos` e `cena sem rótulos sobrepostos` (agora com todos ativos) cobrem o layout; a pintura segue só com `fillRect`, `fillText` e `strokeRect`.
+
+### F10-13: ajustes finos da Cena da Ponte: "agora", bonecos maiores e anel na altura do painel (R52, R54)
+- **Problema:** na captura da T15 o ativo recente mostrava "há 0 min", os bonecos pareciam pequenos e, numa lateral alta, sobrava uma faixa vazia abaixo da legenda, porque a grade tinha altura fixa (48 x 92) e o arco só esticava até 1,25x.
+- **Decisão:** `haQuanto` devolve "agora" com menos de 1 minuto e segue com "há N min", "há N h" e "há N d". Os bonecos (tripulantes e workers) ficam 1,3x maiores: a 240 px, o sentado tem cerca de 27 px e o de pé cerca de 38 px, com pernas visíveis; colunas a 11 células e a mesma coluna a 13 mantêm as áreas sem se tocar. A largura da grade continua com 48 células, e a altura passa a ser `linhasDoPainel(largura, altura)` (proporção do palco, mínimo de 102 e teto de 400 linhas); `buildScene(estado, agentes, agora, linhas)` continua pura e devolve `anel`, que ocupa a ponte inteira, e as estações esticam sem teto ao longo dele. O `scene.ts` põe o palco em `100vh`, mede largura e altura com `ResizeObserver` (`dimensoes`) e refaz o canvas com `linhas x escala`.
+- **Motivo:** o usuário pediu os três ajustes; com a grade na proporção do palco, o canvas esticado em `width: 100%` ocupa a altura do painel (sobra menos de uma linha), sem `drawImage` e sem quebrar a escala inteira mínima de 5 px.
+- **Por que não é bug:** `cena mostra agora para atividade recente` (C56) e `cena estica o anel e aumenta os bonecos` (C57) cobrem os ajustes; o teste do arco agora compara as distâncias com o esticamento desfeito (o anel é uma elipse), e `cena sem rótulos sobrepostos` continua valendo. Folgas de 0,1 e 0,01 célula evitam que caixas encostadas se sobreponham por arredondamento em grades altas.
+- **Correção do reaceite (T16):** na Orca o painel (465 x 930) era mais baixo que a proporção mínima da grade (102 linhas para 48 colunas), e o canvas com `width: 100%; height: auto` passava da altura, com rolagem e a legenda fora da vista. Agora o palco é `position: fixed` nas quatro bordas com `overflow: hidden`, o corpo e a raiz ficam sem margem, padding e rolagem, e `ajustaCanvas` define o tamanho exibido em px (`dimensoes`: célula = min(largura / 48, altura / linhas), arredondada para baixo, canvas centrado na largura). `cena cabe no palco sem rolagem` falha se a altura desenhada passar da altura do palco.
+
+### F10-14: o CLI da Orca no worker do plugin (W1 do review e falha do loader)
+- **Problema:** o review do Worf (W1) achou que o "worktree inválido" do `ponte.py` não chegava ao painel. Na Orca instalada, o diário repetia "orca worktree show falhou: node:internal/modules/cjs/loader:1575" e o botão "Abrir issue no Linear" ficava sempre desabilitado. A causa: no Windows, `execFile('orca')` busca primeiro no diretório do executável que chama, e lá o `orca` resolve para o `Orca.exe` (o app Electron, em modo node pelo `ELECTRON_RUN_AS_NODE`). Além disso, o worker roda com um env sem `APPDATA`, e o CLI responde `runtime_unavailable`.
+- **Decisão:**
+  - o worker resolve o CLI por caminho explícito (`resources/bin/orca.exe` ao lado do `execPath`, variáveis `ORCA_CLI*` e busca manual no PATH) e nunca chama o próprio `execPath`;
+  - o env do CLI é completado (`USERPROFILE`, `APPDATA` e `LOCALAPPDATA` vêm do `os.homedir()`), sem as variáveis `NODE_*`, `ELECTRON_RUN_AS_NODE` e `ORCA_NODE_OPTIONS`/`ORCA_CLI_COMMAND`;
+  - um worktree sem vínculo consulta a issue da feature (`orca linear issue <ID>`);
+  - o diário não repete a mesma falha, e o orca.log guarda o diagnóstico, só com os nomes das variáveis.
+- **Motivo:** a limitação "orca falha dentro do worker" da F10-9 tinha causa no plugin, não na Orca. Com a correção, a Issue mostra título, estado e o link no reaceite de 2026-11-11.
+- **Por que não é bug:** os testes do worker cobrem a resolução do CLI com `execPath` falso, o env completado, a issue da feature e o diário sem repetição (60 testes do plugin). A limitação do Iniciar Picard em segundo plano segue como na F10-9.
