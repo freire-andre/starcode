@@ -1,7 +1,7 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
-import { buildScene } from './scene-model.ts'
-import type { Cena } from './scene-model.ts'
+import { buildScene, GRADE } from './scene-model.ts'
+import type { Cena, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
 
 /** Contexto mínimo do canvas que a pintura usa (permite um contexto falso nos testes). */
@@ -19,42 +19,62 @@ export interface Pincel {
 
 const COR = {
   fundo: '#0b1020',
-  piso: '#151c33',
-  pisoAlt: '#1a2240',
-  console: '#2b3558',
-  consoleTopo: '#3a4670',
+  piso: '#121830',
+  pisoAlt: '#161d38',
+  telao: '#0f2238',
+  telaoBorda: '#58a6c9',
+  barraFundo: '#1d2a44',
+  barra: '#2ecc71',
   estacao: '#232c4d',
+  estacaoAtiva: '#34457a',
   borda: '#5b6aa0',
-  turbolift: '#243a4a',
-  turboliftBorda: '#58a6c9',
-  engenharia: '#2e2430',
+  bordaAtiva: '#ffd866',
+  cadeira: '#3a4670',
+  engenharia: '#2a2230',
   engenhariaBorda: '#c97a58',
+  vaga: '#3a2a3e',
+  vagaOk: '#1f4d36',
   pele: '#f1c9a0',
   texto: '#e8ecff',
   balao: '#ffffff',
   balaoTexto: '#c0392b',
   ok: '#2ecc71',
   mensagem: '#9aa7d8',
+  legenda: '#9aa7d8',
+  apagado: 'rgba(11,16,32,0.6)',
 }
+
+const COR_TEXTO: Record<TipoRotulo, string> = {
+  telao: COR.texto,
+  emoji: COR.texto,
+  nome: COR.texto,
+  worker: COR.texto,
+  marca: COR.ok,
+  balao: COR.balaoTexto,
+  legenda: COR.legenda,
+  mensagem: COR.mensagem,
+}
+
+type Caixa = { x: number; y: number; largura: number; altura: number }
 
 function ret(p: Pincel, cor: string, x: number, y: number, w: number, h: number, e: number): void {
   p.fillStyle = cor
   p.fillRect(x * e, y * e, w * e, h * e)
 }
 
-function texto(p: Pincel, t: string, cor: string, x: number, y: number, tam: number, e: number): void {
-  p.fillStyle = cor
-  p.font = `${Math.max(6, Math.round(tam * e))}px system-ui, sans-serif`
-  p.textAlign = 'center'
-  p.textBaseline = 'middle'
-  p.fillText(t, x * e, y * e)
-}
-
-function caixa(p: Pincel, cor: string, borda: string, r: { x: number; y: number; largura: number; altura: number }, e: number): void {
+function caixa(p: Pincel, cor: string, borda: string, r: Caixa, e: number): void {
   ret(p, cor, r.x, r.y, r.largura, r.altura, e)
   p.strokeStyle = borda
   p.lineWidth = Math.max(1, e / 2)
   p.strokeRect(r.x * e, r.y * e, r.largura * e, r.altura * e)
+}
+
+function texto(p: Pincel, r: Rotulo, e: number, dy = 0): void {
+  p.fillStyle = COR_TEXTO[r.tipo]
+  p.font = `${Math.max(6, Math.round(r.tam * e))}px system-ui, sans-serif`
+  p.textAlign = 'center'
+  p.textBaseline = 'middle'
+  p.fillText(r.texto, r.x * e, (r.y + dy) * e)
 }
 
 /** Desenha a cena inteira; `escala` é o número de pixels do canvas por célula da grade. */
@@ -68,46 +88,50 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
       ret(ctx, ((x + y) / 4) % 2 === 0 ? COR.piso : COR.pisoAlt, x, y, 4, 4, e)
     }
   }
-  caixa(ctx, COR.turbolift, COR.turboliftBorda, cena.turbolift, e)
-  texto(ctx, 'TURBOLIFT', COR.texto, cena.turbolift.x + cena.turbolift.largura / 2, cena.turbolift.y + 1.2, 1.6, e)
+  if (cena.vazia) {
+    for (const r of cena.rotulos) texto(ctx, r, e)
+    return
+  }
+
+  // telão: moldura e barra de progresso
+  caixa(ctx, COR.telao, COR.telaoBorda, cena.telao, e)
+  if (cena.progresso) {
+    const b = cena.progresso.barra
+    caixa(ctx, COR.barraFundo, COR.borda, b, e)
+    ret(ctx, COR.barra, b.x, b.y, (b.largura * Math.min(100, Math.max(0, cena.progresso.percentual))) / 100, b.altura, e)
+  }
+
+  // faixa da engenharia e vagas de worker
   caixa(ctx, COR.engenharia, COR.engenhariaBorda, cena.engenharia, e)
-  texto(ctx, 'ENGENHARIA', COR.texto, cena.engenharia.x + cena.engenharia.largura / 2, cena.engenharia.y + 1.5, 1.8, e)
+  for (const v of cena.vagas) caixa(ctx, COR.estacao, COR.borda, v, e)
+  for (const w of cena.workers) caixa(ctx, w.concluido ? COR.vagaOk : COR.vaga, COR.engenhariaBorda, w.caixa, e)
 
-  // consoles (ponte central) e estações
-  caixa(ctx, COR.console, COR.borda, { x: 26, y: 17, largura: 12, altura: 3 }, e)
-  ret(ctx, COR.consoleTopo, 27, 17.5, 10, 1, e)
-  for (const s of cena.estacoes) {
-    caixa(ctx, COR.estacao, COR.borda, { x: s.x - 2, y: s.y - 1, largura: 4, altura: 3 }, e)
-  }
-
-  for (const w of cena.workers) {
-    caixa(ctx, w.concluido ? '#1f4d36' : '#3a2a3e', COR.engenhariaBorda, { x: w.x - 2, y: w.y - 1.5, largura: 4, altura: 3 }, e)
-    texto(ctx, w.rotulo.slice(0, 7), COR.texto, w.x, w.y + 2.8, 1.3, e)
-    if (w.concluido) texto(ctx, '✓', COR.ok, w.x, w.y, 2.4, e)
-    if (w.balao) texto(ctx, '!', COR.balaoTexto, w.x + 2, w.y - 2, 2.6, e)
-  }
-
+  // estações: ladrilho, cadeira do Picard, tronco na cor da divisão; inativo fica esmaecido e parado
+  const rotulosDe = (c: { membro: string }) => cena.rotulos.filter(r => r.dono === c.membro)
   for (const c of cena.personagens) {
-    const sentado = c.pose === 'sentado'
-    const balanco = sentado && c.quadro === 1 ? -0.5 : 0
-    const alturaCorpo = sentado ? 2 : 3
-    // corpo em retângulos de pixel: cabeça, tronco, pernas
-    ret(ctx, COR.pele, c.x - 0.5, c.y - 2.5 + balanco, 1, 1, e)
-    ret(ctx, c.cor, c.x - 1, c.y - 1.5 + balanco, 2, alturaCorpo - 1, e)
-    if (!sentado) ret(ctx, '#222', c.x - 1, c.y + 0.5, 2, 1, e)
-    texto(ctx, c.emoji, COR.texto, c.x, c.y - 4 + balanco, 2.2, e)
-    texto(ctx, c.nome, COR.texto, c.x, c.y + 2.2, 1.3, e)
-    if (c.balao) {
-      ret(ctx, COR.balao, c.x + 1, c.y - 5.5, 1.6, 2, e)
-      texto(ctx, '!', COR.balaoTexto, c.x + 1.8, c.y - 4.5, 2, e)
+    const ladoAlto = c.caixa.altura > 4
+    caixa(ctx, c.ativo ? COR.estacaoAtiva : COR.estacao, c.ativo ? COR.bordaAtiva : COR.borda, c.caixa, e)
+    const balanco = c.ativo && c.quadro === 1 ? -0.3 : 0
+    if (c.membro === 'picard') ret(ctx, COR.cadeira, c.x - 3.5, c.y + 1.2, 7, 1.2, e)
+    if (ladoAlto) {
+      // tronco (ombros e corpo) sob o emoji, que faz de rosto
+      ret(ctx, c.cor, c.x - 1.5, c.y + 1.3 + balanco, 3, 1, e)
+      ret(ctx, COR.pele, c.x - 0.4, c.y + 1.1 + balanco, 0.8, 0.4, e)
     }
+    for (const r of rotulosDe(c)) {
+      if (r.tipo === 'balao') ret(ctx, COR.balao, r.caixa.x, r.caixa.y, r.caixa.largura, r.caixa.altura, e)
+      texto(ctx, r, e, r.tipo === 'emoji' ? balanco : 0)
+    }
+    if (!c.ativo) ret(ctx, COR.apagado, c.caixa.x, c.caixa.y, c.caixa.largura, c.caixa.altura, e)
   }
 
-  if (cena.maisN > 0) {
-    texto(ctx, `+${cena.maisN}`, COR.engenhariaBorda, cena.engenharia.x + cena.engenharia.largura - 3, cena.engenharia.y + cena.engenharia.altura - 2, 2.2, e)
-  }
-  if (cena.mensagem) {
-    texto(ctx, cena.mensagem, COR.mensagem, largura / 2, altura / 2, 2.4, e)
+  // demais rótulos: telão, engenharia, workers, marcas, legenda
+  for (const r of cena.rotulos) {
+    if (r.dono) continue
+    if (r.tipo === 'balao') {
+      ret(ctx, COR.balao, r.caixa.x, r.caixa.y, r.caixa.largura, r.caixa.altura, e)
+    }
+    texto(ctx, r, e)
   }
 }
 
@@ -131,9 +155,9 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
 
   const ajustar = (): void => {
     const largura = canvas.parentElement?.clientWidth || 360
-    escala = Math.max(1, Math.floor(largura / 64))
-    canvas.width = 64 * escala
-    canvas.height = 40 * escala
+    escala = Math.max(5, Math.floor(largura / GRADE.largura)) // nunca abaixo de 240 px de largura
+    canvas.width = GRADE.largura * escala
+    canvas.height = GRADE.altura * escala
     sujo = true
   }
   const receber = (s: unknown): void => {
@@ -181,8 +205,9 @@ export function obterCanvas(doc: Pagina): HTMLCanvasElement {
   palco.style.width = '100%'
   const canvas = doc.createElement('canvas')
   canvas.id = 'cena'
-  canvas.width = 64
-  canvas.height = 40
+  canvas.width = GRADE.largura * 5
+  canvas.height = GRADE.altura * 5
+  canvas.style.minWidth = '240px'
   canvas.style.display = 'block'
   canvas.style.width = '100%'
   canvas.style.height = 'auto'
