@@ -1,9 +1,9 @@
 # fase-10-ponte proofs
 
-**HEAD**: 29aff98
+**HEAD**: 4524bd6
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 54 pass, 0 fail
+**Result**: 60 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -56,8 +56,14 @@
 | C47 | `run plugin / ✔ painel estreito quebra os atalhos` | pass |
 | C48 | `run plugin / ✔ worker desempata ramo igual pelo nome` | pass |
 | C49 | `run plugin / ✔ worker registra falhas no log` | pass |
-| C50 | `run plugin / ✔ cena distribui os inativos no turbolift` | pass |
+| C50 | `run plugin / ✔ cena sem rótulos sobrepostos` | pass |
 | C51 | `run unit / test_fase10_limitacoes_registradas ... ok` | pass |
+| C52 | `run plugin / ✔ cena mostra o telão com fase e progresso` | pass |
+| C53 | `run plugin / ✔ cena compacta a engenharia sem workers` | pass |
+| C54 | `run plugin / ✔ cena acende o ativo e conta os ativos no telão` | pass |
+| C55 | `run plugin / ✔ cena desenha a ponte em arco com bonecos` | pass |
+| C56 | `run plugin / ✔ cena mostra agora para atividade recente` | pass |
+| C57 | `run plugin / ✔ cena estica o anel e aumenta os bonecos` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `orca plugin validate src/orca --json` | pass |
 | Build | `python scripts/check_decisions.py` | pass |
@@ -79,7 +85,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 599 tests in 326.270s
+Ran 599 tests in 315.415s
 
 OK
 ```
@@ -87,19 +93,19 @@ OK
 `Run plugin` - exit 0
 
 ```
-✔ atalho abre spec tasks e handoff (3.7541ms)
-✔ atalho inicia o Picard uma vez (3.7932ms)
-✔ atalho recusa agente que a Orca não lança (0.7894ms)
-✔ diário guarda 20 entradas e o painel mostra 10 (10.9102ms)
-✔ diário registra mudança de worktree e de fase (1.7868ms)
-✔ worker registra falhas no log (5.4699ms)
-ℹ tests 40
+✔ atalho abre spec tasks e handoff (3.05ms)
+✔ atalho inicia o Picard uma vez (3.0875ms)
+✔ atalho recusa agente que a Orca não lança (0.6469ms)
+✔ diário guarda 20 entradas e o painel mostra 10 (10.7915ms)
+✔ diário registra mudança de worktree e de fase (1.6701ms)
+✔ worker registra falhas no log (5.2979ms)
+ℹ tests 47
 ℹ suites 0
-ℹ pass 40
+ℹ pass 47
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1851.3506
+ℹ duration_ms 1821.5341
 4 test file(s) passed (node).
 ```
