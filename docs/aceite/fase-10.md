@@ -82,3 +82,7 @@ Feito pelo usuário e pelo Picard em 2026-11-10, depois das T10 a T12, com o plu
 - Issue (limitação): só o ID do Handoff com "Linear indisponível", porque o `orca` chamado de dentro do worker falha com `node:internal/modules/cjs/loader:1575`.
 
 As capturas `reaceite-ponte-atual.png` e `reaceite-cena-atual.png` vêm de `orca plugin shot` no plugin instalado, tiradas no fim da T13. As duas limitações estão em DECISIONS (F10-9) e em `docs/compatibilidade.md`.
+
+## Reaceite da Issue (2026-11-11)
+
+Depois do review do Worf, a falha `loader:1575` foi diagnosticada e corrigida (F10-14). O `orca` resolvia para o `Orca.exe`, e o worker não tinha `APPDATA`. Na Orca reinstalada, o painel mostra a issue SC-17 com título "Fase 10: Painel Orca Ponte (v1.4)" e estado "In Progress". O botão "Abrir issue no Linear" fica habilitado e o diário não mostra falhas. A limitação do Iniciar Picard em segundo plano continua.
