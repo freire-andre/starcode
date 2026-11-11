@@ -1,25 +1,18 @@
 {
-  "round": 1,
+  "round": 2,
   "verdict": "APPROVE",
-  "summary": "TL;DR: APPROVE. O PR entrega o painel Ponte (ponte.py somente leitura, worker e painel da Orca) e a Cena da Ponte. Escada verde: build --check, orca plugin validate, check_decisions, 599 testes e CI verde no Ubuntu e no Windows. Há um nit: a mensagem 'worktree inválido' do ponte.py não chega ao painel. Os 17 candidatos de bypass foram aceitos: noqa E402 de import após sys.path (padrão do repo), BLE001/SLF001/E731 com justificativa, e casts em testes ou na fronteira do canvas. O desempate por mtime igual em choose_feature usa a ordem alfabética, como o Q já anotou; a spec não define esse caso. dist/orca e as capturas de docs/aceite ficam fora do review.",
-  "findings": [
-    {
-      "id": "W1",
-      "severity": "nit",
-      "path": "src/orca/src/worker.ts",
-      "line": 82,
-      "body": "🟡 A mensagem 'worktree inválido' do ponte.py não chega ao painel (src/orca/src/worker.ts:82). O ponte.py imprime o erro no stdout e sai com 2 (scripts/ponte.py:265). O realExec rejeita qualquer saída diferente de 0 usando só o stderr (worker.ts:28-33), então o ramo snap.error nunca roda e o painel mostra 'Command failed: python ...'. Correção: no realExec, anexar o stdout ao erro e, no runSnapshot, ler o campo error dele antes de repassar a falha.",
-      "evidence": "src/orca/src/worker.ts:28; scripts/ponte.py:265; https://nodejs.org/api/child_process.html"
-    }
-  ],
-  "carryover": {},
+  "summary": "TL;DR: APPROVE. Rodada 2: W1 foi resolvido em 03b98d5, integrado em f8ebbf9; o runSnapshot lê o error do stdout do ponte.py (src/orca/src/worker.ts:149). Nenhum blocker novo nas rodadas que corrigiram o CLI do orca no worker (1a25c7b, d70e69d e d4c6646): caminho explícito sem o próprio execPath, env completado a partir do homedir sem sobrescrever, e só os nomes das variáveis no log. Suíte com 599 testes, plugin com 60/60, provas e gate done verdes, reaceite da Issue na Orca instalada.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido em 03b98d5: stdoutError usa o campo error do JSON do ponte.py (src/orca/src/worker.ts:149)"
+  },
   "research": ["https://nodejs.org/api/child_process.html"],
   "ladder": [
     {"command": "python tools/build.py --check", "result": "exit 0"},
-    {"command": "orca plugin validate src/orca --json", "result": "ok: true, valid: true"},
     {"command": "python scripts/check_decisions.py", "result": "exit 0"},
+    {"command": "orca plugin test src/orca", "result": "60/60"},
     {"command": "python -m unittest discover -s tests (Windows)", "result": "OK, 599 testes"},
-    {"command": "gh pr checks 24", "result": "checks ubuntu-latest e windows-latest: pass"},
-    {"command": "git diff main...HEAD -- . ':!dist' | scan_bypasses.py", "result": "17 candidatos, todos aceitos"}
+    {"command": "run_gates.py proofs / done", "result": "verde"},
+    {"command": "git diff a9da1e4..HEAD -- . ':!dist' | scan_bypasses.py", "result": "2 candidatos, aceitos (casts em teste)"}
   ]
 }

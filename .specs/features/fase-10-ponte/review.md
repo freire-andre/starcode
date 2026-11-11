@@ -1,31 +1,31 @@
 # Review: fase-10-ponte (PR #24)
 
-**Round**: 1
+**Round**: 2
 **Verdict**: APPROVE
 **Reviewer**: claude · claude-opus-5-5
 
 ## TL;DR
 
-APPROVE. O PR entrega o painel Ponte (`ponte.py` somente leitura, worker e painel da Orca) e a Cena da Ponte. A escada está verde e o CI passa no Ubuntu e no Windows. Há um nit: a mensagem "worktree inválido" do `ponte.py` não chega ao painel. O desempate por mtime igual em `choose_feature` usa a ordem alfabética, como o Q já anotou; a spec não define esse caso. `dist/orca` e as capturas de `docs/aceite/fase-10/` ficam fora do review (arquivos mecânicos e imagens).
+APPROVE. O W1 foi resolvido em 03b98d5 (integrado em f8ebbf9): o `runSnapshot` lê o `error` do stdout do `ponte.py` (`src/orca/src/worker.ts:149`). As rodadas que corrigiram o CLI do orca no worker (1a25c7b, d70e69d e d4c6646, F10-14) não trazem blocker novo:
+- o CLI roda por caminho explícito e nunca pelo próprio `execPath`;
+- o env é completado a partir do `homedir`, sem sobrescrever;
+- o log guarda só os nomes das variáveis.
+
+O reaceite da Issue na Orca instalada mostra a SC-17 com título e estado e o botão do Linear habilitado.
 
 | ID | Severity | Where | Finding | Evidence | State |
 |---|---|---|---|---|---|
-| W1 | 🟡 nit | `src/orca/src/worker.ts:82` | A mensagem "worktree inválido" do `ponte.py` (stdout, exit 2) não chega ao painel: o `realExec` rejeita a saída diferente de 0 usando só o stderr, e o ramo `snap.error` nunca roda | `src/orca/src/worker.ts:28`; `scripts/ponte.py:265`; https://nodejs.org/api/child_process.html | aberto |
+| W1 | 🟡 nit | `src/orca/src/worker.ts:82` | A mensagem "worktree inválido" do `ponte.py` não chegava ao painel | `src/orca/src/worker.ts:149` | resolvido em 03b98d5 |
 
 ## Escada determinística
 
 - `python tools/build.py --check`: exit 0
-- `orca plugin validate src/orca --json`: ok, válido
 - `python scripts/check_decisions.py`: exit 0
+- `orca plugin test src/orca`: 60/60
 - `python -m unittest discover -s tests` (Windows): OK, 599 testes
-- `gh pr checks 24`: checks ubuntu-latest e windows-latest passaram
-- `git diff main...HEAD -- . ':!dist' | scan_bypasses.py`: 17 candidatos, todos aceitos:
-  - `noqa: E402` de import após `sys.path` (padrão do repo);
-  - `BLE001`, `SLF001` e `E731` com justificativa na linha;
-  - `type: ignore` do `reconfigure`;
-  - casts `as any` e `as unknown as` em testes e na fronteira do canvas.
+- `run_gates.py proofs` e `done`: verde
+- `git diff a9da1e4..HEAD -- . ':!dist' | scan_bypasses.py`: 2 candidatos, aceitos (casts em teste)
 
 ## Pesquisa
 
-- https://nodejs.org/api/child_process.html: com `execFile`, um exit diferente de 0 vira `error` no callback.
-**Posted**: 2026-11-11 - https://github.com/freire-andre/starcode/pull/24#pullrequestreview-5864187846
+- https://nodejs.org/api/child_process.html
