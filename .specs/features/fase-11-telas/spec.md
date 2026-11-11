@@ -170,18 +170,3 @@ None.
 ## Sources
 
 - `docs/reference/tlc-spec-driven.zip` → `references/verify-screens.md` e `scripts/validate_verification.py`, `scripts/validate_spec.py` (tlc-spec-driven 4.1.0, CC-BY-4.0) - non-binding - user: "Reintroduzir as regras de captura do tlc" (fonte de método, adaptada ao StarCode).
-
-## Handoff
-
-**Phase:** spec-approved
-**Size:** GRANDE
-**Git mode:** 3
-**Next:** Data quebra em tasks
-**Linear:** SC-18
-**Integration branch:** feature/fase-11-telas
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** none
-**Attempts:** none
-**Reports:** none
-**Breaker:** closed
