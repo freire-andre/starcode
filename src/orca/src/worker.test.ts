@@ -1,6 +1,15 @@
 // Testes do worker da Ponte, com um executor falso no lugar dos processos filhos.
 import { assert, hostError, mockHost, mountWorker, test } from 'orca/testing'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import * as main from './worker'
+
+const EXE = process.platform === 'win32' ? 'orca.exe' : 'orca'
+const CLI_DIR = mkdtempSync(join(tmpdir(), 'ponte-cli-'))
+const FAKE_CLI = join(CLI_DIR, EXE)
+writeFileSync(FAKE_CLI, '')
+const isOrca = (cmd: string) => /(^|[\\/])orca(\.exe)?$/i.test(cmd)
 
 type Call = { cmd: string; args: string[]; cwd?: string; env?: Record<string, string | undefined> }
 type Reply = { stdout: string } | Error
@@ -58,16 +67,17 @@ function install(): Fake {
   const fake: Fake = {
     calls: [],
     snaps: () => fake.calls.filter((c) => c.args.includes('snapshot')),
-    linear: () => fake.calls.filter((c) => c.cmd === 'orca' && c.args[0] === 'linear'),
-    worktrees: () => fake.calls.filter((c) => c.cmd === 'orca' && c.args[0] === 'worktree'),
+    linear: () => fake.calls.filter((c) => isOrca(c.cmd) && c.args[0] === 'linear'),
+    worktrees: () => fake.calls.filter((c) => isOrca(c.cmd) && c.args[0] === 'worktree'),
     python: (path) => ({ stdout: JSON.stringify(snapshot(path)) }),
     orca: () => ({ stdout: LINEAR_OK }),
     worktree: () => ({ stdout: WORKTREE_OK }),
   }
+  process.env.ORCA_CLI_PATH = FAKE_CLI
   ;(globalThis as any).__ponteExec = async (cmd: string, args: string[], opts: { cwd?: string; env?: Record<string, string | undefined> }) => {
     fake.calls.push({ cmd, args, cwd: opts?.cwd, env: opts?.env })
     const reply =
-      cmd === 'orca'
+      isOrca(cmd)
         ? args[0] === 'worktree' ? await fake.worktree() : await fake.orca()
         : await fake.python(args[args.indexOf('--path') + 1])
     if (reply instanceof Error) throw reply
@@ -482,7 +492,7 @@ test('worker registra falhas no log', async () => {
   const w4 = await mount(hostFor(CTX_A))
   const s4: any = await w4.request('ponte.state', {})
   assert.equal(s4.issueNote, 'Linear indisponível pelo CLI')
-  assert.ok(f4.calls.filter((c) => c.cmd !== 'orca' && c.cmd !== 'python' && c.args[0] === 'worktree').length >= 1)
+  assert.ok(f4.worktrees().length >= 1)
   await w4.deactivate()
 
   // editor.open e agent.launch falham → linha no log e erro devolvido ao painel
@@ -533,8 +543,6 @@ async function withEnv<T>(vars: Record<string, string>, fn: () => Promise<T>): P
   }
 }
 
-const LOADER = 'node:internal/modules/cjs/loader:1575\n  throw err;\nError: Cannot find module'
-
 test('falha de processo externo grava stderr e nomes de variáveis no orca.log', async () => {
   await withEnv(DIRTY_ENV, async () => {
     const fake = install()
@@ -561,7 +569,7 @@ test('orca roda com env limpo e python com o env herdado', async () => {
     const fake = install()
     const worker = await mount(hostFor(CTX_A))
     await worker.request('ponte.state', {})
-    const orcaCalls = fake.calls.filter((c) => c.cmd === 'orca')
+    const orcaCalls = fake.calls.filter((c) => isOrca(c.cmd))
     assert.ok(orcaCalls.length >= 2)
     for (const c of orcaCalls) {
       assert.ok(c.env, 'env passado ao orca')
@@ -573,35 +581,6 @@ test('orca roda com env limpo e python com o env herdado', async () => {
     assert.equal(fake.snaps()[0].env, undefined)
     await worker.deactivate()
   })
-})
-
-test('orca com erro do loader tenta de novo uma vez no diretório do worktree', async () => {
-  const fake = install()
-  let n = 0
-  fake.worktree = () => (++n === 1 ? Object.assign(new Error('node:internal/modules/cjs/loader:1575'), { code: 1, stderr: LOADER }) : { stdout: WORKTREE_OK })
-  const worker = await mount(hostFor(CTX_A))
-  const state: any = await worker.request('ponte.state', {})
-  const wts = fake.worktrees()
-  assert.equal(wts.length, 2)
-  assert.equal(wts[0].cwd, undefined)
-  assert.equal(wts[1].cwd, 'C:/wt/a')
-  assert.ok(wts[1].env)
-  assert.equal(state.issue.id, 'SC-116')
-  await worker.deactivate()
-
-  const sempre = install()
-  sempre.worktree = () => Object.assign(new Error('node:internal/modules/cjs/loader:1575'), { code: 1, stderr: LOADER })
-  const w2 = await mount(hostFor(CTX_A))
-  await w2.request('ponte.state', {})
-  assert.equal(sempre.worktrees().length, 2)
-  await w2.deactivate()
-
-  const outro = install()
-  outro.worktree = () => Object.assign(new Error('orca fora do ar'), { code: 1, stderr: 'orca fora do ar' })
-  const w3 = await mount(hostFor(CTX_A))
-  await w3.request('ponte.state', {})
-  assert.equal(outro.worktrees().length, 1)
-  await w3.deactivate()
 })
 
 test('diário não repete a mesma falha', async () => {
@@ -650,4 +629,82 @@ test('issue do snapshot só ganha url derivada de uma url real do CLI', async ()
   assert.equal(st.issue.id, 'SC-17')
   assert.equal(st.issue.url, 'https://linear.app/minha-ws/issue/SC-17')
   await w2.deactivate()
+})
+
+async function withCliEnv<T>(vars: Record<string, string | undefined>, execPath: string, fn: () => Promise<T>): Promise<T> {
+  const keys = ['ORCA_CLI_PATH', 'ORCA_CLI', 'ORCA_BIN', 'PATH', 'Path']
+  const old: Record<string, string | undefined> = {}
+  for (const k of keys) old[k] = process.env[k]
+  const oldExec = process.execPath
+  for (const k of keys) delete process.env[k]
+  for (const [k, v] of Object.entries(vars)) if (v !== undefined) process.env[k] = v
+  Object.defineProperty(process, 'execPath', { value: execPath, configurable: true, writable: true })
+  try {
+    return await fn()
+  } finally {
+    Object.defineProperty(process, 'execPath', { value: oldExec, configurable: true, writable: true })
+    for (const k of keys) {
+      if (old[k] === undefined) delete process.env[k]
+      else process.env[k] = old[k]
+    }
+  }
+}
+
+function fakeApp(): { dir: string; app: string } {
+  const dir = mkdtempSync(join(tmpdir(), 'ponte-app-'))
+  const app = join(dir, process.platform === 'win32' ? 'Orca.exe' : 'orca')
+  writeFileSync(app, '')
+  return { dir, app }
+}
+
+test('orca é resolvido em resources/bin e nunca pelo nome solto nem pelo Orca.exe', async () => {
+  const { dir, app } = fakeApp()
+  mkdirSync(join(dir, 'resources', 'bin'), { recursive: true })
+  const cli = join(dir, 'resources', 'bin', EXE)
+  writeFileSync(cli, '')
+  const fake = install()
+  await withCliEnv({ PATH: dir }, app, async () => {
+    const worker = await mount(hostFor(CTX_A))
+    const state: any = await worker.request('ponte.state', {})
+    assert.equal(state.issue.id, 'SC-116')
+    const orcaCalls = fake.calls.filter((c) => c.args[0] === 'worktree' || c.args[0] === 'linear')
+    assert.ok(orcaCalls.length >= 2)
+    for (const c of orcaCalls) {
+      assert.equal(c.cmd, cli)
+      assert.notEqual(c.cmd, 'orca')
+      assert.notEqual(c.cmd.toLowerCase(), app.toLowerCase())
+    }
+    await worker.deactivate()
+  })
+})
+
+test('orca cai no PATH quando não há caminho explícito', async () => {
+  const { app } = fakeApp()
+  const pathDir = mkdtempSync(join(tmpdir(), 'ponte-path-'))
+  const cli = join(pathDir, EXE)
+  writeFileSync(cli, '')
+  const vazio = mkdtempSync(join(tmpdir(), 'ponte-vazio-'))
+  const fake = install()
+  await withCliEnv({ PATH: [vazio, pathDir].join(process.platform === 'win32' ? ';' : ':') }, app, async () => {
+    const worker = await mount(hostFor(CTX_A))
+    const state: any = await worker.request('ponte.state', {})
+    assert.equal(state.issue.id, 'SC-116')
+    const wts = fake.worktrees()
+    assert.ok(wts.length >= 1)
+    assert.ok(wts.every((c) => c.cmd === cli))
+    await worker.deactivate()
+  })
+})
+
+test('orca nunca executa o próprio executável do processo', async () => {
+  const { dir, app } = fakeApp()
+  const fake = install()
+  await withCliEnv({ ORCA_CLI_PATH: app.toUpperCase(), PATH: dir }, app, async () => {
+    const worker = await mount(hostFor(CTX_A))
+    const state: any = await worker.request('ponte.state', {})
+    assert.equal(state.issueNote, 'Linear indisponível pelo CLI')
+    assert.equal(fake.worktrees().length, 0)
+    assert.ok(!fake.calls.some((c) => c.cmd === 'orca' || c.cmd.toLowerCase() === app.toLowerCase()))
+    await worker.deactivate()
+  })
 })
