@@ -3,7 +3,7 @@
 Adapted from tlc-spec-driven `validate_spec.py` (Felipe Rodrigues, github.com/felipfr, CC-BY-4.0).
 Changes for StarCode (ADR-0002): the spec template of plan section 4.5 replaces the tlc sections;
 requirement IDs are R<n>; `**Size**:` selects the brief (MEDIUM) or full (LARGE/COMPLEX) template;
-the brief spec carries `## Checks` (D24); a decision map with closed statuses; capture rules removed (D25).
+the brief spec carries `## Checks` (D24); a decision map with closed statuses; capture rules back in phase 11 (F11-2, supersedes D25).
 
 What it checks
   ERRO   `**Size**:` missing or SMALL (a SMALL task has no spec)
@@ -12,6 +12,10 @@ What it checks
   ERRO   `## Open Questions` not empty
   ERRO   a decision row whose status is not approved/adjusted/rejected (full template)
   ERRO   a binding source without `## Differences from the Source`
+  ERRO   captures/ has a capture but the spec has no `## Sources` (one line per capture)
+  ERRO   a capture without a line in `## Sources`, or a `non-binding` line without `user: "<words>"`
+  ERRO   a binding capture that no `**R<n>**` requirement cites in backticks (`captures/<file>`)
+  ERRO   a capture without `![...](captures/<file>)` in the spec
   ERRO   MEDIUM: `## Checks` invalid (a check per requirement, proofs, Build/Run lines)
   ERRO   LARGE/COMPLEX: `## Checks` in spec.md (they live only in tasks.md, D24)
   ERRO   --approved: no `**Approved**: <date> - user: "<their words>"`
@@ -30,6 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gates_common as gc  # noqa: E402
+import images  # noqa: E402
 
 FULL = ["Context", "Scope", "Non-Goals", "Requirements", "Data & Contracts", "States", "Edge Cases",
         "Decisions", "Open Questions"]
@@ -41,6 +46,45 @@ MODAL_RE = re.compile(r"\b(SHALL|DEVE|DEVERÁ)\b", re.IGNORECASE)
 LEAD_RE = re.compile(r"^\s*(WHEN|WHILE|WHERE|IF|QUANDO|ENQUANTO|ONDE|SE|THE|O|A|OS|AS)\b", re.IGNORECASE)
 BINDING_RE = re.compile(r"(?<![-\w])(binding|vinculante)\b", re.IGNORECASE)
 NOT_BINDING_RE = re.compile(r"\b(non|not|não)[- ](binding|vinculante)\b", re.IGNORECASE)
+
+USER_QUOTE_RE = re.compile(r'user:\s*"[^"]*\S[^"]*"', re.IGNORECASE)
+
+
+def _check_captures(fdir: Path, lines: list[str], reqs_lines: list[str], errors: list[str]) -> None:
+    """Capture rules (F11-2): Sources line, binding cited by a requirement, image in the spec."""
+    try:
+        caps = images.list_captures(fdir)
+    except images.ImageError as exc:
+        errors.append(str(exc))
+        return
+    if not caps:
+        return
+    sources = gc.section(lines, "Sources")
+    has_sources = sources is not None and bool(gc.meaningful(sources))
+    if not has_sources:
+        errors.append("captures/ tem o design mas falta `## Sources`: uma linha por captura, "
+                      "`![<nome>](captures/<arquivo>) - binding - <o que desenha>`")
+    text = "\n".join(lines)
+    for cap in caps:
+        name = re.escape(cap.name)
+        ref = re.compile(rf"captures/{name}(?![\w@-])")
+        if has_sources:
+            line = next((x for x in sources if ref.search(x)), None)
+            if line is None:
+                errors.append(f"`{cap.name}` não tem linha em `## Sources`: "
+                              f"`![<nome>](captures/{cap.name}) - binding - <o que desenha>`")
+            elif NOT_BINDING_RE.search(line):
+                if not USER_QUOTE_RE.search(line):
+                    errors.append(f"`{cap.name}`: linha `non-binding` sem `user: \"<palavras do usuário>\"` "
+                                  "em `## Sources`")
+            else:
+                cited = re.compile(rf"`(?:[^`]*/)?captures/{name}`")
+                if not any(cited.search(r) for r in reqs_lines):
+                    errors.append(f"nenhum requisito cita a captura `{cap.name}`: cite `captures/{cap.name}` "
+                                  "entre crases num requisito `**R<n>**`")
+        if not re.search(rf"!\[[^\]]*\]\(captures/{name}\)", text):
+            errors.append(f"`{cap.name}` não aparece na spec: inclua `![<nome>](captures/{cap.name})`")
+
 
 
 def evaluate(target: str | None, root: Path, require_approval: bool = False) -> gc.Result:
@@ -143,6 +187,9 @@ def evaluate(target: str | None, root: Path, require_approval: bool = False) -> 
         if diff is None or not gc.meaningful(diff):
             errors.append("há fonte vinculante em `## Sources`, mas falta `## Differences from the Source` "
                           "(liste cada diferença aprovada, ou `None - o produto segue a fonte`)")
+
+    reqs_lines = [ln for ln in body if gc.REQ_LINE_RE.match(ln.strip())]
+    _check_captures(fdir, lines, reqs_lines, errors)
 
     # Checks.
     if brief:
