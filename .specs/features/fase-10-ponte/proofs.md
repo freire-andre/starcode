@@ -1,6 +1,6 @@
 # fase-10-ponte proofs
 
-**HEAD**: 4524bd6
+**HEAD**: 89e8690
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 60 pass, 0 fail
@@ -85,7 +85,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 599 tests in 315.415s
+Ran 599 tests in 251.865s
 
 OK
 ```
@@ -93,19 +93,19 @@ OK
 `Run plugin` - exit 0
 
 ```
-✔ atalho abre spec tasks e handoff (3.05ms)
-✔ atalho inicia o Picard uma vez (3.0875ms)
-✔ atalho recusa agente que a Orca não lança (0.6469ms)
-✔ diário guarda 20 entradas e o painel mostra 10 (10.7915ms)
-✔ diário registra mudança de worktree e de fase (1.6701ms)
-✔ worker registra falhas no log (5.2979ms)
-ℹ tests 47
+[starcode-ponte] orca linear issue falhou: linear fora do ar
+[starcode-ponte] orca linear issue falhou: linear fora do ar
+[starcode-ponte] orca linear issue falhou: linear fora do ar
+[starcode-ponte] orca linear issue falhou: linear fora do ar
+[starcode-ponte] orca linear issue falhou: linear fora do ar
+[starcode-ponte] orca linear issue falhou: linear fora do ar
+ℹ tests 60
 ℹ suites 0
-ℹ pass 47
+ℹ pass 60
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1821.5341
+ℹ duration_ms 2067.5082
 4 test file(s) passed (node).
 ```
