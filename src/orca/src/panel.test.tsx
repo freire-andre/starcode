@@ -157,7 +157,7 @@ test('atalho inicia o Picard uma vez', async () => {
       'ponte.launchPicard': async () => {
         n++
         await gate
-        return { terminalId: 't9' }
+        return { terminalId: 't9', visible: true }
       },
     },
   })
@@ -171,8 +171,24 @@ test('atalho inicia o Picard uma vez', async () => {
   await p.settled()
   assert.equal(n, 1)
   assert.equal(p.find(alvo)!.disabled, false)
+  assert.ok(text(p).includes('Picard iniciado numa aba visível'))
+  assert.ok(!text(p).includes('segundo plano'))
+})
+
+test('atalho avisa quando o Picard abre em segundo plano', async () => {
+  const h = mockHost({
+    requests: {
+      'ponte.state': comArquivos,
+      'ponte.launchPicard': async () => ({ terminalId: 't9', visible: false }),
+    },
+  })
+  const p = await mount(panel, { host: h })
+  assert.ok(!text(p).includes('segundo plano'))
+  await p.press({ type: 'Button', text: 'Iniciar Picard' })
+  await p.settled()
   assert.ok(text(p).includes('Picard iniciado em segundo plano'))
-  assert.ok(text(p).includes('O agente abre em segundo plano'))
+  assert.ok(text(p).includes('O agente abriu em segundo plano'))
+  assert.ok(!text(p).includes('numa aba visível'))
 })
 
 test('atalho recusa agente que a Orca não lança', async () => {

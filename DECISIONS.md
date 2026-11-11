@@ -765,3 +765,11 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
   - o diário não repete a mesma falha, e o orca.log guarda o diagnóstico, só com os nomes das variáveis.
 - **Motivo:** a limitação "orca falha dentro do worker" da F10-9 tinha causa no plugin, não na Orca. Com a correção, a Issue mostra título, estado e o link no reaceite de 2026-11-11.
 - **Por que não é bug:** os testes do worker cobrem a resolução do CLI com `execPath` falso, o env completado, a issue da feature e o diário sem repetição (60 testes do plugin). A limitação do Iniciar Picard em segundo plano segue como na F10-9.
+
+### F10-15: Iniciar Picard numa aba visível pelo CLI (SC-131)
+- **Problema:** o `agent.launch` da API de plugins inicia em segundo plano por definição: o Iniciar Picard não mostrava aba nem enviava o prompt `/starcode:engajar` (limitação da F10-9).
+- **Decisão:** o worker roda `orca agent launch --agent <cli> --worktree path:<caminho> --prompt <prompt> --surface terminal --focus --json` pelo `execOrca` (F10-14), com `--model` só quando o `cliModel` do Picard traz um modelo real ("padrão do CLI" não conta). O painel recebe `{ terminalId, visible: true }` e o diário grava "Picard iniciado numa aba visível". Se o CLI falhar (exceção ou `ok:false`), o worker registra a falha e volta ao `agent.launch` da API, responde `visible: false` e grava "Picard iniciado em segundo plano"; o painel só mostra o aviso de segundo plano nesse caso. A trava `launching`, a validação e o mapa de prompts não mudam.
+- **Pasta instalada:** o worker nunca escreve na pasta instalada do plugin (o `contentHash` da instalação a verifica; um `scripts/__pycache__` fez a Orca recusar o painel), por isso o python do `ponte.py` roda com `-B` e `PYTHONDONTWRITEBYTECODE=1`.
+- **Motivo:** a limitação da F10-9 tinha saída pelo CLI, que abre a aba de agente e envia o prompt.
+- **Por que não é bug:** os testes do worker cobrem os argumentos do CLI (com e sem `--model`), a volta para a API e o diário; os do painel cobrem as duas mensagens e o aviso.
+

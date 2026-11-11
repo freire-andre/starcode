@@ -82,8 +82,8 @@ declare module 'orca' {
     'ponte.state': { input: { force?: boolean }; output: PonteState }
     /** Abre um arquivo da feature numa aba do editor (T4). */
     'ponte.open': { input: { file: 'spec' | 'tasks' | 'handoff' }; output: { opened: boolean } }
-    /** Inicia o agente do Picard no worktree em foco (T4). */
-    'ponte.launchPicard': { input: Record<string, never>; output: { terminalId: string } }
+    /** Inicia o agente do Picard no worktree em foco; `visible` diz se abriu numa aba visível (F10-15). */
+    'ponte.launchPicard': { input: Record<string, never>; output: { terminalId: string | null; visible: boolean } }
   }
   interface PluginPanelEvents {
     /** Estado completo, publicado a cada mudança. */

@@ -137,12 +137,12 @@ function stdoutError(err: unknown): Error | null {
 
 async function runSnapshot(path: string): Promise<PonteSnapshot> {
   const exec = getExec()
-  const args = [ponteScript(), 'snapshot', '--path', path, '--json']
+  const args = ['-B', ponteScript(), 'snapshot', '--path', path, '--json']
   let out: ExecResult | undefined
   let lastErr: unknown
   for (const py of ['python', 'python3']) {
     try {
-      out = await exec(py, args, { timeout: TIMEOUT_MS })
+      out = await exec(py, args, { timeout: TIMEOUT_MS, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } })
       break
     } catch (err) {
       lastErr = err
@@ -239,6 +239,26 @@ function relativeToWorktree(file: string, root: string): string | null {
   else if (f.toLowerCase().startsWith(`${r.toLowerCase()}/`)) rel = f.slice(r.length + 1)
   else return null
   return rel && !rel.split('/').includes('..') ? rel : null
+}
+
+/** Erro de tempo do execFile: processo morto, sinal ou ETIMEDOUT. */
+function isTimeout(err: unknown): boolean {
+  const e = err as { killed?: unknown; signal?: unknown; code?: unknown } | null
+  return !!e && (e.killed === true || !!e.signal || e.code === 'ETIMEDOUT')
+}
+
+/** Modelo real do `cliModel` ("claude · opus"); vazio quando é o padrão do CLI. */
+function realModel(cliModel: string | null | undefined): string | null {
+  const m = (cliModel ?? '').split('·')[1]?.trim() ?? ''
+  return m && !/^padr[aã]o/i.test(m) ? m : null
+}
+
+/** Handle/ID do terminal no JSON do `orca agent launch`; null quando não vier. */
+function terminalOf(json: unknown): string | null {
+  const r = (json as { result?: Record<string, any> } | null)?.result
+  const cands = [r?.terminal?.handle, r?.terminalHandle, r?.terminalId, r?.handle, r?.terminal?.id]
+  const hit = cands.find((x) => typeof x === 'string' && x)
+  return typeof hit === 'string' ? hit : null
 }
 
 type IssueResult = { issue: PonteIssue | null; note: string | null }
@@ -512,6 +532,36 @@ export default function activate(orca: OrcaWorkerApi): void {
         throw Object.assign(new Error(`Agente ${agent} não pode ser iniciado pela Orca`), { code: 'not_launchable' })
       }
       const prompt = agent === 'claude' ? '/starcode:engajar' : agent === 'codex' ? '$starcode:engajar' : 'engajar'
+      const model = realModel(picard?.cliModel)
+      const args = [
+        'agent', 'launch', '--agent', agent, '--worktree', `path:${where.path}`, '--prompt', prompt,
+        '--surface', 'terminal', '--focus', ...(model ? ['--model', model] : []), '--json',
+      ]
+      try {
+        const out = await execOrca(args)
+        let json: unknown = null
+        try {
+          json = JSON.parse(out.stdout)
+        } catch {
+          /* resposta sem JSON: segue sem terminal */
+        }
+        const terminalId = terminalOf(json)
+        ok('orca agent launch')
+        note('Picard iniciado numa aba visível')
+        console.log(`[starcode-ponte] orca agent launch: terminal ${terminalId ?? '(sem id)'}`)
+        schedule()
+        return { terminalId, visible: true }
+      } catch (err) {
+        fail('orca agent launch', err)
+        // Timeout: o CLI pode já ter aberto o Picard; voltar à API abriria um segundo.
+        if (isTimeout(err)) {
+          schedule()
+          throw Object.assign(
+            new Error('O CLI da Orca não respondeu a tempo; confira se o Picard abriu antes de tentar de novo'),
+            { code: 'launch_timeout' },
+          )
+        }
+      }
       let res: { terminalId: string }
       try {
         res = (await orca.host.call('agent.launch', { workspaceId: where.id, agent, prompt })) as { terminalId: string }
@@ -520,10 +570,10 @@ export default function activate(orca: OrcaWorkerApi): void {
         schedule()
         throw err
       }
-      note(`Picard iniciado (terminal ${res.terminalId}).`)
+      note('Picard iniciado em segundo plano')
       console.log(`[starcode-ponte] agent.launch: terminalId ${res.terminalId}`)
       schedule()
-      return { terminalId: res.terminalId }
+      return { terminalId: res.terminalId ?? null, visible: false }
     } finally {
       launching = false
     }
