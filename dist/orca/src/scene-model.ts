@@ -9,7 +9,7 @@ export interface Retangulo { x: number; y: number; largura: number; altura: numb
 
 export interface Estacao extends Celula { membro: string }
 
-export type TipoRotulo = 'telao' | 'emoji' | 'nome' | 'worker' | 'marca' | 'balao' | 'legenda' | 'mensagem'
+export type TipoRotulo = 'telao' | 'emoji' | 'nome' | 'tempo' | 'worker' | 'marca' | 'balao' | 'legenda' | 'mensagem'
 
 /** Texto da cena com a caixa que ele ocupa (centro em x,y); o teste prova que nenhuma caixa se sobrepõe. */
 export interface Rotulo {
@@ -20,8 +20,16 @@ export interface Rotulo {
   /** Altura da fonte em células da grade. */
   tam: number
   caixa: Retangulo
-  /** Tripulante dono do texto (emoji, nome ou balão da estação), quando houver. */
+  /** Tripulante dono do texto (emoji, nome, tempo ou balão da estação), quando houver. */
   dono?: string
+}
+
+/** Boneco em pixel art: cabeça e corpo na cor da divisão; sentado não mostra as pernas (ficam sob o console). */
+export interface Boneco {
+  cabeca: Retangulo
+  corpo: Retangulo
+  bracos: Retangulo[]
+  pernas: Retangulo[]
 }
 
 export interface Personagem extends Celula {
@@ -31,12 +39,22 @@ export interface Personagem extends Celula {
   divisao: Divisao
   cor: string
   pose: Pose
-  /** Trabalhando (count > 0): sentado, cores vivas, animado. */
+  /** Trabalhando (count > 0): sentado digitando, console aceso. */
   ativo: boolean
   /** Quadro da animação "trabalhando" (0 ou 1); 0 quando parado. */
   quadro: 0 | 1
   balao: boolean
-  /** Ladrilho da estação (fundo; esmaecido quando inativo). */
+  /** Tamanho do boneco (Picard é maior). */
+  escala: number
+  /** 1 quando ativo; no máximo 0,4 quando livre (R52). */
+  opacidade: number
+  boneco: Boneco
+  console: Retangulo
+  /** Brilho do console aceso, na cor da divisão; null quando livre. */
+  brilho: Retangulo | null
+  /** "há N min" desde `lastAt`, só para o ativo. */
+  tempo: string | null
+  /** Área da estação (boneco, console e textos); as áreas não se tocam. */
   caixa: Retangulo
 }
 
@@ -44,6 +62,10 @@ export interface WorkerCena extends Celula {
   rotulo: string
   concluido: boolean
   balao: boolean
+  pose: Pose
+  quadro: 0 | 1
+  boneco: Boneco
+  console: Retangulo
   caixa: Retangulo
 }
 
@@ -61,9 +83,13 @@ export interface Cena {
   telao: Retangulo
   /** Dados do telão; null quando não há feature ativa. */
   progresso: Telao | null
+  /** Quantos tripulantes estão ativos (o telão mostra). */
+  ativos: number
+  /** Área da ponte entre o telão e a engenharia (cresce quando a engenharia encolhe). */
+  ponte: Retangulo
   estacoes: Estacao[]
   engenharia: Retangulo
-  /** As 6 vagas de worker da engenharia (ocupadas ou vazias). */
+  /** Uma vaga por worker desenhado (até 6); sem worker, nenhuma. */
   vagas: Retangulo[]
   personagens: Personagem[]
   workers: WorkerCena[]
@@ -74,23 +100,27 @@ export interface Cena {
   mensagem: string | null
 }
 
-export const GRADE = { largura: 48, altura: 72 } as const
+export const GRADE = { largura: 48, altura: 92 } as const
 export const MAX_WORKERS = 6
 export const FRAME_MS = 250
 /** Menor largura do painel, em px, e escala inteira mínima que decorre dela. */
 export const LARGURA_MIN_PX = 240
 export const TAM_MIN_PX = 10
+export const OPACIDADE_LIVRE = 0.4
 
 export const MSG_SEM_WORKTREE = 'Nenhum worktree em foco'
 export const MSG_SEM_STARCODE = 'StarCode não configurado neste worktree'
+export const MSG_SEM_WORKERS = 'Nenhum worker na engenharia'
 export const LEGENDA = 'aceso = trabalhando · apagado = livre'
 
 const TELAO: Retangulo = { x: 1, y: 1, largura: 46, altura: 12 }
-const BARRA: Retangulo = { x: 4, y: 9.4, largura: 26, altura: 1.6 }
-const ENGENHARIA: Retangulo = { x: 1, y: 49, largura: 46, altura: 20 }
-const PICARD_POS: Celula = { x: 24, y: 34 }
+const BARRA: Retangulo = { x: 4, y: 8.2, largura: 26, altura: 1.6 }
+const PONTE_Y = 14
+/** Base da engenharia (fixa); a altura dela depende dos workers e o resto vai para a ponte. */
+const ENG_FUNDO = 89
+const ENG_LINHA = 7.5
 
-const CORES: Record<Divisao, string> = {
+export const CORES: Record<Divisao, string> = {
   comando: '#c0392b',
   operacoes: '#d4a017',
   ciencias: '#2e86c1',
@@ -98,28 +128,34 @@ const CORES: Record<Divisao, string> = {
 
 interface Membro { id: string; nome: string; emoji: string; divisao: Divisao }
 
-// Picard na cadeira central, LaForge na engenharia; os outros 10 em volta, de cima para baixo.
 const PICARD: Membro = { id: 'picard', nome: 'Picard', emoji: '🖖', divisao: 'comando' }
-const LAFORGE: Membro = { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes' }
-const ARCO_MEMBROS: Membro[] = [
-  { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias' },
-  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias' },
-  { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes' },
-  { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando' },
-  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias' },
-  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes' },
-  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes' },
-  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando' },
-  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias' },
-  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias' },
-]
 
-/** Posição (centro do emoji) de cada estação em volta da cadeira do Picard: arco de 3 + 2 + 2 no alto e nas laterais, 3 embaixo. */
-const POSICOES: Celula[] = [
-  { x: 6, y: 26.5 }, { x: 15, y: 20 }, { x: 24, y: 20 }, { x: 33, y: 20 }, { x: 42, y: 26.5 },
-  { x: 6, y: 34 }, { x: 42, y: 34 },
-  { x: 12, y: 41.8 }, { x: 24, y: 41.8 }, { x: 36, y: 41.8 },
+/**
+ * As 11 estações no console em arco ao redor da cadeira do Picard: 3 no alto (o arco), 3 em cada lado e
+ * 2 na frente. `y` é a distância vertical a partir do topo do arco, antes de esticar para a altura da ponte;
+ * colunas distintas ficam a 11 células ou mais e a mesma coluna a 12 ou mais, então as áreas não se tocam.
+ */
+const ARCO: (Membro & { x: number; y: number })[] = [
+  { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias', x: 12, y: 1.5 },
+  { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes', x: 24, y: 0 },
+  { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 36, y: 1.5 },
+  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 5.5, y: 13.5 },
+  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 42.5, y: 13.5 },
+  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 5.5, y: 25.5 },
+  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 42.5, y: 25.5 },
+  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 5.5, y: 37.5 },
+  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 42.5, y: 37.5 },
+  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 16.5, y: 41 },
+  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 31.5, y: 41 },
 ]
+const PICARD_Y = 21
+const ARCO_ALTURA = 41
+const PICARD_ESCALA = 1.5
+/** Margens da área da estação acima e abaixo do centro do boneco (escala 1). */
+const ACIMA = 5.6
+const ABAIXO = 6.4
+/** Esticamento máximo do arco: mais que isso deforma o anel (os lados ficam perto demais do Picard). */
+const ESTICA_MAX = 1.25
 
 function larguraTexto(texto: string, tam: number, emoji: boolean): number {
   return emoji ? tam * 1.3 : [...texto].length * 0.6 * tam
@@ -152,10 +188,44 @@ function quebra(texto: string, max: number): string[] {
   return linhas.slice(0, 6).map(l => corta(l, max))
 }
 
-/** Vaga `i` (0 a 5) da engenharia: 3 colunas por 2 linhas. */
-function vagaWorker(i: number): { centro: Celula; caixa: Retangulo } {
-  const centro = { x: 9 + (i % 3) * 15, y: 57 + Math.floor(i / 3) * 6.8 }
-  return { centro, caixa: { x: centro.x - 4, y: centro.y - 2, largura: 8, altura: 4 } }
+/** Boneco em pixel art com centro do corpo em (x, y): sentado digita (braços alternam), de pé fica parado. */
+function fazBoneco(x: number, y: number, s: number, sentado: boolean, quadro: 0 | 1): Boneco {
+  const r = (dx: number, dy: number, w: number, h: number): Retangulo => ({ x: x + dx * s, y: y + dy * s, largura: w * s, altura: h * s })
+  if (sentado) {
+    const esq = quadro === 0 ? 0.4 : 0
+    const dir = quadro === 1 ? 0.4 : 0
+    return {
+      cabeca: r(-0.8, -3.6, 1.6, 1.6),
+      corpo: r(-1.3, -2.0, 2.6, 2.6),
+      bracos: [r(-1.9, -1.6 + esq, 0.6, 1.6), r(1.3, -1.6 + dir, 0.6, 1.6)],
+      pernas: [],
+    }
+  }
+  return {
+    cabeca: r(-0.8, -4.2, 1.6, 1.6),
+    corpo: r(-1.3, -2.6, 2.6, 3.2),
+    bracos: [r(-1.9, -2.4, 0.6, 2.4), r(1.3, -2.4, 0.6, 2.4)],
+    pernas: [r(-1.0, 0.6, 0.8, 1.0), r(0.2, 0.6, 0.8, 1.0)],
+  }
+}
+
+function fazConsole(x: number, y: number, s: number): Retangulo {
+  return { x: x - 2.6 * s, y: y + 0.4 * s, largura: 5.2 * s, altura: 0.8 * s }
+}
+
+/** "há N min" desde `lastAt` (horas e dias quando passa disso, para o texto caber); null sem data válida. */
+export function haQuanto(lastAt: string | null | undefined, agoraMs: number): string | null {
+  const t = lastAt ? Date.parse(lastAt) : NaN
+  if (!Number.isFinite(t)) return null
+  const min = Math.max(0, Math.floor((agoraMs - t) / 60_000))
+  if (min < 60) return `há ${min} min`
+  if (min < 24 * 60) return `há ${Math.floor(min / 60)} h`
+  return `há ${Math.min(99, Math.floor(min / (24 * 60)))} d`
+}
+
+function textoAtivos(n: number): string {
+  if (n === 0) return 'tripulação em repouso'
+  return n === 1 ? '1 tripulante ativo' : `${n} tripulantes ativos`
 }
 
 function casaWorker(agente: PonteAgent, worker: PonteWorker): boolean {
@@ -167,13 +237,16 @@ function casaWorker(agente: PonteAgent, worker: PonteWorker): boolean {
 
 function cenaVazia(mensagem: string): Cena {
   const linhas = quebra(mensagem, 30)
-  const rotulos = linhas.map((l, i) => rotulo('mensagem', l, GRADE.largura / 2, 36 + (i - (linhas.length - 1) / 2) * 3, 2))
+  const meio = GRADE.altura / 2
+  const rotulos = linhas.map((l, i) => rotulo('mensagem', l, GRADE.largura / 2, meio + (i - (linhas.length - 1) / 2) * 3, 2))
   return {
     grade: { ...GRADE },
     telao: { ...TELAO },
     progresso: null,
+    ativos: 0,
+    ponte: { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: ENG_FUNDO - PONTE_Y },
     estacoes: [],
-    engenharia: { ...ENGENHARIA },
+    engenharia: { x: 1, y: ENG_FUNDO, largura: 46, altura: 0 },
     vagas: [],
     personagens: [],
     workers: [],
@@ -206,32 +279,40 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
   const snap = estado.snapshot
   const quadro = (Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
   const porMembro = new Map(snap.crew.map(c => [c.member, c]))
+  const ativos = snap.crew.filter(c => c.count > 0).length
   const rotulos: Rotulo[] = []
 
-  // Telão: slug, fase e progresso da feature.
+  // Telão: slug, fase, progresso da feature e quantos tripulantes estão ativos.
   let progresso: Telao | null = null
   const feature = snap.feature
   if (feature) {
     const { done, total, percent } = feature.progress
     progresso = { slug: feature.slug, fase: feature.phase, feitos: done, total, percentual: percent, barra: { ...BARRA } }
-    rotulos.push(rotulo('telao', corta(feature.slug, 28), 24, 3.6, 2.4))
-    rotulos.push(rotulo('telao', corta(feature.phase, 28), 24, 6.8, 2))
+    rotulos.push(rotulo('telao', corta(feature.slug, 28), 24, 3.4, 2.4))
+    rotulos.push(rotulo('telao', corta(feature.phase, 28), 24, 6.1, 2))
     rotulos.push(rotulo('telao', `${done}/${total} · ${percent}%`, 38.5, BARRA.y + BARRA.altura / 2, 2))
+    rotulos.push(rotulo('telao', textoAtivos(ativos), 24, 11.6, 2))
   } else {
-    rotulos.push(rotulo('telao', 'sem feature ativa', 24, 7, 2.4))
+    rotulos.push(rotulo('telao', 'sem feature ativa', 24, 5, 2.4))
+    rotulos.push(rotulo('telao', textoAtivos(ativos), 24, 9.5, 2))
   }
 
-  // Workers da engenharia: até 6 vagas em 3 colunas.
+  // Engenharia: só os workers reais (até 6, 3 por linha); sem worker, uma linha só.
   const visiveis = snap.workers.slice(0, MAX_WORKERS)
+  const linhas = Math.ceil(visiveis.length / 3)
+  const engAltura = linhas === 0 ? 4 : 5 + linhas * ENG_LINHA
+  const engenharia: Retangulo = { x: 1, y: ENG_FUNDO - engAltura, largura: 46, altura: engAltura }
   const workers: WorkerCena[] = visiveis.map((w, i) => {
-    const { centro, caixa } = vagaWorker(i)
+    const x = 9 + (i % 3) * 15
+    const y = engenharia.y + 7.5 + Math.floor(i / 3) * ENG_LINHA
+    const concluido = agentes.some(a => a.state === 'done' && casaWorker(a, w))
+    const q: 0 | 1 = concluido ? 0 : quadro
     return {
-      rotulo: corta(w.label, 8),
-      x: centro.x,
-      y: centro.y,
-      caixa,
-      concluido: agentes.some(a => a.state === 'done' && casaWorker(a, w)),
-      balao: false,
+      rotulo: corta(w.label, 8), x, y, concluido, balao: false,
+      pose: concluido ? 'de-pe' : 'sentado', quadro: q,
+      boneco: fazBoneco(x, y, 1, !concluido, q),
+      console: fazConsole(x, y, 1),
+      caixa: { x: x - 5, y: y - 4.6, largura: 10, altura: 6.6 },
     }
   })
 
@@ -260,49 +341,69 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     balaoMembros.add(alvo)
   }
 
-  const lugares: { m: Membro; x: number; y: number; caixa: Retangulo }[] = [
-    { m: PICARD, ...PICARD_POS, caixa: { x: PICARD_POS.x - 5, y: PICARD_POS.y - 3, largura: 10, altura: 8.2 } },
-    { m: LAFORGE, x: 6.5, y: 52, caixa: { x: 3, y: 50.4, largura: 17, altura: 3.2 } },
-    ...ARCO_MEMBROS.map((m, i) => {
-      const { x, y } = POSICOES[i]
-      return { m, x, y, caixa: { x: x - 4, y: y - 2.2, largura: 8, altura: 7.4 } }
-    }),
+  // Ponte: o arco estica com a altura que sobra (até ESTICA_MAX) e fica centrado nela.
+  const ponte: Retangulo = { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: engenharia.y - 1 - PONTE_Y }
+  const util = ponte.altura - ACIMA - ABAIXO
+  const k = Math.min(ESTICA_MAX, util / ARCO_ALTURA)
+  const topo = ponte.y + ACIMA + (util - k * ARCO_ALTURA) / 2
+
+  const lugares: { m: Membro; x: number; y: number; s: number }[] = [
+    { m: PICARD, x: GRADE.largura / 2, y: topo + PICARD_Y * k, s: PICARD_ESCALA },
+    ...ARCO.map(m => ({ m, x: m.x, y: topo + m.y * k, s: 1 })),
   ]
-  const personagens: Personagem[] = lugares.map(({ m, x, y, caixa }) => {
+  const personagens: Personagem[] = lugares.map(({ m, x, y, s }) => {
     const c = porMembro.get(m.id)
     const ativo = (c?.count ?? 0) > 0
-    const nome = c?.name || m.nome
+    const nome = corta(c?.name || m.nome, 8)
     const emoji = c?.emoji || m.emoji
     const balao = balaoMembros.has(m.id)
-    const meus = [rotulo('emoji', emoji, x, y, m === PICARD ? 3 : 2.6)]
-    // LaForge: o nome fica ao lado do emoji, no cabeçalho da engenharia.
-    meus.push(m === LAFORGE ? rotulo('nome', nome, 15, y, 2) : rotulo('nome', nome, x, y + 3.4, 2))
-    if (balao) meus.push(rotulo('balao', '!', x + 3.2, y - 1.9, 2))
+    const tempo = ativo ? haQuanto(c?.lastAt, agoraMs) : null
+    const q: 0 | 1 = ativo ? quadro : 0
+    const yNome = y + 1.6 * s + 1.2
+    const meus = [rotulo('emoji', emoji, x, y - s, s > 1 ? 2.6 : 2), rotulo('nome', nome, x, yNome, 2)]
+    if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.4, 2))
+    if (balao) meus.push(rotulo('balao', '!', x + 2.4 * s, y - 4.2 * s, 2))
     for (const r of meus) rotulos.push({ ...r, dono: m.id })
+    const consoleR = fazConsole(x, y, s)
+    const acima = ACIMA + (s - 1) * 4
+    const abaixo = ABAIXO + (s - 1) * 1.6
     return {
       membro: m.id, nome, emoji, divisao: m.divisao, cor: CORES[m.divisao],
-      pose: ativo ? 'sentado' : 'de-pe', ativo, quadro: ativo ? quadro : 0, x, y, balao, caixa,
+      pose: ativo ? 'sentado' : 'de-pe', ativo, quadro: q, x, y, balao,
+      escala: s,
+      opacidade: ativo ? 1 : OPACIDADE_LIVRE,
+      boneco: fazBoneco(x, y, s, ativo, q),
+      console: consoleR,
+      brilho: ativo ? { x: consoleR.x - 0.6, y: consoleR.y - 0.6, largura: consoleR.largura + 1.2, altura: consoleR.altura + 1.2 } : null,
+      tempo,
+      caixa: { x: x - 5.5, y: y - acima, largura: 11, altura: acima + abaixo },
     }
   })
 
-  rotulos.push(rotulo('telao', 'ENGENHARIA', 30, 52, 2))
-  for (const w of workers) {
-    rotulos.push(rotulo('emoji', '🔧', w.x, w.y, 2.4))
-    rotulos.push(rotulo('worker', w.rotulo, w.x, w.y + 3.6, 2))
-    if (w.concluido) rotulos.push(rotulo('marca', '✓', w.x - 3.2, w.y - 1.3, 2))
-    if (w.balao) rotulos.push(rotulo('balao', '!', w.x + 3.2, w.y - 1.3, 2))
-  }
   const maisN = Math.max(0, snap.workers.length - MAX_WORKERS)
-  if (maisN > 0) rotulos.push(rotulo('marca', `+${maisN}`, 43, 52, 2))
-  rotulos.push(rotulo('legenda', LEGENDA, 24, 70.8, 2))
+  if (workers.length === 0) {
+    rotulos.push(rotulo('worker', MSG_SEM_WORKERS, 24, engenharia.y + engenharia.altura / 2, 2))
+  } else {
+    rotulos.push(rotulo('telao', 'ENGENHARIA', 24, engenharia.y + 1.9, 2))
+    if (maisN > 0) rotulos.push(rotulo('marca', `+${maisN}`, 43, engenharia.y + 1.9, 2))
+  }
+  for (const w of workers) {
+    rotulos.push(rotulo('emoji', '🔧', w.x, w.y - 1, 2))
+    rotulos.push(rotulo('worker', w.rotulo, w.x, w.y + 2.8, 2))
+    if (w.concluido) rotulos.push(rotulo('marca', '✓', w.x - 2.6, w.y - 1, 2))
+    if (w.balao) rotulos.push(rotulo('balao', '!', w.x + 2.6, w.y - 1, 2))
+  }
+  rotulos.push(rotulo('legenda', LEGENDA, 24, GRADE.altura - 1.4, 2))
 
   return {
     grade: { ...GRADE },
     telao: { ...TELAO },
     progresso,
+    ativos,
+    ponte,
     estacoes: lugares.map(l => ({ membro: l.m.id, x: l.x, y: l.y })),
-    engenharia: { ...ENGENHARIA },
-    vagas: Array.from({ length: MAX_WORKERS }, (_, i) => vagaWorker(i).caixa),
+    engenharia,
+    vagas: workers.map(w => ({ ...w.caixa })),
     personagens,
     workers,
     rotulos,
