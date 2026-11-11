@@ -2,6 +2,7 @@
 // publica o estado aos painéis e atualiza a barra de status. Só lê; nunca escreve estado.
 import { execFile } from 'node:child_process'
 import { existsSync, statSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { OrcaWorkerApi } from 'orca/worker'
@@ -68,10 +69,47 @@ function firstLine(err: unknown): string {
 }
 
 /** Env do processo sem as variáveis que quebram o launcher do orca.exe. */
+const BASE_ENV = ['APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'HOME', 'HOMEDRIVE', 'HOMEPATH', 'SYSTEMROOT', 'PATH']
+
+/** Valor de uma variável sem diferenciar maiúsculas no nome (no Windows o env copiado não ignora a caixa). */
+function envKey(env: Record<string, string | undefined>, name: string): string | undefined {
+  return Object.keys(env).find((k) => k.toUpperCase() === name && env[k] !== undefined && env[k] !== '')
+}
+
+/**
+ * Env do CLI: sem as variáveis que quebram o launcher do orca.exe e com as pastas do usuário que o
+ * runtime da Orca exige (APPDATA etc.) preenchidas pelo homedir quando faltam. Nunca sobrescreve.
+ */
 function orcaEnv(): Record<string, string | undefined> {
   const env: Record<string, string | undefined> = { ...process.env }
-  for (const k of ORCA_ENV_DROP) delete env[k]
+  for (const k of Object.keys(env)) if (ORCA_ENV_DROP.includes(k.toUpperCase())) delete env[k]
+  let home = ''
+  try {
+    home = homedir()
+  } catch {
+    /* sem home */
+  }
+  if (home) {
+    const fill: Record<string, string> =
+      process.platform === 'win32'
+        ? { USERPROFILE: home, APPDATA: join(home, 'AppData', 'Roaming'), LOCALAPPDATA: join(home, 'AppData', 'Local') }
+        : { HOME: home }
+    for (const [k, v] of Object.entries(fill)) if (!envKey(env, k)) env[k] = v
+  }
   return env
+}
+
+/** `code: message` de um stdout `{ok:false,error:{code,message}}` do CLI; null se não for isso. */
+function cliFailure(stdout: unknown): string | null {
+  if (typeof stdout !== 'string' || !stdout.trim()) return null
+  try {
+    const json = JSON.parse(stdout) as { ok?: unknown; error?: { code?: unknown; message?: unknown } }
+    if (json?.ok !== false || !json.error) return null
+    const parts = [json.error.code, json.error.message].filter((x) => typeof x === 'string' && x)
+    return parts.length ? parts.join(': ') : null
+  } catch {
+    return null
+  }
 }
 
 /** Diagnóstico para o orca.log: até 8 linhas do stderr e só os NOMES das variáveis NODE_/ELECTRON_/ORCA_. */
@@ -80,7 +118,9 @@ function diagnostics(err: unknown): string | null {
   if (!e || typeof e !== 'object' || typeof e.stderr !== 'string') return null
   const lines = String(e.stderr ?? '').split(/\r?\n/).filter((l) => l.trim()).slice(0, STDERR_LINES)
   const names = Object.keys(process.env).filter((k) => /^(NODE_|ELECTRON_|ORCA_)/i.test(k)).sort()
-  return `stderr: ${lines.length ? lines.join(' | ') : '(vazio)'} · env: ${names.join(', ') || '(nenhuma)'}`
+  const env = process.env as Record<string, string | undefined>
+  const base = BASE_ENV.filter((k) => envKey(env, k))
+  return `stderr: ${lines.length ? lines.join(' | ') : '(vazio)'} · env: ${names.join(', ') || '(nenhuma)'} · base: ${base.join(', ') || '(nenhuma)'}`
 }
 
 // O ponte.py recusa o worktree com JSON `{error}` no stdout e exit 2; essa mensagem vale mais que o stderr.
@@ -169,12 +209,21 @@ async function execOrca(args: string[]): Promise<ExecResult> {
   const opts: ExecOpts = { timeout: TIMEOUT_MS, env: orcaEnv() }
   let last: unknown = Object.assign(new Error('CLI do orca não encontrado'), { code: 'ENOENT' })
   for (const bin of orcaCandidates()) {
+    let out: ExecResult
     try {
-      return await exec(bin, args, opts)
+      out = await exec(bin, args, opts)
     } catch (e) {
       last = e
-      if ((e as { code?: unknown }).code !== 'ENOENT') throw e
+      if ((e as { code?: unknown }).code !== 'ENOENT') {
+        const why = cliFailure((e as ExecError).stdout)
+        if (why) (e as ExecError).message = why
+        throw e
+      }
+      continue
     }
+    const why = cliFailure(out.stdout)
+    if (why) throw new Error(why)
+    return out
   }
   throw last
 }
@@ -196,28 +245,34 @@ type IssueResult = { issue: PonteIssue | null; note: string | null }
 
 const CLI_DOWN = 'Linear indisponível pelo CLI'
 
-/** Base `https://linear.app/<ws>/issue/` tirada de uma URL real devolvida pelo CLI; nunca inventa o slug. */
-function issueUrlBase(url: string | null | undefined): string | null {
-  const m = /^(https:\/\/linear\.app\/[^/]+\/issue\/)[A-Za-z0-9]+-\d+(?:[/?#]|$)/.exec(url ?? '')
-  return m ? m[1] : null
+/** URL montada pelo urlKey da organização que o próprio worktree show devolve; é a única montagem permitida. */
+function urlFromKey(key: unknown, id: string): string | null {
+  if (typeof key !== 'string' || !/^[A-Za-z0-9_-]+$/.test(key) || !/^[A-Za-z0-9]+-\d+$/.test(id)) return null
+  return `https://linear.app/${key}/issue/${id}`
 }
 
 async function queryIssue(
   path: string,
+  snapId: string | null,
   fail: (action: string, err: unknown) => void,
   ok: (action: string) => void,
 ): Promise<IssueResult> {
   let action = 'orca worktree show'
+  let id: string | null = null
+  let urlKey: unknown = null
   try {
     // O worker não é o terminal do worktree: `--current` não serve. Lê o vínculo do worktree e consulta a issue pelo ID.
     const wt = await execOrca(['worktree', 'show', '--worktree', `path:${path}`, '--json'])
     const worktree = JSON.parse(wt.stdout)?.result?.worktree
     if (!worktree || typeof worktree !== 'object') throw new Error('resposta sem worktree')
     ok(action)
-    const linked = worktree.linkedLinearIssue
-    if (typeof linked !== 'string' || !linked.trim()) return { issue: null, note: 'Sem issue vinculada' }
+    urlKey = worktree.linkedLinearIssueOrganizationUrlKey
+    const linked = typeof worktree.linkedLinearIssue === 'string' ? worktree.linkedLinearIssue.trim() : ''
+    // Sem vínculo no worktree, a issue da feature (Handoff) também serve.
+    id = linked || snapId
+    if (!id) return { issue: null, note: 'Sem issue vinculada' }
     action = 'orca linear issue'
-    const out = await execOrca(['linear', 'issue', linked.trim(), '--json'])
+    const out = await execOrca(['linear', 'issue', id, '--json'])
     const json = JSON.parse(out.stdout)
     const issue = json?.result?.issue
     if (json?.ok && issue?.identifier) {
@@ -232,11 +287,11 @@ async function queryIssue(
         note: null,
       }
     }
-    fail(action, new Error('resposta sem issue'))
-    return { issue: null, note: CLI_DOWN }
+    throw new Error('resposta sem issue')
   } catch (err) {
     fail(action, err)
-    return { issue: null, note: CLI_DOWN }
+    const url = id ? urlFromKey(urlKey, id) : null
+    return { issue: id && url ? { id, title: null, state: null, url } : null, note: CLI_DOWN }
   }
 }
 
@@ -266,7 +321,6 @@ export default function activate(orca: OrcaWorkerApi): void {
   let lastGood: PonteState | null = null
   const log: { at: number; text: string }[] = []
   let launching = false
-  let urlBase: string | null = null
   // Última falha registrada no diário por ação: a mesma mensagem não se repete até mudar ou haver sucesso.
   const lastFail = new Map<string, string>()
   let seen: { path: string; name: string; phase: string | null; agents: Map<string, string> } | null = null
@@ -345,17 +399,16 @@ export default function activate(orca: OrcaWorkerApi): void {
   }
 
   async function issueFor(path: string, snap: PonteSnapshot, force: boolean): Promise<IssueResult> {
-    let entry = issueCache.get(path)
+    const snapId = snap.feature?.linear?.[0] ?? null
+    const key = `${path}|${snapId ?? ''}`
+    let entry = issueCache.get(key)
     if (!entry || force || Date.now() - entry.at >= ISSUE_TTL_MS) {
-      entry = { at: Date.now(), result: await queryIssue(path, (a, e) => fail(a, e), ok) }
-      issueCache.set(path, entry)
-      urlBase = issueUrlBase(entry.result.issue?.url) ?? urlBase
+      entry = { at: Date.now(), result: await queryIssue(path, snapId, (a, e) => fail(a, e), ok) }
+      issueCache.set(key, entry)
     }
     const { issue, note: why } = entry.result
-    if (issue) return { issue, note: null }
-    const id = snap.feature?.linear?.[0]
-    const url = id && urlBase ? `${urlBase}${id}` : null
-    return { issue: id ? { id, title: null, state: null, url } : null, note: why }
+    if (issue) return { issue, note: issue.title ? null : why }
+    return { issue: snapId ? { id: snapId, title: null, state: null, url: null } : null, note: why }
   }
 
   async function refresh(force = false): Promise<PonteState> {
