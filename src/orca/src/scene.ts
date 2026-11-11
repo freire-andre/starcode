@@ -193,11 +193,48 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
   }
 }
 
-/** Tamanho do canvas para um palco de `larguraPx` x `alturaPx`: escala inteira e linhas na proporção do palco. */
-export function dimensoes(larguraPx: number, alturaPx: number): { escala: number; linhas: number; largura: number; altura: number } {
-  const escala = Math.max(5, Math.floor((larguraPx || 0) / GRADE.largura)) // nunca abaixo de 240 px de largura
-  const linhas = linhasDoPainel(larguraPx, alturaPx)
-  return { escala, linhas, largura: GRADE.largura * escala, altura: linhas * escala }
+export interface Dimensoes {
+  /** Pixels do canvas por célula (escala inteira, no mínimo 5). */
+  escala: number
+  linhas: number
+  /** Tamanho interno do canvas (linhas x escala). */
+  largura: number
+  altura: number
+  /** Tamanho exibido, em px CSS: cabe no palco nas duas dimensões, arredondado para baixo. */
+  cssLargura: number
+  cssAltura: number
+}
+
+/**
+ * Tamanho do canvas para um palco de `larguraPx` x `alturaPx`: escala inteira, linhas na proporção do palco
+ * e um tamanho exibido que nunca passa do palco. Quando o palco é mais baixo que a proporção mínima da grade
+ * (GRADE.altura linhas), a célula encolhe para caber na altura e o canvas fica centrado na largura.
+ */
+export function dimensoes(larguraPx: number, alturaPx: number): Dimensoes {
+  const w = larguraPx > 0 ? larguraPx : GRADE.largura * 5
+  const escala = Math.max(5, Math.floor(w / GRADE.largura))
+  const linhas = linhasDoPainel(w, alturaPx)
+  let celula = w / GRADE.largura
+  if (alturaPx > 0 && linhas * celula > alturaPx) celula = alturaPx / linhas
+  return {
+    escala, linhas,
+    largura: GRADE.largura * escala, altura: linhas * escala,
+    cssLargura: Math.floor(GRADE.largura * celula), cssAltura: Math.floor(linhas * celula),
+  }
+}
+
+/** Mede o palco e ajusta o canvas a ele: tamanho interno e tamanho exibido em px (sem `height: auto`). */
+export function ajustaCanvas(
+  canvas: { width: number; height: number; style: Record<string, string> },
+  palco: { clientWidth: number; clientHeight: number } | null,
+): Dimensoes {
+  const g = globalThis as { innerWidth?: number; innerHeight?: number }
+  const d = dimensoes(palco?.clientWidth || g.innerWidth || 0, palco?.clientHeight || g.innerHeight || 0)
+  if (canvas.width !== d.largura) canvas.width = d.largura
+  if (canvas.height !== d.altura) canvas.height = d.altura
+  canvas.style.width = `${d.cssLargura}px`
+  canvas.style.height = `${d.cssAltura}px`
+  return d
 }
 
 // ---- ligação com o frame do painel (só roda dentro do Orca) ----
@@ -221,13 +258,9 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
 
   // mede o palco (largura e altura do painel) e redesenha quando ele muda de tamanho (R54)
   const ajustar = (): void => {
-    const palco = canvas.parentElement
-    const g = globalThis as { innerWidth?: number; innerHeight?: number }
-    const d = dimensoes(palco?.clientWidth || g.innerWidth || 360, palco?.clientHeight || g.innerHeight || 0)
+    const d = ajustaCanvas(canvas as unknown as Parameters<typeof ajustaCanvas>[0], canvas.parentElement)
     escala = d.escala
     linhas = d.linhas
-    if (canvas.width !== d.largura) canvas.width = d.largura
-    if (canvas.height !== d.altura) canvas.height = d.altura
     sujo = true
   }
   const receber = (s: unknown): void => {
@@ -264,27 +297,40 @@ export interface Pagina {
   getElementById(id: string): unknown
   createElement(tag: string): any
   body: { appendChild(n: unknown): unknown }
+  documentElement?: unknown
 }
+
+type ComEstilo = { style?: Record<string, string> }
 
 /** Devolve o canvas `#cena` da página; quando a Orca gera a página em volta, cria o canvas no corpo (R45). */
 export function obterCanvas(doc: Pagina): HTMLCanvasElement {
   const existente = doc.getElementById('cena')
   if (existente) return existente as HTMLCanvasElement
-  const corpo = doc.body as { style?: Record<string, string> }
-  if (corpo.style) corpo.style.margin = '0' // o palco mede o painel inteiro, sem a margem padrão
+  // a página é só o palco: sem margem nem padding e sem barra de rolagem (a cena cabe na janela)
+  for (const el of [doc.documentElement as ComEstilo | undefined, doc.body as ComEstilo]) {
+    if (!el?.style) continue
+    el.style.margin = '0'
+    el.style.padding = '0'
+    el.style.overflow = 'hidden'
+  }
+  // o palco é a área visível do painel: fixo nas quatro bordas, mede a largura e a altura (R54)
   const palco = doc.createElement('div')
   palco.id = 'palco'
-  palco.style.width = '100%'
-  palco.style.height = '100vh' // a altura do painel define as linhas da grade (R54)
-  palco.style.overflow = 'auto' // painel mais baixo que o mínimo de linhas rola em vez de cortar
+  palco.style.position = 'fixed'
+  palco.style.top = '0'
+  palco.style.left = '0'
+  palco.style.right = '0'
+  palco.style.bottom = '0'
+  palco.style.overflow = 'hidden'
   const canvas = doc.createElement('canvas')
   canvas.id = 'cena'
   canvas.width = GRADE.largura * 5
   canvas.height = GRADE.altura * 5
-  canvas.style.minWidth = '240px'
+  // tamanho exibido em px, ajustado por ajustaCanvas para nunca passar do palco; centrado na largura
   canvas.style.display = 'block'
-  canvas.style.width = '100%'
-  canvas.style.height = 'auto'
+  canvas.style.margin = '0 auto'
+  canvas.style.width = `${GRADE.largura * 5}px`
+  canvas.style.height = `${GRADE.altura * 5}px`
   canvas.style.imageRendering = 'pixelated'
   palco.appendChild(canvas)
   doc.body.appendChild(palco)
