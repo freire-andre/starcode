@@ -773,3 +773,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Motivo:** a limitação da F10-9 tinha saída pelo CLI, que abre a aba de agente e envia o prompt.
 - **Por que não é bug:** os testes do worker cobrem os argumentos do CLI (com e sem `--model`), a volta para a API e o diário; os do painel cobrem as duas mensagens e o aviso.
 
+
+### F11-1: leitura de imagem só com stdlib, escala pelo nome e tamanho em CSS (R11, R12)
+- **Problema:** os gates da fase 11 precisam comparar a captura de design com a foto da tela rodando, sem dependência externa (o plugin só usa stdlib) e sem confundir uma foto 2x com uma tela de outro tamanho.
+- **Decisão:** `scripts/gates/images.py` lê o tamanho de PNG (IHDR), JPEG (marcadores SOF0–SOF15, exceto DHT, JPG e DAC) e WebP (`VP8 `, `VP8L`, `VP8X`) pelos bytes do cabeçalho. Arquivo ausente, formato não suportado ou cabeçalho ilegível viram `ImageError` com o caminho e o motivo em PT-BR, sem stack trace. A escala vem do nome (`@2x`, `@3x` antes da extensão; sem sufixo, 1) e o tamanho em CSS é o tamanho em pixels dividido por ela. A foto (`<nome>.running.png`) passa quando `px / k == css` para algum k em 1, 2, 3, com divisão exata.
+- **Motivo:** a escala pelo nome dispensa ler metadados de densidade e aceita foto em qualquer densidade comum; a divisão exata evita arredondamento que mascare uma tela de outro tamanho.
+- **Por que não é bug:** `test_image_size_*`, `test_capture_scale_e_css`, `test_same_css_1x_2x_3x` e `test_list_captures_ignora_running_e_duplicadas` cobrem o método, com imagens sintéticas geradas no teste. Adaptado de `_image_size` e `_same_layout` do tlc (CC-BY-4.0).
