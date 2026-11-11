@@ -29,3 +29,4 @@ O reaceite da Issue na Orca instalada mostra a SC-17 com título e estado e o bo
 ## Pesquisa
 
 - https://nodejs.org/api/child_process.html
+**Posted**: 2026-11-11 - https://github.com/freire-andre/starcode/pull/24#pullrequestreview-5864466614
