@@ -1,6 +1,6 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { buildScene, LEGENDA } from './scene-model'
+import { buildScene, GRADE, LEGENDA } from './scene-model'
 import type { Cena } from './scene-model'
 import type { PonteAgent, PonteState, PonteWorker } from './protocol'
 
@@ -29,7 +29,7 @@ test('cena tem uma estação por tripulante e a engenharia', () => {
   const cena = buildScene(estado(), [], 0)
   assert.equal(cena.vazia, false)
   assert.equal(cena.grade.largura, 48)
-  assert.equal(cena.grade.altura, 92)
+  assert.equal(cena.grade.altura, GRADE.altura)
   assert.ok(cena.grade.altura > cena.grade.largura) // layout vertical
   assert.deepEqual(cena.estacoes.map(e => e.membro).sort(), [...MEMBROS].sort())
   assert.equal(cena.personagens.length, 12)
@@ -224,13 +224,21 @@ test('cena desenha a ponte em arco com bonecos', () => {
   const outros = a.personagens.filter(p => p.membro !== 'picard')
   for (const p of outros) assert.ok(picard.escala > p.escala, p.membro)
   assert.ok(picard.boneco.corpo.altura > por(a, 'data').boneco.corpo.altura)
-  // arco: as estações ficam a uma distância parecida do Picard e em volta dele (sem buraco maior que 90 graus)
-  const dist = outros.map(p => Math.hypot(p.x - picard.x, p.y - picard.y))
-  const media = dist.reduce((x, y) => x + y, 0) / dist.length
-  for (const d of dist) assert.ok(d > media * 0.75 && d < media * 1.25, `fora do arco: ${d} (média ${media})`)
-  const ang = outros.map(p => Math.atan2(p.y - picard.y, p.x - picard.x)).sort((x, y) => x - y)
-  const buracos = ang.map((g, i) => g - (i === 0 ? ang[ang.length - 1] - 2 * Math.PI : ang[i - 1]))
-  assert.ok(Math.max(...buracos) <= Math.PI / 2, `buraco no arco: ${Math.max(...buracos)}`)
+  // arco: o anel estica com a altura do painel (R54), então ele vira elipse; desfeito o esticamento
+  // (eixos divididos pela meia largura e meia altura das estações), as estações ficam a uma distância
+  // parecida do Picard e em volta dele (sem buraco maior que 90 graus), em qualquer altura de grade
+  for (const cena of [a, buildScene(s, [], 0, 220)]) {
+    const pc = por(cena, 'picard')
+    const os = cena.personagens.filter(p => p.membro !== 'picard')
+    const meia = (v: number[]) => (Math.max(...v) - Math.min(...v)) / 2
+    const rx = meia(os.map(p => p.x)), ry = meia(os.map(p => p.y))
+    const dist = os.map(p => Math.hypot((p.x - pc.x) / rx, (p.y - pc.y) / ry))
+    const media = dist.reduce((x, y) => x + y, 0) / dist.length
+    for (const d of dist) assert.ok(d > media * 0.75 && d < media * 1.25, `fora do arco: ${d} (média ${media})`)
+    const ang = os.map(p => Math.atan2((p.y - pc.y) / ry, (p.x - pc.x) / rx)).sort((x, y) => x - y)
+    const buracos = ang.map((g, i) => g - (i === 0 ? ang[ang.length - 1] - 2 * Math.PI : ang[i - 1]))
+    assert.ok(Math.max(...buracos) <= Math.PI / 2, `buraco no arco: ${Math.max(...buracos)}`)
+  }
   // não é grade: as estações não se alinham em poucas linhas
   assert.ok(new Set(outros.map(p => p.y)).size >= 5)
   // boneco: o emoji é a insígnia no peito

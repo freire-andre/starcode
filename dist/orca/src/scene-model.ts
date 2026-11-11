@@ -52,7 +52,7 @@ export interface Personagem extends Celula {
   console: Retangulo
   /** Brilho do console aceso, na cor da divisão; null quando livre. */
   brilho: Retangulo | null
-  /** "há N min" desde `lastAt`, só para o ativo. */
+  /** "agora" ou "há N min" desde `lastAt`, só para o ativo. */
   tempo: string | null
   /** Área da estação (boneco, console e textos); as áreas não se tocam. */
   caixa: Retangulo
@@ -87,6 +87,8 @@ export interface Cena {
   ativos: number
   /** Área da ponte entre o telão e a engenharia (cresce quando a engenharia encolhe). */
   ponte: Retangulo
+  /** Caixa do anel do console (elipse): ocupa a largura e a altura da ponte. */
+  anel: Retangulo
   estacoes: Estacao[]
   engenharia: Retangulo
   /** Uma vaga por worker desenhado (até 6); sem worker, nenhuma. */
@@ -100,7 +102,10 @@ export interface Cena {
   mensagem: string | null
 }
 
-export const GRADE = { largura: 48, altura: 92 } as const
+/** Largura fixa da grade e o mínimo de linhas; a altura real acompanha a proporção do painel (R54). */
+export const GRADE = { largura: 48, altura: 102 } as const
+/** Teto de linhas, para um painel muito alto não gerar uma grade absurda. */
+export const LINHAS_MAX = 400
 export const MAX_WORKERS = 6
 export const FRAME_MS = 250
 /** Menor largura do painel, em px, e escala inteira mínima que decorre dela. */
@@ -116,9 +121,11 @@ export const LEGENDA = 'aceso = trabalhando · apagado = livre'
 const TELAO: Retangulo = { x: 1, y: 1, largura: 46, altura: 12 }
 const BARRA: Retangulo = { x: 4, y: 8.2, largura: 26, altura: 1.6 }
 const PONTE_Y = 14
-/** Base da engenharia (fixa); a altura dela depende dos workers e o resto vai para a ponte. */
-const ENG_FUNDO = 89
-const ENG_LINHA = 7.5
+/** Distância da base da engenharia ao fim da grade (a legenda fica nela). */
+const ENG_MARGEM = 3
+const ENG_LINHA = 11
+/** Bonecos maiores (R54): fator sobre o desenho de escala 1. */
+const BONECO = 1.3
 
 export const CORES: Record<Divisao, string> = {
   comando: '#c0392b',
@@ -133,29 +140,29 @@ const PICARD: Membro = { id: 'picard', nome: 'Picard', emoji: '🖖', divisao: '
 /**
  * As 11 estações no console em arco ao redor da cadeira do Picard: 3 no alto (o arco), 3 em cada lado e
  * 2 na frente. `y` é a distância vertical a partir do topo do arco, antes de esticar para a altura da ponte;
- * colunas distintas ficam a 11 células ou mais e a mesma coluna a 12 ou mais, então as áreas não se tocam.
+ * colunas distintas ficam a 11 células ou mais e a mesma coluna a 13 ou mais, então as áreas não se tocam.
  */
 const ARCO: (Membro & { x: number; y: number })[] = [
   { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias', x: 12, y: 1.5 },
   { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes', x: 24, y: 0 },
   { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 36, y: 1.5 },
-  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 5.5, y: 13.5 },
-  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 42.5, y: 13.5 },
-  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 5.5, y: 25.5 },
-  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 42.5, y: 25.5 },
-  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 5.5, y: 37.5 },
-  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 42.5, y: 37.5 },
-  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 16.5, y: 41 },
-  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 31.5, y: 41 },
+  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 5.5, y: 14.5 },
+  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 42.5, y: 14.5 },
+  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 5.5, y: 27.5 },
+  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 42.5, y: 27.5 },
+  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 5.5, y: 40.5 },
+  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 42.5, y: 40.5 },
+  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 16.5, y: 44 },
+  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 31.5, y: 44 },
 ]
-const PICARD_Y = 21
-const ARCO_ALTURA = 41
+const PICARD_Y = 22
+const ARCO_ALTURA = 44
 const PICARD_ESCALA = 1.5
 /** Margens da área da estação acima e abaixo do centro do boneco (escala 1). */
-const ACIMA = 5.6
-const ABAIXO = 6.4
-/** Esticamento máximo do arco: mais que isso deforma o anel (os lados ficam perto demais do Picard). */
-const ESTICA_MAX = 1.25
+const ACIMA = 5.8
+const ABAIXO = 7.1
+/** Abaixo deste esticamento as áreas da mesma coluna se tocariam (13 x k >= ACIMA + ABAIXO). */
+const ESTICA_MIN = (ACIMA + ABAIXO) / 13
 
 function larguraTexto(texto: string, tam: number, emoji: boolean): number {
   return emoji ? tam * 1.3 : [...texto].length * 0.6 * tam
@@ -190,7 +197,8 @@ function quebra(texto: string, max: number): string[] {
 
 /** Boneco em pixel art com centro do corpo em (x, y): sentado digita (braços alternam), de pé fica parado. */
 function fazBoneco(x: number, y: number, s: number, sentado: boolean, quadro: 0 | 1): Boneco {
-  const r = (dx: number, dy: number, w: number, h: number): Retangulo => ({ x: x + dx * s, y: y + dy * s, largura: w * s, altura: h * s })
+  const k = s * BONECO
+  const r = (dx: number, dy: number, w: number, h: number): Retangulo => ({ x: x + dx * k, y: y + dy * k, largura: w * k, altura: h * k })
   if (sentado) {
     const esq = quadro === 0 ? 0.4 : 0
     const dir = quadro === 1 ? 0.4 : 0
@@ -210,14 +218,31 @@ function fazBoneco(x: number, y: number, s: number, sentado: boolean, quadro: 0 
 }
 
 function fazConsole(x: number, y: number, s: number): Retangulo {
-  return { x: x - 2.6 * s, y: y + 0.4 * s, largura: 5.2 * s, altura: 0.8 * s }
+  const k = s * BONECO
+  return { x: x - 2.6 * k, y: y + 0.4 * k, largura: 5.2 * k, altura: 0.8 * k }
 }
 
-/** "há N min" desde `lastAt` (horas e dias quando passa disso, para o texto caber); null sem data válida. */
+/** Linhas da grade para um palco de `largura` x `altura` px: mesma proporção, entre GRADE.altura e LINHAS_MAX. */
+export function linhasDoPainel(largura: number, altura: number): number {
+  if (!(largura > 0) || !(altura > 0)) return GRADE.altura
+  return normalizaLinhas((GRADE.largura * altura) / largura)
+}
+
+/** Linhas válidas: inteiras, entre GRADE.altura e LINHAS_MAX. */
+function normalizaLinhas(linhas: number | undefined): number {
+  if (linhas === undefined || !Number.isFinite(linhas)) return GRADE.altura
+  return Math.min(LINHAS_MAX, Math.max(GRADE.altura, Math.floor(linhas)))
+}
+
+/**
+ * "agora" com menos de 1 minuto (R54), depois "há N min" desde `lastAt` (horas e dias quando passa disso,
+ * para o texto caber); null sem data válida.
+ */
 export function haQuanto(lastAt: string | null | undefined, agoraMs: number): string | null {
   const t = lastAt ? Date.parse(lastAt) : NaN
   if (!Number.isFinite(t)) return null
   const min = Math.max(0, Math.floor((agoraMs - t) / 60_000))
+  if (min < 1) return 'agora'
   if (min < 60) return `há ${min} min`
   if (min < 24 * 60) return `há ${Math.floor(min / 60)} h`
   return `há ${Math.min(99, Math.floor(min / (24 * 60)))} d`
@@ -235,18 +260,25 @@ function casaWorker(agente: PonteAgent, worker: PonteWorker): boolean {
   return chaves.some(c => titulo.includes(c))
 }
 
-function cenaVazia(mensagem: string): Cena {
+function anelDa(ponte: Retangulo): Retangulo {
+  return { x: ponte.x + 0.5, y: ponte.y, largura: ponte.largura - 1, altura: ponte.altura }
+}
+
+function cenaVazia(mensagem: string, alturaGrade: number): Cena {
   const linhas = quebra(mensagem, 30)
-  const meio = GRADE.altura / 2
+  const meio = alturaGrade / 2
+  const fundo = alturaGrade - ENG_MARGEM
   const rotulos = linhas.map((l, i) => rotulo('mensagem', l, GRADE.largura / 2, meio + (i - (linhas.length - 1) / 2) * 3, 2))
+  const ponte: Retangulo = { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: fundo - PONTE_Y }
   return {
-    grade: { ...GRADE },
+    grade: { largura: GRADE.largura, altura: alturaGrade },
     telao: { ...TELAO },
     progresso: null,
     ativos: 0,
-    ponte: { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: ENG_FUNDO - PONTE_Y },
+    ponte,
+    anel: anelDa(ponte),
     estacoes: [],
-    engenharia: { x: 1, y: ENG_FUNDO, largura: 46, altura: 0 },
+    engenharia: { x: 1, y: fundo, largura: 46, altura: 0 },
     vagas: [],
     personagens: [],
     workers: [],
@@ -272,9 +304,14 @@ function mensagemDoEstado(estado: PonteState): string | null {
   return null
 }
 
-export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: number): Cena {
+/**
+ * Monta a cena (função pura). `linhas` é a altura da grade em células, tirada da proporção do palco
+ * (`linhasDoPainel`); a largura é sempre GRADE.largura e a ponte, com o anel, ocupa a altura que sobra.
+ */
+export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: number, linhas?: number): Cena {
+  const alturaGrade = normalizaLinhas(linhas)
   const mensagem = mensagemDoEstado(estado)
-  if (mensagem !== null || !estado.snapshot) return cenaVazia(mensagem ?? MSG_SEM_WORKTREE)
+  if (mensagem !== null || !estado.snapshot) return cenaVazia(mensagem ?? MSG_SEM_WORKTREE, alturaGrade)
 
   const snap = estado.snapshot
   const quadro = (Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
@@ -299,12 +336,12 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
 
   // Engenharia: só os workers reais (até 6, 3 por linha); sem worker, uma linha só.
   const visiveis = snap.workers.slice(0, MAX_WORKERS)
-  const linhas = Math.ceil(visiveis.length / 3)
-  const engAltura = linhas === 0 ? 4 : 5 + linhas * ENG_LINHA
-  const engenharia: Retangulo = { x: 1, y: ENG_FUNDO - engAltura, largura: 46, altura: engAltura }
+  const linhasEng = Math.ceil(visiveis.length / 3)
+  const engAltura = linhasEng === 0 ? 4 : 4 + linhasEng * ENG_LINHA
+  const engenharia: Retangulo = { x: 1, y: alturaGrade - ENG_MARGEM - engAltura, largura: 46, altura: engAltura }
   const workers: WorkerCena[] = visiveis.map((w, i) => {
     const x = 9 + (i % 3) * 15
-    const y = engenharia.y + 7.5 + Math.floor(i / 3) * ENG_LINHA
+    const y = engenharia.y + 9.2 + Math.floor(i / 3) * ENG_LINHA
     const concluido = agentes.some(a => a.state === 'done' && casaWorker(a, w))
     const q: 0 | 1 = concluido ? 0 : quadro
     return {
@@ -312,7 +349,7 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
       pose: concluido ? 'de-pe' : 'sentado', quadro: q,
       boneco: fazBoneco(x, y, 1, !concluido, q),
       console: fazConsole(x, y, 1),
-      caixa: { x: x - 5, y: y - 4.6, largura: 10, altura: 6.6 },
+      caixa: { x: x - 5, y: y - 5.8, largura: 10, altura: 10.6 },
     }
   })
 
@@ -341,10 +378,10 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     balaoMembros.add(alvo)
   }
 
-  // Ponte: o arco estica com a altura que sobra (até ESTICA_MAX) e fica centrado nela.
+  // Ponte: o arco estica para ocupar toda a altura que sobra (R54); o anel acompanha a ponte.
   const ponte: Retangulo = { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: engenharia.y - 1 - PONTE_Y }
   const util = ponte.altura - ACIMA - ABAIXO
-  const k = Math.min(ESTICA_MAX, util / ARCO_ALTURA)
+  const k = Math.max(ESTICA_MIN, (util - 0.01) / ARCO_ALTURA) // 0,01 de folga contra o arredondamento
   const topo = ponte.y + ACIMA + (util - k * ARCO_ALTURA) / 2
 
   const lugares: { m: Membro; x: number; y: number; s: number }[] = [
@@ -359,14 +396,14 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     const balao = balaoMembros.has(m.id)
     const tempo = ativo ? haQuanto(c?.lastAt, agoraMs) : null
     const q: 0 | 1 = ativo ? quadro : 0
-    const yNome = y + 1.6 * s + 1.2
-    const meus = [rotulo('emoji', emoji, x, y - s, s > 1 ? 2.6 : 2), rotulo('nome', nome, x, yNome, 2)]
-    if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.4, 2))
-    if (balao) meus.push(rotulo('balao', '!', x + 2.4 * s, y - 4.2 * s, 2))
+    const yNome = y + 2.2 * s + 1.2
+    const meus = [rotulo('emoji', emoji, x, y - 1.2 * s, s > 1 ? 2.6 : 2), rotulo('nome', nome, x, yNome, 2)]
+    if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.5, 2)) // folga contra o arredondamento
+    if (balao) meus.push(rotulo('balao', '!', x + 3 * s, y - 4.6 * s, 2))
     for (const r of meus) rotulos.push({ ...r, dono: m.id })
     const consoleR = fazConsole(x, y, s)
-    const acima = ACIMA + (s - 1) * 4
-    const abaixo = ABAIXO + (s - 1) * 1.6
+    const acima = ACIMA + (s - 1) * 4.8
+    const abaixo = ABAIXO + (s - 1) * 2.2
     return {
       membro: m.id, nome, emoji, divisao: m.divisao, cor: CORES[m.divisao],
       pose: ativo ? 'sentado' : 'de-pe', ativo, quadro: q, x, y, balao,
@@ -389,18 +426,19 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
   }
   for (const w of workers) {
     rotulos.push(rotulo('emoji', '🔧', w.x, w.y - 1, 2))
-    rotulos.push(rotulo('worker', w.rotulo, w.x, w.y + 2.8, 2))
+    rotulos.push(rotulo('worker', w.rotulo, w.x, w.y + 3.4, 2))
     if (w.concluido) rotulos.push(rotulo('marca', '✓', w.x - 2.6, w.y - 1, 2))
     if (w.balao) rotulos.push(rotulo('balao', '!', w.x + 2.6, w.y - 1, 2))
   }
-  rotulos.push(rotulo('legenda', LEGENDA, 24, GRADE.altura - 1.4, 2))
+  rotulos.push(rotulo('legenda', LEGENDA, 24, alturaGrade - 1.4, 2))
 
   return {
-    grade: { ...GRADE },
+    grade: { largura: GRADE.largura, altura: alturaGrade },
     telao: { ...TELAO },
     progresso,
     ativos,
     ponte,
+    anel: anelDa(ponte),
     estacoes: lugares.map(l => ({ membro: l.m.id, x: l.x, y: l.y })),
     engenharia,
     vagas: workers.map(w => ({ ...w.caixa })),

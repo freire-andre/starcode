@@ -1,6 +1,6 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
-import { buildScene, CORES, GRADE } from './scene-model.ts'
+import { buildScene, CORES, GRADE, linhasDoPainel } from './scene-model.ts'
 import type { Boneco, Cena, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
 
@@ -138,13 +138,16 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
   for (let y = pt.y + 2; y < pt.y + pt.altura; y += 4) ret(ctx, COR.pisoLinha, pt.x, y, pt.largura, 0.4, e)
   const picard = cena.personagens.find(c => c.membro === 'picard')
   if (picard && cena.personagens.length > 1) {
-    const ys = cena.personagens.map(c => c.y)
-    const ry = (Math.max(...ys) - Math.min(...ys)) / 2 + 5
-    const cy = (Math.max(...ys) + Math.min(...ys)) / 2
-    elipse(ctx, COR.anelBorda, picard.x, cy, 23.5, ry + 0.6, e)
-    elipse(ctx, COR.anel, picard.x, cy, 23, ry, e)
-    elipse(ctx, COR.piso, picard.x, cy, 13, ry - 9, e)
-    elipse(ctx, COR.plataforma, picard.x, picard.y, 7, 6, e)
+    // o anel ocupa a caixa `anel` do modelo (toda a altura da ponte) e estica com ela
+    const a = cena.anel
+    const rx = a.largura / 2
+    const ry = a.altura / 2
+    const cx = a.x + rx
+    const cy = a.y + ry
+    elipse(ctx, COR.anelBorda, cx, cy, rx, ry, e)
+    elipse(ctx, COR.anel, cx, cy, rx - 0.5, ry - 0.6, e)
+    elipse(ctx, COR.piso, cx, cy, rx - 10, Math.max(4, ry - 11), e)
+    elipse(ctx, COR.plataforma, picard.x, picard.y, 7, 7, e)
   }
 
   // telão: moldura e barra de progresso
@@ -190,6 +193,13 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
   }
 }
 
+/** Tamanho do canvas para um palco de `larguraPx` x `alturaPx`: escala inteira e linhas na proporção do palco. */
+export function dimensoes(larguraPx: number, alturaPx: number): { escala: number; linhas: number; largura: number; altura: number } {
+  const escala = Math.max(5, Math.floor((larguraPx || 0) / GRADE.largura)) // nunca abaixo de 240 px de largura
+  const linhas = linhasDoPainel(larguraPx, alturaPx)
+  return { escala, linhas, largura: GRADE.largura * escala, altura: linhas * escala }
+}
+
 // ---- ligação com o frame do painel (só roda dentro do Orca) ----
 
 interface OrcaFrame {
@@ -206,13 +216,18 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
   let estado: PonteState | null = null
   let agentes: PonteAgent[] = []
   let escala = 1
+  let linhas: number = GRADE.altura
   let sujo = true
 
+  // mede o palco (largura e altura do painel) e redesenha quando ele muda de tamanho (R54)
   const ajustar = (): void => {
-    const largura = canvas.parentElement?.clientWidth || 360
-    escala = Math.max(5, Math.floor(largura / GRADE.largura)) // nunca abaixo de 240 px de largura
-    canvas.width = GRADE.largura * escala
-    canvas.height = GRADE.altura * escala
+    const palco = canvas.parentElement
+    const g = globalThis as { innerWidth?: number; innerHeight?: number }
+    const d = dimensoes(palco?.clientWidth || g.innerWidth || 360, palco?.clientHeight || g.innerHeight || 0)
+    escala = d.escala
+    linhas = d.linhas
+    if (canvas.width !== d.largura) canvas.width = d.largura
+    if (canvas.height !== d.altura) canvas.height = d.altura
     sujo = true
   }
   const receber = (s: unknown): void => {
@@ -237,7 +252,7 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
         status: 'sem-worktree', stale: false, updatedAt: 0, issue: null, issueNote: null,
         agents: [], log: [], error: null, snapshot: null,
       }
-      paint(ctx, buildScene(estado ?? vazio, agentes, Date.now()), escala)
+      paint(ctx, buildScene(estado ?? vazio, agentes, Date.now(), linhas), escala)
     }
     requestAnimationFrame(laco)
   }
@@ -255,9 +270,13 @@ export interface Pagina {
 export function obterCanvas(doc: Pagina): HTMLCanvasElement {
   const existente = doc.getElementById('cena')
   if (existente) return existente as HTMLCanvasElement
+  const corpo = doc.body as { style?: Record<string, string> }
+  if (corpo.style) corpo.style.margin = '0' // o palco mede o painel inteiro, sem a margem padrão
   const palco = doc.createElement('div')
   palco.id = 'palco'
   palco.style.width = '100%'
+  palco.style.height = '100vh' // a altura do painel define as linhas da grade (R54)
+  palco.style.overflow = 'auto' // painel mais baixo que o mínimo de linhas rola em vez de cortar
   const canvas = doc.createElement('canvas')
   canvas.id = 'cena'
   canvas.width = GRADE.largura * 5
