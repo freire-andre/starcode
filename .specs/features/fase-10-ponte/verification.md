@@ -1,8 +1,8 @@
 # fase-10-ponte verification
 
-**Verdict**: FAIL
-**Proofs**: `proofs.md` at 9bd4f37
-**HEAD**: 0384fc0
+**Verdict**: PASS
+**Proofs**: `proofs.md` at 72586cf
+**HEAD**: 72586cf
 **Verifier**: codex · requested padrão do CLI · effective GPT-6-Luna medium
 
 ## Checks
@@ -16,7 +16,7 @@
 | C5 | `tests/test_ponte.py` `test_snapshot_feature_fields` | yes |
 | C6 | `tests/test_ponte.py` `test_snapshot_workers` | yes |
 | C7 | `tests/test_ponte.py` `test_snapshot_sem_starcode` | yes |
-| C8 | `tests/test_ponte.py` `test_snapshot_fonte_invalida` | no - não cobre fonte ilegível nem handoff acima de 1 MiB |
+| C8 | `tests/test_ponte.py` `test_snapshot_fonte_invalida`, `test_snapshot_handoff_grande_vira_erro` | yes |
 | C9 | `tests/test_ponte.py` `test_snapshot_worktree_invalido` | yes |
 | C10 | `tests/test_ponte.py` `test_snapshot_somente_leitura` | yes |
 | C11 | `src/orca/src/worker.test.ts` `worker acha o worktree em foco pelo ramo` | yes |
@@ -29,12 +29,12 @@
 | C18 | `src/orca/src/worker.test.ts` `worker com snapshot falho marca desatualizado` | yes |
 | C19 | `src/orca/src/worker.test.ts` `worker atualiza a barra de status` | yes |
 | C20 | `tests/test_orca_manifest.py` `test_manifest_toggle_da_barra` | yes |
-| C21 | `src/orca/src/panel.test.tsx` `painel pede o estado ao abrir` | no - verifica presença das seções e RelativeTime, não a chamada nem o timeout de 15 s |
+| C21 | `src/orca/src/panel.test.tsx` `painel pede o estado ao abrir` | yes |
 | C22 | `src/orca/src/panel.test.tsx` `painel redesenha com ponte.state` | yes |
 | C23 | `src/orca/src/panel.test.tsx` `painel mostra só tripulantes ativos` | yes |
 | C24 | `src/orca/src/panel.test.tsx` `painel mostra fase e progresso` | yes |
 | C25 | `src/orca/src/panel.test.tsx` `painel casa worker com agente` | yes |
-| C26 | `src/orca/src/panel.test.tsx` `painel sem StarCode` | no - não exclui todas as outras seções exigidas por “só” |
+| C26 | `src/orca/src/panel.test.tsx` `painel sem StarCode` | yes |
 | C27 | `src/orca/src/panel.test.tsx` `painel com seção indisponível` | yes |
 | C28 | `src/orca/src/worker.test.ts` `atalho abre spec tasks e handoff` | yes |
 | C29 | `src/orca/src/panel.test.tsx` `atalho abre a issue no navegador` | yes |
@@ -52,25 +52,27 @@
 | C41 | `src/orca/src/scene-model.test.ts` `cena desenha até 6 workers e +N` | yes |
 | C42 | `src/orca/src/scene-model.test.ts` `cena vazia mostra a frase do estado` | yes |
 | C43 | `src/orca/src/scene.test.ts` `pintura da cena só lê o modelo e não usa imagem` | yes |
-| C44 | `src/orca/src/worker.test.ts + src/orca/src/panel.test.tsx` `diário guarda 20 entradas e o painel mostra 10` | yes |
+| C44 | `src/orca/src/worker.test.ts` + `src/orca/src/panel.test.tsx` `diário guarda 20 entradas e o painel mostra 10` | yes |
 | C45 | `src/orca/src/scene.test.ts` `cena cria o canvas e importa com caminho servido` | yes |
 | C46 | `src/orca/src/panel.test.tsx` `painel mostra a nota da issue do Handoff` | yes |
 | C47 | `src/orca/src/panel.test.tsx` `painel estreito quebra os atalhos` | yes |
 | C48 | `src/orca/src/worker.test.ts` `worker desempata ramo igual pelo nome` | yes |
 | C49 | `src/orca/src/worker.test.ts` `worker registra falhas no log` | yes |
-| C50 | `src/orca/src/scene-model.test.ts` `cena distribui os inativos no turbolift` | yes |
+| C50 | `src/orca/src/scene-model.test.ts` `cena sem rótulos sobrepostos` | yes |
 | C51 | `tests/test_acceptance_doc_f10.py` `test_fase10_limitacoes_registradas` | yes |
+| C52 | `src/orca/src/scene-model.test.ts` `cena mostra o telão com fase e progresso` | yes |
+| C53 | `src/orca/src/scene-model.test.ts` `cena compacta a engenharia sem workers` | yes |
+| C54 | `src/orca/src/scene.test.ts` `cena acende o ativo e conta os ativos no telão` | yes |
+| C55 | `src/orca/src/scene-model.test.ts` `cena desenha a ponte em arco com bonecos` | yes |
+| C56 | `src/orca/src/scene.test.ts` `cena mostra agora para atividade recente` | yes |
+| C57 | `src/orca/src/scene.test.ts` `cena estica o anel e aumenta os bonecos`; `cena cabe no palco sem rolagem` | yes |
 
 ## Findings
 
-| Finding | Evidence | Fix | Closed |
-| --- | --- | --- | --- |
-| A leitura ignora Handoff acima de 1 MiB sem erro, contrariando R8. | `scripts/ponte.py:109` (`handoff_of` faz `continue` para tamanho acima do limite) | Acrescentar o erro da fonte e preservar o tratamento tolerante. | ca7c8ba (fix), 0232e19 (F10-10); provas no HEAD 29aff98 |
-| C8 não prova fontes ilegíveis nem artefatos Handoff acima de 1 MiB; C21 não verifica `plugin.request` nem timeout; C26 não verifica que somente a frase e Atualizar agora aparecem. | `tests/test_ponte.py:test_snapshot_fonte_invalida`; `src/orca/src/panel.test.tsx:test_painel_pede_o_estado_ao_abrir`, `test_painel_sem_StarCode` | Adicionar casos que falhem quando essas condições concretas não forem satisfeitas. | ca7c8ba (fix), 0232e19 (F10-10); provas no HEAD 29aff98 |
-| Regra silenciosa sem check: `linear_ids` preserva IDs duplicados, embora a saída represente IDs da issue e duplicatas possam aparecer no painel. | `scripts/ponte.py:91`; comando: `python` com `linear_ids("SC-17; SC-17; SC-18")` → `['SC-17', 'SC-17', 'SC-18']` | Deduplicar IDs mantendo a ordem ou definir e testar explicitamente a semântica de duplicatas. | ca7c8ba (fix), 0232e19 (F10-10); provas no HEAD 29aff98 |
+None.
 
 ## Limits
 
-Exemplos adicionais em `crew_live.entry_valid`: `hook` em 11:45 e `cli` em 11:00 (limite exato) retornam `False`; ambos um segundo além retornam `False` (comando Python direto, portanto o limite inclusivo/exclusivo exato não foi exercitado por snapshot integrado).
-Duplicatas: `linear_ids("SC-17; SC-17; SC-18")` retorna `SC-17` duas vezes; minúsculas e token colado são ignorados (`linear_ids("sc-17 SC-18x SC-19")` → `SC-19`).
-Aceite visual real e compatibilidade com versões não instaladas da Orca não foram reproduzidos independentemente; provas registradas em `proofs.md`.
+Os exemplos adicionais foram comandos diretos: `linear_ids('')` → `[]`; `linear_ids('SC-1; SC-1; sc-2; SC-3x; SC-4')` → `['SC-1', 'SC-4']`; o limite configurado de fonte é 1.048.576 bytes. Os casos integrados de tamanho acima de 1 MiB, duplicatas, limites de dimensões 240 px e alturas variadas constam nos testes citados; não repeti a suíte conforme instruído.
+A regra de seleção em empate de `mtime` em `choose_feature` usa a ordem alfabética dos diretórios, sem check que fixe esse desempate; pode alterar silenciosamente a feature escolhida em empate.
+O aceite visual com Orca instalada não foi reproduzido independentemente; usei as provas e os testes disponíveis.
