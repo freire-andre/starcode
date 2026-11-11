@@ -54,7 +54,9 @@ Reaceite (T10 e T12): aprovado. A Cena desenha as 12 estações e os inativos no
 
 ## Atalhos
 
-**Resultado**: aprovado com limitações
+**Resultado**: aprovado
+
+As limitações abaixo foram resolvidas em 2026-11-11: Issue (F10-14) e Iniciar Picard (SC-131, F10-15). Veja `## Reaceite da Issue (2026-11-11)` e `## Reaceite do Iniciar Picard (2026-11-11, SC-131)`.
 
 Captura: `docs/aceite/fase-10/worktree-a-ponte.png` (os botões visíveis, sem clique)
 
@@ -68,7 +70,9 @@ Reaceite: Atualizar agora, Abrir spec, Abrir tasks e Abrir Handoff aprovados pel
 
 ## Reaceite
 
-**Resultado**: aprovado com limitações
+**Resultado**: aprovado
+
+Registrado em 2026-11-10 como aprovado com limitações. As duas limitações (Iniciar Picard e Issue) foram resolvidas e reaceitas pelo usuário em 2026-11-11 (seções a seguir).
 
 Capturas: `docs/aceite/fase-10/reaceite-atalhos-erro-antes.png`, `docs/aceite/fase-10/reaceite-picard-diario.png`, `docs/aceite/fase-10/reaceite-ponte-worktree-principal.png`, `docs/aceite/fase-10/reaceite-cena-turbolift.png`, `docs/aceite/fase-10/reaceite-ponte-atual.png` e `docs/aceite/fase-10/reaceite-cena-atual.png`
 
