@@ -50,13 +50,14 @@ test('pintura da cena só lê o modelo e não usa imagem', () => {
   for (const nome of ['spock', 'picard', 'guinan']) assert.ok(g.textos.includes(nome), nome)
   assert.ok(g.textos.includes('+2'))
   assert.ok(g.textos.includes('w0'))
+  assert.ok(g.textos.includes('aceso = trabalhando · apagado = livre'))
 })
 
 test('pintura da cena vazia mostra a mensagem central', () => {
   const cena = buildScene(estado(false), [], 0)
   const g = gravador()
   paint(g.ctx, cena, 5)
-  assert.ok(g.textos.includes('StarCode não configurado neste worktree'))
+  assert.equal(g.textos.join(' '), 'StarCode não configurado neste worktree')
 })
 
 test('cena cria o canvas e importa com caminho servido', async () => {
