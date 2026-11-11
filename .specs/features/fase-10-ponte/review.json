@@ -1,0 +1,25 @@
+{
+  "round": 1,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. O PR entrega o painel Ponte (ponte.py somente leitura, worker e painel da Orca) e a Cena da Ponte. Escada verde: build --check, orca plugin validate, check_decisions, 599 testes e CI verde no Ubuntu e no Windows. Há um nit: a mensagem 'worktree inválido' do ponte.py não chega ao painel. Os 17 candidatos de bypass foram aceitos: noqa E402 de import após sys.path (padrão do repo), BLE001/SLF001/E731 com justificativa, e casts em testes ou na fronteira do canvas. O desempate por mtime igual em choose_feature usa a ordem alfabética, como o Q já anotou; a spec não define esse caso. dist/orca e as capturas de docs/aceite ficam fora do review.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "nit",
+      "path": "src/orca/src/worker.ts",
+      "line": 82,
+      "body": "🟡 A mensagem 'worktree inválido' do ponte.py não chega ao painel (src/orca/src/worker.ts:82). O ponte.py imprime o erro no stdout e sai com 2 (scripts/ponte.py:265). O realExec rejeita qualquer saída diferente de 0 usando só o stderr (worker.ts:28-33), então o ramo snap.error nunca roda e o painel mostra 'Command failed: python ...'. Correção: no realExec, anexar o stdout ao erro e, no runSnapshot, ler o campo error dele antes de repassar a falha.",
+      "evidence": "src/orca/src/worker.ts:28; scripts/ponte.py:265; https://nodejs.org/api/child_process.html"
+    }
+  ],
+  "carryover": {},
+  "research": ["https://nodejs.org/api/child_process.html"],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "exit 0"},
+    {"command": "orca plugin validate src/orca --json", "result": "ok: true, valid: true"},
+    {"command": "python scripts/check_decisions.py", "result": "exit 0"},
+    {"command": "python -m unittest discover -s tests (Windows)", "result": "OK, 599 testes"},
+    {"command": "gh pr checks 24", "result": "checks ubuntu-latest e windows-latest: pass"},
+    {"command": "git diff main...HEAD -- . ':!dist' | scan_bypasses.py", "result": "17 candidatos, todos aceitos"}
+  ]
+}
