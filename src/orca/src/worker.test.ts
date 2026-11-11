@@ -257,6 +257,22 @@ test('worker com snapshot falho marca desatualizado', async () => {
   await worker.deactivate()
 })
 
+test('worker mostra o erro do ponte.py quando ele sai com 2', async () => {
+  const fake = install()
+  fake.python = () =>
+    Object.assign(new Error('Command failed: python ponte.py snapshot'), {
+      code: 2,
+      stdout: JSON.stringify({ schemaVersion: 1, error: 'worktree inválido: X' }),
+    })
+  const worker = await mount(hostFor(CTX_A))
+  const state: any = await worker.request('ponte.state', {})
+  assert.equal(state.status, 'erro')
+  assert.equal(state.error, 'worktree inválido: X')
+  const posted = worker.posts.filter((p) => p.event === 'ponte.state') as any[]
+  assert.equal(posted[posted.length - 1].payload.error, 'worktree inválido: X')
+  await worker.deactivate()
+})
+
 test('worker atualiza a barra de status', async () => {
   const fake = install()
   const host = hostFor(CTX_A)

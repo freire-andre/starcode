@@ -27,7 +27,8 @@ const realExec: Exec = (cmd, args, opts) =>
       { cwd: opts.cwd, timeout: opts.timeout, windowsHide: true, maxBuffer: 8 * 1024 * 1024, encoding: 'utf8' },
       (err, stdout, stderr) => {
         if (err) {
-          const e = err as Error & { code?: unknown }
+          const e = err as Error & { code?: unknown; stdout?: string }
+          e.stdout = String(stdout ?? '')
           const first = String(stderr || '').trim().split(/\r?\n/)[0]
           if (first && e.code !== 'ENOENT') e.message = first
           reject(e)
@@ -57,6 +58,18 @@ function firstLine(err: unknown): string {
   return text.trim().split(/\r?\n/)[0] || 'erro desconhecido'
 }
 
+// O ponte.py recusa o worktree com JSON `{error}` no stdout e exit 2; essa mensagem vale mais que o stderr.
+function stdoutError(err: unknown): Error | null {
+  const out = (err as { stdout?: unknown })?.stdout
+  if (typeof out !== 'string' || !out.trim()) return null
+  try {
+    const msg = (JSON.parse(out) as { error?: unknown })?.error
+    return typeof msg === 'string' && msg ? new Error(msg) : null
+  } catch {
+    return null
+  }
+}
+
 async function runSnapshot(path: string): Promise<PonteSnapshot> {
   const exec = getExec()
   const args = [ponteScript(), 'snapshot', '--path', path, '--json']
@@ -68,7 +81,7 @@ async function runSnapshot(path: string): Promise<PonteSnapshot> {
       break
     } catch (err) {
       lastErr = err
-      if ((err as { code?: unknown }).code !== 'ENOENT') throw err
+      if ((err as { code?: unknown }).code !== 'ENOENT') throw stdoutError(err) ?? err
     }
   }
   if (!out) throw lastErr ?? new Error('python não encontrado')
