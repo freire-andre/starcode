@@ -8,7 +8,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
-## [1.4.0] - não lançada
+## [1.4.0] - 2026-11-11
 
 ### Adicionado
 
@@ -18,6 +18,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Corrigido
 
+- Painel Ponte: o `orca` chamado de dentro do worker do plugin passa a funcionar (CLI por caminho explícito e env completo), e a Issue mostra título, estado e o link do Linear (F10-14).
 - Painel Ponte: Iniciar Picard abre o agente numa aba visível da Orca, com o prompt enviado, pelo `orca agent launch`; se o CLI falhar, volta ao segundo plano e o painel avisa (F10-15, SC-131).
 
 ## [1.3.0] - 2026-11-09
