@@ -2,7 +2,7 @@
 import { assert, test } from 'orca/testing'
 import { buildScene, GRADE, LARGURA_MIN_PX } from './scene-model.ts'
 import type { Cena } from './scene-model.ts'
-import { dimensoes, obterCanvas, paint } from './scene.ts'
+import { ajustaCanvas, dimensoes, obterCanvas, paint } from './scene.ts'
 import type { Pincel } from './scene'
 import type { PonteState } from './protocol.ts'
 
@@ -227,4 +227,40 @@ test('cena estica o anel e aumenta os bonecos', () => {
   const g = gravador()
   paint(g.ctx, cena, 5)
   assert.ok(g.chamadas.length > 0)
+})
+
+test('cena cabe no palco sem rolagem', () => {
+  // painéis reais, inclusive o da captura da T16 (465 x 930, mais baixo que a proporção mínima da grade)
+  const paineis = [[465, 930], [240, 400], [240, 1000], [300, 500], [600, 700], [480, 1600], [252, 2000], [1000, 600]]
+  for (const [w, h] of paineis) {
+    const canvas: any = { width: 0, height: 0, style: {} }
+    const palco = { clientWidth: w, clientHeight: h }
+    const d = ajustaCanvas(canvas, palco)
+    const css = { largura: parseFloat(canvas.style.width), altura: parseFloat(canvas.style.height) }
+    // a altura desenhada nunca passa da altura do palco (nem a largura da largura)
+    assert.ok(css.altura <= h, `${w}x${h}: canvas com ${css.altura}px de altura`)
+    assert.ok(css.largura <= w, `${w}x${h}: canvas com ${css.largura}px de largura`)
+    // e ocupa o palco numa das dimensões (sem faixa vazia grande)
+    assert.ok(h - css.altura < w / 48 + 1 || w - css.largura <= 1, `${w}x${h}: sobra ${h - css.altura}px`)
+    // o canvas mantém a proporção da grade e a legenda fica dentro da área visível
+    assert.equal(canvas.width, d.largura)
+    assert.equal(canvas.height, d.altura)
+    assert.ok(Math.abs(css.largura / css.altura - d.largura / d.altura) < 0.02, `${w}x${h}: proporção`)
+    const cena = buildScene(estado(), [], 0, d.linhas)
+    const legenda = cena.rotulos.find(r => r.tipo === 'legenda')!
+    assert.ok((legenda.caixa.y + legenda.caixa.altura) * (css.altura / cena.grade.altura) <= css.altura)
+  }
+  // o palco é a janela inteira, sem margem do corpo e sem barra de rolagem
+  const criar = (tag: string) => {
+    const el: any = { tag, style: {}, appendChild(n: unknown) { return n } }
+    return el
+  }
+  const corpo: any = { style: {}, appendChild: () => undefined }
+  const raiz: any = { style: {} }
+  const canvas: any = obterCanvas({ getElementById: () => null, createElement: criar, body: corpo, documentElement: raiz } as any)
+  assert.equal(corpo.style.margin, '0')
+  assert.equal(corpo.style.overflow, 'hidden')
+  assert.equal(raiz.style.overflow, 'hidden')
+  assert.equal(canvas.style.display, 'block')
+  assert.ok(canvas.style.height !== 'auto')
 })
