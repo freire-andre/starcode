@@ -86,3 +86,7 @@ As capturas `reaceite-ponte-atual.png` e `reaceite-cena-atual.png` vêm de `orca
 ## Reaceite da Issue (2026-11-11)
 
 Depois do review do Worf, a falha `loader:1575` foi diagnosticada e corrigida (F10-14). O `orca` resolvia para o `Orca.exe`, e o worker não tinha `APPDATA`. Na Orca reinstalada, o painel mostra a issue SC-17 com título "Fase 10: Painel Orca Ponte (v1.4)" e estado "In Progress". O botão "Abrir issue no Linear" fica habilitado e o diário não mostra falhas. A limitação do Iniciar Picard em segundo plano continua.
+
+## Reaceite do Iniciar Picard (2026-11-11, SC-131)
+
+Com o plugin reinstalado, o clique em "Iniciar Picard" abriu uma aba visível ("Starcode:engajar, capitão Picard") e trocou para ela. O prompt `/starcode:engajar` foi enviado e o Picard assumiu com `claude-opus-5-5` (F10-15). O painel voltou a carregar depois que o Python passou a rodar sem gravar bytecode na pasta instalada. **Resultado**: aprovado.
