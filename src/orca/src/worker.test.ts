@@ -377,20 +377,27 @@ test('atalho abre spec tasks e handoff', async () => {
   await worker.deactivate()
 })
 
+const cliDown = (f: Fake) => {
+  f.orca = () => Object.assign(new Error('cli fora'), { code: 'EFAIL' })
+}
+const agentCalls = (f: Fake) => f.calls.filter((c) => isOrca(c.cmd) && c.args[0] === 'agent')
+
 test('atalho inicia o Picard uma vez', async () => {
   const fake = install()
+  cliDown(fake)
   fake.python = withFeature(FILES)
   const host = launchHost()
   const worker = await mount(host)
-  assert.deepEqual(await worker.request('ponte.launchPicard', {}), { terminalId: 'term-1' })
+  assert.deepEqual(await worker.request('ponte.launchPicard', {}), { terminalId: 'term-1', visible: false })
   assert.deepEqual(host.callsOf('agent.launch'), [
     { workspaceId: 'ws-a', agent: 'claude', prompt: '/starcode:engajar' },
   ])
   const st: any = await worker.request('ponte.state', {})
-  assert.match(st.log.map((e: any) => e.text).join('|'), /Picard iniciado.*term-1/)
+  assert.match(st.log.map((e: any) => e.text).join('|'), /Picard iniciado em segundo plano/)
   await worker.deactivate()
 
   const codex = install()
+  cliDown(codex)
   codex.python = withFeature(FILES, [{ ...PICARD, cliModel: 'codex · gpt' }])
   const h2 = launchHost()
   const w2 = await mount(h2)
@@ -399,12 +406,62 @@ test('atalho inicia o Picard uma vez', async () => {
   await w2.deactivate()
 
   const oc = install()
+  cliDown(oc)
   oc.python = withFeature(FILES, [{ ...PICARD, cliModel: 'opencode · x' }])
   const h3 = launchHost()
   const w3 = await mount(h3)
   await w3.request('ponte.launchPicard', {})
   assert.deepEqual(h3.callsOf('agent.launch'), [{ workspaceId: 'ws-a', agent: 'opencode', prompt: 'engajar' }])
   await w3.deactivate()
+})
+
+const CLI_LAUNCH_OK = JSON.stringify({ ok: true, result: { terminal: { handle: 'term_abc' } } })
+
+test('atalho abre o Picard numa aba visível pelo CLI', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES, [{ ...PICARD, cliModel: 'claude · claude-opus-5-5' }])
+  fake.orca = () => ({ stdout: CLI_LAUNCH_OK })
+  const host = launchHost()
+  const worker = await mount(host)
+  assert.deepEqual(await worker.request('ponte.launchPicard', {}), { terminalId: 'term_abc', visible: true })
+  const calls = agentCalls(fake)
+  assert.equal(calls.length, 1)
+  assert.deepEqual(calls[0].args, [
+    'agent', 'launch', '--agent', 'claude', '--worktree', 'path:C:/wt/a',
+    '--prompt', '/starcode:engajar', '--surface', 'terminal', '--focus', '--model', 'claude-opus-5-5', '--json',
+  ])
+  assert.equal(host.callsOf('agent.launch').length, 0)
+  const st: any = await worker.request('ponte.state', {})
+  assert.match(st.log.map((e: any) => e.text).join('|'), /Picard iniciado numa aba visível/)
+  await worker.deactivate()
+})
+
+test('atalho sem modelo real não manda --model e aceita resposta sem terminal', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES, [{ ...PICARD, cliModel: 'codex · padrão do CLI' }])
+  fake.orca = () => ({ stdout: JSON.stringify({ ok: true, result: {} }) })
+  const host = launchHost()
+  const worker = await mount(host)
+  assert.deepEqual(await worker.request('ponte.launchPicard', {}), { terminalId: null, visible: true })
+  const args = agentCalls(fake)[0].args
+  assert.ok(!args.includes('--model'))
+  assert.equal(args[args.indexOf('--prompt') + 1], '$starcode:engajar')
+  await worker.deactivate()
+})
+
+test('atalho cai no agent.launch quando o CLI falha', async () => {
+  const fake = install()
+  fake.python = withFeature(FILES)
+  fake.orca = () => ({ stdout: JSON.stringify({ ok: false, error: { code: 'runtime_unavailable', message: 'sem runtime' } }) })
+  const host = launchHost()
+  const worker = await mount(host)
+  assert.deepEqual(await worker.request('ponte.launchPicard', {}), { terminalId: 'term-1', visible: false })
+  assert.equal(host.callsOf('agent.launch').length, 1)
+  const st: any = await worker.request('ponte.state', {})
+  const t = st.log.map((e: any) => e.text).join('|')
+  assert.match(t, /orca agent launch falhou: runtime_unavailable/)
+  assert.match(t, /Picard iniciado em segundo plano/)
+  await worker.deactivate()
 })
 
 test('atalho recusa agente que a Orca não lança', async () => {
@@ -499,6 +556,7 @@ test('worker registra falhas no log', async () => {
 
   // editor.open e agent.launch falham → linha no log e erro devolvido ao painel
   const f5 = install()
+  cliDown(f5)
   f5.python = withFeature(FILES)
   const h5 = mockHost({
     results: {

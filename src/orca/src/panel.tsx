@@ -9,6 +9,8 @@ import type { PonteAgent, PonteState, PonteWorker } from './protocol'
 const stateAtom = atom<PonteState | null>('ponte.state', null)
 const loadingAtom = atom<boolean>('ponte.loading', true)
 const failAtom = atom<string | null>('ponte.fail', null)
+const OK_VISIBLE = 'Picard iniciado numa aba visível'
+const OK_BACKGROUND = 'Picard iniciado em segundo plano'
 const launchingAtom = atom<boolean>('ponte.launching', false)
 const shortcutErrAtom = atom<string | null>('ponte.shortcutErr', null)
 const shortcutOkAtom = atom<string | null>('ponte.shortcutOk', null)
@@ -31,7 +33,7 @@ function launchPicard(): void {
   set(launchingAtom, true)
   plugin
     .request('ponte.launchPicard', {})
-    .then(() => set(shortcutOkAtom, 'Picard iniciado em segundo plano'))
+    .then((r) => set(shortcutOkAtom, r?.visible ? OK_VISIBLE : OK_BACKGROUND))
     .catch((e: unknown) => set(shortcutErrAtom, msg(e)))
     .finally(() => set(launchingAtom, false))
 }
@@ -201,7 +203,9 @@ function Shortcuts(props: { s: PonteState | null }) {
         <Button size="sm" disabled={!url} onPress={() => (url ? openIssue(url) : undefined)}>Abrir issue no Linear</Button>
         <Button size="sm" disabled={launching || !s?.snapshot?.starcode} onPress={launchPicard}>Iniciar Picard</Button>
       </Row>
-      <Text muted size="sm">O agente abre em segundo plano, sem aba visível.</Text>
+      {ok === OK_BACKGROUND && !err ? (
+        <Text muted size="sm">O agente abriu em segundo plano, sem aba visível e sem o prompt enviado.</Text>
+      ) : null}
       {err ? <Text tone="danger" size="sm">{err}</Text> : null}
       {ok && !err ? <Text size="sm">{ok}</Text> : null}
     </Stack>

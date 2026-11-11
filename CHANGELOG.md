@@ -16,6 +16,10 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 - CI: passo `orca plugin validate src/orca --json`, que só roda se `orca` existir no PATH.
 - Créditos: Pixel Agents e Habblaud como inspiração da Cena da Ponte, sem código nem arte copiados.
 
+### Corrigido
+
+- Painel Ponte: Iniciar Picard abre o agente numa aba visível da Orca, com o prompt enviado, pelo `orca agent launch`; se o CLI falhar, volta ao segundo plano e o painel avisa (F10-15, SC-131).
+
 ## [1.3.0] - 2026-11-09
 
 ### Adicionado
