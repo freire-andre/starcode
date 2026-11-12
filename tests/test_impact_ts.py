@@ -60,6 +60,17 @@ class TestImpactTs(ImpactCase):
         write(self.repo, {"src/b.ts": "import { a } from '~/a';\n"})
         self.assertEqual(impact.select(self.repo, changed=["src/a.ts"])["reason"], impact.TS_ALIAS_REASON)
 
+    def test_ts_malformado_com_marcador_roda_tudo(self) -> None:
+        write(self.repo, {
+            "src/a.ts": "export const a = 1;\n",
+            "src/a.test.ts": "import { a } from './a';\n",
+        })
+        self.commit()
+        write(self.repo, {"src/a.ts": "export const a={{broken\n"})
+        res = impact.select(self.repo, changed=["src/a.ts"])
+        self.assertEqual(res["verdict"], "run-all")
+        self.assertTrue(impact.format_text(res).startswith("rodar tudo: grafo incompleto: src/a.ts: "), impact.format_text(res))
+
     def test_impact_fixture_telas(self) -> None:
         tmp = tempfile.TemporaryDirectory(prefix="impact-telas-")
         self.addCleanup(tmp.cleanup)

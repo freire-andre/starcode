@@ -163,8 +163,64 @@ def ts_specifiers(text: str) -> set[str]:
     return {m.group(2) for rx in TS_IMPORT_RES for m in rx.finditer(text)}
 
 
+TS_PAIRS = {")": "(", "]": "[", "}": "{"}
+
+
+def ts_balanced(text: str) -> bool:
+    """Verificação barata de análise: (), [] e {} balanceados fora de strings, template literals e comentários."""
+    stack: list[str] = []
+    i, n, prev = 0, len(text), ";"
+    while i < n:
+        c = text[i]
+        if i and not text[i - 1].isspace():
+            prev = text[i - 1]
+        elif i and text[i - 1] == "\n":
+            prev = "\n"
+        if text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+        elif c in "'\"":  # string de uma linha; aspa sem fechar (texto de JSX) termina na quebra de linha
+            i += 1
+            while i < n and text[i] not in (c, "\n"):
+                i += 2 if text[i] == "\\" else 1
+            i += 1
+        elif c == "/" and prev in "(,=:[!&|?{;" + "\n":  # literal de regex: pula até a barra de fechamento
+            i += 1
+            in_class = False
+            while i < n and text[i] != "\n" and (in_class or text[i] != "/"):
+                if text[i] == "\\":
+                    i += 1
+                elif text[i] == "[":
+                    in_class = True
+                elif text[i] == "]":
+                    in_class = False
+                i += 1
+            i += 1
+        elif c == "`" or (c == "}" and stack and stack[-1] == "${"):  # template literal, com ${...} aninhado
+            if c == "}":
+                stack.pop()
+            i += 1
+            while i < n and text[i] != "`" and not text.startswith("${", i):
+                i += 2 if text[i] == "\\" else 1
+            if text.startswith("${", i):
+                stack.append("${")
+            i += 2 if i < n and text[i] == "$" else 1
+        else:
+            if c in "([{":
+                stack.append(c)
+            elif c in TS_PAIRS and (not stack or stack.pop() != TS_PAIRS[c]):
+                return False
+            i += 1
+    return not stack
+
+
 def ts_resolve(state: dict, path: str, text: str) -> set[str]:
     """R17: só './' e '../' viram arestas; testa o caminho exato, cada extensão e <esp>/index.<ext>."""
+    if not ts_balanced(text):
+        raise GraphError("chaves ou parênteses desbalanceados")
     files = state["files"]
     base = posixpath.dirname(path)
     deps: set[str] = set()
@@ -255,7 +311,7 @@ def build_graph(root, files: list[str]) -> dict[str, set[str]]:
         try:
             graph[f] = RESOLVERS[ext][1](states[ext], f, text)
         except GraphError as exc:
-            if "{{" in text:  # modelo com marcador ({{module}}), não é Python de verdade: fora do grafo
+            if ext == ".py" and "{{" in text:  # modelo com marcador ({{module}}), não é Python de verdade: fora do grafo (R21: só .py)
                 continue
             raise GraphError(f"{f}: {exc}") from exc
     return graph
