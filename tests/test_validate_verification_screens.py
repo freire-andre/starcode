@@ -58,7 +58,7 @@ def screens(verdict: str = "match", round_: str = "**Round**: 1\n", verifier: st
 
 class ScreensTests(TempRepoCase):
     def montar(self, spec: str = SPEC, capture: str | None = "home.png", cap_size=(320, 200), running=(320, 200),
-               screens_md: str | None = None) -> Path:
+               screens_md: str | None = None, extras: tuple[str, ...] = ()) -> Path:
         fdir = self.repo / ".specs" / "features" / "demo"
         (fdir / "captures").mkdir(parents=True)
         (fdir / "spec.md").write_text(spec, encoding="utf-8")
@@ -67,6 +67,9 @@ class ScreensTests(TempRepoCase):
             (fdir / "captures" / capture).write_bytes(png(*cap_size))
         if running:
             (fdir / "captures" / "home.running.png").write_bytes(png(*running))
+        for extra in extras:
+            (fdir / "captures" / f"{extra}.png").write_bytes(png(*cap_size))
+            (fdir / "captures" / f"{extra}.running.png").write_bytes(png(*running))
         (self.repo / "app.py").write_text("x = 1\n", encoding="utf-8")
         run_git(self.repo, "add", ".")
         run_git(self.repo, "commit", "-q", "-m", "feat: app")
@@ -96,6 +99,13 @@ class ScreensTests(TempRepoCase):
         errs = self.erros(screens_md=screens("diverges"))
         self.assertIn("captures/home.running.png", errs)
         self.assertIn("diverges", errs)
+
+    def test_captura_vinculante_sem_veredito(self):
+        spec = SPEC.replace("`captures/home.png`.", "`captures/home.png` e de `captures/sobre.png`.").replace(
+            "desenha a tela inicial\n", "desenha a tela inicial\n- ![sobre](captures/sobre.png) - binding - desenha a tela sobre\n")
+        errs = self.erros(spec=spec, screens_md=screens(), extras=("sobre",))
+        self.assertIn("screens.md sem veredito para `sobre.png`", errs)
+        self.assertNotIn("sem veredito para `home.png`", errs)
 
     def test_screens_sem_round_ou_round_3(self):
         self.assertIn("screens.md sem `**Round**:`", self.erros(screens_md=screens(round_="")))
