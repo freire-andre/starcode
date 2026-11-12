@@ -232,3 +232,73 @@ test('painel estreito quebra os atalhos', async () => {
   const linhas = (JSON.stringify(p.tree()).match(/"wrap":true/g) ?? []).length
   assert.ok(linhas >= 2, 'as linhas de botões dos Atalhos devem quebrar')
 })
+
+const ELSEWHERE = {
+  ...dados.feature!,
+  slug: 'ponte-missao-ativa', phase: 'execute', worktree: 'C:/wt/filho', branch: 'feat/filho', others: 1,
+  progress: { done: 2, total: 3, percent: 67 },
+}
+
+test('atalhos de arquivo desabilitados com missão em outro worktree', async () => {
+  const local = { ...dados.feature!, slug: 'feita-local', phase: 'done', done: true, files: ARQ }
+  const alvos = ['Abrir spec', 'Abrir tasks', 'Abrir Handoff']
+  const h = mockHost({
+    requests: {
+      'ponte.state': () => estado({ snapshot: { ...dados, feature: local, elsewhere: ELSEWHERE } }),
+    },
+  })
+  const p = await mount(panel, { host: h })
+  for (const a of alvos) assert.equal(p.find({ type: 'Button', text: a })!.disabled, true, a)
+  // sem elsewhere, os botões seguem a feature local
+  const q = await mount(panel, { host: host(estado({ snapshot: { ...dados, feature: local } })) })
+  assert.equal(q.find({ type: 'Button', text: 'Abrir spec' })!.disabled, false)
+})
+
+test('painel mostra a missão ativa de outro worktree', async () => {
+  const local = { ...dados.feature!, slug: 'feita-local', phase: 'done', done: true }
+  const pedidos: unknown[] = []
+  const h = mockHost({
+    requests: {
+      'ponte.state': () => estado({ snapshot: { ...dados, feature: local, elsewhere: ELSEWHERE } }),
+      'ponte.focusElsewhere': (i) => {
+        pedidos.push(i)
+        return { opened: true, message: null }
+      },
+    },
+  })
+  const p = await mount(panel, { host: h })
+  const t = text(p)
+  for (const s of ['Missão ativa em outro worktree', 'feat/filho · execute · 2/3', 'e mais 1']) {
+    assert.ok(t.includes(JSON.stringify(s)), s)
+  }
+  assert.ok(t.includes('ponte-missao-ativa'))
+  assert.ok(!t.includes('feita-local'))
+  await p.press({ type: 'Button', text: 'Focar worktree' })
+  assert.equal(pedidos.length, 1)
+  // sem elsewhere: a feature local, como antes
+  const q = await mount(panel, { host: host(estado({ snapshot: { ...dados, feature: local } })) })
+  assert.ok(text(q).includes('feita-local') && !text(q).includes('Missão ativa em outro worktree'))
+  // sem others: sem "e mais"
+  const r = await mount(panel, {
+    host: host(estado({ snapshot: { ...dados, feature: local, elsewhere: { ...ELSEWHERE, others: 0 } } })),
+  })
+  assert.ok(text(r).includes('Missão ativa em outro worktree') && !text(r).includes('e mais'))
+  // sem workspace casando: a mensagem aparece junto do atalho, dentro do aviso
+  const aviso = 'worktree não aberto na Orca: C:/wt/filho'
+  const m = await mount(panel, {
+    host: mockHost({
+      requests: {
+        'ponte.state': () => estado({ snapshot: { ...dados, feature: local, elsewhere: ELSEWHERE } }),
+        'ponte.focusElsewhere': () => ({ opened: false, message: aviso }),
+      },
+    }),
+  })
+  assert.ok(!text(m).includes(aviso))
+  await m.press({ type: 'Button', text: 'Focar worktree' })
+  const tm = text(m)
+  assert.ok(tm.includes(aviso))
+  const iBotao = tm.indexOf('Focar worktree')
+  const iAviso = tm.indexOf(aviso)
+  const iFeature = tm.indexOf('ponte-missao-ativa')
+  assert.ok(iBotao < iAviso && iAviso < iFeature, 'a mensagem fica entre o atalho e o resto da fase')
+})

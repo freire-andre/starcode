@@ -317,6 +317,7 @@ async function queryIssue(
 
 function statusText(snap: PonteSnapshot): string {
   const mode = snap.gitMode ? ` · modo ${snap.gitMode.mode}` : ''
+  if (snap.elsewhere) return `🖖 ${snap.elsewhere.slug} · ${snap.elsewhere.phase} · outro worktree${mode}`
   if (snap.feature) return `🖖 ${snap.feature.slug} · ${snap.feature.phase}${mode}`
   return `🖖 StarCode${mode}`
 }
@@ -517,6 +518,27 @@ export default function activate(orca: OrcaWorkerApi): void {
       throw err
     }
     return { opened: true }
+  })
+
+  orca.panels.handle('ponte.focusElsewhere', async () => {
+    const where = await focus()
+    if (!where) throw Object.assign(new Error('Nenhum worktree em foco'), { code: 'no_worktree' })
+    const target = (await currentSnapshot(where.path)).elsewhere?.worktree
+    if (!target) throw Object.assign(new Error('Sem missão em outro worktree'), { code: 'no_elsewhere' })
+    const list = (await orca.host.call('workspace.list', {})) as { workspaces: FocusWs[] }
+    const ws = list.workspaces.find((w) => samePath(w.path, target))
+    if (ws) {
+      try {
+        await orca.host.call('workspace.open', { workspaceId: ws.id })
+      } catch (err) {
+        fail('workspace.open', err)
+        schedule()
+        throw err
+      }
+      return { opened: true, message: null }
+    }
+    // sem capacidade notifications:show (manifesto): o painel mostra a mensagem junto do atalho
+    return { opened: false, message: `worktree não aberto na Orca: ${target}` }
   })
 
   orca.panels.handle('ponte.launchPicard', async () => {

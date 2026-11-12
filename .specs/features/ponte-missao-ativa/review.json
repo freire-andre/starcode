@@ -1,0 +1,31 @@
+{
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. W1 e W2 resolvidos em 04d47c8 e 2639f94 (P151-4 em aff1686), integrados no merge do pr 31; nenhum blocker novo; scan de bypass no diff da correção sem candidatos.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolvido em 04d47c8: Shortcuts usa files undefined quando há elsewhere (src/orca/src/panel.tsx:213), teste 'atalhos de arquivo desabilitados com missão em outro worktree'",
+  "W2": "resolvido em 2639f94: Snapshot próprio do outro worktree e erros copiados com fonte worktrees e caminho (scripts/ponte.py:299-302), teste test_elsewhere_erros_do_outro_worktree_usam_fonte_worktrees"
+ },
+ "research": [
+  "Orca host API (orca skills get orca-plugin-authoring --reference references/host-api.md): workspace.open exige workspace:write; workspace.list exige workspace:read; notifications.show exige capacidade própria"
+ ],
+ "ladder": [
+  {
+   "command": "orca plugin validate/test/check src/orca && python tools/build.py --check && python scripts/check_decisions.py && python -m unittest discover -s tests",
+   "result": "exit 0, plugin 70/70, unittest 671 OK (worktree no C:, árvore idêntica ao HEAD)"
+  },
+  {
+   "command": "run_gates.py proofs / done ponte-missao-ativa",
+   "result": "verde"
+  },
+  {
+   "command": "git diff cb3f8ca..HEAD | scan_bypasses.py",
+   "result": "0 candidatos"
+  },
+  {
+   "command": "CI do PR #31",
+   "result": "rodada anterior verde (670/670 ubuntu e windows); nova rodada após o push"
+  }
+ ]
+}

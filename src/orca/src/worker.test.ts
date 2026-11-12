@@ -904,3 +904,56 @@ test('url da issue montada só pelo urlKey do worktree quando a consulta falha',
   assert.equal(s2.issue.url, null)
   await w2.deactivate()
 })
+
+const ELSEWHERE_SNAP = {
+  ...(snapshot('x').feature as object),
+  slug: 'ponte-missao-ativa', phase: 'execute', worktree: 'c:/WT/b', branch: 'feat/b', others: 0,
+}
+
+test('barra de status indica missão em outro worktree', async () => {
+  const fake = install()
+  const host = hostFor(CTX_A)
+  const worker = await mount(host)
+  const last = () => host.callsOf('statusBar.update').at(-1) as any
+  fake.python = (p) => ({
+    stdout: JSON.stringify(snapshot(p, { feature: { ...(snapshot(p).feature as object), done: true, phase: 'done' }, elsewhere: ELSEWHERE_SNAP })),
+  })
+  await worker.request('ponte.state', {})
+  assert.equal(last().text, '🖖 ponte-missao-ativa · execute · outro worktree · modo 3')
+  await worker.deactivate()
+})
+
+test('atalho foca o worktree da missão ativa', async () => {
+  const fake = install()
+  fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { elsewhere: ELSEWHERE_SNAP })) })
+  const host = mockHost({
+    results: {
+      'workspace.readContext': CTX_A,
+      'workspace.list': { workspaces: [WS_A, WS_B], truncated: false },
+      'agents.list': { agents: [] },
+      'statusBar.update': { ok: true },
+      'workspace.open': { opened: true },
+      'notifications.show': { delivered: true },
+    },
+  })
+  const worker = await mount(host)
+  // caminho do elsewhere ('c:/WT/b') casa com WS_B ('C:/wt/b') sem caixa
+  const res: any = await worker.request('ponte.focusElsewhere', {})
+  assert.equal(res.opened, true)
+  assert.deepEqual(host.callsOf('workspace.open'), [{ workspaceId: 'ws-b' }])
+  assert.equal(host.callsOf('notifications.show').length, 0)
+  // barras invertidas também casam
+  fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { elsewhere: { ...ELSEWHERE_SNAP, worktree: 'C:' + String.fromCharCode(92) + 'wt' + String.fromCharCode(92) + 'b' } })) })
+  await worker.request('ponte.state', { force: true })
+  await worker.request('ponte.focusElsewhere', {})
+  assert.equal(host.callsOf('workspace.open').length, 2)
+  // sem workspace casando: mensagem na resposta, sem notificação, sem workspace.open novo e sem erro
+  fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { elsewhere: { ...ELSEWHERE_SNAP, worktree: 'C:/wt/fora' } })) })
+  await worker.request('ponte.state', { force: true })
+  const miss: any = await worker.request('ponte.focusElsewhere', {})
+  assert.equal(miss.opened, false)
+  assert.equal(miss.message, 'worktree não aberto na Orca: C:/wt/fora')
+  assert.equal(host.callsOf('workspace.open').length, 2)
+  assert.equal(host.callsOf('notifications.show').length, 0)
+  await worker.deactivate()
+})
