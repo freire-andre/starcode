@@ -1,6 +1,8 @@
 """R39: tools/aceite.py materializa as fixtures de aceite fora do repositório."""
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import subprocess
 import sys
@@ -46,6 +48,41 @@ class AceiteToolTests(unittest.TestCase):
             # nome inexistente
             self.assertEqual(_run("preparar", "nao-existe", "--destino",
                                   str(Path(tmp) / "outro")).returncode, 2)
+
+    def test_aceite_preparar_filtra_pastas_em_toda_a_arvore(self):
+        sys.path.insert(0, str(ROOT / "tools"))
+        try:
+            import aceite
+        finally:
+            sys.path.remove(str(ROOT / "tools"))
+        env = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "commit.gpgsign",
+               "GIT_CONFIG_VALUE_0": "false"}
+        with tempfile.TemporaryDirectory(prefix="aceite-filtro-") as tmp:
+            fixtures = Path(tmp) / "fixtures"
+            src = fixtures / "mini"
+            for rel in ("keep.txt", "a/b/node_modules/x.js", "src-tauri/target/y.bin",
+                        "pkg/dist/z.js", "node_modules/r.js", "dist/r.js", "target/r.bin",
+                        "sub/.git/config", "sub/ok.txt"):
+                f = src / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text("x", encoding="utf-8")
+            dest = Path(tmp) / "app"
+            old_fixtures, old_env = aceite.FIXTURES, dict(os.environ)
+            aceite.FIXTURES = fixtures
+            os.environ.update(env)
+            try:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    rc = aceite.preparar("mini", str(dest))
+            finally:
+                aceite.FIXTURES = old_fixtures
+                os.environ.clear()
+                os.environ.update(old_env)
+            self.assertEqual(rc, 0)
+            self.assertTrue((dest / "keep.txt").is_file())
+            self.assertTrue((dest / "sub" / "ok.txt").is_file())
+            for nome in ("node_modules", "target", "dist"):
+                self.assertEqual(list(dest.rglob(nome)), [], nome)
+            self.assertEqual([p for p in dest.rglob(".git")], [dest / ".git"])
 
     def test_listar_mostra_telas(self):
         res = _run("listar")
