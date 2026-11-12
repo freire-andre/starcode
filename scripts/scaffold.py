@@ -693,7 +693,8 @@ def _display(cmd: str, cwd: str | None) -> str:
 
 
 def _joined(items: list[tuple[str, str | None]]) -> str:
-    return " && ".join(f"cd {c} && {cmd}" if c else cmd for cmd, c in items)
+    # A subshell keeps each `cd` from leaking into the next item (bash and cmd.exe both accept it).
+    return " && ".join(f"(cd {c} && {cmd})" if c else cmd for cmd, c in items)
 
 
 def cmd_checks(args) -> int:
