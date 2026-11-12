@@ -428,6 +428,7 @@ Proof: run unit | test_screens_brief_nao_leva_checks_nem_diff ... ok
 
 **C22** - `dispatch.py screens-brief` preenche o brief; spec sem captura vinculante sai com 2 (R22)
 Proof: run unit | test_screens_brief_sem_captura_sai_2 ... ok
+Proof: run unit | test_screens_brief_preenche_campos ... ok
 
 **C23** - O brief manda o juiz tirar a própria foto no tamanho em CSS da captura pelo gesto do requisito (R23)
 Proof: run unit | test_screens_brief_preenche_campos ... ok
