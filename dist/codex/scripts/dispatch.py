@@ -50,6 +50,7 @@ for p in (HERE, HERE / "gates", HERE / "config"):
 import gates_common as gc  # noqa: E402
 import handoff  # noqa: E402
 import lessons  # noqa: E402
+import screens  # noqa: E402
 import validate_config  # noqa: E402
 import starcode_common as sc  # noqa: E402
 import tasks_export  # noqa: E402
@@ -71,6 +72,8 @@ WORKER_RULES = """## Regras fixas do worker (StarCode)
 - Antes de terminar: `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde
   (base = commit de partida deste worktree).
 - Falhas: identificador estável por erro; na 2ª falha do mesmo erro, use a skill `mccoy`; na 3ª, pare.
+- Ticket com tela citada por captura (`captures/<nome>.png`): tire a foto do autor com
+  `python "{plugin}/scripts/screens.py" capture` em `captures/<nome>.running.png` e commite-a, dentro do `May change`.
 - Relatório final (até 5 linhas): o que mudou, gates executados com resultado, commits, pendências,
   tentativas do disjuntor (`<id>=<n>` ou `none`).
 """
@@ -411,11 +414,11 @@ def _worker_brief(slug: str, ticket: str, root: Path) -> str:
     return head + body + "\n" + WORKER_RULES.format(slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
 
 
-def brief_template() -> Path:
-    for cand in (sc.PLUGIN_ROOT / "briefs" / "q-verify.md", sc.PLUGIN_ROOT / "src" / "briefs" / "q-verify.md"):
+def brief_template(name: str = "q-verify.md") -> Path:
+    for cand in (sc.PLUGIN_ROOT / "briefs" / name, sc.PLUGIN_ROOT / "src" / "briefs" / name):
         if cand.is_file():
             return cand
-    raise LookupError("briefs/q-verify.md não encontrado no plugin")
+    raise LookupError(f"briefs/{name} não encontrado no plugin")
 
 
 def q_brief(slug: str, root: Path, base: str, head: str) -> str:
@@ -432,6 +435,26 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do Q: {', '.join(sorted(set(left)))}")
     return f"Repositório: {proj.as_posix()}\n\n" + text + lessons_section(root)
+
+
+def screens_brief(slug: str, root: Path, url: str, serve: str = "", rnd: int = 1) -> str:
+    """Brief of the screen judge: spec, pictures (`screens.py list`), URL, serve command, output, round (R21-R22)."""
+    pictures = screens.list_screens(slug, root)
+    if not pictures:
+        raise ValueError("a spec não cita captura vinculante: não há telas para julgar")
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    proj = gc.project_root(fdir)
+    rel = Path(gc.feature_root_hint(fdir))
+    values = {"spec": rel / "spec.md", "pictures": json.dumps(pictures, ensure_ascii=False, indent=2),
+              "url": url, "serve": serve, "output": rel / "screens.md", "round": rnd,
+              "screens_py": Path(screens.__file__).resolve()}
+    text = brief_template("screens-verify.md").read_text(encoding="utf-8")
+    for key, val in values.items():
+        text = text.replace("{{" + key + "}}", str(val).replace("\\", "/") if key != "pictures" else str(val))
+    left = re.findall(r"\{\{[^}]+\}\}", text)
+    if left:
+        raise ValueError(f"marcadores não preenchidos no briefing do juiz de telas: {', '.join(sorted(set(left)))}")
+    return f"Repositório: {proj.as_posix()}\n\n" + text
 
 
 def family(spec: str) -> str:
@@ -544,6 +567,13 @@ def main(argv: list[str] | None = None) -> int:
     pq.add_argument("--head", required=True)
     pq.add_argument("--out", required=True)
     pq.add_argument("--root", default=".")
+    ps = sub.add_parser("screens-brief")
+    ps.add_argument("slug")
+    ps.add_argument("--url", required=True)
+    ps.add_argument("--serve", default="")
+    ps.add_argument("--round", type=int, choices=(1, 2), default=1)
+    ps.add_argument("--out", required=True)
+    ps.add_argument("--root", default=".")
     pf = sub.add_parser("family")
     pf.add_argument("spec")
     pf.add_argument("--compare")
@@ -582,6 +612,11 @@ def main(argv: list[str] | None = None) -> int:
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")
             return 0
+        if a.cmd == "screens-brief":
+            text = screens_brief(a.slug, Path(a.root).resolve(), a.url, a.serve, a.round)
+            Path(a.out).write_text(text, encoding="utf-8", newline="\n")
+            print(f"briefing do juiz de telas gravado em {a.out}")
+            return 0
         if a.cmd == "q-cli":
             lfs = [*a.laforge_pos, *a.laforge]
             if not lfs:
@@ -594,7 +629,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(family(a.spec))
         return 0
-    except (LookupError, ValueError) as exc:
+    except (LookupError, ValueError, screens.ScreenError) as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2
 

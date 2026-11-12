@@ -1,0 +1,32 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. W1, W2 e W3 resolvidos em 04e36b5, cc0a933 e 7936bef (integrados em 9bd0313); a falha do CI no Windows (caminho 8.3 no teste do aceite.py) foi corrigida em 50083c9. Nenhum blocker novo; scan de bypass no diff da correção sem candidatos.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido em 04e36b5: ERRO 'screens.md sem veredito' para cada captura vinculante sem linha (scripts/gates/validate_verification.py:149), teste test_captura_vinculante_sem_veredito",
+    "W2": "resolvido em cc0a933: identidade só no env do commit inicial e só sem user.email (tools/aceite.py:75), teste confere config local vazio",
+    "W3": "resolvido em 7936bef: ImageError quando o tamanho não é múltiplo da escala (scripts/gates/images.py:120)"
+  },
+  "research": [
+    "/tauri-apps/tauri-docs (Context7: mockIPC, __TAURI_INTERNALS__, window.isTauri)"
+  ],
+  "ladder": [
+    {
+      "command": "python tools/build.py && python tools/build.py --check && python scripts/check_decisions.py && python -m unittest discover -s tests && claude plugin validate dist/claude --strict",
+      "result": "exit 0, 661 testes OK"
+    },
+    {
+      "command": "run_gates.py proofs / done fase-11-telas",
+      "result": "verde"
+    },
+    {
+      "command": "git diff 61c909e..HEAD | scan_bypasses.py",
+      "result": "0 candidatos"
+    },
+    {
+      "command": "CI do PR #28",
+      "result": "rodada anterior: ubuntu pass, windows fail (corrigido em 50083c9); nova rodada após o push"
+    }
+  ]
+}

@@ -31,7 +31,7 @@ O que mudou em relação ao tlc:
 | Execution Plan com diagrama e checagem diagrama × `Depends on` | só `Depends on`; ciclo e dependência inexistente são erro | o diagrama duplicava a informação; as relações `blocks` do Linear saem do `Depends on` |
 | `Where` com aviso de granularidade | `May change` nos BOUNDARIES, com sobreposição entre tarefas independentes como erro | D19 (dono de arquivo) e Frota |
 | Test Coverage Matrix obrigatória | `## Gate Commands` obrigatória; o `Gate` de cada tarefa precisa existir nela | menos cerimônia; a matriz virou julgamento do Data |
-| Regras de captura (`captures/`, `screens.md`) | removidas | D25 |
+| Regras de captura (`captures/`, `screens.md`) | removidas na D25; voltaram na Fase 11 (F11-1..F11-8), sem provas `browser`/`walk`, sem `**Walked:**`, com a escala pelo nome da captura e o juiz de telas como worker separado | D25 superada pela Fase 11 |
 | `check_commit` sem rodapé | `Refs: <ID>` obrigatório | D24 |
 | `validate_tasks --execute` roda o `Build` uma vez | não roda nesta fase | entra na Fase 3 junto com o `check_proofs.py` |
 

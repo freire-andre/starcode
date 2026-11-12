@@ -149,13 +149,22 @@ before any new `batch`.
    `orca orchestration worker-read <dispatch> --source auto` and write in `verification.md`
    `**Verifier**: <cli> · requested <model field of the result> · effective <model | unconfirmed>` (F0-2);
    same in `--report`.
-6. **The Q writes only `verification.md`.** If its diff touches any other file, discard those extra
+6. **Screens (F11, R28).** When `python "P/scripts/screens.py" list <slug>` is not empty, right after dispatching the Q:
+   generate the judge's brief with `python "P/scripts/dispatch.py" screens-brief <slug> --url <URL> [--serve "<cmd>"] --out <temp>/<slug>-screens.md`
+   (URL and serve command come from the `screens` profile of `.starcode/stack.json`; ask the user when it has none)
+   and dispatch the screens judge as an Orca worker **in the worktree of `I`**, in the same CLI/family the `q-cli`
+   picked for the Q and **never in the LaForge's family**. Fill `**Verifier**:` in `screens.md` as for the Q
+   (step 5). Round 1 writes `screens.md`; its `differs` rows go into the single post-Q fix (section 5).
+7. **The Q writes only `verification.md`.** If its diff touches any other file, discard those extra
    changes (`git restore --source=HEAD -- <file>` for tracked files; delete new untracked ones) before
    committing `verification.md`, and cite the files in the review comment.
 
 ## 5. Post-Q cycle (4.6) and the end
 - Open findings → **one** LaForge dispatch in the worktree of `I` with **all findings in one brief**;
   each fix is a commit with `Refs: <ID>` citing the finding. Then write the commit in each `Closed` cell.
+- Screens (R28): the `differs` rows of `screens.md` join the same single fix brief, with the Q findings. After the
+  fix, dispatch the judge again with `dispatch.py screens-brief ... --round 2` (only the pictures and `differs` rows;
+  there is no round 3). What still differs after round 2 goes to the user with the evidence.
 - Rerun `run_gates.py proofs <slug>` and `run_gates.py done <slug>` on the new HEAD. **There is no second
   Q.** The Q is dispatched again only if a fix changes a requirement of the spec: then stop, propose the
   spec change, and dispatch the Q again only after the new approval.

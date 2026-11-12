@@ -33,6 +33,10 @@ Follow `<plugin-root>/briefs/q-verify.md` (sections "Rules", "What you do", "Rep
 2. Run **examples nobody cited** as throwaway tests at HEAD, never committed and removed before you end.
 3. Point out **assertions looser than the criterion**.
 
+## Screens are not yours
+Screens are judged by a separate worker, the screens judge (brief `<plugin-root>/briefs/screens-verify.md`).
+You do not take pictures or compare screens against mockups.
+
 ## Report
 - `verification.md` in the brief's shape: `**Verdict**:`, `**Proofs**:`, `**HEAD**:` (the commit you
   analyzed), `**Verifier**:`, `## Checks` (one row per check, with the test), `## Findings`

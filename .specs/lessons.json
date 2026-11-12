@@ -106,6 +106,96 @@
       "scope": "tests",
       "created": "2026-11-10T14:38:54Z",
       "updated": "2026-11-10T14:38:54Z"
+    },
+    {
+      "id": "L8",
+      "text": "Valide o comprimento e a estrutura do cabeçalho de uma imagem antes de ler as dimensões, porque um PNG truncado passava como legível.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 1"
+      ],
+      "scope": "imagens",
+      "created": "2026-11-12T12:18:57Z",
+      "updated": "2026-11-12T12:18:57Z"
+    },
+    {
+      "id": "L9",
+      "text": "Valide URLs contra a string inteira (fullmatch), não só o começo, porque a regex aceitava https:// vazio e URL com espaço.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-12T12:18:57Z",
+      "updated": "2026-11-12T12:18:57Z"
+    },
+    {
+      "id": "L10",
+      "text": "Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 3"
+      ],
+      "scope": "",
+      "created": "2026-11-12T12:18:57Z",
+      "updated": "2026-11-12T12:18:57Z"
+    },
+    {
+      "id": "L11",
+      "text": "Separe em dois checks o caminho de erro e o de sucesso de um comando, porque um único teste de erro não prova que o comando produz a saída.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 4"
+      ],
+      "scope": "",
+      "created": "2026-11-12T12:18:58Z",
+      "updated": "2026-11-12T12:18:58Z"
+    },
+    {
+      "id": "L12",
+      "text": "Teste um registro de aceite pelos artefatos (tamanho das imagens, linhas do julgamento), não por palavras no texto, porque qualquer documento com os termos certos passava.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 5"
+      ],
+      "scope": "aceite",
+      "created": "2026-11-12T12:18:58Z",
+      "updated": "2026-11-12T12:18:58Z"
+    },
+    {
+      "id": "L13",
+      "text": "Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 6"
+      ],
+      "scope": "",
+      "created": "2026-11-12T13:24:05Z",
+      "updated": "2026-11-12T13:24:05Z"
     }
   ]
 }

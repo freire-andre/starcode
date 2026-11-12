@@ -1,8 +1,9 @@
 """validate_verification.py: the completion gate of a feature (plan 4.3, 4.6).
 
 Adapted from tlc-spec-driven `scripts/validate_verification.py` (Felipe Rodrigues, github.com/felipfr,
-CC-BY-4.0). Changes: StarCode layout and the shared parser in gates_common, screen/walk/round rules removed
-(D25), degraded verification (`**Verification:** degraded | self-verified`, Git mode 1) as a warning that
+CC-BY-4.0). Changes: StarCode layout and the shared parser in gates_common, screen rules back in phase 11
+(F11-3: `screens.md` of the screen judge, rounds up to 2, pictures at the capture size; the walk is gone),
+degraded verification (`**Verification:** degraded | self-verified`, Git mode 1) as a warning that
 `--strict` turns into an error, findings closed by a real commit, PT-BR messages, a Result for run_gates.
 
 A feature is done when proofs.md shows every proof green at HEAD on a clean tree, the verifier (Q) judged
@@ -17,6 +18,11 @@ never the target code.
   ERRO  verification.md with no `## Findings`, or a finding whose `Closed` cell names no commit of this repo
         (Git mode 1: `degradada (modo 1)` instead of a commit, only with degraded verification)
   ERRO  spec.md or tasks.md with no `**Approved**: <date> - user: "<words>"`
+  ERRO  a feature has a binding capture cited by a requirement (a "feature with screens") and: no `screens.md`
+        with a `Screen`/`Verdict` table, a verdict that is not `match...`, no `**Round**:` or round > 2, no
+        `**Verifier**:`, a cited capture with no `<name>.running.png`, a picture whose CSS size differs from the
+        capture's, or an unreadable image (ImageError, with the path)
+  AVISO `**Pictures**: author's` (the judge judged the author's pictures); with --strict it is an ERRO
   AVISO verificação degradada (`degraded`, `self-verified` or Git mode 1); with --strict it is an ERRO
 
 Usage: python validate_verification.py [feature] [--root DIR] [--strict]
@@ -33,12 +39,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gates_common as gc  # noqa: E402
+import images  # noqa: E402
 
 HEAD_RE = re.compile(r"\*\*HEAD\*\*\s*:\s*`?([0-9a-f]{4,40})", re.IGNORECASE)
 TREE_RE = re.compile(r"\*\*Tree\*\*\s*:\s*(.+)", re.IGNORECASE)
 DEGRADED_RE = re.compile(r"\*\*Verification:?\*\*\s*:?\s*\**\s*(degraded|self-verified)", re.IGNORECASE)
 SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 MODE1_CLOSED = "degradada (modo 1)"
+ROUND_RE = re.compile(r"\*\*Round\*\*\s*:\s*(\d+)", re.IGNORECASE)
+VERIFIER_RE = re.compile(r"\*\*Verifier\*\*\s*:\s*\S", re.IGNORECASE)
+PICTURES_RE = re.compile(r"\*\*Pictures\*\*\s*:\s*\**\s*(running|author)", re.IGNORECASE)
+NOT_BINDING_RE = re.compile(r"(non|not|não)[- ](binding|vinculante)", re.IGNORECASE)
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
@@ -86,6 +97,82 @@ def _col(header: list[str], *names: str) -> int | None:
 
 def _cell(row: list[str], i: int | None) -> str:
     return row[i].strip() if i is not None and i < len(row) else ""
+
+
+def _binding_captures(fdir: Path, res: gc.Result) -> list[Path]:
+    """Captures with a binding `## Sources` line cited in backticks by a `**R<n>**` requirement (R5)."""
+    try:
+        caps = images.list_captures(fdir)
+    except images.ImageError as exc:
+        res.errors.append(str(exc))
+        return []
+    if not caps:
+        return []
+    lines = gc.read_lines(fdir / "spec.md")
+    sources = gc.section(lines, "Sources") or []
+    reqs = [ln for ln in (gc.section(lines, "Requirements") or []) if gc.REQ_LINE_RE.match(ln.strip())]
+    found = []
+    for cap in caps:
+        name = re.escape(cap.name)
+        ref = re.compile(rf"captures/{name}(?![\w@-])")
+        line = next((x for x in sources if ref.search(x)), None)
+        if line is None or NOT_BINDING_RE.search(line):
+            continue
+        cited = re.compile(rf"`(?:[^`]*/)?captures/{name}`")
+        if any(cited.search(r) for r in reqs):
+            found.append(cap)
+    return found
+
+
+def _check_screens(fdir: Path, strict: bool, res: gc.Result) -> None:
+    """Screen judge rules (F11-3): screens.md, verdicts, round, verifier, pictures at the capture size."""
+    caps = _binding_captures(fdir, res)
+    if not caps:
+        return
+    spath = fdir / "screens.md"
+    slines = gc.read_lines(spath) if spath.exists() else []
+    body = "\n".join(slines)
+    rows: list[tuple[str, str]] = []
+    for header, trows in _tables(slines):
+        si, vi = _col(header, "screen"), _col(header, "verdict")
+        if si is None or vi is None:
+            continue
+        rows += [(_cell(r, si).strip("` "), _cell(r, vi)) for r in trows]
+    if not rows:
+        res.errors.append("a feature tem tela mas falta `screens.md` (juiz de telas)")
+    for screen, verdict in rows:
+        if not verdict.strip("*` ").lower().startswith("match"):
+            res.errors.append(f"screens.md: a tela `{screen}` está '{verdict[:40]}', não `match`")
+    for cap in caps:
+        run_name = images.running_path(cap).name
+        if not any(run_name in screen or cap.name in screen for screen, _ in rows):
+            res.errors.append(f"screens.md sem veredito para `{cap.name}`")
+    if spath.exists():
+        m = ROUND_RE.search(body)
+        if not m:
+            res.errors.append("screens.md sem `**Round**:`")
+        elif int(m.group(1)) > 2:
+            res.errors.append("não há rodada 3: o que ainda difere vai para o usuário")
+        if not VERIFIER_RE.search(body):
+            res.errors.append("screens.md sem `**Verifier**:`")
+        pm = PICTURES_RE.search(body)
+        if pm and pm.group(1).lower() == "author":
+            msg = "verificação degradada: o juiz julgou as fotos do autor"
+            (res.errors if strict else res.warnings).append(msg)
+    for cap in caps:
+        run = images.running_path(cap)
+        if not run.exists():
+            res.errors.append(f"a captura `{cap.name}` não tem `{run.name}`")
+            continue
+        try:
+            css = images.css_size(cap)
+            pic = images.image_size(run)
+        except images.ImageError as exc:
+            res.errors.append(str(exc))
+            continue
+        if not images.same_css(pic, css):
+            res.errors.append(f"`{run.name}` tem {pic[0]}x{pic[1]} e a captura tem {css[0]}x{css[1]}: "
+                              "tire a foto no tamanho da captura")
 
 
 def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result:
@@ -190,6 +277,8 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
                     res.errors.append(f"achado '{name}' sem commit em `Closed`: corrija e cite o commit (ciclo 4.6)")
                 elif not any(_is_commit(proj, s) for s in shas):
                     res.errors.append(f"achado '{name}': `Closed` cita {shas[0]}, que não é commit deste repo")
+
+    _check_screens(fdir, strict, res)
 
     if degraded or any("modo 1" in w for w in res.warnings):
         msg = "verificação degradada: Q no mesmo modelo/família, self-verified ou modo 1"

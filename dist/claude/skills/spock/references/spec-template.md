@@ -52,6 +52,9 @@ None.
 - Decision status: `approved`, `adjusted` (the user changed your option; say how) or `rejected`. Use
   `None - <why there were no alternatives>` when the feature has no real choice.
 - `## Checks` is **not** allowed here: for LARGE/COMPLEX the checks live only in `tasks.md` (D24).
+- Screen example. In `## Sources`: `` `captures/login.png` - binding `` plus `![login](captures/login.png)`.
+  In the requirements: `**R3** - WHEN the user opens the app and clicks "Entrar" THEN the system SHALL show
+  the screen of `captures/login.png`, with the labels "E-mail" and "Senha"` (labels copied character by character).
 - `## Sources` and `## Differences from the Source` are optional; include them only when there is
   reference material the product must follow.
 
