@@ -377,7 +377,7 @@ Spec: `.specs/features/fase-11-telas/spec.md` (R39). Check: C40.
 O usuário quer o StarCode como projeto único: o app de aceite da Fase 11 hoje vive em `F:\Projetos\starcode-telas` (repositório git local). A pasta externa só é apagada pelo Picard depois da confirmação do usuário: não apague nada fora do worktree.
 
 #### BOUNDARIES
-May change: `aceite/telas/`, `tools/aceite.py`, `tests/test_aceite_tool.py`, `docs/aceite/fase-11.md`, `tests/test_acceptance_doc_f11.py`, `DECISIONS.md`, `.gitignore`, `dist/`
+May change: `aceite/telas/`, `aceite/README.md`, `tools/aceite.py`, `tests/test_aceite_tool.py`, `docs/aceite/fase-11.md`, `tests/test_acceptance_doc_f11.py`, `DECISIONS.md`, `.gitignore`, `dist/`
 Do not touch: `docs/aceite/fase-11/`, `scripts/`, `skills/`, `profiles/`, `F:/Projetos/starcode-telas` (só leitura)
 
 #### RULES
@@ -525,7 +525,7 @@ Proof: run unit | test_aceite_preparar_materializa_fixture ... ok
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** ca16745
-**Dispatched:** none
+**Dispatched:** T11 · SC-146 · base 3d10ec4 · claude:claude-sonnet-5-5 · 12:48Z
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12); 2026-11-12: T11 acrescentado a pedido do usuário: "Fixture + script (Recommended)", "Nesta fase, como T11 (Recommended)" (2026-11-12); R39, C39 e C40 acrescentados
 **Attempts:** none
 **Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63)
