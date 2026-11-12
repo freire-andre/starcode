@@ -367,6 +367,22 @@ class ElsewhereTests(PonteCase):
         self.assertIn("worktrees", [e["source"] for e in snap["errors"]])
         self.assertEqual(run_cli(self.repo).returncode, 0)
 
+    def test_elsewhere_erros_do_outro_worktree_usam_fonte_worktrees(self) -> None:
+        self.write_repo_config()
+        self.feature("feita", "spec-done.md", "spec.md", mtime=1_000_000)
+        a = self.linked("wt-a")
+        self.feature_in(a, "missao-a", "tasks-ativa.md", "tasks.md", 2_000_000)
+        grande = a / ".specs" / "features" / "missao-a" / "spec.md"
+        grande.write_text("x" * (ponte.MAX_BYTES + 1), encoding="utf-8")
+        snap = self.snap()
+        self.assertEqual(snap["elsewhere"]["slug"], "missao-a")
+        erros = snap["errors"]
+        self.assertTrue(erros)
+        self.assertEqual({e["source"] for e in erros}, {"worktrees"})
+        for e in erros:
+            self.assertTrue(e["message"].startswith(a.resolve().as_posix() + ": "), e["message"])
+        self.assertTrue(any("1 MiB" in e["message"] for e in erros))
+
     def test_elsewhere_snapshot_is_read_only(self) -> None:
         self.write_repo_config()
         self.feature("feita", "spec-done.md", "spec.md", mtime=1_000_000)
