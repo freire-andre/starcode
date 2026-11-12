@@ -921,5 +921,6 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:**
   - W1: o `q_brief` checa os marcadores `{{...}}` antes de inserir o bloco `{{regression}}`; caminhos como `{{module}}` dos modelos de perfil viram dado, não marcador.
   - W2: o `impact.py` lista os mudados com `git diff --name-only --no-renames`; o caminho antigo de uma renomeação aparece como apagado e dá `rodar tudo: fora do grafo`.
+  - W3: com `<head>` igual a `HEAD` e mudanças rastreadas na árvore de trabalho (modo 1, sem commits), o `q_brief` seleciona com `impact.select(diff=<base>)` (árvore contra a base, R14) em vez de `<base>..HEAD`, que vinha vazio.
 - **Motivo:** o brief do Q não pode cair por causa de um nome de arquivo, e a seleção precisa enxergar o que mudou de verdade.
-- **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova, e `test_diff_renomeacao_lista_apagado` falha sem o `--no-renames`.
+- **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova, e `test_diff_renomeacao_lista_apagado` falha sem o `--no-renames`, e `test_q_brief_modo_1_usa_arvore_de_trabalho` falha com `<base>..HEAD`.

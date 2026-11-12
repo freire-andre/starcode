@@ -425,7 +425,11 @@ def brief_template(name: str = "q-verify.md") -> Path:
 def regression_block(root: Path, base: str, head: str) -> str:
     """Impact selection for the Q brief (R32); a failure never blocks the brief."""
     try:
-        return impact.format_text(impact.select(root, diff=f"{base}..{head}"))
+        diff = f"{base}..{head}"
+        if head == "HEAD" and subprocess.run(["git", "diff", "--quiet", "HEAD"], cwd=str(root),
+                                             stdin=subprocess.DEVNULL).returncode == 1:
+            diff = base  # modo 1: mudanças sem commit, árvore de trabalho contra a base (R14)
+        return impact.format_text(impact.select(root, diff=diff))
     except Exception as exc:  # noqa: BLE001 - the brief is generated anyway
         return f"seleção indisponível: {exc}; rode a suíte inteira"
 

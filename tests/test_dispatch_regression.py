@@ -42,6 +42,12 @@ class DispatchRegressionTests(TempRepoCase):
         text = dispatch.q_brief("demo", self.repo, "HEAD~1", "HEAD")
         self.assertIn("{{module}}.py", text)
 
+    def test_q_brief_modo_1_usa_arvore_de_trabalho(self):
+        (self.repo / "app.py").write_text("X = 3\n", encoding="utf-8")  # sem commit: modo 1
+        text = dispatch.q_brief("demo", self.repo, "HEAD", "HEAD")
+        self.assertIn("selecionados 1 testes", text)
+        self.assertIn("app.py <- test_app.py", text)
+
     def test_q_brief_impact_indisponivel(self):
         erro = impact.ImpactError("diff -z", "ref naoexiste inválida")
         with mock.patch.object(impact, "select", side_effect=erro):
