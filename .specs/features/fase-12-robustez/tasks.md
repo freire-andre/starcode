@@ -448,15 +448,15 @@ Proof: run unit | test_acceptance_doc_f12 ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** done
 **Size:** LARGE
 **Git mode:** 3
-**Next:** ramo de integração e primeiro ticket
+**Next:** nenhum: feature mergeada (PR #34, 444702b)
 **Linear:** SC-19 (mãe); SC-149..SC-156; doc https://linear.app/cifren/document/spec-fase-12-robustez-v16-92380a1ae716
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/fase-12-robustez
+**Last integrated:** 3fa4e7b
 **Dispatched:** none
-**Settled:** none
+**Settled:** 2026-11-12: Revisão do R21: templates .py com {{ ficam fora do grafo (user: "A")
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-12: T1..T8 integrados (cf3f216, 05853cb, d3a7532, 2369172, 9f59915, 89a8c05, b43488c, e2c211f); proofs verde 5fd4a31; 2026-11-12: Q (codex, ctx_4db7514a067c): FAIL - R21 exceção {{ vale também para TS/JS; asserções frouxas em C11, C12, C28-C31, C33; 2026-11-12: Handoff refeito pelo Git: o Q restaurou tasks.md e apagou o Handoff não commitado; 2026-11-12: fix pós-Q: 3fc0e53 (R21), 257e90d (C11/C12/C28-C31), 0cc7c0e (C33); suíte 715 ok; 2026-11-12: done verde em 73fe7ac; 2026-11-12: PR #34 aberto (https://github.com/freire-andre/starcode/pull/34), HEAD 98fe338; 2026-11-12: Worf rodada 1: COMMENT, W1-W4 should-fix, W5 nit; 2026-11-12: fix Worf r1: W1 f4565f0, W2 61db014, W3 a5abf15, W4 7fba116, W5 3fa4e7b; suíte 720 ok; 2026-11-12: Worf rodada 2: APPROVE, W1-W5 resolvidos; 2026-11-12: merge autorizado pelo usuário; PR #34 mergeado em 444702b; issues em Done
 **Breaker:** closed
