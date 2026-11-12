@@ -106,6 +106,16 @@ class BuildTests(unittest.TestCase):
                         "scripts/harness/references/PROTOCOL.md", "scripts/lessons.py", "scripts/diagnostico.py"):
                 self.assertTrue((base / rel).is_file(), f"{cli}/{rel}")
 
+    def test_build_leva_telas_aos_4_clis(self):
+        build.build(self.src, self.out)
+        for cli in build.CLIS:
+            base = self.out / "dist" / cli
+            for rel in ("scripts/screens.py", "scripts/gates/images.py", "briefs/screens-verify.md"):
+                self.assertTrue((base / rel).is_file(), f"{cli}/{rel}")
+            for skill, termo in (("spock", "captures/"), ("laforge", "scripts/screens.py"), ("q", "screens-verify")):
+                text = (base / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+                self.assertIn(termo, text, f"{cli}/{skill}")
+
     def test_check_flags_stale_profile(self):
         build.build(self.src, self.out)
         other = Path(self._tmp.name) / "other"

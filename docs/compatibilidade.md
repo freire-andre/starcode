@@ -28,6 +28,7 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | Cabeçalho por hook | ✅ | ✅ (após confiança) | ✅ (o modelo repete) | ✅ (o modelo repete) |
 | Perfis de stack (`dist/<cli>/profiles/`) e skills `uhura`, `scotty`, `nova-missao` | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ |
 | Skills `worf`, `guinan`, `diagnostico` e `scripts/review/`, `scripts/harness/` | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ |
+| Verificação de telas (`screens.py`, juiz de telas): navegador da Orca, independente do CLI; sem navegador, degradada (foto do autor) | ✅ | ✅ | ✅ | ✅ |
 
 ## Painel Ponte
 
