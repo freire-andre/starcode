@@ -362,17 +362,18 @@ class ElsewhereTests(PonteCase):
         a = self.linked("wt-a")
         self.feature_in(a, "missao-a", "tasks-ativa.md", "tasks.md", 2_000_000)
 
-        def tree(base: Path) -> dict[str, tuple[int, int]]:
-            out = {}
+        def tree(base: Path) -> dict[str, object]:
+            # lista de arquivos (chaves) + conteúdo em bytes (None para pastas) + mtime
+            out: dict[str, object] = {}
             for p in base.rglob("*"):
                 rel = p.relative_to(base).as_posix()
                 if rel == ".git" or rel.startswith(".git/"):
                     continue
-                st = p.stat()
-                out[rel] = (st.st_mtime_ns, st.st_size)
+                out[rel] = (p.stat().st_mtime_ns, p.read_bytes() if p.is_file() else None)
             return out
 
         before = (tree(self.repo), tree(a))
+        self.assertIn(".specs/features/missao-a/tasks.md", before[1])
         res = run_cli(self.repo)
         self.assertEqual(res.returncode, 0, res.stderr)
         data = json.loads(res.stdout)
