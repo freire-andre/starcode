@@ -106,6 +106,7 @@ Discovery: `.specs/features/fase-11-telas/context.md`. Issue: SC-18.
 - **R36** - WHEN a feature de teste roda pelo fluxo (LaForge, Q e juiz de telas como workers) THEN the system SHALL produzir `screens.md` com todas as telas em `matches` e `**Pictures**: running`, e `validate_verification` SHALL sair com 0.
 - **R37** - The system SHALL plantar na rodada 1 uma divergência conhecida (um rótulo trocado em relação ao mockup). O juiz SHALL marcar a tela `diverges` com a linha de `copy`. A correção pós-Q SHALL fechar a divergência na rodada 2.
 - **R38** - The system SHALL registrar o aceite em `docs/aceite/fase-11.md` com o caminho do app, as issues PROJ, os tamanhos do mockup e das fotos, os vereditos das duas rodadas e a saída do gate, e escrever `**Resultado**: aprovado` só quando R36 e R37 forem atendidos.
+- **R39** - WHEN o aceite termina THEN the system SHALL guardar os fontes do app de aceite como fixture em `aceite/telas/` do repositório StarCode (sem `node_modules`, `target`, `dist` nem `.git`), e `python tools/aceite.py preparar telas [--destino <dir>]` SHALL materializar uma cópia de trabalho num diretório temporário fora do repositório, com `git init`, `core.autocrlf false` e um commit inicial, imprimindo o caminho. `docs/aceite/fase-11.md` SHALL apontar para a fixture.
 
 ## Data & Contracts
 
@@ -163,6 +164,7 @@ Discovery: `.specs/features/fase-11-telas/context.md`. Issue: SC-18.
 | Quem julga as telas | worker próprio na família do Q (contexto limpo) · dentro do worker do Q (mais barato, mesmo agente) | approved - user: "Worker próprio (Recommended)" |
 | Mockup do aceite | gerado por nós (HTML → PNG 1x, aprovado pelo usuário) · fornecido pelo usuário | approved - user: "Nós geramos (Recommended)" |
 | Projeto do aceite | app Tauri novo pelo Scotty, Linear no time PROJ · `starcode-sandbox` | approved - user: "Novo no sandbox (Recommended)" |
+| Onde fica o app de aceite (R39) | fixture em `aceite/telas/` + `tools/aceite.py` que materializa a cópia de trabalho · app rodando direto dentro do repositório | approved - user: "Fixture + script (Recommended)", "Nesta fase, como T11 (Recommended)" (2026-11-12) |
 
 ## Open Questions
 None.

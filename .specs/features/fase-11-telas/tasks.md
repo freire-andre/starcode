@@ -357,6 +357,38 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Trabalhe só na past
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T11: App de aceite como fixture no repositório (aceite/telas e tools/aceite.py)
+**Linear**: SC-146
+**Depends on**: T9, T10
+**Requirements**: R39
+**Tests**: unit
+**Gate**: full
+
+#### TASK
+- Copiar para `aceite/telas/` os 34 arquivos versionados do app de aceite (`git -C F:/Projetos/starcode-telas ls-files` na branch atual `feature/tela-saudacao`), inclusive `.specs/features/tela-saudacao/`, `.starcode/`, `.github/` e os PNGs; sem `node_modules/`, `src-tauri/target/`, `dist/` e `.git`. Acrescentar o `.gitattributes` do template tauri (`* text=auto eol=lf` e binários) na raiz da fixture.
+- `tools/aceite.py` (stdlib, sem dependências): `preparar <nome> [--destino <dir>]` copia `aceite/<nome>/` para o destino (padrão: um diretório novo em `tempfile.gettempdir()`), recusa destino dentro do repositório StarCode ou já não vazio (exit 2), roda `git init`, `git config core.autocrlf false`, um commit inicial e imprime o caminho e os próximos passos (`npm ci`, `orca repo add`). `listar` mostra as fixtures. Nome inexistente sai com 2.
+- `docs/aceite/fase-11.md`: a seção App aponta para `aceite/telas/` (diga que o aceite rodou na cópia de trabalho e que a fixture guarda os fontes); ajustar `tests/test_acceptance_doc_f11.py` ao novo caminho, mantendo as demais asserções.
+- Confirmar que `tools/build.py` não leva `aceite/` ao `dist/` e que nenhum teste existente que varre o repositório (caminhos locais, segredos, LF, specs) quebra com a fixture; se algum varrer `.specs/features/*` só na raiz, a fixture fica fora por estar em `aceite/`.
+- Entrada F11-11 em `DECISIONS.md` (app de aceite dentro do repositório como fixture, decisão do usuário).
+- Testes em `tests/test_aceite_tool.py`: `test_aceite_preparar_materializa_fixture` (prepara num diretório temporário: arquivos da fixture presentes, `.git` criado com um commit, sem `node_modules`; destino dentro do repositório e destino não vazio saem com 2; nome inexistente sai com 2).
+
+#### CONTEXT
+Spec: `.specs/features/fase-11-telas/spec.md` (R39). Check: C40.
+O usuário quer o StarCode como projeto único: o app de aceite da Fase 11 hoje vive em `F:\Projetos\starcode-telas` (repositório git local). A pasta externa só é apagada pelo Picard depois da confirmação do usuário: não apague nada fora do worktree.
+
+#### BOUNDARIES
+May change: `aceite/telas/`, `tools/aceite.py`, `tests/test_aceite_tool.py`, `docs/aceite/fase-11.md`, `tests/test_acceptance_doc_f11.py`, `DECISIONS.md`, `.gitignore`, `dist/`
+Do not touch: `docs/aceite/fase-11/`, `scripts/`, `skills/`, `profiles/`, `F:/Projetos/starcode-telas` (só leitura)
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Trabalhe só na pasta atual do worktree; nunca faça commit em `feature/fase-11-telas`. Testes citados por check não têm docstring.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ## Checks
 
 **Build**: `python tools/build.py --check`; `python scripts/check_decisions.py`
@@ -478,17 +510,23 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 **C38** - `docs/aceite/fase-11.md` tem as seções e `**Resultado**: aprovado` só com R36 e R37 atendidos (R38)
 Proof: run unit | test_fase11_acceptance_sections ... ok
 
+**C39** - O template tauri traz `.gitattributes` com `eol=lf` e o `scaffold.py new` o copia (R32)
+Proof: run unit | test_template_tauri_gitattributes_lf ... ok
+
+**C40** - `tools/aceite.py preparar telas` materializa a fixture fora do repositório, com git e sem `node_modules`, e recusa destino inválido (R39)
+Proof: run unit | test_aceite_preparar_materializa_fixture ... ok
+
 ## Handoff
 
-**Phase:** review
+**Phase:** execute
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** PR (aguarda confirmação de push e PR)
+**Next:** integrar T11 (SC-146); depois provas, done e PR
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** ca16745
 **Dispatched:** none
-**Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12)
+**Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12); 2026-11-12: T11 acrescentado a pedido do usuário: "Fixture + script (Recommended)", "Nesta fase, como T11 (Recommended)" (2026-11-12); R39, C39 e C40 acrescentados
 **Attempts:** none
 **Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63)
 **Breaker:** closed
