@@ -14,7 +14,7 @@ import ponte
 
 FX = FIXTURES / "ponte"
 SCRIPT = ROOT / "scripts" / "ponte.py"
-CONTRACT_KEYS = {"schemaVersion", "worktree", "starcode", "crew", "gitMode", "feature", "workers", "errors"}
+CONTRACT_KEYS = {"schemaVersion", "worktree", "starcode", "crew", "gitMode", "feature", "workers", "errors", "elsewhere"}
 BIG = 1024 * 1024 + 1
 
 
@@ -272,3 +272,113 @@ class SnapshotTests(PonteCase):
             self.assertEqual(run_cli(target).returncode, 0)
         self.assertEqual((tree(self.repo), tree(linked), state_files()), before)
         self.assertFalse((linked / ".starcode").exists())
+
+
+class ElsewhereTests(PonteCase):
+    def linked(self, name: str) -> Path:
+        path = self.tmp / name
+        subprocess.run(["git", "worktree", "add", "-q", "-b", name, str(path)], cwd=self.repo, check=True,
+                       stdin=subprocess.DEVNULL)
+        return path
+
+    def feature_in(self, root: Path, slug: str, fixture: str, artifact: str, mtime: float) -> None:
+        d = root / ".specs" / "features" / slug
+        d.mkdir(parents=True, exist_ok=True)
+        f = d / artifact
+        f.write_text((FX / fixture).read_text(encoding="utf-8"), encoding="utf-8")
+        os.utime(f, (mtime, mtime))
+
+    def test_elsewhere_picks_newest_active_worktree(self) -> None:
+        self.write_repo_config()
+        self.feature("feita", "spec-done.md", "spec.md", mtime=1_000_000)
+        a, b = self.linked("wt-a"), self.linked("wt-b")
+        self.feature_in(a, "missao-a", "tasks-ativa.md", "tasks.md", 2_000_000)
+        self.feature_in(b, "missao-b", "tasks-ativa.md", "tasks.md", 3_000_000)
+        snap = self.snap()
+        self.assertEqual(snap["feature"]["slug"], "feita")
+        el = snap["elsewhere"]
+        self.assertEqual(el["slug"], "missao-b")
+        self.assertEqual(el["worktree"], b.resolve().as_posix())
+        self.assertEqual(el["branch"], "wt-b")
+        self.assertEqual(el["others"], 1)
+        self.assertFalse(el["done"])
+        self.assertIn("progress", el)
+        # sem feature local também procura
+        (self.repo / ".specs" / "features" / "feita" / "spec.md").unlink()
+        self.assertEqual(self.snap()["elsewhere"]["slug"], "missao-b")
+
+    def test_elsewhere_ignores_done_and_focus_worktree(self) -> None:
+        self.write_repo_config()
+        self.feature("feita", "spec-done.md", "spec.md", mtime=1_000_000)
+        a = self.linked("wt-a")
+        self.feature_in(a, "velha", "spec-done.md", "spec.md", 2_000_000)
+        self.assertIsNone(self.snap()["elsewhere"])
+        # focus on the linked worktree (done): the main checkout is the "other" one
+        self.feature("ativa", "tasks-ativa.md", "tasks.md", mtime=3_000_000)
+        (self.repo / ".specs" / "features" / "feita" / "spec.md").unlink()
+        el = ponte.snapshot(a)["elsewhere"]
+        self.assertEqual(el["slug"], "ativa")
+        self.assertEqual(el["worktree"], self.repo.resolve().as_posix())
+        self.assertEqual(el["branch"], "main")
+
+    def test_elsewhere_null_when_local_active(self) -> None:
+        self.write_repo_config()
+        self.feature("ativa", "tasks-ativa.md", "tasks.md", mtime=1_000_000)
+        a = self.linked("wt-a")
+        self.feature_in(a, "outra", "tasks-ativa.md", "tasks.md", 2_000_000)
+        from unittest import mock
+
+        with mock.patch.object(ponte, "list_worktrees", side_effect=AssertionError("git chamado")):
+            snap = self.snap()
+        self.assertIsNone(snap["elsewhere"])
+        self.assertEqual(snap["feature"]["slug"], "ativa")
+
+    def test_elsewhere_worktree_errors_do_not_break_snapshot(self) -> None:
+        from unittest import mock
+
+        self.write_repo_config()
+        self.feature("feita", "spec-done.md", "spec.md", mtime=1_000_000)
+        with mock.patch.object(ponte, "list_worktrees", side_effect=OSError("boom")):
+            snap = self.snap()
+        self.assertIsNone(snap["elsewhere"])
+        self.assertEqual(snap["feature"]["slug"], "feita")
+        self.assertIn("worktrees", [e["source"] for e in snap["errors"]])
+        # worktree listado e removido do disco
+        a = self.linked("wt-a")
+        self.feature_in(a, "missao-a", "tasks-ativa.md", "tasks.md", 2_000_000)
+        import shutil
+
+        shutil.rmtree(a)
+        snap = self.snap()
+        self.assertIsNone(snap["elsewhere"])
+        self.assertEqual(snap["feature"]["slug"], "feita")
+        self.assertIn("worktrees", [e["source"] for e in snap["errors"]])
+        self.assertEqual(run_cli(self.repo).returncode, 0)
+
+    def test_elsewhere_snapshot_is_read_only(self) -> None:
+        self.write_repo_config()
+        self.feature("feita", "spec-done.md", "spec.md", mtime=1_000_000)
+        a = self.linked("wt-a")
+        self.feature_in(a, "missao-a", "tasks-ativa.md", "tasks.md", 2_000_000)
+
+        def tree(base: Path) -> dict[str, tuple[int, int]]:
+            out = {}
+            for p in base.rglob("*"):
+                rel = p.relative_to(base).as_posix()
+                if rel == ".git" or rel.startswith(".git/"):
+                    continue
+                st = p.stat()
+                out[rel] = (st.st_mtime_ns, st.st_size)
+            return out
+
+        before = (tree(self.repo), tree(a))
+        res = run_cli(self.repo)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        data = json.loads(res.stdout)
+        self.assertEqual(data["schemaVersion"], 1)
+        self.assertEqual(data["elsewhere"]["slug"], "missao-a")
+        self.assertEqual((tree(self.repo), tree(a)), before)
+
+    def test_same_path_ignores_case_and_slashes(self) -> None:
+        self.assertTrue(ponte.same_path("F:" + chr(92) + "x" + chr(92) + "Y", "f:/x/y"))
+        self.assertFalse(ponte.same_path("F:/x", "F:/z"))
