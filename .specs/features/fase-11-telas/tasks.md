@@ -478,14 +478,14 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** integrar T9 (SC-141) e seguir a cadeia
+**Next:** verificação do Q
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
-**Last integrated:** 7a5700a
-**Dispatched:** T9 · SC-141 · base 7a5700a · dispatch ctx_722896921265 · model claude-sonnet-5-5
+**Last integrated:** 4ae24b1
+**Dispatched:** none
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12)
 **Attempts:** none
 **Reports:** none
