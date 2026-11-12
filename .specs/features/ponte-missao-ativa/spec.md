@@ -84,12 +84,12 @@ Proof: run unit | test_decisions_records_p151_2_elsewhere ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** decisão do usuário sobre o R7, depois correção pós-Q
+**Next:** fechar achados, provas, done
 **Linear:** SC-142
 **Integration branch:** not created
-**Last integrated:** SC-142 · 9cf25d8
+**Last integrated:** Q2-fix SC-142 · 018b542
 **Dispatched:** none
-**Settled:** none
+**Settled:** 2026-11-12: Corrigir os dois (Recommended)
 **Attempts:** none
-**Reports:** 2026-11-12: Q (codex): FAIL, 3 achados (R7 notificação sem capacidade; C4 só mtime/tamanho; desempate do R1 não especificado)
+**Reports:** 2026-11-12: Q (codex): FAIL, 3 achados (R7 notificação sem capacidade; C4 só mtime/tamanho; desempate do R1 não especificado); 2026-11-12: Q2 (codex): 3 achados fechados; 2 novos abertos (same_path C:/ = c:; C5 por substring)
 **Breaker:** closed

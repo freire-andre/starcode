@@ -1,6 +1,6 @@
 # ponte-missao-ativa proofs
 
-**HEAD**: 751ebe8
+**HEAD**: 7400f47
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 12 pass, 0 fail
@@ -37,7 +37,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 669 tests in 267.514s
+Ran 670 tests in 296.739s
 
 OK
 ```
@@ -45,12 +45,12 @@ OK
 `Run plugin` - exit 0
 
 ```
-✔ orca.log lista quais variáveis de base estão definidas, sem valores (5.5035ms)
-✔ env do CLI ganha as pastas do usuário quando faltam, sem sobrescrever (18.6934ms)
-✔ worktree sem vínculo consulta a issue do snapshot (7.9596ms)
-✔ url da issue montada só pelo urlKey do worktree quando a consulta falha (16.3264ms)
-✔ barra de status indica missão em outro worktree (7.7817ms)
-✔ atalho foca o worktree da missão ativa (16.2143ms)
+✔ orca.log lista quais variáveis de base estão definidas, sem valores (5.5324ms)
+✔ env do CLI ganha as pastas do usuário quando faltam, sem sobrescrever (18.1617ms)
+✔ worktree sem vínculo consulta a issue do snapshot (7.5453ms)
+✔ url da issue montada só pelo urlKey do worktree quando a consulta falha (15.6057ms)
+✔ barra de status indica missão em outro worktree (7.6737ms)
+✔ atalho foca o worktree da missão ativa (15.4852ms)
 ℹ tests 69
 ℹ suites 0
 ℹ pass 69
@@ -58,6 +58,6 @@ OK
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 2168.5249
+ℹ duration_ms 2178.154
 4 test file(s) passed (node).
 ```
