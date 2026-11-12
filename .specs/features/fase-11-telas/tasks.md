@@ -327,6 +327,36 @@ Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Trabalhe só na past
 Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
 resultado, commits, pendências, tentativas do disjuntor.
 
+### T10: Template tauri com fim de linha LF (.gitattributes)
+**Linear**: SC-145
+**Depends on**: T8
+**Requirements**: R32
+**Tests**: unit
+**Gate**: full
+
+#### TASK
+- Criar `profiles/tauri/template/.gitattributes` com `* text=auto eol=lf` (e binários comuns marcados `binary`: `*.png`, `*.ico`, `*.icns`), para que um checkout no Windows com `core.autocrlf=true` mantenha LF e o `npx biome check .` do template continue verde (R32).
+- Confirmar que `scaffold.py new` copia o arquivo para o projeto novo (ele já copia `.gitignore` e `.github/`); se não copiar, ajuste a cópia.
+- Entrada F11-9 em `DECISIONS.md` (achado do aceite real: projeto novo no Windows com autocrlf reprovava no biome por CRLF).
+- Teste em `tests/test_profile_gitattributes.py`: `test_template_tauri_gitattributes_lf` (o arquivo existe com `eol=lf` e um `scaffold.py new` num diretório temporário, com o registro de versões falso como nos testes atuais do scaffold, leva o `.gitattributes`).
+
+#### CONTEXT
+Spec: `.specs/features/fase-11-telas/spec.md` (R32). Check: C39.
+Achado do aceite (2026-11-12, `F:\Projetos\starcode-telas`): com `core.autocrlf=true` (padrão do Git para Windows) os arquivos saem em CRLF e o biome acusa "Formatter would have printed" em `src/main.ts`, `src/style.css` e `src/ui.test.ts`. Testes do scaffold existentes: `tests/test_scaffold.py`, `tests/test_profile_ts_tauri.py`.
+
+#### BOUNDARIES
+May change: `profiles/tauri/template/.gitattributes`, `scripts/scaffold.py`, `tests/test_profile_gitattributes.py`, `DECISIONS.md`, `dist/`
+Do not touch: `docs/aceite/`, `profiles/tauri/template/src/`, `scripts/gates/`, `skills/`
+
+#### RULES
+Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3 (sem push: o Picard cuida).
+Commit: Conventional Commits + "Refs: <ID-LINEAR>"; descrição começando em minúscula. Nunca segredos. Não faça deploy, push nem merge.
+Nunca escreva `.specs/STATE.md` nem a seção `## Handoff`. Trabalhe só na pasta atual do worktree; nunca faça commit em `feature/fase-11-telas`. Testes citados por check não têm docstring.
+
+#### DELIVERY
+Commits na branch do worktree. Relatório final (até 5 linhas): o que mudou, gates executados com
+resultado, commits, pendências, tentativas do disjuntor.
+
 ## Checks
 
 **Build**: `python tools/build.py --check`; `python scripts/check_decisions.py`
@@ -448,15 +478,15 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** execute
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** ramo de integração e primeiro ticket (T1/SC-133)
+**Next:** integrar T9 (SC-141) e seguir a cadeia
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** none
+**Last integrated:** 7a5700a
+**Dispatched:** T9 · SC-141 · base 7a5700a · dispatch ctx_722896921265 · model claude-sonnet-5-5
+**Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12)
 **Attempts:** none
 **Reports:** none
 **Breaker:** closed
