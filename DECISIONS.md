@@ -865,3 +865,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** a normalização troca `\` por `/`, ignora a caixa e tira as barras finais, exceto na raiz do drive, que mantém a barra (`c:/`). `C:/` e `c:\` seguem iguais; `C:/` e `c:` passam a ser diferentes; `C:\x\` e `c:/x` seguem iguais.
 - **Motivo:** a comparação precisa tratar caminhos diferentes como diferentes, sem perder a tolerância a caixa e a estilo de barra.
 - **Por que não é bug:** `test_same_path_preserva_raiz_do_drive` falhou antes da correção (`C:/` igual a `c:`) e passa depois; `test_same_path_ignores_case_and_slashes` segue verde.
+
+### P151-4: atalhos de arquivo e fonte dos erros do `elsewhere` (SC-142, review do Worf)
+- **Problema:** com `elsewhere` o painel mostrava a missão de outro worktree, mas Abrir spec/tasks/Handoff abriam os arquivos da feature local (W1). No `ponte.py`, `build_elsewhere` compartilhava a lista de erros com o snapshot local, então erros lidos do outro worktree entravam com a `source` das fontes locais (W2).
+- **Decisão:** com `elsewhere` presente o painel desabilita os três atalhos de arquivo; o "Focar worktree" leva até a missão. O `ponte.py` lê cada outro worktree num `Snapshot` próprio e copia os erros dele para `errors` com fonte `worktrees` e mensagem `<caminho posix>: <mensagem original>`.
+- **Motivo:** o painel não pode abrir arquivo que não é da missão mostrada, e a origem de um erro precisa estar clara.
+- **Por que não é bug:** `atalhos de arquivo desabilitados com missão em outro worktree` e `test_elsewhere_erros_do_outro_worktree_usam_fonte_worktrees` falharam antes das correções e passam depois.
