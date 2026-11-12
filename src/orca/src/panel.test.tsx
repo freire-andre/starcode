@@ -239,6 +239,21 @@ const ELSEWHERE = {
   progress: { done: 2, total: 3, percent: 67 },
 }
 
+test('atalhos de arquivo desabilitados com missão em outro worktree', async () => {
+  const local = { ...dados.feature!, slug: 'feita-local', phase: 'done', done: true, files: ARQ }
+  const alvos = ['Abrir spec', 'Abrir tasks', 'Abrir Handoff']
+  const h = mockHost({
+    requests: {
+      'ponte.state': () => estado({ snapshot: { ...dados, feature: local, elsewhere: ELSEWHERE } }),
+    },
+  })
+  const p = await mount(panel, { host: h })
+  for (const a of alvos) assert.equal(p.find({ type: 'Button', text: a })!.disabled, true, a)
+  // sem elsewhere, os botões seguem a feature local
+  const q = await mount(panel, { host: host(estado({ snapshot: { ...dados, feature: local } })) })
+  assert.equal(q.find({ type: 'Button', text: 'Abrir spec' })!.disabled, false)
+})
+
 test('painel mostra a missão ativa de outro worktree', async () => {
   const local = { ...dados.feature!, slug: 'feita-local', phase: 'done', done: true }
   const pedidos: unknown[] = []
