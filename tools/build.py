@@ -299,8 +299,10 @@ def codex_hooks() -> dict:
     crew = [{"type": "command", "command": f'python "{root}/hooks/scripts/crew_hook.py" --cli codex', "timeout": 10}]
     events = hooks["hooks"]
     events["PreToolUse"].append({"matcher": "Bash", "hooks": crew})
-    for name in ("UserPromptSubmit", "PostToolUse", "Stop", "SessionEnd"):
+    for name in ("UserPromptSubmit", "PostToolUse", "Stop"):
         events[name] = [{"hooks": crew}]
+    # O Codex aceita no máximo 3 s no SessionEnd; 10 s gerava aviso de hook inválido.
+    events["SessionEnd"] = [{"hooks": [dict(crew[0], timeout=3)]}]
     return hooks
 
 

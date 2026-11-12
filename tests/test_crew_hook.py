@@ -442,7 +442,7 @@ class CodexBuildTest(TempRepoCase):
             self.assertEqual(group.get("matcher"), matcher, name)
             (hook,) = group["hooks"]
             self.assertTrue(hook["command"].endswith('crew_hook.py" --cli codex'), name)
-            self.assertEqual(hook["timeout"], 10, name)
+            self.assertEqual(hook["timeout"], 3 if name == "SessionEnd" else 10, name)
         text = json.dumps(events)
         for script in ("git_guard.py", "secret_scan.py", "banner.py"):
             self.assertIn(script, text)
