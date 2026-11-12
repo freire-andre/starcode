@@ -85,6 +85,12 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: .specs/features/fase-11-telas/verification.md:achado 5
 - updated: 2026-11-12T12:18:58Z
 
+### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
+- signal: `weak_test` · features: 1
+- features: fase-11-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 6
+- updated: 2026-11-12T13:24:05Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.

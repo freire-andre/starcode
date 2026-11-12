@@ -522,7 +522,7 @@ Proof: run unit | test_aceite_preparar_filtra_pastas_em_toda_a_arvore ... ok
 **Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** provas, done e PR
+**Next:** PR (aguarda confirmação de push e PR)
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** 4f58213

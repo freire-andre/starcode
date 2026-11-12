@@ -8,3 +8,4 @@
 | 4 | média | regras do revisor | verification.md achado 2 × commit cf601b4 (o exemplo `junkhttps://` já era recusado; o furo real era o fim da URL) | O brief do Q exige que cada sondagem traga o comando e a saída literal na coluna Evidence. |
 | 5 | baixa | checagens automáticas | Handoff `**Reports:** 2026-11-12: 2026-11-12: ...` | O `handoff.py set --report` não prefixa a data quando o texto já começa com uma data ISO. |
 | 6 | baixa | checagens automáticas | issue SC-143 (linha Build do scaffold com `cd src-tauri` duplicado) | Um teste do perfil tauri executa a linha Build do `checks` gerado num diretório de exemplo e falha com `cd` repetido. |
+| 7 | média | informação acessível | commits c5d5dfd e 6b24513 (T11: `aceite/README.md` fora do May change; `commit.gpgsign false` no script) | O brief de ticket acrescentado no meio da fase lista no May change todo arquivo citado no TASK e repete a regra de não desligar assinatura de commits em código de produto. |

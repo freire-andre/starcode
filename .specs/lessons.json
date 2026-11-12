@@ -181,6 +181,21 @@
       "scope": "aceite",
       "created": "2026-11-12T12:18:58Z",
       "updated": "2026-11-12T12:18:58Z"
+    },
+    {
+      "id": "L13",
+      "text": "Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fase-11-telas"
+      ],
+      "sources": [
+        ".specs/features/fase-11-telas/verification.md:achado 6"
+      ],
+      "scope": "",
+      "created": "2026-11-12T13:24:05Z",
+      "updated": "2026-11-12T13:24:05Z"
     }
   ]
 }
