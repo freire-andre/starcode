@@ -871,3 +871,11 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** com `elsewhere` presente o painel desabilita os três atalhos de arquivo; o "Focar worktree" leva até a missão. O `ponte.py` lê cada outro worktree num `Snapshot` próprio e copia os erros dele para `errors` com fonte `worktrees` e mensagem `<caminho posix>: <mensagem original>`.
 - **Motivo:** o painel não pode abrir arquivo que não é da missão mostrada, e a origem de um erro precisa estar clara.
 - **Por que não é bug:** `atalhos de arquivo desabilitados com missão em outro worktree` e `test_elsewhere_erros_do_outro_worktree_usam_fonte_worktrees` falharam antes das correções e passam depois.
+
+## Fase 12 · robustez (fase-12-robustez)
+
+### F12-1: snapshot do modo 1 com índice temporário e ref por feature/ticket (R1 a R6, R13)
+- **Problema:** o modo 1 precisa de um ponto de retorno por ticket sem commitar em branch. O `git stash create` não guarda arquivos não rastreados, e os IDs de ticket se repetem entre features.
+- **Decisão:** o `scripts/snapshot.py` monta o snapshot com um índice temporário (`GIT_INDEX_FILE` só no ambiente dos subprocessos): `read-tree HEAD`, `add -A`, `write-tree`, `commit-tree -p HEAD` e `update-ref refs/starcode/snapshots/<slug>/<ticket>`. O `.git/index` real, a árvore, o HEAD e os branches não mudam, e o temporário é removido também em erro. Nomes inválidos saem com 2, falhas do Git saem com 1 sem ref gravado. `list` e `drop` operam só em `refs/starcode/snapshots/<slug>/`.
+- **Motivo:** o índice temporário captura rastreados e não rastreados não ignorados sem tocar o estado do usuário, e o ref fora de `refs/heads` não cria commit em branch.
+- **Por que não é bug:** `test_take_grava_ref_com_rastreados_e_novos` e `test_take_nao_altera_indice_arvore_head` cobrem o snapshot e a imutabilidade do estado real.
