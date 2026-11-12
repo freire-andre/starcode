@@ -8,6 +8,13 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.5.0] - não lançada
+
+### Adicionado
+
+- Fase 11: verificação de telas. As regras de captura (`captures/`, `screens.md`) voltam à spec e ao gate final; `scripts/screens.py` tira a foto pelo navegador da Orca, `scripts/gates/images.py` lê o tamanho das imagens (escala pelo nome) e o juiz de telas roda como worker separado (`briefs/screens-verify.md`), nos 4 CLIs.
+- Fase 11: perfil Tauri com `screens` e mocks de IPC só em desenvolvimento.
+
 ## [1.4.0] - 2026-11-11
 
 ### Adicionado
