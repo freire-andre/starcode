@@ -485,7 +485,7 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** 4ae24b1
-**Dispatched:** none
+**Dispatched:** fix-Q · SC-18 · base dd1afa3 · claude:claude-sonnet-5-5 · 11:55Z
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12)
 **Attempts:** none
 **Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna)
