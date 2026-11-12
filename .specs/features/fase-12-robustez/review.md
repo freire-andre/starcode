@@ -1,26 +1,25 @@
-**Round**: 1
-**Verdict**: COMMENT
+**Round**: 2
+**Verdict**: APPROVE
 **Reviewer**: claude-code · claude-opus-5-5
 
 ## TL;DR
 
-COMMENT. Snapshot e raio de impacto entregam o que a spec pede e a escada passa (build --check, check_decisions e 715 testes). Quatro defeitos reais deixam a seleção de regressão parcial ou quebram o brief do Q: caminho com `{{module}}` derruba o q-brief (W1), renomeação esconde o arquivo apagado (W2), no modo 1 o q-brief ignora os arquivos rastreados modificados (W3) e `conftest.py` vira o único teste escolhido (W4). Um nit no restore (W5). Fora do review: `dist/` (gerado, conferido por `build.py --check`).
+APPROVE. Os cinco achados da rodada 1 (W1 a W5) estão resolvidos: cada um foi reproduzido com o caso original e tem teste novo. O diff das correções não traz blocker novo. A escada passa: build --check, check_decisions e 720 testes (1 skip). Fora do review: `dist/` (gerado, conferido por `build.py --check`).
 
 | ID | Severity | Where | Finding | Evidence | State |
 |---|---|---|---|---|---|
-| W1 | 🟠 should-fix | scripts/dispatch.py:443 | O bloco `{{regression}}` entra antes da checagem de marcadores; caminho com `{{module}}` (profiles/*/template) faz o `q_brief` levantar `marcadores não preenchidos`, contra o R32. Correção: rodar o `re.findall` antes de inserir o bloco. | scripts/dispatch.py:443, scripts/dispatch.py:444, scripts/impact.py:371 | aberto |
-| W2 | 🟠 should-fix | scripts/impact.py:69 | `git diff --name-only` detecta renomeação por padrão e lista só o caminho novo; o arquivo apagado some e o R20 não dispara (teste que importa o módulo antigo fica de fora). Correção: `--no-renames`. | scripts/impact.py:69, scripts/impact.py:347, https://git-scm.com/docs/git-diff | aberto |
-| W3 | 🟠 should-fix | scripts/dispatch.py:425 | No modo 1 o q-brief usa `base..HEAD`, vazio sem commits; só os não rastreados entram e os rastreados modificados ficam fora, sem `rodar tudo`. Correção: no modo 1, `diff=base` (árvore de trabalho). | scripts/dispatch.py:428, scripts/impact.py:70, skills/engajar/references/execute.md:227 | aberto |
-| W4 | 🟠 should-fix | scripts/impact.py:80 | `tests/conftest.py` conta como teste e é o único escolhido quando muda; o pytest carrega as fixtures sem import, então os testes que as usam ficam de fora. Correção: `conftest.py` mudado vira `rodar tudo`. | scripts/impact.py:80, scripts/impact.py:7, https://docs.pytest.org/en/stable/reference/fixtures.html | aberto |
-| W5 | 🟡 nit | scripts/snapshot.py:216 | Arquivo do snapshot trocado por pasta de mesmo nome: `voltar` roda antes de `remover` e falha sempre, ao contrário do R12. Correção: aplicar os `remover` antes dos `voltar`. | scripts/snapshot.py:203, scripts/snapshot.py:216 | aberto |
+| W1 | 🟠 should-fix | scripts/dispatch.py:447 | Corrigido em f4565f0: a checagem de marcadores agora roda antes de inserir `{{regression}}`. Reprodução: com `profiles/p/template/src/{{module}}/health.py` no intervalo, o brief sai com `rodar tudo: nenhum teste alcança ...{{module}}/health.py`, sem exceção. | scripts/dispatch.py:447, scripts/dispatch.py:450, tests/test_dispatch_regression.py:38 | resolvido |
+| W2 | 🟠 should-fix | scripts/impact.py:69 | Corrigido em 61db014: `--no-renames`. Reprodução: `pkg/old.py -> pkg/new.py` agora dá `run-all` com `fora do grafo: pkg/old.py`. | scripts/impact.py:69, tests/test_impact.py:72, https://git-scm.com/docs/git-diff | resolvido |
+| W3 | 🟠 should-fix | scripts/dispatch.py:431 | Corrigido em a5abf15: com `--head HEAD` e árvore rastreada suja, a seleção passa a usar `diff=<base>`. Reprodução: `core.py` modificado mais `extra.py` novo, sem commit, seleciona 2 testes (`core.py <- test_core.py` e `test_extra.py`). | scripts/dispatch.py:431, tests/test_dispatch_regression.py:45 | resolvido |
+| W4 | 🟠 should-fix | scripts/impact.py:346 | Corrigido em 7fba116: quando um `conftest.py` muda, o resultado é `rodar tudo`. Reprodução: `tests/conftest.py` mudado dá `conftest.py muda fixtures sem import: tests/conftest.py`. | scripts/impact.py:346, tests/test_impact.py:82, https://docs.pytest.org/en/stable/reference/fixtures.html | resolvido |
+| W5 | 🟡 nit | scripts/snapshot.py:286 | Corrigido em 3fa4e7b: os `remover` rodam antes dos `voltar`. Reprodução: com a pasta `src/a.txt/` no lugar do arquivo, `restore --yes` sai com 0 e o arquivo volta. `test_restore_falha_parcial_e_retomada` continua verde com a falha injetada. | scripts/snapshot.py:286, tests/test_snapshot_restore.py:161 | resolvido |
 
 ## Escada determinística
 
 - `python tools/build.py --check`: OK, dist/ em dia.
 - `python scripts/check_decisions.py`: OK.
-- `python -m unittest discover -s tests`: 715 testes, OK (1 skip).
-- `gh pr checks 34`: checks ubuntu/windows pendentes no momento do review.
-- Bypass scan (`scan_bypasses.py`): 25 candidatos, todos aceitos (noqa E402/F401 do padrão `sys.path` já usado no repo, BLE001 justificado no próprio comentário, `skipIf` de plataforma com motivo).
+- `python -m unittest discover -s tests`: 720 testes, OK (1 skip).
+- Bypass scan (`scan_bypasses.py`) em `main...HEAD`: 25 candidatos, os mesmos aceitos na rodada 1. No diff das correções (`2d613da..HEAD`): 0.
 
 ## Pesquisa
 

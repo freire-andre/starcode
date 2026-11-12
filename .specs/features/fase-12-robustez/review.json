@@ -1,59 +1,92 @@
 {
-  "round": 1,
-  "verdict": "COMMENT",
-  "summary": "TL;DR: COMMENT. Snapshot e raio de impacto entregam o que a spec pede e a escada passa (build --check, check_decisions e 715 testes). Quatro defeitos reais deixam a seleção de regressão parcial ou quebram o brief do Q: caminho com {{module}} derruba o q-brief (W1), renomeação esconde o arquivo apagado (W2), no modo 1 o q-brief ignora os arquivos rastreados modificados (W3) e conftest.py vira o único teste escolhido (W4). Um nit no restore (W5). Bypass scan: 25 candidatos, todos aceitos (noqa E402/F401 do padrão sys.path já usado no repo, BLE001 justificado no próprio comentário, skipIf de plataforma com motivo). Fora do review: dist/ (gerado, conferido por build.py --check).",
-  "findings": [
-    {
-      "id": "W1",
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Os cinco achados da rodada 1 (W1 a W5) estão resolvidos, cada um reproduzido com o caso original e coberto por teste novo; o diff das correções não traz blocker novo. Escada verde: build --check, check_decisions e 720 testes (1 skip). Bypass scan: 25 candidatos em main...HEAD, os mesmos aceitos na rodada 1; 0 no diff das correções. Fora do review: dist/ (gerado, conferido por build.py --check).",
+  "findings": [],
+  "carryover": {
+    "W1": {
       "severity": "should-fix",
       "path": "scripts/dispatch.py",
-      "line": 443,
-      "body": "🟠 O bloco {{regression}} entra no texto antes da checagem de marcadores restantes (scripts/dispatch.py:443-444). O repo tem caminhos com {{module}} (profiles/*/template/src/{{module}}/...); qualquer diff que toque um deles gera 'rodar tudo: nenhum teste alcança profiles/.../{{module}}/health.py', e o q_brief levanta 'marcadores não preenchidos no briefing do Q: {{module}}'. Reproduzido chamando q_brief com essa seleção. O R32 pede o brief gerado assim mesmo. Correção: fazer o re.findall antes de inserir o bloco de regressão.",
-      "evidence": ["scripts/dispatch.py:443", "scripts/dispatch.py:444", "scripts/impact.py:371"]
+      "line": 447,
+      "state": "resolvido",
+      "body": "🟠 Resolvido em f4565f0. Achado da rodada 1: O bloco {{regression}} entra no texto antes da checagem de marcadores restantes (scripts/dispatch.py:443-444). Reprodução nesta rodada: q_brief com profiles/p/template/src/{{module}}/health.py no intervalo gera o brief com 'rodar tudo: nenhum teste alcança ...{{module}}/health.py', sem exceção.",
+      "evidence": [
+        "scripts/dispatch.py:447",
+        "scripts/dispatch.py:450",
+        "tests/test_dispatch_regression.py:38"
+      ]
     },
-    {
-      "id": "W2",
+    "W2": {
       "severity": "should-fix",
       "path": "scripts/impact.py",
       "line": 69,
-      "body": "🟠 git diff --name-only usa detecção de renomeação por padrão (diff.renames=true) e lista só o caminho novo (scripts/impact.py:69). Arquivo renomeado some da lista e o R20 (apagado = rodar tudo) não dispara. Repro: pkg/old.py -> pkg/new.py com tests/test_n.py importando pkg.new seleciona só test_n.py; tests/test_b.py, que ainda importa pkg.old, fica de fora. Correção: acrescentar --no-renames ao git diff.",
-      "evidence": ["scripts/impact.py:69", "scripts/impact.py:347", "https://git-scm.com/docs/git-diff"]
+      "state": "resolvido",
+      "body": "🟠 Resolvido em 61db014. Achado da rodada 1: git diff --name-only usa detecção de renomeação por padrão (diff.renames=true) e lista só o caminho novo (scripts/impact.py:69). Reprodução nesta rodada: repro original (pkg/old.py -> pkg/new.py) agora dá run-all 'fora do grafo: pkg/old.py'.",
+      "evidence": [
+        "scripts/impact.py:69",
+        "tests/test_impact.py:72",
+        "https://git-scm.com/docs/git-diff"
+      ]
     },
-    {
-      "id": "W3",
+    "W3": {
       "severity": "should-fix",
       "path": "scripts/dispatch.py",
-      "line": 425,
-      "body": "🟠 No modo 1 o Q recebe q-brief --head HEAD (skills/engajar/references/execute.md:227) e regression_block calcula impact com base..HEAD (scripts/dispatch.py:428). Sem commits, esse diff é vazio e changed_from_diff fica só com os não rastreados (scripts/impact.py:69-70). Repro: pkg/core.py modificado e pkg/extra.py novo selecionam só o teste de extra.py; o teste que alcança core.py fica de fora, sem 'rodar tudo'. Correção: quando o modo é 1 (ou head é HEAD com árvore suja), passar diff=base, que compara a árvore de trabalho.",
-      "evidence": ["scripts/dispatch.py:428", "scripts/impact.py:70", "skills/engajar/references/execute.md:227"]
+      "line": 431,
+      "state": "resolvido",
+      "body": "🟠 Resolvido em a5abf15. Achado da rodada 1: No modo 1 o Q recebe q-brief --head HEAD (skills/engajar/references/execute.md:227) e regression_block calcula impact com base..HEAD (scripts/dispatch.py:428). Reprodução nesta rodada: repro original (core.py modificado e extra.py novo, sem commit, q-brief --head HEAD) seleciona 2 testes: core.py <- test_core.py e test_extra.py.",
+      "evidence": [
+        "scripts/dispatch.py:431",
+        "tests/test_dispatch_regression.py:45"
+      ]
     },
-    {
-      "id": "W4",
+    "W4": {
       "severity": "should-fix",
       "path": "scripts/impact.py",
-      "line": 80,
-      "body": "🟠 tests/conftest.py conta como teste (scripts/impact.py:78-80), mas o pytest carrega as fixtures dele sem import, então nenhum teste aparece como dependente. Repro: mudar tests/conftest.py dá 'selecionados 1 testes: tests/conftest.py'; o pytest coleta zero testes ali e tests/test_a.py, que usa a fixture, fica de fora. O docstring promete nunca um conjunto parcial (scripts/impact.py:7). Correção: conftest.py mudado vira 'rodar tudo' com motivo próprio.",
-      "evidence": ["scripts/impact.py:80", "scripts/impact.py:7", "https://docs.pytest.org/en/stable/reference/fixtures.html"]
+      "line": 346,
+      "state": "resolvido",
+      "body": "🟠 Resolvido em 7fba116. Achado da rodada 1: tests/conftest.py conta como teste (scripts/impact.py:78-80), mas o pytest carrega as fixtures dele sem import, então nenhum teste aparece como dependente. Reprodução nesta rodada: tests/conftest.py mudado no intervalo dá run-all 'conftest.py muda fixtures sem import: tests/conftest.py'.",
+      "evidence": [
+        "scripts/impact.py:346",
+        "tests/test_impact.py:82",
+        "https://docs.pytest.org/en/stable/reference/fixtures.html"
+      ]
     },
-    {
-      "id": "W5",
+    "W5": {
       "severity": "nit",
       "path": "scripts/snapshot.py",
-      "line": 216,
-      "body": "🟡 Quando o snapshot tem o arquivo src/a e o ticket o trocou pela pasta src/a/, o plano ordenado roda 'voltar src/a' antes de 'remover src/a/x' e a escrita falha com Permission denied (scripts/snapshot.py:203, 216). Rodar de novo com --yes repete a mesma falha, ao contrário do R12. Correção: aplicar os 'remover' antes dos 'voltar'.",
-      "evidence": ["scripts/snapshot.py:203", "scripts/snapshot.py:216"]
+      "line": 286,
+      "state": "resolvido",
+      "body": "🟡 Resolvido em 3fa4e7b. Achado da rodada 1: Quando o snapshot tem o arquivo src/a e o ticket o trocou pela pasta src/a/, o plano ordenado roda 'voltar src/a' antes de 'remover src/a/x' e a escrita falha com Permission denied (scripts/snapshot.py:203, 216). Reprodução nesta rodada: pasta src/a.txt/ no lugar do arquivo: restore --yes sai com 0 e src/a.txt volta como arquivo; test_restore_falha_parcial_e_retomada segue verde com falha injetada.",
+      "evidence": [
+        "scripts/snapshot.py:286",
+        "tests/test_snapshot_restore.py:161"
+      ]
     }
-  ],
-  "carryover": [],
+  },
   "research": [
     "https://git-scm.com/docs/git-diff",
     "https://docs.pytest.org/en/stable/reference/fixtures.html"
   ],
   "ladder": [
-    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
-    {"command": "python scripts/check_decisions.py", "result": "OK"},
-    {"command": "python -m unittest discover -s tests", "result": "715 testes, OK (1 skip)"},
-    {"command": "git diff main...HEAD | scan_bypasses.py", "result": "25 candidatos, todos aceitos"},
-    {"command": "gh pr checks 34", "result": "checks ubuntu/windows pendentes no momento do review"}
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK"
+    },
+    {
+      "command": "python -m unittest discover -s tests",
+      "result": "720 testes, OK (1 skip)"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "25 candidatos, os mesmos aceitos na rodada 1"
+    },
+    {
+      "command": "git diff 2d613da..HEAD | scan_bypasses.py",
+      "result": "0 candidatos"
+    }
   ]
 }
