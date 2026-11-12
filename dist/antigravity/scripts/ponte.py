@@ -235,7 +235,12 @@ def build_feature(snap: Snapshot) -> tuple[dict | None, list[dict]]:
 
 def same_path(a: str | Path, b: str | Path) -> bool:
     """Paths compared without case and without slash style (Windows: backslash == slash, any case)."""
-    norm = lambda v: str(v).replace("\\", "/").rstrip("/").lower()  # noqa: E731
+    def norm(v: str | Path) -> str:
+        s = str(v).replace("\\", "/").lower()
+        # a raiz do drive ("c:/") não colapsa para "c:" (que é o cwd do drive, outro caminho)
+        if len(s) >= 3 and s[1] == ":" and s[2] == "/" and not s[3:].strip("/"):
+            return s[:3]
+        return s.rstrip("/")
     return norm(a) == norm(b)
 
 
