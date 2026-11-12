@@ -440,10 +440,10 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     text = brief_template().read_text(encoding="utf-8")
     for key, val in values.items():
         text = text.replace("{{" + key + "}}", str(val).replace("\\", "/"))
-    text = text.replace("{{regression}}", regression_block(root, base, head))
-    left = re.findall(r"\{\{[^}]+\}\}", text)
+    left = [m for m in re.findall(r"\{\{[^}]+\}\}", text) if m != "{{regression}}"]
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do Q: {', '.join(sorted(set(left)))}")
+    text = text.replace("{{regression}}", regression_block(root, base, head))  # depois da checagem: caminhos com {{...}} são dado
     return f"Repositório: {proj.as_posix()}\n\n" + text + lessons_section(root)
 
 

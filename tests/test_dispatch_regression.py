@@ -35,6 +35,13 @@ class DispatchRegressionTests(TempRepoCase):
         text = dispatch.q_brief("demo", self.repo, "HEAD~1", "HEAD")
         self.assertIn("rodar tudo: fora do grafo: notas.txt", text)
 
+    def test_q_brief_regression_com_marcador_no_caminho(self):
+        (self.repo / "{{module}}.py").write_text("X = '{{module}}'\n", encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "modelo")
+        text = dispatch.q_brief("demo", self.repo, "HEAD~1", "HEAD")
+        self.assertIn("{{module}}.py", text)
+
     def test_q_brief_impact_indisponivel(self):
         erro = impact.ImpactError("diff -z", "ref naoexiste inválida")
         with mock.patch.object(impact, "select", side_effect=erro):

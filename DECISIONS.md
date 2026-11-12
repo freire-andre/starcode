@@ -915,3 +915,10 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o `tools/build.py` já copia `scripts/` e `briefs/`, então não mudou; `test_build_leva_snapshot_e_impact` confere os arquivos nos 4 CLIs. O plano passa a citar o índice temporário, o ref com `<slug>`, a restauração limitada ao `May change` e Python + TS/JS; o disjuntor cita o snapshot que existe. O `CHANGELOG.md` ganha as entradas em `[Unreleased]` e a compatibilidade ganha as linhas de snapshot e raio de impacto (Rust = rodar tudo; import dinâmico não visto).
 - **Motivo:** documentação e `dist/` em dia com o código, para o release da v1.6.
 - **Por que não é bug:** `test_build_leva_snapshot_e_impact` e `test_registros_fase_12` falham sem os arquivos e os textos.
+
+### F12-8: correções do review do Worf na fase 12 (W1 a W5)
+- **Problema:** o review do Worf (rodada 1) achou cinco falhas na seleção de regressão e na restauração do snapshot.
+- **Decisão:**
+  - W1: o `q_brief` checa os marcadores `{{...}}` antes de inserir o bloco `{{regression}}`; caminhos como `{{module}}` dos modelos de perfil viram dado, não marcador.
+- **Motivo:** o brief do Q não pode cair por causa de um nome de arquivo, e a seleção precisa enxergar o que mudou de verdade.
+- **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova.
