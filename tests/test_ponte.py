@@ -307,6 +307,17 @@ class ElsewhereTests(PonteCase):
         # sem feature local também procura
         (self.repo / ".specs" / "features" / "feita" / "spec.md").unlink()
         self.assertEqual(self.snap()["elsewhere"]["slug"], "missao-b")
+        # empate de mtime: sai o maior slug (lexicográfico), mesmo em outro worktree
+        c = self.linked("wt-c")
+        self.feature_in(c, "missao-z", "tasks-ativa.md", "tasks.md", 3_000_000)
+        el = self.snap()["elsewhere"]
+        self.assertEqual(el["slug"], "missao-z")
+        self.assertEqual(el["others"], 2)
+        # o menor slug perde também quando o worktree vem antes na listagem
+        d = self.linked("wt-d")
+        self.feature_in(d, "missao-0", "tasks-ativa.md", "tasks.md", 3_000_000)
+        el = self.snap()["elsewhere"]
+        self.assertEqual((el["slug"], el["others"]), ("missao-z", 3))
 
     def test_elsewhere_ignores_done_and_focus_worktree(self) -> None:
         self.write_repo_config()
