@@ -1,6 +1,7 @@
 # Fase 12 - Robustez (v1.6): Spec
 
 **Approved**: 2026-11-12 - user: "Sim"
+**Approved**: 2026-11-12 - user: "A" (revisão do R21: templates com `{{`)
 
 **Size**: LARGE
 **Risk triggers**: Irreversibilidade
@@ -76,7 +77,7 @@ Discovery: `.specs/features/fase-12-robustez/context.md`.
 - **R18** - WHEN um arquivo mudado é ele mesmo um teste THEN the system SHALL incluí-lo no conjunto.
 - **R19** - The system SHALL seguir os dependentes reversos até o fecho transitivo, visitando cada arquivo uma vez (import circular não entra em loop), e registrar para cada teste escolhido uma cadeia mínima até o arquivo mudado.
 - **R20** - IF algum arquivo mudado não é Python nem TS/JS, ou foi apagado, ou não está na lista do R14 THEN the system SHALL devolver o veredito `rodar tudo` com o motivo `fora do grafo: <arquivos>`.
-- **R21** - IF algum arquivo Python ou TS/JS do repositório não pode ser lido ou analisado (erro de sintaxe, codificação, mais de 1 MiB) THEN the system SHALL devolver `rodar tudo` com o motivo `grafo incompleto: <arquivo>: <erro>`.
+- **R21** - IF algum arquivo Python ou TS/JS do repositório não pode ser lido ou analisado (erro de sintaxe, codificação, mais de 1 MiB) THEN the system SHALL devolver `rodar tudo` com o motivo `grafo incompleto: <arquivo>: <erro>`. Exceção: um `.py` com erro de sintaxe cujo conteúdo tem o marcador `{{` (template de perfil, não importável) fica fora do grafo, sem forçar `rodar tudo`.
 - **R22** - IF há um `tsconfig.json` ou `jsconfig.json` com `compilerOptions.paths` ou `baseUrl`, ou algum arquivo importa um especificador que começa com `@/` ou `~/`, e algum arquivo mudado é TS/JS THEN the system SHALL devolver `rodar tudo` com o motivo `aliases do TypeScript não resolvidos`.
 - **R23** - IF a busca termina sem nenhum teste THEN the system SHALL devolver `rodar tudo` com o motivo `nenhum teste alcança <arquivos>`. O resultado nunca é um conjunto vazio.
 - **R24** - IF não há arquivo mudado (lista vazia ou diff vazio) THEN the system SHALL devolver `rodar tudo` com o motivo `nenhuma mudança informada`.
@@ -156,6 +157,7 @@ selecionados 2 testes
 | Escopo da restauração | só os caminhos do `May change` do ticket, arquivo novo dentro dele removido · tudo que difere do snapshot (arrisca desfazer edições do usuário) | approved - user: "Só o May change (Recomendado)" |
 | Linguagens do grafo | Python + TS/JS, Rust = rodar tudo · + Rust (macros e re-exports erram o mapeamento) · só Python | approved - user: "Python + TS/JS (Recomendado)" |
 | Onde a seleção vale | só McCoy e Q, gates com a suíte inteira · também nos gates do ticket (gate dependeria do grafo) | approved - user: "Só McCoy e Q (Recomendado)" |
+| Templates com `{{` no grafo (R21) | fora do grafo, sem forçar rodar tudo (templates não são importáveis; sem isso o R37 falha no StarCode) · exclusão só por pasta `*/template/` · R21 estrito e R37 ajustado | approved - user: "A" |
 
 ## Open Questions
 None.
