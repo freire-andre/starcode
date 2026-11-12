@@ -147,25 +147,28 @@ class RestoreTest(RestoreBase):
 
     def test_restore_recusa_head_mudado(self):
         self.take_and_edit()
+        pai = git(self.root, "rev-parse", "HEAD").strip()
         git(self.root, "add", "notas.md")
         git(self.root, "commit", "-q", "-m", "outro")
+        atual = git(self.root, "rev-parse", "HEAD").strip()
+        self.assertNotEqual(pai, atual)
         antes = self.tree_state()
         code, out = self.cli("restore", SLUG, "T1", "--yes")
         self.assertEqual(code, 1)
-        self.assertIn("HEAD mudou desde o snapshot (", out)
-        self.assertIn("restauração recusada", out)
+        self.assertEqual(out, f"HEAD mudou desde o snapshot ({pai[:7]} → {atual[:7]}): restauração recusada\n")
         self.assertEqual(self.tree_state(), antes)
 
     def test_restore_sem_snapshot_ou_ticket_sem_may_change(self):
         antes = self.tree_state()
         code, out = self.cli("restore", SLUG, "T1", "--yes")
         self.assertEqual(code, 1)
-        self.assertIn("sem snapshot de feat/T1", out)
-        for ticket, trecho in (("T2", "sem May change"), ("T9", "não está no tasks.md")):
+        self.assertEqual(out, "sem snapshot de feat/T1: restauração recusada\n")
+        motivos = (("T2", "ticket T2 sem May change"), ("T9", "ticket T9 não está no tasks.md de feat"))
+        for ticket, motivo in motivos:
             self.cli("take", SLUG, ticket)
             code, out = self.cli("restore", SLUG, ticket, "--yes")
             self.assertEqual(code, 1)
-            self.assertIn(trecho, out)
+            self.assertEqual(out, f"{motivo}: restauração recusada\n")
         self.assertEqual(self.tree_state(), antes)
 
     def test_restore_ignora_entrada_que_sai_da_raiz(self):
