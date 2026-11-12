@@ -55,5 +55,63 @@ class AcceptanceDocF11Tests(unittest.TestCase):
             self.assertTrue((ROOT / "docs" / "aceite" / "fase-11" / rel).is_file(), rel)
 
 
+ASSETS = ROOT / "docs" / "aceite" / "fase-11"
+ROW = re.compile(r"^\| (?P<el>[^|]+) \| (?P<res>same|differs) \| .*\|$", re.M)
+
+
+def _inventory(name: str) -> list[tuple[str, str]]:
+    text = (ASSETS / name).read_text(encoding="utf-8")
+    return [(m.group("el").strip(), m.group("res")) for m in ROW.finditer(text)]
+
+
+def _verdict_row(name: str) -> str:
+    text = (ASSETS / name).read_text(encoding="utf-8")
+    rows = [ln for ln in text.splitlines() if re.search(r"\| (matches|diverges) \|", ln)]
+    assert len(rows) == 1, f"{name}: esperava uma linha de veredito, achei {len(rows)}"
+    return rows[0]
+
+
+class AcceptanceArtifactsF11Tests(unittest.TestCase):
+    """Valida os artefatos COPIADOS para docs/aceite/fase-11/, não reexecuta o fluxo.
+
+    O aceite rodou num repositório externo (`F:\\Projetos\\starcode-telas`) que não existe
+    no CI; por isso estes testes leem as cópias registradas (fotos, screens.md e a seção
+    Gate do doc) e checam o que elas afirmam, sem tocar na Orca nem no app.
+    """
+
+    def test_mockup_e_fotos_running_medem_800x600(self):
+        import images
+        for rel in ("mockup-saudacao.png", "rodada1-saudacao.running.png",
+                    "rodada2-saudacao.running.png"):
+            self.assertEqual(images.image_size(ASSETS / rel), (800, 600), rel)
+
+    def test_rodada1_diverge_com_uma_linha_copy(self):
+        self.assertIn("| diverges |", _verdict_row("screens-rodada1.md"))
+        self.assertIn("(copy)", _verdict_row("screens-rodada1.md"))
+        inv = _inventory("screens-rodada1.md")
+        differs = [el for el, res in inv if res == "differs"]
+        self.assertEqual(len(differs), 1, inv)
+        self.assertEqual(sum(1 for _, res in inv if res == "same"), len(inv) - 1)
+        self.assertGreater(len(inv), 1)
+
+    def test_rodada2_casa_e_a_linha_corrigida_virou_same(self):
+        self.assertIn("| matches |", _verdict_row("screens-rodada2.md"))
+        inv1, inv2 = _inventory("screens-rodada1.md"), _inventory("screens-rodada2.md")
+        self.assertFalse([el for el, res in inv2 if res == "differs"], inv2)
+        corrigida = [el for el, res in inv1 if res == "differs"][0]
+        self.assertIn((corrigida, "same"), inv2)
+
+    def test_screens_md_tem_pictures_running_e_verifier(self):
+        for name in ("screens-rodada1.md", "screens-rodada2.md"):
+            text = (ASSETS / name).read_text(encoding="utf-8")
+            self.assertRegex(text, r"(?m)^\*\*Pictures\*\*: running$", name)
+            self.assertRegex(text, r"(?m)^\*\*Verifier\*\*: \S+", name)
+
+    def test_secao_gate_cita_comando_e_exit_0(self):
+        gate = _parts()["Gate"]
+        self.assertIn("validate_verification", gate)
+        self.assertIn("exit 0", gate)
+
+
 if __name__ == "__main__":
     unittest.main()
