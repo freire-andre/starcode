@@ -121,6 +121,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: .specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)
 - updated: 2026-11-12T16:46:42Z
 
+### L19 - Declare em cada regra de análise a que tipos de arquivo ela vale e confira se outro requisito usa o mesmo token, porque a regra do marcador {{ foi lida para TS/JS e conflitou com a regra de templates.
+- signal: `spec_precision_gap` · features: 1
+- features: fase-12-robustez
+- sources: verification.md:R21
+- updated: 2026-11-12T20:27:14Z
+
+### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
+- signal: `weak_test` · features: 1
+- features: fase-12-robustez
+- sources: verification.md:C11,C12,C28-C31
+- updated: 2026-11-12T20:27:15Z
+
+### L21 - Compare o bloco completo da mensagem de erro com o motivo retornado, não só o prefixo, porque qualquer texto com o prefixo passava no teste.
+- signal: `weak_test` · features: 1
+- features: fase-12-robustez
+- sources: verification.md:C33
+- updated: 2026-11-12T20:27:15Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
