@@ -1,9 +1,9 @@
 # fase-11-telas proofs
 
-**HEAD**: ca16745
+**HEAD**: e747017
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 42 pass, 0 fail
+**Result**: 44 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -47,6 +47,8 @@
 | C36 | `run unit / test_fase11_acceptance_sections ... ok` | pass |
 | C37 | `run unit / test_fase11_acceptance_sections ... ok` | pass |
 | C38 | `run unit / test_fase11_acceptance_sections ... ok` | pass |
+| C39 | `run unit / test_template_tauri_gitattributes_lf ... ok` | pass |
+| C40 | `run unit / test_aceite_preparar_materializa_fixture ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `python scripts/check_decisions.py` | pass |
 
@@ -67,7 +69,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 654 tests in 281.212s
+Ran 657 tests in 273.513s
 
 OK
 ```
