@@ -134,6 +134,15 @@ class ScreensTests(unittest.TestCase):
         self.assertEqual(self.calls(), [])
         self.assertFalse(dest.exists())
 
+    def test_capture_url_nao_ancorada_recusada(self):
+        for url in ("junkhttps://example.com", "https://", "https://exemplo.com lixo"):
+            with self.subTest(url=url):
+                (rc, out, err), dest = self.capture(url=url)
+                self.assertEqual(rc, 2)
+                self.assertIn("use uma URL http(s)", err)
+                self.assertEqual(self.calls(), [])
+                self.assertFalse(dest.exists())
+
     def test_capture_falha_fecha_aba(self):
         self.cfg["exec"] = [fail("viewport rejected")]
         (rc, out, err), dest = self.capture()

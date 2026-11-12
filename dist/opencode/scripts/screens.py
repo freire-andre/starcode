@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.cmd == "capture":
-            if not re.match(r"https?://", args.url):
+            if not re.fullmatch(r"https?://\S+", args.url):
                 return _die("use uma URL http(s): a Orca não desenha páginas data:", 2)
             if args.width <= 0 or args.height <= 0:
                 return _die("use --width e --height positivos", 2)
