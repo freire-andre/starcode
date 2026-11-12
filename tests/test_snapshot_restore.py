@@ -4,10 +4,10 @@ from __future__ import annotations
 import contextlib
 import io
 import os
-import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import helpers  # noqa: F401  (sys.path)
@@ -158,6 +158,15 @@ class RestoreTest(RestoreBase):
         self.assertEqual(out, f"HEAD mudou desde o snapshot ({pai[:7]} → {atual[:7]}): restauração recusada\n")
         self.assertEqual(self.tree_state(), antes)
 
+    def test_restore_pasta_no_lugar_de_arquivo(self):
+        self.assertEqual(self.cli("take", SLUG, "T1")[0], 0)
+        (self.root / "src" / "a.txt").unlink()
+        self.write("src/a.txt/dentro.txt", "x\n")
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.read("src/a.txt"), "a\n")
+        self.assertFalse((self.root / "src" / "a.txt").is_dir())
+
     def test_restore_sem_snapshot_ou_ticket_sem_may_change(self):
         antes = self.tree_state()
         code, out = self.cli("restore", SLUG, "T1", "--yes")
@@ -198,9 +207,15 @@ class RestoreTest(RestoreBase):
         self.write("src/a.txt", "a2\n")
         self.write("src/c.txt", "c2\n")
         (self.root / "src" / "b.txt").unlink()
-        (self.root / "src" / "b.txt").mkdir()  # pasta no lugar do arquivo: gravar b.txt falha
-        self.write("src/b.txt/x.txt", "x\n")
-        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        real = snapshot._write_blob
+
+        def falha_em_b(root, snap, path):
+            if path == "src/b.txt":
+                raise OSError("disco cheio")
+            real(root, snap, path)
+
+        with mock.patch.object(snapshot, "_write_blob", falha_em_b):  # gravar b.txt falha
+            code, out = self.cli("restore", SLUG, "T1", "--yes")
         self.assertEqual(code, 1)
         self.assertIn("restaurados (1):", out)
         self.assertIn("voltar   src/a.txt", out)
@@ -208,7 +223,6 @@ class RestoreTest(RestoreBase):
         self.assertIn("faltaram (", out)
         self.assertIn("src/c.txt", out.split("faltaram (", 1)[1])
         self.assertEqual(self.read("src/c.txt"), "c2\n")
-        shutil.rmtree(self.root / "src" / "b.txt")
         code, out = self.cli("restore", SLUG, "T1", "--yes")
         self.assertEqual(code, 0)
         self.assertEqual(self.read("src/b.txt"), "b\n")

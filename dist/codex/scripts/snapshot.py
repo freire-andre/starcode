@@ -282,6 +282,8 @@ def cmd_restore(args) -> int:
         return 0
 
     done: list[tuple[str, str]] = []
+    # remover antes de voltar: arquivo do snapshot trocado por pasta de mesmo nome (a pasta sai, o arquivo volta)
+    plan = sorted(plan, key=lambda r: r[0] != "remover")
     for i, (action, path) in enumerate(plan):
         try:
             if action == "voltar":
