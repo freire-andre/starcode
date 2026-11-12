@@ -62,7 +62,6 @@ def preparar(nome: str, destino: str | None) -> int:
         _git(dest, "config", "core.autocrlf", "false")
         _git(dest, "config", "user.email", "aceite@starcode.local")
         _git(dest, "config", "user.name", "StarCode Aceite")
-        _git(dest, "config", "commit.gpgsign", "false")
         _git(dest, "add", "-A")
         _git(dest, "commit", "-q", "-m", f"chore: fixture de aceite {nome}")
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:

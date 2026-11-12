@@ -1,6 +1,7 @@
 """R39: tools/aceite.py materializa as fixtures de aceite fora do repositório."""
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -13,8 +14,10 @@ TOOL = ROOT / "tools" / "aceite.py"
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    env = {**os.environ, "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "commit.gpgsign",
+           "GIT_CONFIG_VALUE_0": "false"}
     return subprocess.run([sys.executable, str(TOOL), *args], capture_output=True, text=True,
-                          stdin=subprocess.DEVNULL)
+                          stdin=subprocess.DEVNULL, env=env)
 
 
 class AceiteToolTests(unittest.TestCase):
