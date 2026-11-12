@@ -394,6 +394,7 @@ Proof: run unit | test_captura_sem_running ... ok
 
 **C11** - Foto em outro tamanho em CSS dá ERRO com os dois tamanhos; foto 2x de captura 1x passa (R11)
 Proof: run unit | test_running_em_outro_tamanho ... ok
+Proof: run unit | test_running_2x_de_captura_1x_passa ... ok
 
 **C12** - Imagem ilegível ou fora de PNG/JPEG/WebP vira ERRO com o caminho, sem stack trace (R12)
 Proof: run unit | test_imagem_ilegivel_vira_erro ... ok
