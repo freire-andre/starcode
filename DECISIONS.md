@@ -871,3 +871,58 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** com `elsewhere` presente o painel desabilita os três atalhos de arquivo; o "Focar worktree" leva até a missão. O `ponte.py` lê cada outro worktree num `Snapshot` próprio e copia os erros dele para `errors` com fonte `worktrees` e mensagem `<caminho posix>: <mensagem original>`.
 - **Motivo:** o painel não pode abrir arquivo que não é da missão mostrada, e a origem de um erro precisa estar clara.
 - **Por que não é bug:** `atalhos de arquivo desabilitados com missão em outro worktree` e `test_elsewhere_erros_do_outro_worktree_usam_fonte_worktrees` falharam antes das correções e passam depois.
+
+## Fase 12 · robustez (fase-12-robustez)
+
+### F12-1: snapshot do modo 1 com índice temporário e ref por feature/ticket (R1 a R6, R13)
+- **Problema:** o modo 1 precisa de um ponto de retorno por ticket sem commitar em branch. O `git stash create` não guarda arquivos não rastreados, e os IDs de ticket se repetem entre features.
+- **Decisão:** o `scripts/snapshot.py` monta o snapshot com um índice temporário (`GIT_INDEX_FILE` só no ambiente dos subprocessos): `read-tree HEAD`, `add -A`, `write-tree`, `commit-tree -p HEAD` e `update-ref refs/starcode/snapshots/<slug>/<ticket>`. O `.git/index` real, a árvore, o HEAD e os branches não mudam, e o temporário é removido também em erro. Nomes inválidos saem com 2, falhas do Git saem com 1 sem ref gravado. `list` e `drop` operam só em `refs/starcode/snapshots/<slug>/`.
+- **Motivo:** o índice temporário captura rastreados e não rastreados não ignorados sem tocar o estado do usuário, e o ref fora de `refs/heads` não cria commit em branch.
+- **Por que não é bug:** `test_take_grava_ref_com_rastreados_e_novos` e `test_take_nao_altera_indice_arvore_head` cobrem o snapshot e a imutabilidade do estado real.
+
+### F12-2: restauração do snapshot só toca o May change, sem comandos de descarte em massa (R7 a R12)
+- **Problema:** voltar o snapshot do ticket não pode apagar o que o usuário editou fora do ticket, e `git checkout -- .`, `git restore .`, `git reset --hard` e `git clean -f` são bloqueados pelo `git_guard`.
+- **Decisão:** o `restore` calcula o plano com um índice temporário da árvore atual (`read-tree HEAD` + `add -A` + `write-tree`) e `git diff-tree --name-status` contra o snapshot, o que respeita `core.autocrlf` e o bit executável. Só os caminhos que casam com o `May change` (mesma regra do `check_scope.py`) são gravados (`git cat-file blob`) ou apagados; os demais saem em `fora do ticket (não tocados):`. Sem `--yes` nada é alterado; o `.git/index` real nunca muda. Falha no meio para no caminho que falhou e o segundo `--yes` termina.
+- **Motivo:** escrever caminho a caminho dentro do `May change` é o único jeito de garantir que nada fora do ticket seja tocado, sem depender de comandos que o guard bloqueia.
+- **Por que não é bug:** `test_restore_yes_volta_e_remove_so_no_may_change` e `test_cenario_aceite_disjuntor_modo_1` cobrem o escopo; `test_restore_falha_parcial_e_retomada` cobre a retomada.
+
+### F12-3: grafo de imports por arquivo, candidatos múltiplos ligados e dúvida vira "rodar tudo" (R14 a R27, R37)
+- **Problema:** escolher os testes de uma mudança sem rodar a suíte inteira exige saber quem importa quem, mas os testes do StarCode importam scripts sem pacote (`import handoff`) e o `dist/` tem cópias dos scripts.
+- **Decisão:** o `scripts/impact.py` monta um grafo por arquivo com o `ast`. Um nome absoluto casa com todo arquivo cujo caminho termina em `a/b.py` ou `a/b/__init__.py`; com vários candidatos liga a todos (a seleção só fica mais larga), sem candidato é externo. Relativos partem da pasta do arquivo. Testes mudados entram no conjunto; dependentes reversos entram por BFS (com visitados, sem loop em ciclo) e a cadeia mínima vai por teste. Toda dúvida vira `rodar tudo` com motivo: mudado fora do grafo ou apagado, arquivo do grafo ilegível, com erro de sintaxe ou acima de 1 MiB, nenhum teste alcança a mudança, ou nenhuma mudança informada. Arquivos `.py` com erro de sintaxe que contêm um marcador `{{...}}` são modelos de perfil (`profiles/*/template`), não Python, e ficam fora do grafo em vez de invalidá-lo. A exceção vale só para `.py`: um TS/JS com `(`, `[` ou `{` sem par (checagem barata, que ignora strings, templates, regex e comentários), ilegível ou acima de 1 MiB continua dando `rodar tudo: grafo incompleto`. Os gates continuam com a suíte inteira.
+- **Motivo:** nunca deixar de rodar um teste que a mudança poderia quebrar; na dúvida, o custo é rodar mais, não de menos.
+- **Por que não é bug:** `test_python_imports_absolutos_relativos_e_ambiguos`, `test_dependentes_transitivos_e_ciclo`, `test_fora_do_grafo_roda_tudo`, `test_grafo_incompleto_roda_tudo` e `test_impact_no_repo_starcode` cobrem o grafo e os vereditos.
+
+### F12-4: grafo TS/JS só com imports relativos, aliases do TypeScript viram "rodar tudo" (R17, R22, R37)
+- **Problema:** projetos TS/JS importam por caminho relativo, por pacote e por alias (`@/x`, `paths`, `baseUrl`), e resolver alias exige reimplementar o `tsc`, o Vite e o bundler de cada projeto.
+- **Decisão:** o `scripts/impact.py` reconhece por regex `import ... from`, `import '<esp>'`, `export ... from`, `import('<esp>')` e `require('<esp>')`, com aspas simples ou duplas. Só especificadores `./` e `../` viram arestas, testando o caminho exato, cada extensão TS/JS e `<esp>/index.<ext>`; o resto é externo. Se há `tsconfig.json`/`jsconfig.json` com `compilerOptions.paths` ou `baseUrl` (JSON lido com tolerância a comentários e vírgula final; arquivo ilegível conta como alias), ou algum import `@/...` ou `~/...`, uma mudança em TS/JS dá `rodar tudo: aliases do TypeScript não resolvidos`.
+- **Motivo:** um alias não resolvido esconderia dependências e deixaria de rodar um teste afetado; na dúvida, roda tudo.
+- **Por que não é bug:** `test_ts_imports_relativos_extensoes_e_index` e `test_aliases_ts_roda_tudo` cobrem a resolução e o veredito; `test_impact_fixture_telas` cobre a fixture `aceite/telas`.
+
+### F12-5: snapshot e raio de impacto entram no fluxo do Picard e do McCoy (R28 a R31)
+- **Problema:** `snapshot.py` e `impact.py` existiam, mas nenhuma skill mandava usá-los; o modo 1 seguia sem ponto de retorno e o McCoy rodava só o gate.
+- **Decisão:** a seção 7 do `execute.md` manda rodar `snapshot.py take` antes de cada despacho (falhou, não despacha) e `drop` depois de `--phase done`. A seção 6 faz da saída (b) do disjuntor no modo 1 o `restore` do ticket que falhou: sem `--yes`, plano e lista "fora do ticket", sim do usuário, depois `--yes` e `--breaker closed`, com `worker-stop` antes se o `**Dispatched:**` não estiver fechado. O McCoy roda `impact.py select --diff <baseBranch>` depois da correção, executa os testes escolhidos (ou tudo no `rodar tudo`) antes do gate e põe o veredito no relatório. Os gates continuam com a suíte inteira.
+- **Motivo:** o restore só vale com a confirmação do usuário sobre o que será tocado, e o raio de impacto encurta o ciclo sem tirar a rede de segurança dos gates.
+- **Por que não é bug:** `test_execute_md_snapshot_antes_do_ticket`, `test_execute_md_saida_b_restaura_snapshot`, `test_execute_md_drop_no_done` e `test_mccoy_skill_raio_de_impacto` falham sem os textos e passam com eles.
+
+### F12-6: brief do Q leva a seleção de regressão e segue mesmo sem ela (R32, R33)
+- **Problema:** o Q só via as provas do autor e não sabia quais testes a mudança podia quebrar; e uma falha na seleção não pode travar a verificação.
+- **Decisão:** o `q_brief` calcula `impact.select(root, diff="<base>..<head>")` e preenche `{{regression}}` com o texto do `impact.py` (a lista com as cadeias ou `rodar tudo: <motivo>`). Se o `impact` levanta qualquer exceção (inclusive erro de Git), o bloco vira `seleção indisponível: <motivo>; rode a suíte inteira` e o brief sai igual. O `q-verify.md` manda rodar esses testes em HEAD (a suíte inteira no `rodar tudo`), registrar o resultado em `## Limits`, e a regra 2 ganha a exceção do `rodar tudo`. O brief não cita caminhos do plugin.
+- **Motivo:** o Q passa a checar regressão sem rodar a suíte à toa, e o brief continua autocontido.
+- **Por que não é bug:** `test_q_brief_bloco_regression`, `test_q_brief_impact_indisponivel` e `test_q_verify_regra_regression_autocontida` falham sem esses textos.
+
+### F12-7: build leva os scripts da fase aos 4 CLIs e os registros fecham a fase (R34, R35)
+- **Problema:** `snapshot.py`, `impact.py` e o brief do Q precisam chegar a `dist/<cli>/`, e o plano, o changelog e a matriz de compatibilidade ainda descreviam a Fase 12 como futura.
+- **Decisão:** o `tools/build.py` já copia `scripts/` e `briefs/`, então não mudou; `test_build_leva_snapshot_e_impact` confere os arquivos nos 4 CLIs. O plano passa a citar o índice temporário, o ref com `<slug>`, a restauração limitada ao `May change` e Python + TS/JS; o disjuntor cita o snapshot que existe. O `CHANGELOG.md` ganha as entradas em `[Unreleased]` e a compatibilidade ganha as linhas de snapshot e raio de impacto (Rust = rodar tudo; import dinâmico não visto).
+- **Motivo:** documentação e `dist/` em dia com o código, para o release da v1.6.
+- **Por que não é bug:** `test_build_leva_snapshot_e_impact` e `test_registros_fase_12` falham sem os arquivos e os textos.
+
+### F12-8: correções do review do Worf na fase 12 (W1 a W5)
+- **Problema:** o review do Worf (rodada 1) achou cinco falhas na seleção de regressão e na restauração do snapshot.
+- **Decisão:**
+  - W1: o `q_brief` checa os marcadores `{{...}}` antes de inserir o bloco `{{regression}}`; caminhos como `{{module}}` dos modelos de perfil viram dado, não marcador.
+  - W2: o `impact.py` lista os mudados com `git diff --name-only --no-renames`; o caminho antigo de uma renomeação aparece como apagado e dá `rodar tudo: fora do grafo`.
+  - W3: com `<head>` igual a `HEAD` e mudanças rastreadas na árvore de trabalho (modo 1, sem commits), o `q_brief` seleciona com `impact.select(diff=<base>)` (árvore contra a base, R14) em vez de `<base>..HEAD`, que vinha vazio.
+  - W4: um `conftest.py` mudado dá `rodar tudo: conftest.py muda fixtures sem import: <arquivo>`, porque o pytest carrega as fixtures sem import e o grafo não as vê; os demais padrões de teste do R15 não mudam.
+  - W5: no `restore --yes` os `remover` rodam antes dos `voltar`, para o arquivo do snapshot que virou pasta de mesmo nome (a pasta sai e o arquivo volta); `test_restore_falha_parcial_e_retomada` agora força a falha parcial com um erro de gravação injetado, já que a pasta no lugar do arquivo deixou de falhar.
+- **Motivo:** o brief do Q não pode cair por causa de um nome de arquivo, e a seleção precisa enxergar o que mudou de verdade.
+- **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova, e `test_diff_renomeacao_lista_apagado` falha sem o `--no-renames`, e `test_q_brief_modo_1_usa_arvore_de_trabalho` falha com `<base>..HEAD`, e `test_conftest_mudado_roda_tudo` falha sem o caso do `conftest.py`, e `test_restore_pasta_no_lugar_de_arquivo` falha com os `voltar` primeiro.
