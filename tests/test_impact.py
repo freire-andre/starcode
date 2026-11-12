@@ -79,6 +79,13 @@ class TestImpact(ImpactCase):
         self.assertIn("fora do grafo", res["reason"])
         self.assertIn("a.py", res["changed"])
 
+    def test_conftest_mudado_roda_tudo(self) -> None:
+        write(self.repo, {"tests/conftest.py": "import pytest\n", "tests/test_a.py": "import json\n"})
+        self.commit("base")
+        res = impact.select(self.repo, changed=["tests/conftest.py"])
+        self.assertEqual(res["verdict"], "run-all")
+        self.assertEqual(res["reason"], "conftest.py muda fixtures sem import: tests/conftest.py")
+
     def test_identifica_testes_python_e_ts(self) -> None:
         for p in ("test_a.py", "a_test.py", "tests/helpers.py", "test/x/y.py", "src/foo.test.ts",
                   "src/foo.spec.js", "src/__tests__/foo.ts", "a/b.test.tsx"):

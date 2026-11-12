@@ -343,8 +343,11 @@ def select(root, changed=None, diff=None) -> dict:
         changed_list = sorted({_relative(root, p) for p in (changed or [])})
     if not changed_list:
         return run_all("nenhuma mudança informada", [])
+    conftests = [c for c in changed_list if posixpath.basename(c) == "conftest.py"]
+    if conftests:  # o pytest carrega as fixtures sem import: o grafo não as vê
+        return run_all("conftest.py muda fixtures sem import: " + ", ".join(conftests), changed_list)
     fileset = set(files)
-    outside = [c for c in changed_list
+    outside =[c for c in changed_list
                if c not in fileset or posixpath.splitext(c)[1] not in RESOLVERS or not (root / c).is_file()]
     if outside:
         return run_all("fora do grafo: " + ", ".join(outside), changed_list)
