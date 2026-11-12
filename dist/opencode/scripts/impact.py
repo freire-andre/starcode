@@ -66,7 +66,7 @@ def repo_files(root) -> list[str]:
 
 def changed_from_diff(root, diff: str) -> list[str]:
     """R14: mudados do intervalo (ou da árvore de trabalho contra <base>) mais os não rastreados."""
-    names = split_z(run_git(root, "diff", "-z", "--name-only", diff))
+    names = split_z(run_git(root, "diff", "-z", "--name-only", "--no-renames", diff))
     names += split_z(run_git(root, "ls-files", "-z", "-o", "--exclude-standard"))
     return sorted({norm_path(p) for p in names})
 

@@ -69,6 +69,16 @@ class TestImpact(ImpactCase):
         res = impact.select(self.repo, diff="HEAD~1..HEAD")
         self.assertEqual(res["changed"], ["a.py", "b.py", "c.py", "test_b.py"])
 
+    def test_diff_renomeacao_lista_apagado(self) -> None:
+        write(self.repo, {"a.py": "A = 1\n" * 20, "test_a.py": "import a\n"})
+        self.commit("base")
+        run_git(self.repo, "mv", "a.py", "b.py")
+        self.commit("renomeia")
+        res = impact.select(self.repo, diff="HEAD~1..HEAD")
+        self.assertEqual(res["verdict"], "run-all")
+        self.assertIn("fora do grafo", res["reason"])
+        self.assertIn("a.py", res["changed"])
+
     def test_identifica_testes_python_e_ts(self) -> None:
         for p in ("test_a.py", "a_test.py", "tests/helpers.py", "test/x/y.py", "src/foo.test.ts",
                   "src/foo.spec.js", "src/__tests__/foo.ts", "a/b.test.tsx"):

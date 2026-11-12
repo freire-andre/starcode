@@ -920,5 +920,6 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Problema:** o review do Worf (rodada 1) achou cinco falhas na seleção de regressão e na restauração do snapshot.
 - **Decisão:**
   - W1: o `q_brief` checa os marcadores `{{...}}` antes de inserir o bloco `{{regression}}`; caminhos como `{{module}}` dos modelos de perfil viram dado, não marcador.
+  - W2: o `impact.py` lista os mudados com `git diff --name-only --no-renames`; o caminho antigo de uma renomeação aparece como apagado e dá `rodar tudo: fora do grafo`.
 - **Motivo:** o brief do Q não pode cair por causa de um nome de arquivo, e a seleção precisa enxergar o que mudou de verdade.
-- **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova.
+- **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova, e `test_diff_renomeacao_lista_apagado` falha sem o `--no-renames`.
