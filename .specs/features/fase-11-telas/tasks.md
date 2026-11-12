@@ -481,12 +481,12 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 **Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** verificação do Q
+**Next:** correção pós-Q única (5 achados)
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** 4ae24b1
 **Dispatched:** none
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12)
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna)
 **Breaker:** closed
