@@ -8,6 +8,7 @@ gates:
   typecheck: ["npx tsc --noEmit"]
   unit: ["npx vitest run", {run: "cargo test", cwd: src-tauri}]
   build: ["npm run tauri build -- --debug --no-bundle"]
+screens: {serve: "npm run dev", url: "http://localhost:5173"}
 alignMajor:
   - from: "@tauri-apps/cli"
     deps: [tauri, tauri-build, "@tauri-apps/api"]
