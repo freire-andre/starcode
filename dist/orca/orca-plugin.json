@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "starcode-ponte",
   "name": "StarCode Ponte",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Painel da Ponte do StarCode: tripulação, modo Git, issue, fase SDD e workers do worktree em foco.",
   "engines": {
     "orca": ">=1.4.248"

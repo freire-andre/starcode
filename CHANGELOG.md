@@ -8,12 +8,19 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
-## [1.5.0] - não lançada
+## [1.5.0] - 2026-11-12
 
 ### Adicionado
 
 - Fase 11: verificação de telas. As regras de captura (`captures/`, `screens.md`) voltam à spec e ao gate final; `scripts/screens.py` tira a foto pelo navegador da Orca, `scripts/gates/images.py` lê o tamanho das imagens (escala pelo nome) e o juiz de telas roda como worker separado (`briefs/screens-verify.md`), nos 4 CLIs.
 - Fase 11: perfil Tauri com `screens` e mocks de IPC só em desenvolvimento.
+- Fase 11: template Tauri com `.gitattributes` em LF, para o biome passar num checkout do Windows com `core.autocrlf=true`.
+- Fase 11: o app de aceite vive no repositório como fixture (`aceite/telas/`); `python tools/aceite.py preparar telas` cria a cópia de trabalho fora do repositório. `aceite/` não entra no `dist/`.
+
+### Corrigido
+
+- Gates de telas: PNG truncado é recusado, captura com tamanho que a escala não divide dá erro e `screens.md` precisa de veredito para cada captura vinculante.
+- `screens.py capture` valida a URL inteira (`https://` vazio e URL com espaço eram aceitos).
 
 ## [1.4.0] - 2026-11-11
 
