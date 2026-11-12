@@ -483,12 +483,12 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 **Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** correção pós-Q única (5 achados)
+**Next:** provas e done
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
-**Last integrated:** 4ae24b1
-**Dispatched:** fix-Q · SC-18 · base dd1afa3 · claude:claude-sonnet-5-5 · 11:55Z
+**Last integrated:** ca16745
+**Dispatched:** none
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12)
 **Attempts:** none
-**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna)
+**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63)
 **Breaker:** closed

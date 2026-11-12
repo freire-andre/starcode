@@ -1,9 +1,9 @@
 # fase-11-telas proofs
 
-**HEAD**: 4ae24b1
+**HEAD**: ca16745
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 40 pass, 0 fail
+**Result**: 42 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -18,6 +18,7 @@
 | C9 | `run unit / test_screens_sem_verifier ... ok` | pass |
 | C10 | `run unit / test_captura_sem_running ... ok` | pass |
 | C11 | `run unit / test_running_em_outro_tamanho ... ok` | pass |
+| C11 | `run unit / test_running_2x_de_captura_1x_passa ... ok` | pass |
 | C12 | `run unit / test_imagem_ilegivel_vira_erro ... ok` | pass |
 | C13 | `run unit / test_fotos_do_autor_degradada_e_strict ... ok` | pass |
 | C14 | `run unit / test_capture_chama_orca_na_ordem ... ok` | pass |
@@ -29,6 +30,7 @@
 | C20 | `run unit / test_capture_tamanho_errado_falha ... ok` | pass |
 | C21 | `run unit / test_screens_brief_nao_leva_checks_nem_diff ... ok` | pass |
 | C22 | `run unit / test_screens_brief_sem_captura_sai_2 ... ok` | pass |
+| C22 | `run unit / test_screens_brief_preenche_campos ... ok` | pass |
 | C23 | `run unit / test_screens_brief_preenche_campos ... ok` | pass |
 | C24 | `run unit / test_screens_brief_regras_de_julgamento ... ok` | pass |
 | C25 | `run unit / test_screens_brief_regras_de_julgamento ... ok` | pass |
@@ -65,7 +67,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 647 tests in 274.115s
+Ran 654 tests in 281.212s
 
 OK
 ```
