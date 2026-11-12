@@ -8,6 +8,13 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-12
+
+### Corrigido
+
+- `scaffold.py checks`: cada item com `cwd` roda num subshell (`(cd <cwd> && <cmd>)`); no perfil tauri a linha Build repetia `cd src-tauri` e os comandos seguintes rodavam dentro dele (SC-143).
+- Painel Ponte: com a feature do worktree em foco concluída (ou sem feature), o painel e a barra de status mostram a missão ativa de outro worktree do mesmo repositório, com "e mais N" e o botão "Focar worktree" (`workspace.open`, sem capacidade nova); os atalhos de arquivo ficam desabilitados nesse caso e os erros do outro worktree aparecem com a fonte `worktrees` (SC-142).
+
 ## [1.5.0] - 2026-11-12
 
 ### Adicionado
