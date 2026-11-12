@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -382,3 +383,12 @@ class ElsewhereTests(PonteCase):
     def test_same_path_ignores_case_and_slashes(self) -> None:
         self.assertTrue(ponte.same_path("F:" + chr(92) + "x" + chr(92) + "Y", "f:/x/y"))
         self.assertFalse(ponte.same_path("F:/x", "F:/z"))
+
+
+class DecisionsTests(unittest.TestCase):
+    def test_decisions_records_p151_2_elsewhere(self) -> None:
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        self.assertIn("### P151-2:", text)
+        section = text.split("### P151-2:", 1)[1]
+        for needle in ("elsewhere", "git worktree list --porcelain", "mtime", "workspace.open"):
+            self.assertIn(needle, section)

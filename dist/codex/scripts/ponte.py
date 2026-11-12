@@ -2,7 +2,8 @@
 
     python ponte.py snapshot --path <worktree> --json
 
-Prints one JSON object (schemaVersion 1): worktree, starcode, crew, gitMode, feature, workers, errors.
+Prints one JSON object (schemaVersion 1): worktree, starcode, crew, gitMode, feature, workers, errors and
+elsewhere (optional: the active mission of another worktree, only when the local feature is done or absent).
 Never writes anything (F10-R10): no live folder is created, no file is touched. A source that is
 unreadable, invalid JSON or bigger than 1 MiB becomes an `errors` item and its section stays null/empty.
 A source that is simply absent and normally optional (sessions.json, progress.json, session.json) is not
@@ -16,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,6 +36,7 @@ LINEAR_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9-])[A-Z][A-Z0-9]*-\d+(?:\.\.[A-Z][A
 UNSET = {"", "none", "none yet", "not created"}
 USER_CONFIG_SOURCE = "~/.starcode/config.json"
 SESSION_SOURCE = "<git-dir>/starcode/session.json"
+WORKTREES_SOURCE = "worktrees"
 
 
 class Snapshot:
@@ -230,12 +233,81 @@ def build_feature(snap: Snapshot) -> tuple[dict | None, list[dict]]:
     return feature, parse_dispatched(fields.get("dispatched", ""))
 
 
+def same_path(a: str | Path, b: str | Path) -> bool:
+    """Paths compared without case and without slash style (Windows: backslash == slash, any case)."""
+    norm = lambda v: str(v).replace("\\", "/").rstrip("/").lower()  # noqa: E731
+    return norm(a) == norm(b)
+
+
+def list_worktrees(root: Path) -> list[dict]:
+    """Read-only `git worktree list --porcelain`: [{path, branch, bare, prunable}]. Raises on failure."""
+    res = subprocess.run(["git", "-C", str(root), "worktree", "list", "--porcelain"], capture_output=True,
+                         text=True, encoding="utf-8", stdin=subprocess.DEVNULL, timeout=15)
+    if res.returncode != 0:
+        raise OSError((res.stderr or "git worktree list falhou").strip())
+    items: list[dict] = []
+    cur: dict | None = None
+    for line in res.stdout.splitlines() + [""]:
+        if not line.strip():
+            if cur:
+                items.append(cur)
+            cur = None
+            continue
+        key, _, value = line.partition(" ")
+        if key == "worktree":
+            cur = {"path": value, "branch": None, "bare": False, "prunable": False}
+        elif cur is not None:
+            if key == "branch":
+                cur["branch"] = value.removeprefix("refs/heads/")
+            elif key == "bare":
+                cur["bare"] = True
+            elif key == "prunable":
+                cur["prunable"] = True
+    return items
+
+
+def build_elsewhere(snap: Snapshot) -> dict | None:
+    """R1: newest active (not done) feature of another worktree of the same repository."""
+    try:
+        trees = list_worktrees(snap.root)
+    except (OSError, subprocess.SubprocessError) as exc:
+        snap.error(WORKTREES_SOURCE, f"git worktree list falhou ({type(exc).__name__})")
+        return None
+    found = []
+    for tree in trees:
+        if tree["bare"] or same_path(tree["path"], snap.root):
+            continue
+        path = Path(tree["path"])
+        if tree["prunable"] or not path.is_dir():
+            snap.error(WORKTREES_SOURCE, f"worktree ausente: {Path(tree['path']).as_posix()}")
+            continue
+        other = Snapshot(path)
+        other.errors = snap.errors
+        try:
+            chosen = choose_feature(other)
+            if chosen is None or chosen[2].get("phase") == "done":
+                continue
+            mtime = (chosen[1] or chosen[0]).stat().st_mtime
+            feature, _ = build_feature(other)
+        except (OSError, ValueError) as exc:
+            snap.error(WORKTREES_SOURCE, f"worktree ilegível: {path.as_posix()} ({type(exc).__name__})")
+            continue
+        if feature is None:
+            continue
+        found.append((mtime, feature["slug"], path, tree["branch"], feature))
+    if not found:
+        return None
+    _, _, path, branch, feature = max(found, key=lambda c: (c[0], c[1]))
+    return {"worktree": path.resolve().as_posix(), "branch": branch, **feature, "others": len(found) - 1}
+
+
 def snapshot(path: Path, now: datetime | None = None) -> dict:
     now = now or datetime.now(timezone.utc)
     root = path.resolve()
     snap = Snapshot(root)
     out: dict = {"schemaVersion": SCHEMA_VERSION, "worktree": root.as_posix(), "starcode": False,
-                 "crew": [], "gitMode": None, "feature": None, "workers": [], "errors": snap.errors}
+                 "crew": [], "gitMode": None, "feature": None, "workers": [], "errors": snap.errors,
+                 "elsewhere": None}
     cfg_path = root / ".starcode" / "config.json"
     if not cfg_path.exists() and not (root / ".specs").exists():
         return out
@@ -245,6 +317,8 @@ def snapshot(path: Path, now: datetime | None = None) -> dict:
     out["crew"] = build_crew(snap, now)
     out["gitMode"] = build_git_mode(snap)
     out["feature"], out["workers"] = build_feature(snap)
+    if out["feature"] is None or out["feature"]["done"]:
+        out["elsewhere"] = build_elsewhere(snap)
     return out
 
 
