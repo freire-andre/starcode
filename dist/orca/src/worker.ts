@@ -537,13 +537,8 @@ export default function activate(orca: OrcaWorkerApi): void {
       }
       return { opened: true, message: null }
     }
-    const message = `worktree não aberto na Orca: ${target}`
-    try {
-      await orca.host.call('notifications.show', { title: 'Ponte', body: message } as never)
-    } catch (err) {
-      orca.log(`notifications.show falhou: ${firstLine(err)}`)
-    }
-    return { opened: false, message }
+    // sem capacidade notifications:show (manifesto): o painel mostra a mensagem junto do atalho
+    return { opened: false, message: `worktree não aberto na Orca: ${target}` }
   })
 
   orca.panels.handle('ponte.launchPicard', async () => {

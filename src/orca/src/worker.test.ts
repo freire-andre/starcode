@@ -947,13 +947,13 @@ test('atalho foca o worktree da missão ativa', async () => {
   await worker.request('ponte.state', { force: true })
   await worker.request('ponte.focusElsewhere', {})
   assert.equal(host.callsOf('workspace.open').length, 2)
-  // sem workspace casando: notificação, sem workspace.open novo e sem erro
+  // sem workspace casando: mensagem na resposta, sem notificação, sem workspace.open novo e sem erro
   fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p, { elsewhere: { ...ELSEWHERE_SNAP, worktree: 'C:/wt/fora' } })) })
   await worker.request('ponte.state', { force: true })
   const miss: any = await worker.request('ponte.focusElsewhere', {})
   assert.equal(miss.opened, false)
   assert.equal(miss.message, 'worktree não aberto na Orca: C:/wt/fora')
   assert.equal(host.callsOf('workspace.open').length, 2)
-  assert.deepEqual(host.callsOf('notifications.show'), [{ title: 'Ponte', body: 'worktree não aberto na Orca: C:/wt/fora' }])
+  assert.equal(host.callsOf('notifications.show').length, 0)
   await worker.deactivate()
 })

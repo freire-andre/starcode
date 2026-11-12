@@ -267,4 +267,22 @@ test('painel mostra a missão ativa de outro worktree', async () => {
     host: host(estado({ snapshot: { ...dados, feature: local, elsewhere: { ...ELSEWHERE, others: 0 } } })),
   })
   assert.ok(text(r).includes('Missão ativa em outro worktree') && !text(r).includes('e mais'))
+  // sem workspace casando: a mensagem aparece junto do atalho, dentro do aviso
+  const aviso = 'worktree não aberto na Orca: C:/wt/filho'
+  const m = await mount(panel, {
+    host: mockHost({
+      requests: {
+        'ponte.state': () => estado({ snapshot: { ...dados, feature: local, elsewhere: ELSEWHERE } }),
+        'ponte.focusElsewhere': () => ({ opened: false, message: aviso }),
+      },
+    }),
+  })
+  assert.ok(!text(m).includes(aviso))
+  await m.press({ type: 'Button', text: 'Focar worktree' })
+  const tm = text(m)
+  assert.ok(tm.includes(aviso))
+  const iBotao = tm.indexOf('Focar worktree')
+  const iAviso = tm.indexOf(aviso)
+  const iFeature = tm.indexOf('ponte-missao-ativa')
+  assert.ok(iBotao < iAviso && iAviso < iFeature, 'a mensagem fica entre o atalho e o resto da fase')
 })
