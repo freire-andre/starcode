@@ -145,7 +145,93 @@ def py_resolve(state: dict, path: str, text: str) -> set[str]:
     return deps
 
 
-RESOLVERS = {".py": (py_prepare, py_resolve)}  # a T4 acrescenta TS/JS aqui
+TS_IMPORT_RES = (
+    re.compile(r"""\bfrom\s*(['"])([^'"\r\n]+)\1"""),  # import ... from / export ... from (inclusive multilinha e import type)
+    re.compile(r"""\bimport\s*(['"])([^'"\r\n]+)\1"""),  # import '<esp>'
+    re.compile(r"""\bimport\s*\(\s*(['"])([^'"\r\n]+)\1"""),  # import('<esp>')
+    re.compile(r"""\brequire\s*\(\s*(['"])([^'"\r\n]+)\1"""),  # require('<esp>')
+)
+TS_ALIAS_RE = re.compile(r"""(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"])(?:@|~)/""")
+TS_ALIAS_REASON = "aliases do TypeScript não resolvidos"
+
+
+def ts_prepare(files: set[str]) -> dict:
+    return {"files": files}
+
+
+def ts_specifiers(text: str) -> set[str]:
+    return {m.group(2) for rx in TS_IMPORT_RES for m in rx.finditer(text)}
+
+
+def ts_resolve(state: dict, path: str, text: str) -> set[str]:
+    """R17: só './' e '../' viram arestas; testa o caminho exato, cada extensão e <esp>/index.<ext>."""
+    files = state["files"]
+    base = posixpath.dirname(path)
+    deps: set[str] = set()
+    for spec in ts_specifiers(text):
+        if not (spec.startswith("./") or spec.startswith("../") or spec in (".", "..")):
+            continue
+        target = posixpath.normpath(posixpath.join(base, spec))
+        if target == ".." or target.startswith("../"):
+            continue
+        cands = [target] + [target + ext for ext in TS_JS_EXTS] + [f"{target}/index{ext}" for ext in TS_JS_EXTS]
+        deps |= {c for c in cands if c in files}
+    deps.discard(path)
+    return deps
+
+
+def loose_json(text: str):
+    """R22: JSON de tsconfig com comentários // e /* */ e vírgula final."""
+    out: list[str] = []
+    i, n, in_str = 0, len(text), False
+    while i < n:
+        c = text[i]
+        if in_str:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 1
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+            out.append(c)
+        elif text.startswith("//", i):
+            while i < n and text[i] not in "\r\n":
+                i += 1
+            continue
+        elif text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            i = n if end < 0 else end + 2
+            continue
+        else:
+            out.append(c)
+        i += 1
+    return json.loads(re.sub(r",(\s*[}\]])", r"\1", "".join(out)))
+
+
+def ts_aliases_present(root, files: list[str]) -> bool:
+    """R22: tsconfig/jsconfig com paths ou baseUrl (ou ilegível), ou algum import '@/' ou '~/'."""
+    root = Path(root)
+    for f in files:
+        name = posixpath.basename(f)
+        if name in ("tsconfig.json", "jsconfig.json") or (name.startswith("tsconfig.") and name.endswith(".json")):
+            try:
+                opts = loose_json((root / f).read_text(encoding="utf-8-sig")).get("compilerOptions") or {}
+            except (OSError, ValueError, UnicodeDecodeError, AttributeError):
+                return True
+            if isinstance(opts, dict) and ("paths" in opts or "baseUrl" in opts):
+                return True
+        elif f.endswith(TS_JS_EXTS):
+            try:
+                if (root / f).stat().st_size <= MAX_BYTES and TS_ALIAS_RE.search((root / f).read_text(encoding="utf-8")):
+                    return True
+            except (OSError, UnicodeDecodeError):
+                continue
+    return False
+
+
+RESOLVERS = {".py": (py_prepare, py_resolve), **{ext: (ts_prepare, ts_resolve) for ext in TS_JS_EXTS}}
 
 
 def build_graph(root, files: list[str]) -> dict[str, set[str]]:
@@ -206,6 +292,8 @@ def select(root, changed=None, diff=None) -> dict:
                if c not in fileset or posixpath.splitext(c)[1] not in RESOLVERS or not (root / c).is_file()]
     if outside:
         return run_all("fora do grafo: " + ", ".join(outside), changed_list)
+    if any(c.endswith(TS_JS_EXTS) for c in changed_list) and ts_aliases_present(root, files):
+        return run_all(TS_ALIAS_REASON, changed_list)
     try:
         graph = build_graph(root, files)
     except GraphError as exc:
