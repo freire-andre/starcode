@@ -909,3 +909,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o `q_brief` calcula `impact.select(root, diff="<base>..<head>")` e preenche `{{regression}}` com o texto do `impact.py` (a lista com as cadeias ou `rodar tudo: <motivo>`). Se o `impact` levanta qualquer exceção (inclusive erro de Git), o bloco vira `seleção indisponível: <motivo>; rode a suíte inteira` e o brief sai igual. O `q-verify.md` manda rodar esses testes em HEAD (a suíte inteira no `rodar tudo`), registrar o resultado em `## Limits`, e a regra 2 ganha a exceção do `rodar tudo`. O brief não cita caminhos do plugin.
 - **Motivo:** o Q passa a checar regressão sem rodar a suíte à toa, e o brief continua autocontido.
 - **Por que não é bug:** `test_q_brief_bloco_regression`, `test_q_brief_impact_indisponivel` e `test_q_verify_regra_regression_autocontida` falham sem esses textos.
+
+### F12-7: build leva os scripts da fase aos 4 CLIs e os registros fecham a fase (R34, R35)
+- **Problema:** `snapshot.py`, `impact.py` e o brief do Q precisam chegar a `dist/<cli>/`, e o plano, o changelog e a matriz de compatibilidade ainda descreviam a Fase 12 como futura.
+- **Decisão:** o `tools/build.py` já copia `scripts/` e `briefs/`, então não mudou; `test_build_leva_snapshot_e_impact` confere os arquivos nos 4 CLIs. O plano passa a citar o índice temporário, o ref com `<slug>`, a restauração limitada ao `May change` e Python + TS/JS; o disjuntor cita o snapshot que existe. O `CHANGELOG.md` ganha as entradas em `[Unreleased]` e a compatibilidade ganha as linhas de snapshot e raio de impacto (Rust = rodar tudo; import dinâmico não visto).
+- **Motivo:** documentação e `dist/` em dia com o código, para o release da v1.6.
+- **Por que não é bug:** `test_build_leva_snapshot_e_impact` e `test_registros_fase_12` falham sem os arquivos e os textos.
