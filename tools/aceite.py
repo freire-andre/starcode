@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -31,9 +32,19 @@ def _dentro(path: Path, base: Path) -> bool:
         return False
 
 
-def _git(cwd: Path, *args: str) -> None:
+def _git(cwd: Path, *args: str, env: dict[str, str] | None = None) -> None:
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
-                   stdin=subprocess.DEVNULL)
+                   stdin=subprocess.DEVNULL, env=env)
+
+
+def _identidade_do_commit(cwd: Path) -> dict[str, str] | None:
+    """Env com a identidade do aceite, só para o commit inicial e só se o git não tiver uma."""
+    res = subprocess.run(["git", "config", "user.email"], cwd=cwd, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL)
+    if res.stdout.strip():
+        return None
+    return {**os.environ, "GIT_AUTHOR_NAME": "StarCode Aceite", "GIT_AUTHOR_EMAIL": "aceite@starcode.local",
+            "GIT_COMMITTER_NAME": "StarCode Aceite", "GIT_COMMITTER_EMAIL": "aceite@starcode.local"}
 
 
 def _ignorar(_dir: str, names: list[str]) -> list[str]:
@@ -60,10 +71,8 @@ def preparar(nome: str, destino: str | None) -> int:
     try:
         _git(dest, "init", "-q")
         _git(dest, "config", "core.autocrlf", "false")
-        _git(dest, "config", "user.email", "aceite@starcode.local")
-        _git(dest, "config", "user.name", "StarCode Aceite")
         _git(dest, "add", "-A")
-        _git(dest, "commit", "-q", "-m", f"chore: fixture de aceite {nome}")
+        _git(dest, "commit", "-q", "-m", f"chore: fixture de aceite {nome}", env=_identidade_do_commit(dest))
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         print(f"erro: git falhou: {getattr(exc, 'stderr', exc)}", file=sys.stderr)
         return 1
