@@ -253,9 +253,10 @@ test('painel mostra a missão ativa de outro worktree', async () => {
   })
   const p = await mount(panel, { host: h })
   const t = text(p)
-  for (const s of ['Missão ativa em outro worktree', 'feat/filho', 'execute', '2/3', 'e mais 1', 'ponte-missao-ativa']) {
-    assert.ok(t.includes(s), s)
+  for (const s of ['Missão ativa em outro worktree', 'feat/filho · execute · 2/3', 'e mais 1']) {
+    assert.ok(t.includes(JSON.stringify(s)), s)
   }
+  assert.ok(t.includes('ponte-missao-ativa'))
   assert.ok(!t.includes('feita-local'))
   await p.press({ type: 'Button', text: 'Focar worktree' })
   assert.equal(pedidos.length, 1)

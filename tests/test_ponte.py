@@ -396,6 +396,12 @@ class ElsewhereTests(PonteCase):
         self.assertTrue(ponte.same_path("F:" + chr(92) + "x" + chr(92) + "Y", "f:/x/y"))
         self.assertFalse(ponte.same_path("F:/x", "F:/z"))
 
+    def test_same_path_preserva_raiz_do_drive(self) -> None:
+        bs = chr(92)
+        self.assertFalse(ponte.same_path("C:/", "c:"))
+        self.assertTrue(ponte.same_path("C:" + bs + "x" + bs, "c:/x"))
+        self.assertTrue(ponte.same_path("C:/", "c:" + bs))
+
 
 class DecisionsTests(unittest.TestCase):
     def test_decisions_records_p151_2_elsewhere(self) -> None:
