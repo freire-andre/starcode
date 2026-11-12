@@ -1,0 +1,57 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT. O PR traz a verificação de telas com gates, testes e aceite real; dois defeitos reais sem risco de merge: o gate aceita screens.md que omite uma tela vinculante (W1) e o tools/aceite.py grava uma identidade git falsa na cópia de trabalho (W2). Um nit de escala ímpar (W3). Arquivos mecânicos fora do review: dist/, aceite/telas/package-lock.json, aceite/telas/src-tauri/Cargo.lock. Supressões `noqa: E402` aceitas: seguem o sys.path.insert da linha anterior, convenção já presente na main (scripts/dispatch.py:50).",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "should-fix",
+      "path": "scripts/gates/validate_verification.py",
+      "line": 143,
+      "body": "🟠 `_check_screens` só julga as linhas que existem em `screens.md`; não exige uma linha por captura vinculante (scripts/gates/validate_verification.py:136-145). Sondagem: spec com `home.png` e `sobre.png` vinculantes, ambas com foto running, e `screens.md` só com `home` → `evaluate` sai ok, sem erro. Um juiz que pule uma tela passa no gate. Correção: para cada captura de `_binding_captures`, exigir uma linha cuja coluna Screen cite `<nome>.running.png` ou `<nome>`, com ERRO \"screens.md sem veredito para `<captura>`\".",
+      "evidence": "scripts/gates/validate_verification.py:143"
+    },
+    {
+      "id": "W2",
+      "severity": "should-fix",
+      "path": "tools/aceite.py",
+      "line": 63,
+      "body": "🟠 `preparar` grava `user.email`/`user.name` fixos no config local da cópia (tools/aceite.py:63-64). Todos os commits feitos depois nessa cópia, inclusive os do aceite, saem com o autor \"StarCode Aceite\" em vez da identidade do usuário. Correção: passar a identidade só no commit inicial, por env (`GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`/`GIT_COMMITTER_*`) e apenas quando `git config user.email` vier vazio, sem gravar no config.",
+      "evidence": "tools/aceite.py:63"
+    },
+    {
+      "id": "W3",
+      "severity": "nit",
+      "path": "scripts/gates/images.py",
+      "line": 119,
+      "body": "🟡 `css_size` usa divisão inteira (scripts/gates/images.py:119): uma captura `@2x` de 1601x1201 vira 800x600 em CSS e aceita foto 800x600. Correção: ERRO quando o tamanho em pixels não é múltiplo da escala.",
+      "evidence": "scripts/gates/images.py:119"
+    }
+  ],
+  "carryover": {},
+  "research": [
+    "/tauri-apps/tauri-docs (Context7: mockIPC, __TAURI_INTERNALS__, window.isTauri)"
+  ],
+  "ladder": [
+    {
+      "command": "python tools/build.py && python tools/build.py --check && python scripts/check_decisions.py && python -m unittest discover -s tests && claude plugin validate dist/claude --strict",
+      "result": "exit 0, 658 testes OK"
+    },
+    {
+      "command": "run_gates.py proofs / done fase-11-telas",
+      "result": "verde, 45/45"
+    },
+    {
+      "command": "CI do PR #28 (checks ubuntu-latest)",
+      "result": "pass"
+    },
+    {
+      "command": "CI do PR #28 (checks windows-latest)",
+      "result": "pendente no momento do review"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "43 candidatos: noqa E402 aceitos (convenção), noqa F401 com justificativa na linha, hook-bypass em SKILL.md é a própria proibição; nenhum achado"
+    }
+  ]
+}
