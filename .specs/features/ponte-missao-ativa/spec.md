@@ -81,15 +81,15 @@ Proof: run unit | test_decisions_records_p151_2_elsewhere ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** fechar achados, provas, done
+**Next:** PR único do patch v1.5.1 (confirmar push/PR)
 **Linear:** SC-142
 **Integration branch:** not created
 **Last integrated:** Q2-fix SC-142 · 018b542
 **Dispatched:** none
 **Settled:** 2026-11-12: Corrigir os dois (Recommended)
 **Attempts:** none
-**Reports:** 2026-11-12: Q (codex): FAIL, 3 achados (R7 notificação sem capacidade; C4 só mtime/tamanho; desempate do R1 não especificado); 2026-11-12: Q2 (codex): 3 achados fechados; 2 novos abertos (same_path C:/ = c:; C5 por substring)
+**Reports:** 2026-11-12: Q (codex): FAIL, 3 achados (R7 notificação sem capacidade; C4 só mtime/tamanho; desempate do R1 não especificado); 2026-11-12: Q2 (codex): 3 achados fechados; 2 novos abertos (same_path C:/ = c:; C5 por substring); 2026-11-12: done verde; Q2 com 5 achados fechados
 **Breaker:** closed
