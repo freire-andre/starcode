@@ -28,6 +28,13 @@ export interface PonteFeature {
   }
 }
 
+/** Missão ativa de outro worktree do mesmo repositório (só quando a feature local está done ou ausente). */
+export interface PonteElsewhere extends PonteFeature {
+  worktree: string
+  branch: string | null
+  others: number
+}
+
 export interface PonteWorker {
   label: string
   issues: string[]
@@ -46,6 +53,8 @@ export interface PonteSnapshot {
   feature: PonteFeature | null
   workers: PonteWorker[]
   errors: { source: string; message: string }[]
+  /** Opcional: ausente ou null quando não há missão ativa em outro worktree. */
+  elsewhere?: PonteElsewhere | null
 }
 
 export interface PonteIssue {
@@ -83,6 +92,8 @@ declare module 'orca' {
     /** Abre um arquivo da feature numa aba do editor (T4). */
     'ponte.open': { input: { file: 'spec' | 'tasks' | 'handoff' }; output: { opened: boolean } }
     /** Inicia o agente do Picard no worktree em foco; `visible` diz se abriu numa aba visível (F10-15). */
+    /** Foca o worktree da missão ativa de outro worktree (`workspace.open`); `opened` false quando a Orca não o tem. */
+    'ponte.focusElsewhere': { input: Record<string, never>; output: { opened: boolean; message: string | null } }
     'ponte.launchPicard': { input: Record<string, never>; output: { terminalId: string | null; visible: boolean } }
   }
   interface PluginPanelEvents {

@@ -232,3 +232,39 @@ test('painel estreito quebra os atalhos', async () => {
   const linhas = (JSON.stringify(p.tree()).match(/"wrap":true/g) ?? []).length
   assert.ok(linhas >= 2, 'as linhas de botões dos Atalhos devem quebrar')
 })
+
+const ELSEWHERE = {
+  ...dados.feature!,
+  slug: 'ponte-missao-ativa', phase: 'execute', worktree: 'C:/wt/filho', branch: 'feat/filho', others: 1,
+  progress: { done: 2, total: 3, percent: 67 },
+}
+
+test('painel mostra a missão ativa de outro worktree', async () => {
+  const local = { ...dados.feature!, slug: 'feita-local', phase: 'done', done: true }
+  const pedidos: unknown[] = []
+  const h = mockHost({
+    requests: {
+      'ponte.state': () => estado({ snapshot: { ...dados, feature: local, elsewhere: ELSEWHERE } }),
+      'ponte.focusElsewhere': (i) => {
+        pedidos.push(i)
+        return { opened: true, message: null }
+      },
+    },
+  })
+  const p = await mount(panel, { host: h })
+  const t = text(p)
+  for (const s of ['Missão ativa em outro worktree', 'feat/filho', 'execute', '2/3', 'e mais 1', 'ponte-missao-ativa']) {
+    assert.ok(t.includes(s), s)
+  }
+  assert.ok(!t.includes('feita-local'))
+  await p.press({ type: 'Button', text: 'Focar worktree' })
+  assert.equal(pedidos.length, 1)
+  // sem elsewhere: a feature local, como antes
+  const q = await mount(panel, { host: host(estado({ snapshot: { ...dados, feature: local } })) })
+  assert.ok(text(q).includes('feita-local') && !text(q).includes('Missão ativa em outro worktree'))
+  // sem others: sem "e mais"
+  const r = await mount(panel, {
+    host: host(estado({ snapshot: { ...dados, feature: local, elsewhere: { ...ELSEWHERE, others: 0 } } })),
+  })
+  assert.ok(text(r).includes('Missão ativa em outro worktree') && !text(r).includes('e mais'))
+})

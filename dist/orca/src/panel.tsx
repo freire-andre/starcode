@@ -17,6 +17,16 @@ const shortcutOkAtom = atom<string | null>('ponte.shortcutOk', null)
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
+function focusElsewhere(): void {
+  set(shortcutErrAtom, null)
+  plugin
+    .request('ponte.focusElsewhere', {})
+    .then((r) => {
+      if (r && !r.opened && r.message) set(shortcutErrAtom, r.message)
+    })
+    .catch((e: unknown) => set(shortcutErrAtom, msg(e)))
+}
+
 function openFile(file: 'spec' | 'tasks' | 'handoff'): void {
   set(shortcutErrAtom, null)
   plugin.request('ponte.open', { file }).catch((e: unknown) => set(shortcutErrAtom, msg(e)))
@@ -110,7 +120,8 @@ function Body(props: { s: PonteState }) {
 
   const errs = (sec: Section) => snap.errors.filter((e) => sectionOf(e.source) === sec)
   const active = snap.crew.filter((c) => c.count > 0)
-  const f = snap.feature
+  const el = snap.elsewhere ?? null
+  const f = el ?? snap.feature
   return (
     <Stack gap="md">
       {s.stale ? <Badge tone="warning">desatualizado</Badge> : null}
@@ -151,6 +162,13 @@ function Body(props: { s: PonteState }) {
         {errs('feature').map((e) => <Unavailable message={e.message} />)}
         {f ? (
           <Stack gap="xs">
+            {el ? (
+              <Callout tone="warning" title="Missão ativa em outro worktree">
+                <Text>{`${el.branch ?? el.worktree} · ${el.phase}${el.progress.total > 0 ? ` · ${el.progress.done}/${el.progress.total}` : ''}`}</Text>
+                {el.others > 0 ? <Text muted size="sm">{`e mais ${el.others}`}</Text> : null}
+                <Button size="sm" onPress={focusElsewhere}>Focar worktree</Button>
+              </Callout>
+            ) : null}
             <KeyValue
               items={[
                 { label: 'Feature', value: f.slug },

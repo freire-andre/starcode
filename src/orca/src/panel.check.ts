@@ -58,5 +58,16 @@ export default defineCheck({
       issueNote: 'Sem issue vinculada',
     }),
   ),
+  'outro-worktree': reply(
+    estado({
+      snapshot: snap({
+        feature: { ...snap().feature!, phase: 'done', done: true },
+        elsewhere: {
+          ...snap().feature!, slug: 'ponte-missao-ativa', phase: 'execute', worktree: 'C:/wt/filho',
+          branch: 'feat/filho', others: 1, progress: { done: 2, total: 3, percent: 67 },
+        },
+      }),
+    }),
+  ),
   desatualizado: reply(estado({ stale: true, error: 'python não roda' })),
 })
