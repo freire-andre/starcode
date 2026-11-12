@@ -287,7 +287,6 @@ def build_elsewhere(snap: Snapshot) -> dict | None:
             snap.error(WORKTREES_SOURCE, f"worktree ausente: {Path(tree['path']).as_posix()}")
             continue
         other = Snapshot(path)
-        other.errors = snap.errors
         try:
             chosen = choose_feature(other)
             if chosen is None or chosen[2].get("phase") == "done":
@@ -297,6 +296,10 @@ def build_elsewhere(snap: Snapshot) -> dict | None:
         except (OSError, ValueError) as exc:
             snap.error(WORKTREES_SOURCE, f"worktree ilegível: {path.as_posix()} ({type(exc).__name__})")
             continue
+        finally:
+            # erros do outro worktree não se passam por erros das fontes locais
+            for item in other.errors:
+                snap.error(WORKTREES_SOURCE, f"{path.resolve().as_posix()}: {item['message']}")
         if feature is None:
             continue
         found.append((mtime, feature["slug"], path, tree["branch"], feature))
