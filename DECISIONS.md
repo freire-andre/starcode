@@ -845,3 +845,11 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** W1: `_check_screens` exige, para cada captura vinculante, uma linha da tabela Screen/Verdict que cite `<nome>.running.png` ou o nome da captura, senão `screens.md sem veredito para `<captura>``. W2: o `preparar` não grava identidade no config; passa `GIT_AUTHOR_*` e `GIT_COMMITTER_*` por env só ao commit inicial e só quando `git config user.email` vem vazio. W3: `css_size` dispara `ImageError` quando a largura ou a altura não é múltipla da escala do nome. CI: o teste compara com `Path(dest).resolve()`.
 - **Motivo:** o gate não pode aprovar uma tela que ninguém julgou, a cópia de aceite não pode impor autor ao usuário, e um tamanho ímpar em `@2x` indica captura errada.
 - **Por que não é bug:** `test_captura_vinculante_sem_veredito`, `test_aceite_preparar_nao_grava_identidade_na_copia` e `test_css_size_escala_nao_divide_o_tamanho` falharam antes das correções; o teste do aceite foi reproduzido com um diretório de nome 8.3 (`DIRETO~1`), falhou antes e passou depois.
+
+## Manutenção pós-1.5.0 (SC-143)
+
+### P151-1: itens com `cwd` do `scaffold.py checks` em subshell
+- **Problema:** `_joined` emendava os itens de gate com `cwd` como `cd <cwd> && <cmd>` numa corrente `&&`. No perfil tauri, a linha Build virava `npx biome check . && cd src-tauri && cargo fmt --check && cd src-tauri && cargo clippy ...`: o segundo `cd` falhava e os comandos seguintes (`npx tsc`, `npm run tauri build`) rodariam dentro de `src-tauri`.
+- **Decisão:** cada item com `cwd` vira `(cd <cwd> && <cmd>)`. O subshell isola o `cd`, e o item seguinte roda na raiz. O executor do `check_proofs.py` é o `bash -c` do Git para Windows (ou `/bin/sh`, ou `cmd.exe` sem Git Bash), e os três aceitam o parêntese. `scaffold.py gates`, que já rodava certo, não mudou.
+- **Motivo:** a linha gerada precisa rodar inteira, na ordem, a partir da raiz do projeto.
+- **Por que não é bug:** `test_checks_cwd_roda_a_partir_da_raiz` executa a linha gerada pelo `check_proofs.run` num diretório temporário, grava o diretório de cada item e confere raiz, `sub`, `sub`, raiz; falhou antes da correção com `cd: sub: No such file or directory`.

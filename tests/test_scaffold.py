@@ -333,3 +333,22 @@ class MiniYamlTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ChecksCwdTests(unittest.TestCase):
+    def test_checks_cwd_roda_a_partir_da_raiz(self):
+        import check_proofs
+        with tempfile.TemporaryDirectory(prefix="starcode-cwd-") as d:
+            root = Path(d).resolve()
+            (root / "sub").mkdir()
+            out = (root / "pwd.txt").as_posix()
+            py = Path(sys.executable).as_posix()
+            rec_py = root / "rec.py"
+            rec_py.write_text("import os, sys\nopen(sys.argv[1], 'a').write(os.getcwd() + '\\n')\n")
+            rec = f'"{py}" "{(root / "rec.py").as_posix()}" "{out}"'
+            line = scaffold._joined([(rec, None), (rec, "sub"), (rec, "sub"), (rec, None)])
+            bash, _ = check_proofs.shell_of()
+            code, output = check_proofs.run(root, line, bash)
+            self.assertEqual(code, 0, output)
+            seen = [Path(x).resolve() for x in (root / "pwd.txt").read_text().splitlines()]
+            self.assertEqual(seen, [root, root / "sub", root / "sub", root])
