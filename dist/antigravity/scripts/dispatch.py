@@ -49,6 +49,7 @@ for p in (HERE, HERE / "gates", HERE / "config"):
 
 import gates_common as gc  # noqa: E402
 import handoff  # noqa: E402
+import impact  # noqa: E402
 import lessons  # noqa: E402
 import screens  # noqa: E402
 import validate_config  # noqa: E402
@@ -421,6 +422,14 @@ def brief_template(name: str = "q-verify.md") -> Path:
     raise LookupError(f"briefs/{name} não encontrado no plugin")
 
 
+def regression_block(root: Path, base: str, head: str) -> str:
+    """Impact selection for the Q brief (R32); a failure never blocks the brief."""
+    try:
+        return impact.format_text(impact.select(root, diff=f"{base}..{head}"))
+    except Exception as exc:  # noqa: BLE001 - the brief is generated anyway
+        return f"seleção indisponível: {exc}; rode a suíte inteira"
+
+
 def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     fdir = gc.resolve_feature(slug, root, "spec.md")
     proj = gc.project_root(fdir)
@@ -431,6 +440,7 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     text = brief_template().read_text(encoding="utf-8")
     for key, val in values.items():
         text = text.replace("{{" + key + "}}", str(val).replace("\\", "/"))
+    text = text.replace("{{regression}}", regression_block(root, base, head))
     left = re.findall(r"\{\{[^}]+\}\}", text)
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do Q: {', '.join(sorted(set(left)))}")
