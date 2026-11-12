@@ -55,6 +55,36 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: proofs.md r1: C51 (tests/test_acceptance_doc_f10.py)
 - updated: 2026-11-10T14:38:54Z
 
+### L8 - Valide o comprimento e a estrutura do cabeçalho de uma imagem antes de ler as dimensões, porque um PNG truncado passava como legível.
+- signal: `weak_test` · features: 1 · scope: `imagens`
+- features: fase-11-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 1
+- updated: 2026-11-12T12:18:57Z
+
+### L9 - Valide URLs contra a string inteira (fullmatch), não só o começo, porque a regex aceitava https:// vazio e URL com espaço.
+- signal: `weak_test` · features: 1
+- features: fase-11-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 2
+- updated: 2026-11-12T12:18:57Z
+
+### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
+- signal: `weak_test` · features: 1
+- features: fase-11-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 3
+- updated: 2026-11-12T12:18:57Z
+
+### L11 - Separe em dois checks o caminho de erro e o de sucesso de um comando, porque um único teste de erro não prova que o comando produz a saída.
+- signal: `weak_test` · features: 1
+- features: fase-11-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 4
+- updated: 2026-11-12T12:18:58Z
+
+### L12 - Teste um registro de aceite pelos artefatos (tamanho das imagens, linhas do julgamento), não por palavras no texto, porque qualquer documento com os termos certos passava.
+- signal: `weak_test` · features: 1 · scope: `aceite`
+- features: fase-11-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 5
+- updated: 2026-11-12T12:18:58Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.

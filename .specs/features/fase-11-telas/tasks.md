@@ -483,7 +483,7 @@ Proof: run unit | test_fase11_acceptance_sections ... ok
 **Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** provas e done
+**Next:** PR (aguarda confirmação de push e PR)
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** ca16745
