@@ -25,8 +25,8 @@ class ReleaseDocsF11Tests(unittest.TestCase):
         self.assertNotIn("| removidas |", row)
 
         changelog = _read("CHANGELOG.md")
-        self.assertRegex(changelog, r"(?m)^## \[1\.5\.0\] - não lançada$")
-        section = re.split(r"^## ", changelog.split("## [1.5.0] - não lançada", 1)[1], flags=re.M)[0]
+        self.assertRegex(changelog, r"(?m)^## \[1\.5\.0\] - 2026-11-12$")
+        section = re.split(r"^## ", changelog.split("## [1.5.0] - 2026-11-12", 1)[1], flags=re.M)[0]
         self.assertIn("telas", section)
 
         compat = _read("docs/compatibilidade.md")
