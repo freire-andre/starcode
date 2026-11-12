@@ -208,6 +208,10 @@ yourself, as `git-modes.md` requires.
   make no 4th attempt, and stop with the 3 attempts (from `**Reports:**`) and two exits:
   (a) rethink the approach (back to Spock/Data when the problem is design), (b) go back to the last
   integrated commit of `I` (`**Last integrated:**`). With the user's choice, `--breaker closed`.
+- **Exit (b) in mode 1 (R29)** is the snapshot of the ticket that failed, not a commit. If `**Dispatched:**`
+  is not closed, `worker-stop` first. Run `python "<plugin-root>/scripts/snapshot.py" restore <slug> <ticket>`
+  **without `--yes`**, show the user the plan and the "fora do ticket" list, and ask for a yes for this
+  restore. Only then run it again with `--yes` and record `--breaker closed`.
 - A session that starts with `**Breaker:** open` proposes these two exits before any dispatch.
 - Stops: only the closed list (STARCODE.md, D29). Ordinary technical errors are fixed and counted.
 
@@ -215,6 +219,10 @@ yourself, as `git-modes.md` requires.
 - **One worktree** (the main issue's), tickets in sequence in the same tree, **no integration branch and
   no commits**. Dispatch with `--worktree <that worktree>`; skip `run_gates.py ticket` (no range) and
   the merge; compare `git status` before and after each worker instead.
+- **Snapshot before each dispatch (R28):** run
+  `python "<plugin-root>/scripts/snapshot.py" take <slug> <ticket>` before every LaForge dispatch and record
+  the printed line with `handoff.py set --report`. If `take` fails, the ticket is **not** dispatched.
+- **Snapshot drop (R30):** after `--phase done`, run `python "<plugin-root>/scripts/snapshot.py" drop <slug>`.
 - `run_gates.py proofs` marks `**Tree**: dirty (modo 1)`. The Q receives `git diff <B>` of the working
   tree: `q-brief --head HEAD`, then append to the brief the line "Modo Git 1: não há commits; use
   `git diff <B>` (árvore de trabalho) no lugar do intervalo."
