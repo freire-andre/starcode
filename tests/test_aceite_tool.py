@@ -34,7 +34,7 @@ class AceiteToolTests(unittest.TestCase):
             self.assertFalse((dest / "node_modules").exists())
             self.assertEqual(run_git(dest, "rev-list", "--count", "HEAD"), "1")
             self.assertEqual(run_git(dest, "config", "core.autocrlf"), "false")
-            self.assertIn(str(dest), res.stdout)
+            self.assertIn(str(Path(dest).resolve()), res.stdout)
             self.assertIn("npm ci", res.stdout)
             self.assertIn("orca repo add", res.stdout)
             self.assertIn("starcode:setup", res.stdout)
