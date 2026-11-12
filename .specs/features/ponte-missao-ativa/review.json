@@ -1,0 +1,49 @@
+{
+ "round": 1,
+ "verdict": "COMMENT",
+ "summary": "TL;DR: COMMENT. SC-143 e SC-142 corretas e cobertas por testes. Um should-fix: com missão de outro worktree, o painel mostra essa missão, mas os botões Abrir spec/tasks/Handoff continuam abrindo os arquivos da feature local (done). Um nit sobre erros do outro worktree caírem nas seções locais.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "should-fix",
+   "path": "src/orca/src/panel.tsx",
+   "line": 127,
+   "body": "Quando `elsewhere` existe, o painel mostra a missão do outro worktree no lugar da local (`const f = el ?? snap.feature`), mas os atalhos usam `s.snapshot.feature.files` (panel.tsx:212), e o handler `ponte.open` abre `snap.feature.files` no workspace em foco (worker.ts:509-514). O usuário vê a missão X e, ao clicar em Abrir spec, abre a spec da feature local done Y. Sugestão: com `elsewhere`, desabilitar esses três botões (o atalho Focar worktree leva até a missão) ou rotulá-los como da feature local.",
+   "evidence": "src/orca/src/panel.tsx:127; src/orca/src/panel.tsx:212; src/orca/src/worker.ts:509"
+  },
+  {
+   "id": "W2",
+   "severity": "nit",
+   "path": "scripts/ponte.py",
+   "line": 290,
+   "body": "`other.errors = snap.errors` faz erros de leitura do outro worktree (fontes como o Handoff) entrarem com a mesma `source` das fontes locais, e o painel os mostra nas seções locais (sectionOf). Prefixar a mensagem com o caminho do worktree, ou usar a fonte `worktrees`, deixaria claro de onde vem o erro.",
+   "evidence": "scripts/ponte.py:290"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "Orca host API (orca skills get orca-plugin-authoring --reference references/host-api.md): workspace.open exige workspace:write; workspace.list exige workspace:read; notifications.show exige capacidade própria"
+ ],
+ "ladder": [
+  {
+   "command": "python tools/build.py --check && python scripts/check_decisions.py && python -m unittest discover -s tests",
+   "result": "exit 0, 670 testes OK (worktree no C:, árvore idêntica ao HEAD)"
+  },
+  {
+   "command": "orca plugin validate/test/check src/orca",
+   "result": "exit 0, 69 testes do plugin (worktree no C:; no F: o harness da Orca 1.4.257 falha para qualquer plugin)"
+  },
+  {
+   "command": "run_gates.py proofs / done ponte-missao-ativa",
+   "result": "verde"
+  },
+  {
+   "command": "git diff origin/main...HEAD | scan_bypasses.py",
+   "result": "1 candidato (worker.test.ts:917, `as any` em teste): descartado, só leitura do mock"
+  },
+  {
+   "command": "CI do PR #31",
+   "result": "ubuntu e windows pass, 670 testes OK em cada"
+  }
+ ]
+}
