@@ -54,6 +54,12 @@ def image_size(path) -> tuple[int, int]:
 
 
 def _png(data: bytes) -> tuple[int, int]:
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ImageError("cabeçalho PNG ilegível (assinatura ausente)")
+    if len(data) < 33:
+        raise ImageError("cabeçalho PNG ilegível (arquivo truncado antes do fim do IHDR)")
+    if struct.unpack(">I", data[8:12])[0] != 13:
+        raise ImageError("cabeçalho PNG ilegível (IHDR com tamanho inválido)")
     if data[12:16] != b"IHDR":
         raise ImageError("cabeçalho PNG ilegível (IHDR ausente)")
     return struct.unpack(">II", data[16:24])

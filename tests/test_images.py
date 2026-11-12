@@ -64,6 +64,13 @@ class ImageTests(ImagesCase):
     def test_image_size_png(self):
         self.assertEqual(images.image_size(self.write("a.png", png_bytes(7, 5))), (7, 5))
 
+    def test_png_truncado_antes_do_fim_do_ihdr_da_erro(self):
+        # assinatura + IHDR com 7x9, mas cortado antes do fim do chunk (sem bit depth/CRC)
+        cortado = png_bytes(7, 9)[:8 + 4 + 4 + 8 + 2]
+        with self.assertRaises(images.ImageError) as ctx:
+            images.image_size(self.write("t.png", cortado))
+        self.assertIn("t.png", str(ctx.exception))
+
     def test_image_size_jpeg(self):
         self.assertEqual(images.image_size(self.write("a.jpg", jpeg_bytes(30, 20))), (30, 20))
 
