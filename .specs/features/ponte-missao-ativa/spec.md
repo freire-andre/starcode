@@ -84,12 +84,12 @@ Proof: run unit | test_decisions_records_p151_2_elsewhere ... ok
 **Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** provas, done, Worf r2
+**Next:** push, CI, publicar Worf r2, autorização de merge
 **Linear:** SC-142
 **Integration branch:** not created
 **Last integrated:** Worf-fix · 8eaaf36
 **Dispatched:** none
 **Settled:** 2026-11-12: Corrigir os dois (Recommended); 2026-11-12: vou na sua recomendação
 **Attempts:** none
-**Reports:** 2026-11-12: Q (codex): FAIL, 3 achados (R7 notificação sem capacidade; C4 só mtime/tamanho; desempate do R1 não especificado); 2026-11-12: Q2 (codex): 3 achados fechados; 2 novos abertos (same_path C:/ = c:; C5 por substring); 2026-11-12: done verde; Q2 com 5 achados fechados; 2026-11-12: PR #31 aberto; 2026-11-12: Worf r1: COMMENT (W1 should-fix, W2 nit), publicado no PR #31; CI verde 670/670
+**Reports:** 2026-11-12: Q (codex): FAIL, 3 achados (R7 notificação sem capacidade; C4 só mtime/tamanho; desempate do R1 não especificado); 2026-11-12: Q2 (codex): 3 achados fechados; 2 novos abertos (same_path C:/ = c:; C5 por substring); 2026-11-12: done verde; Q2 com 5 achados fechados; 2026-11-12: PR #31 aberto; 2026-11-12: Worf r1: COMMENT (W1 should-fix, W2 nit), publicado no PR #31; CI verde 670/670; 2026-11-12: Worf r2: APPROVE (W1, W2 resolvidos)
 **Breaker:** closed
