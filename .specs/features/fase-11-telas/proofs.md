@@ -1,9 +1,9 @@
 # fase-11-telas proofs
 
-**HEAD**: e747017
+**HEAD**: 4f58213
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 44 pass, 0 fail
+**Result**: 45 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -49,6 +49,7 @@
 | C38 | `run unit / test_fase11_acceptance_sections ... ok` | pass |
 | C39 | `run unit / test_template_tauri_gitattributes_lf ... ok` | pass |
 | C40 | `run unit / test_aceite_preparar_materializa_fixture ... ok` | pass |
+| C40 | `run unit / test_aceite_preparar_filtra_pastas_em_toda_a_arvore ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `python scripts/check_decisions.py` | pass |
 
@@ -69,7 +70,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 657 tests in 273.513s
+Ran 658 tests in 269.937s
 
 OK
 ```

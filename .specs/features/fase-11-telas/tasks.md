@@ -515,18 +515,19 @@ Proof: run unit | test_template_tauri_gitattributes_lf ... ok
 
 **C40** - `tools/aceite.py preparar telas` materializa a fixture fora do repositório, com git e sem `node_modules`, e recusa destino inválido (R39)
 Proof: run unit | test_aceite_preparar_materializa_fixture ... ok
+Proof: run unit | test_aceite_preparar_filtra_pastas_em_toda_a_arvore ... ok
 
 ## Handoff
 
 **Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** correção do achado 6
+**Next:** provas, done e PR
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
-**Last integrated:** e747017
-**Dispatched:** fix-Q2 · SC-146 · base 9004d34 · claude:claude-sonnet-5-5 · 13:13Z
+**Last integrated:** 4f58213
+**Dispatched:** none
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12); 2026-11-12: T11 acrescentado a pedido do usuário: "Fixture + script (Recommended)", "Nesta fase, como T11 (Recommended)" (2026-11-12); R39, C39 e C40 acrescentados
 **Attempts:** none
-**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63); 2026-11-12: Q2 (C39, C40): FAIL, achado 6 (ctx_7ccdba933616 · codex gpt-6-luna)
+**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63); 2026-11-12: Q2 (C39, C40): FAIL, achado 6 (ctx_7ccdba933616 · codex gpt-6-luna); 2026-11-12: correção do achado 6 integrada 4f58213 (954f685)
 **Breaker:** closed
