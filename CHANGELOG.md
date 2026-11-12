@@ -8,6 +8,8 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-12
+
 ### Adicionado
 
 - Fase 12: `scripts/snapshot.py` guarda um snapshot por ticket no modo 1 (`refs/starcode/snapshots/<slug>/<ticket>`, índice temporário, sem commit no branch) e `restore` com confirmação só toca o `May change`.

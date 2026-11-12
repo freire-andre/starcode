@@ -451,7 +451,7 @@ Proof: run unit | test_acceptance_doc_f12 ... ok
 **Phase:** done
 **Size:** LARGE
 **Git mode:** 3
-**Next:** nenhum: feature mergeada (PR #34, 444702b)
+**Next:** release v1.6.0 (PR chore/release-1.6.0)
 **Linear:** SC-19 (mãe); SC-149..SC-156; doc https://linear.app/cifren/document/spec-fase-12-robustez-v16-92380a1ae716
 **Integration branch:** feature/fase-12-robustez
 **Last integrated:** 3fa4e7b

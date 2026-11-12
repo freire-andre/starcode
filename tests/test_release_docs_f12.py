@@ -23,7 +23,8 @@ class ReleaseDocsF12Tests(unittest.TestCase):
         self.assertIn("F12-7", ids)
 
         changelog = _read("CHANGELOG.md")
-        section = re.split(r"^## ", changelog.split("## [Unreleased]", 1)[1], flags=re.M)[0]
+        self.assertRegex(changelog, r"(?m)^## \[1\.6\.0\] - 2026-11-12$")
+        section = re.split(r"^## ", changelog.split("## [1.6.0] - 2026-11-12", 1)[1], flags=re.M)[0]
         self.assertIn("snapshot", section)
         self.assertIn("raio de impacto", section)
 
