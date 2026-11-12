@@ -209,7 +209,8 @@ function Body(props: { s: PonteState }) {
 
 function Shortcuts(props: { s: PonteState | null }) {
   const { s } = props
-  const files = s?.snapshot?.feature?.files
+  // com missão em outro worktree, os arquivos locais não são os da missão mostrada
+  const files = s?.snapshot?.elsewhere ? undefined : s?.snapshot?.feature?.files
   const launching = read(launchingAtom)
   const err = read(shortcutErrAtom)
   const ok = read(shortcutOkAtom)
