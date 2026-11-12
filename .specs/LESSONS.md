@@ -91,6 +91,36 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: .specs/features/fase-11-telas/verification.md:achado 6
 - updated: 2026-11-12T13:24:05Z
 
+### L14 - Antes de exigir uma chamada de host da Orca num requisito, confirme no host-api a capacidade que ela pede e se o manifesto a tem; requisito que depende de capacidade ausente contradiz um Non-Goal de não pedir capacidades.
+- signal: `spec_precision_gap` · features: 1 · scope: `src/orca`
+- features: ponte-missao-ativa
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, R7)
+- updated: 2026-11-12T16:46:42Z
+
+### L15 - Teste de 'nada foi escrito' compara bytes e a lista de arquivos antes e depois; mtime e tamanho não detectam uma escrita que os preserve.
+- signal: `weak_test` · features: 1
+- features: ponte-missao-ativa
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, C4)
+- updated: 2026-11-12T16:46:42Z
+
+### L16 - Critério 'o mais recente' precisa dizer o desempate quando a chave empata (ex.: mesmo mtime), com um caso de teste que o fixe.
+- signal: `spec_precision_gap` · features: 1
+- features: ponte-missao-ativa
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, R1)
+- updated: 2026-11-12T16:46:42Z
+
+### L17 - Normalização de caminho Windows não pode tirar a barra da raiz do drive: 'C:/' (raiz) e 'c:' (relativo ao drive) são diferentes; teste a raiz junto dos casos comuns.
+- signal: `weak_test` · features: 1 · scope: `scripts`
+- features: ponte-missao-ativa
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 2, same_path)
+- updated: 2026-11-12T16:46:42Z
+
+### L18 - Teste de texto composto exibido ao usuário compara a string inteira esperada, não substrings soltas que aceitam partes extras ou repetidas.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-missao-ativa
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)
+- updated: 2026-11-12T16:46:42Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
