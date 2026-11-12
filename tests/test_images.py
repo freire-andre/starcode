@@ -105,6 +105,12 @@ class ImageTests(ImagesCase):
         q = self.write("outra.png", png_bytes(40, 20))
         self.assertEqual(images.css_size(q), (40, 20))
 
+    def test_css_size_escala_nao_divide_o_tamanho(self):
+        p = self.write("x@2x.png", png_bytes(1601, 1200))
+        with self.assertRaises(images.ImageError) as cm:
+            images.css_size(p)
+        self.assertIn("x@2x.png", str(cm.exception))
+
     def test_same_css_1x_2x_3x(self):
         self.assertTrue(images.same_css((100, 50), (100, 50)))
         self.assertTrue(images.same_css((200, 100), (100, 50)))

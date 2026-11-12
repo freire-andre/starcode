@@ -34,7 +34,7 @@ class AceiteToolTests(unittest.TestCase):
             self.assertFalse((dest / "node_modules").exists())
             self.assertEqual(run_git(dest, "rev-list", "--count", "HEAD"), "1")
             self.assertEqual(run_git(dest, "config", "core.autocrlf"), "false")
-            self.assertIn(str(dest), res.stdout)
+            self.assertIn(str(Path(dest).resolve()), res.stdout)
             self.assertIn("npm ci", res.stdout)
             self.assertIn("orca repo add", res.stdout)
             self.assertIn("starcode:setup", res.stdout)
@@ -48,6 +48,28 @@ class AceiteToolTests(unittest.TestCase):
             # nome inexistente
             self.assertEqual(_run("preparar", "nao-existe", "--destino",
                                   str(Path(tmp) / "outro")).returncode, 2)
+
+    def test_aceite_preparar_nao_grava_identidade_na_copia(self):
+        with tempfile.TemporaryDirectory(prefix="aceite-id-") as tmp:
+            vazio = Path(tmp) / "gitconfig-vazio"
+            vazio.write_text("", encoding="utf-8")
+            env = {"GIT_CONFIG_GLOBAL": str(vazio), "GIT_CONFIG_NOSYSTEM": "1"}
+            old = dict(os.environ)
+            os.environ.update(env)
+            try:
+                dest = Path(tmp) / "app"
+                res = _run("preparar", "telas", "--destino", str(dest))
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertEqual(run_git(dest, "rev-list", "--count", "HEAD"), "1")
+            local = subprocess.run(["git", "config", "--local", "user.email"], cwd=dest,
+                                   capture_output=True, text=True, stdin=subprocess.DEVNULL)
+            self.assertEqual(local.stdout.strip(), "")
+            local = subprocess.run(["git", "config", "--local", "user.name"], cwd=dest,
+                                   capture_output=True, text=True, stdin=subprocess.DEVNULL)
+            self.assertEqual(local.stdout.strip(), "")
 
     def test_aceite_preparar_filtra_pastas_em_toda_a_arvore(self):
         sys.path.insert(0, str(ROOT / "tools"))

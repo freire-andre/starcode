@@ -143,6 +143,10 @@ def _check_screens(fdir: Path, strict: bool, res: gc.Result) -> None:
     for screen, verdict in rows:
         if not verdict.strip("*` ").lower().startswith("match"):
             res.errors.append(f"screens.md: a tela `{screen}` está '{verdict[:40]}', não `match`")
+    for cap in caps:
+        run_name = images.running_path(cap).name
+        if not any(run_name in screen or cap.name in screen for screen, _ in rows):
+            res.errors.append(f"screens.md sem veredito para `{cap.name}`")
     if spath.exists():
         m = ROUND_RE.search(body)
         if not m:

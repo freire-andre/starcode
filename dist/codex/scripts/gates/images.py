@@ -116,6 +116,8 @@ def capture_scale(nome) -> int:
 def css_size(path) -> tuple[int, int]:
     w, h = image_size(path)
     k = capture_scale(Path(path).name)
+    if w % k or h % k:
+        raise ImageError(f"`{Path(path).name}` tem {w}x{h}, que não é múltiplo da escala {k}x")
     return w // k, h // k
 
 
