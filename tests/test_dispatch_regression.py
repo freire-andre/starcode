@@ -36,13 +36,15 @@ class DispatchRegressionTests(TempRepoCase):
         self.assertIn("rodar tudo: fora do grafo: notas.txt", text)
 
     def test_q_brief_impact_indisponivel(self):
+        erro = impact.ImpactError("diff -z", "ref naoexiste inválida")
+        with mock.patch.object(impact, "select", side_effect=erro):
+            text = dispatch.q_brief("demo", self.repo, "main", "naoexiste")
+        bloco = "seleção indisponível: diff -z: ref naoexiste inválida; rode a suíte inteira"
+        self.assertIn("```\n" + bloco + "\n```", text)
+        self.assertNotIn("{{", text)
         with mock.patch.object(impact, "select", side_effect=RuntimeError("quebrou")):
             text = dispatch.q_brief("demo", self.repo, "HEAD~1", "HEAD")
-        self.assertIn("seleção indisponível: quebrou; rode a suíte inteira", text)
-        text = dispatch.q_brief("demo", self.repo, "main", "naoexiste")
-        self.assertIn("seleção indisponível: ", text)
-        self.assertIn("; rode a suíte inteira", text)
-        self.assertNotIn("{{", text)
+        self.assertIn("```\nseleção indisponível: quebrou; rode a suíte inteira\n```", text)
 
     def test_q_verify_regra_regression_autocontida(self):
         brief = (ROOT / "src" / "briefs" / "q-verify.md").read_text(encoding="utf-8")
