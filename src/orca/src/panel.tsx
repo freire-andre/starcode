@@ -14,15 +14,17 @@ const OK_BACKGROUND = 'Picard iniciado em segundo plano'
 const launchingAtom = atom<boolean>('ponte.launching', false)
 const shortcutErrAtom = atom<string | null>('ponte.shortcutErr', null)
 const shortcutOkAtom = atom<string | null>('ponte.shortcutOk', null)
+const elsewhereMsgAtom = atom<string | null>('ponte.elsewhereMsg', null)
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 function focusElsewhere(): void {
   set(shortcutErrAtom, null)
+  set(elsewhereMsgAtom, null)
   plugin
     .request('ponte.focusElsewhere', {})
     .then((r) => {
-      if (r && !r.opened && r.message) set(shortcutErrAtom, r.message)
+      if (r && !r.opened && r.message) set(elsewhereMsgAtom, r.message)
     })
     .catch((e: unknown) => set(shortcutErrAtom, msg(e)))
 }
@@ -121,6 +123,7 @@ function Body(props: { s: PonteState }) {
   const errs = (sec: Section) => snap.errors.filter((e) => sectionOf(e.source) === sec)
   const active = snap.crew.filter((c) => c.count > 0)
   const el = snap.elsewhere ?? null
+  const elsewhereMsg = read(elsewhereMsgAtom)
   const f = el ?? snap.feature
   return (
     <Stack gap="md">
@@ -167,6 +170,7 @@ function Body(props: { s: PonteState }) {
                 <Text>{`${el.branch ?? el.worktree} · ${el.phase}${el.progress.total > 0 ? ` · ${el.progress.done}/${el.progress.total}` : ''}`}</Text>
                 {el.others > 0 ? <Text muted size="sm">{`e mais ${el.others}`}</Text> : null}
                 <Button size="sm" onPress={focusElsewhere}>Focar worktree</Button>
+                {elsewhereMsg ? <Text tone="danger" size="sm">{elsewhereMsg}</Text> : null}
               </Callout>
             ) : null}
             <KeyValue

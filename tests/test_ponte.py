@@ -307,6 +307,17 @@ class ElsewhereTests(PonteCase):
         # sem feature local também procura
         (self.repo / ".specs" / "features" / "feita" / "spec.md").unlink()
         self.assertEqual(self.snap()["elsewhere"]["slug"], "missao-b")
+        # empate de mtime: sai o maior slug (lexicográfico), mesmo em outro worktree
+        c = self.linked("wt-c")
+        self.feature_in(c, "missao-z", "tasks-ativa.md", "tasks.md", 3_000_000)
+        el = self.snap()["elsewhere"]
+        self.assertEqual(el["slug"], "missao-z")
+        self.assertEqual(el["others"], 2)
+        # o menor slug perde também quando o worktree vem antes na listagem
+        d = self.linked("wt-d")
+        self.feature_in(d, "missao-0", "tasks-ativa.md", "tasks.md", 3_000_000)
+        el = self.snap()["elsewhere"]
+        self.assertEqual((el["slug"], el["others"]), ("missao-z", 3))
 
     def test_elsewhere_ignores_done_and_focus_worktree(self) -> None:
         self.write_repo_config()
@@ -362,17 +373,18 @@ class ElsewhereTests(PonteCase):
         a = self.linked("wt-a")
         self.feature_in(a, "missao-a", "tasks-ativa.md", "tasks.md", 2_000_000)
 
-        def tree(base: Path) -> dict[str, tuple[int, int]]:
-            out = {}
+        def tree(base: Path) -> dict[str, object]:
+            # lista de arquivos (chaves) + conteúdo em bytes (None para pastas) + mtime
+            out: dict[str, object] = {}
             for p in base.rglob("*"):
                 rel = p.relative_to(base).as_posix()
                 if rel == ".git" or rel.startswith(".git/"):
                     continue
-                st = p.stat()
-                out[rel] = (st.st_mtime_ns, st.st_size)
+                out[rel] = (p.stat().st_mtime_ns, p.read_bytes() if p.is_file() else None)
             return out
 
         before = (tree(self.repo), tree(a))
+        self.assertIn(".specs/features/missao-a/tasks.md", before[1])
         res = run_cli(self.repo)
         self.assertEqual(res.returncode, 0, res.stderr)
         data = json.loads(res.stdout)
