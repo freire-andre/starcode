@@ -8,7 +8,9 @@ Conduzido pelo Picard com o usuário em 2026-11-11 e 2026-11-12; registrado pelo
 
 **Resultado**: aprovado
 
-App Tauri novo em `F:\Projetos\starcode-telas`, criado pelo Scotty com `scaffold.py new --profile tauri --pin-tested` (Tauri 2.12.5, @tauri-apps/api 2.12.4, Vite 8.3.8). Os 8 gates do perfil passaram, incluindo `npm run tauri build -- --debug --no-bundle`. Git local sem remoto, modo Git 2, ramo `feature/tela-saudacao`. Linear (time PROJ): PROJ-34 (Done).
+App Tauri novo, criado pelo Scotty com `scaffold.py new --profile tauri --pin-tested` (Tauri 2.12.5, @tauri-apps/api 2.12.4, Vite 8.3.8). Os 8 gates do perfil passaram, incluindo `npm run tauri build -- --debug --no-bundle`. Git local sem remoto, modo Git 2, ramo `feature/tela-saudacao`. Linear (time PROJ): PROJ-34 (Done).
+
+O aceite rodou na cópia de trabalho `F:\Projetos\starcode-telas`; a fixture `aceite/telas/` guarda os fontes versionados desse app (veja `python tools/aceite.py preparar telas`).
 
 ## Mockup
 

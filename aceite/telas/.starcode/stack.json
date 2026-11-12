@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    "tauri"
+  ],
+  "versions": {
+    "tauri": {
+      "version": "2.12.5",
+      "registry": "crates",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "tauri-build": {
+      "version": "2.7.4",
+      "registry": "crates",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "@tauri-apps/cli": {
+      "version": "2.12.4",
+      "registry": "npm",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "@tauri-apps/api": {
+      "version": "2.12.4",
+      "registry": "npm",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "vite": {
+      "version": "8.3.8",
+      "registry": "npm",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "typescript": {
+      "version": "7.0.2",
+      "registry": "npm",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "vitest": {
+      "version": "5.1.0",
+      "registry": "npm",
+      "source": "registry",
+      "at": "2026-11-12"
+    },
+    "@biomejs/biome": {
+      "version": "2.6.7",
+      "registry": "npm",
+      "source": "registry",
+      "at": "2026-11-12"
+    }
+  }
+}

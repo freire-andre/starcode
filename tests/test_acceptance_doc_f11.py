@@ -37,7 +37,8 @@ class AcceptanceDocF11Tests(unittest.TestCase):
             for name in SECTIONS:
                 self.assertIn("**Resultado**: aprovado", parts[name], f"{name} não aprovado")
         # R35: app Tauri novo, issues PROJ e mockup
-        self.assertIn(r"F:\Projetos\starcode-telas", parts["App"])
+        self.assertIn("aceite/telas/", parts["App"])
+        self.assertTrue((ROOT / "aceite" / "telas" / "package.json").is_file())
         self.assertIn("PROJ-34", parts["App"])
         self.assertIn("800x600", parts["Mockup"])
         self.assertTrue(FILE.search(parts["Mockup"]), "Mockup: sem cópia do mockup")

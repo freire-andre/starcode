@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ponte de Comando</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <span class="dot"></span>
+      <span class="brand">Ponte de Comando</span>
+    </header>
+    <main>
+      <section class="card">
+        <h1>Saudação da Frota</h1>
+        <p class="lead">Identifique-se para receber as boas-vindas.</p>
+        <form id="greet-form">
+          <label for="greet-input">Seu nome</label>
+          <div class="row">
+            <input id="greet-input" placeholder="Ex.: Jean-Luc" autocomplete="off" />
+            <button type="submit">Saudar</button>
+          </div>
+        </form>
+        <p id="greet-msg" class="message">A saudação aparece aqui.</p>
+      </section>
+    </main>
+    <footer class="footer">StarCode · aceite da Fase 11</footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
