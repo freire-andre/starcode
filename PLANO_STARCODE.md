@@ -292,7 +292,7 @@ Regra complementar (tlc-lean): **os checks são o piso**. Um caso de borda ou gu
 
 **Disjuntor**
 - Cada tentativa de correção é registrada no relatório do worker com uma identificação **estável** do erro (a mesma para o mesmo problema), o número da tentativa e o resultado. Um sucesso zera a contagem daquele erro.
-- Na **3ª falha do mesmo erro**, o tripulante para. Nunca faz a 4ª tentativa às cegas. O Picard mostra as 3 tentativas e oferece: (a) repensar a abordagem (volta para Spock/Data se o problema for de desenho) ou (b) voltar ao último ponto bom (último commit integrado; no modo 1, o snapshot da Fase 12, quando existir).
+- Na **3ª falha do mesmo erro**, o tripulante para. Nunca faz a 4ª tentativa às cegas. O Picard mostra as 3 tentativas e oferece: (a) repensar a abordagem (volta para Spock/Data se o problema for de desenho) ou (b) voltar ao último ponto bom (último commit integrado; no modo 1, o snapshot da Fase 12, que existe: `snapshot.py restore` do ticket, com confirmação).
 - O banner avisa quando o Handoff mostra um disjuntor aberto ao retomar uma sessão.
 - Limite conhecido: um loop em que o erro é descrito de forma diferente a cada tentativa depende da disciplina do agente; o detector só pega o caso com a mesma identificação.
 
@@ -635,8 +635,8 @@ Regra de avanço: **cada fase só começa com a evidência de aceite da anterior
 - **Aceite**: uma feature Tauri com mockup vinculante tem as telas capturadas no tamanho do mockup e julgadas, com `screens.md` aceito pelo `validate_verification`.
 
 ### Fase 12: Robustez (v1.6)
-- **Snapshot no modo 1**: antes de cada ticket, um snapshot da árvore de trabalho guardado num ref próprio (`git stash create` + `git update-ref refs/starcode/snapshots/<ticket>`), sem commit no branch e sem mexer na árvore. É o "último ponto bom" do disjuntor no modo 1; restaurar pede confirmação.
-- **Testes por raio de impacto**: McCoy e Q escolhem os testes de regressão a partir dos dependentes reversos do que mudou (grafo de imports por linguagem do perfil). Se não conseguir mapear a mudança, roda tudo; nunca devolve um conjunto vazio.
+- **Snapshot no modo 1**: antes de cada ticket, um snapshot da árvore de trabalho guardado num ref próprio por feature e ticket (`refs/starcode/snapshots/<slug>/<ticket>`), montado com um índice temporário (`read-tree HEAD`, `add -A`, `write-tree`, `commit-tree`, `update-ref`), sem commit no branch e sem mexer na árvore nem no índice real. É o "último ponto bom" do disjuntor no modo 1; restaurar pede confirmação e só toca os caminhos do `May change` do ticket.
+- **Testes por raio de impacto**: McCoy e Q escolhem os testes de regressão a partir dos dependentes reversos do que mudou (grafo de imports em Python e TS/JS; Rust e outras linguagens rodam tudo). Se não conseguir mapear a mudança, roda tudo; nunca devolve um conjunto vazio.
 - **Aceite**: o disjuntor no modo 1 restaura o snapshot do ticket com confirmação, sem perder arquivos fora do ticket; numa mudança numa função compartilhada, os testes escolhidos incluem os dos chamadores indiretos, e numa mudança fora do grafo o veredito é "rodar tudo".
 
 ---

@@ -29,6 +29,8 @@ Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️
 | Perfis de stack (`dist/<cli>/profiles/`) e skills `uhura`, `scotty`, `nova-missao` | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ | ✅ ¹⁴ |
 | Skills `worf`, `guinan`, `diagnostico` e `scripts/review/`, `scripts/harness/` | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ | ✅ ¹⁵ |
 | Verificação de telas (`screens.py`, juiz de telas): navegador da Orca, independente do CLI; sem navegador, degradada (foto do autor) | ✅ | ✅ | ✅ | ✅ |
+| Snapshot por ticket no modo 1 (`snapshot.py`): ref `refs/starcode/snapshots/<slug>/<ticket>`, só Git, independente do CLI | ✅ | ✅ | ✅ | ✅ |
+| Raio de impacto (`impact.py`): Python e TS/JS por imports; Rust e outras linguagens = rodar tudo; import dinâmico não visto | ✅ | ✅ | ✅ | ✅ |
 
 ## Painel Ponte
 

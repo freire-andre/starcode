@@ -8,6 +8,12 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+### Adicionado
+
+- Fase 12: `scripts/snapshot.py` guarda um snapshot por ticket no modo 1 (`refs/starcode/snapshots/<slug>/<ticket>`, índice temporário, sem commit no branch) e `restore` com confirmação só toca o `May change`.
+- Fase 12: `scripts/impact.py` calcula o raio de impacto (grafo de imports Python e TS/JS) e escolhe os testes de regressão; na dúvida, "rodar tudo".
+- Fase 12: o brief do Q leva a seleção de regressão do raio de impacto e o McCoy roda os testes escolhidos antes do gate.
+
 ## [1.5.1] - 2026-11-12
 
 ### Corrigido
