@@ -521,12 +521,12 @@ Proof: run unit | test_aceite_preparar_materializa_fixture ... ok
 **Phase:** review
 **Size:** GRANDE
 **Git mode:** 3
-**Next:** provas, done e PR
+**Next:** correção do achado 6
 **Linear:** SC-18 (mãe); SC-133..SC-141
 **Integration branch:** feature/fase-11-telas
 **Last integrated:** e747017
 **Dispatched:** none
 **Settled:** 2026-11-12: T10 acrescentado a pedido do usuário: "sim, corrige o .gitattributes nesta fase" (2026-11-12); 2026-11-12: T11 acrescentado a pedido do usuário: "Fixture + script (Recommended)", "Nesta fase, como T11 (Recommended)" (2026-11-12); R39, C39 e C40 acrescentados
 **Attempts:** none
-**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63)
+**Reports:** 2026-11-12: 2026-11-12: Q FAIL com 5 achados (ctx_439862bacaa3 · codex gpt-6-luna); 2026-11-12: 2026-11-12: correção pós-Q integrada ca16745 (98276ba, cf601b4, 88d24fd, fc0cd73, 05a3a7d, c9b8a63); 2026-11-12: Q2 (C39, C40): FAIL, achado 6 (ctx_7ccdba933616 · codex gpt-6-luna)
 **Breaker:** closed

@@ -1,8 +1,8 @@
 # fase-11-telas verification
 
 **Verdict**: FAIL
-**Proofs**: `proofs.md` at 4ae24b1
-**HEAD**: 22b2a1b
+**Proofs**: `proofs.md` at e747017
+**HEAD**: 8712cd2
 **Verifier**: codex · requested padrão do CLI · effective gpt-6-luna (medium, lido no terminal)
 
 ## Checks
@@ -47,6 +47,8 @@
 | C36 | `tests/test_acceptance_doc_f11.py` `test_fase11_acceptance_sections` | no - procura `matches`, `running` e `exit 0` no texto; não executa o fluxo nem o gate sobre a feature de aceite (Finding 5). |
 | C37 | `tests/test_acceptance_doc_f11.py` `test_fase11_acceptance_sections` | no - procura `diverges`, `copy` e `same` no texto; não confere o conteúdo dos vereditos nem que a divergência foi corrigida entre as fotos (Finding 5). |
 | C38 | `tests/test_acceptance_doc_f11.py` `test_fase11_acceptance_sections` | no - valida presença de seções e rótulos, não que o resultado aprovado decorra do aceite executado (Finding 5). |
+| C39 | `tests/test_profile_gitattributes.py` `test_template_tauri_gitattributes_lf` | yes |
+| C40 | `tests/test_aceite_tool.py` `test_aceite_preparar_materializa_fixture` | no - verifica ausência de `node_modules` apenas na raiz do destino, não em subpastas; a asserção é mais fraca que a exclusão recursiva pedida em R39 (Finding 6). |
 
 ## Findings
 
@@ -57,6 +59,7 @@
 | 3. C11 não demonstra que uma foto 2x de captura 1x passa, como afirma o check. | `tests/test_validate_verification_screens.py:74` — o teste citado cobre só a foto com tamanho incorreto; a aprovação 2x está em `test_running_2x_de_captura_1x_passa`, não citado na prova de C11. | Citar o teste positivo também ou dividir o check em dois. | 88d24fd |
 | 4. O teste citado para C22 não cobre o caminho de sucesso prometido pelo check. | `tests/test_dispatch_screens.py:42` — `test_screens_brief_sem_captura_sai_2` só testa ausência de captura; o preenchimento é testado separadamente em C23. | Citar também `test_screens_brief_preenche_campos` em C22 ou separar o check de erro do check de preenchimento. | fc0cd73 |
 | 5. O aceite real está provado apenas por asserções de texto, não pela execução e pelos artefatos do fluxo. As asserções são mais fracas que R35–R38. | `tests/test_acceptance_doc_f11.py:39` e `tests/test_acceptance_doc_f11.py:44` — verifica substrings como `PROJ-34`, `matches`, `running`, `exit 0`, `diverges` e `copy`; PNGs são verificados só pela assinatura de 8 bytes. | Executar e registrar o fluxo/gate no app de aceite, validar os vereditos e tamanhos nos artefatos e ligar a aprovação ao resultado observado. | 05a3a7d |
+| 6. C40 não prova a ausência de `node_modules` em toda a árvore materializada. | `tests/test_aceite_tool.py:31` — `assertFalse((dest / "node_modules").exists())` só verifica a raiz. | Verificar com `rglob("node_modules")` que nenhuma subpasta foi copiada. | |
 
 ## Limits
 
