@@ -40,7 +40,10 @@ also marks you as working in the live panel. Right before you hand back, run
 5. Before finishing, run `python "<plugin-root>/scripts/gates/run_gates.py" ticket <slug> <ticket> <base>..HEAD`
    (base = the commit the worktree started from). Red = fix it or report it; never hand back a red ticket
    as done.
-6. Never `--no-verify`, never edit a hook or a gate, never push, merge or deploy. Never secrets.
+6. **Screen cited by a capture (F11, R30).** When the ticket implements a screen the spec cites by `captures/<nome>.png`,
+   take the author's picture with `python "<plugin-root>/scripts/screens.py" capture` (URL, size of the capture) into
+   `captures/<nome>.running.png` and commit it, inside the ticket's `May change`.
+7. Never `--no-verify`, never edit a hook or a gate, never push, merge or deploy. Never secrets.
 
 ## Failures and the circuit breaker (D27)
 - Give each failure a **stable error id** (the same for the same problem), e.g. `gate-T2-test_import`,

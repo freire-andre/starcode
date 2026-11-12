@@ -37,8 +37,11 @@ Use `references/spec-template.md`: **full** template for LARGE/COMPLEX, **brief*
   your choice in the options cell.
 - `## Open Questions` must be **empty** when the spec is presented. Ask the questions first (all in one
   message, each with a recommendation), write each answer where it belongs, then run the gate.
-- Screens: mockups are not verified automatically in v1.0 (D25). Describe outcomes (what the user sees
-  and can do), not layout; say so to the user when a screen is involved.
+- Screens (F11): a mockup the product must follow is a **binding capture** in the feature's `captures/`
+  folder. Put one line per capture in `## Sources` (`binding`, with the image `![...](captures/<file>)`
+  in the spec) and write **one requirement per screen** with the gesture that reaches it and the capture
+  path in backticks (`captures/<file>`). Copy every label, button and message **character by character**
+  from the capture. A screens judge later takes a picture of the running app and compares it.
 
 ## 3. Gate, then present
 Run until green (attempts count toward the circuit breaker, D27):

@@ -72,6 +72,8 @@ WORKER_RULES = """## Regras fixas do worker (StarCode)
 - Antes de terminar: `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde
   (base = commit de partida deste worktree).
 - Falhas: identificador estável por erro; na 2ª falha do mesmo erro, use a skill `mccoy`; na 3ª, pare.
+- Ticket com tela citada por captura (`captures/<nome>.png`): tire a foto do autor com
+  `python "{plugin}/scripts/screens.py" capture` em `captures/<nome>.running.png` e commite-a, dentro do `May change`.
 - Relatório final (até 5 linhas): o que mudou, gates executados com resultado, commits, pendências,
   tentativas do disjuntor (`<id>=<n>` ou `none`).
 """
