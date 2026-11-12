@@ -821,3 +821,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o `tools/build.py` já copia `scripts/` (com `screens.py` e `gates/images.py`), `src/briefs/` (com `screens-verify.md`) e as skills para `dist/claude`, `dist/codex`, `dist/antigravity` e `dist/opencode`; nenhuma mudança no build. A D25 ganha a nota "superada pela Fase 11 (F11-1..F11-8)". O ADR-0002 diz que as regras de captura voltaram, sem provas `browser`/`walk`, sem `**Walked:**`, com escala pelo nome e o juiz como worker. O CHANGELOG ganha `## [1.5.0] - não lançada`, a compatibilidade ganha a linha da verificação de telas (navegador da Orca, independente do CLI; sem navegador, degradada) e o CREDITS cita o tlc-spec-driven (Felipe Rodrigues, CC-BY-4.0) para as regras de captura e o juiz de telas.
 - **Motivo:** o registro fecha a fase e mantém a rastreabilidade da D25 até as decisões que a substituíram.
 - **Por que não é bug:** `test_build_leva_telas_aos_4_clis` confere os arquivos e as skills nos 4 CLIs; `test_release_docs_f11` confere os registros.
+
+### F11-9: template Tauri com fim de linha LF (R32)
+- **Problema:** no aceite real (2026-11-12, `F:\Projetos\starcode-telas`), um projeto novo no Windows com `core.autocrlf=true` (padrão do Git para Windows) saía em CRLF e o `npx biome check .` reprovava com "Formatter would have printed" em `src/main.ts`, `src/style.css` e `src/ui.test.ts`.
+- **Decisão:** `profiles/tauri/template/.gitattributes` com `* text=auto eol=lf` e `*.png`, `*.ico`, `*.icns` como `binary`. O `scaffold.py new` já copia qualquer arquivo do template (inclusive dotfiles), sem mudança.
+- **Motivo:** o checkout mantém LF mesmo com autocrlf, e o biome do template segue verde.
+- **Por que não é bug:** `test_template_tauri_gitattributes_lf` confere o conteúdo e que um `scaffold.py new` leva o arquivo ao projeto.
