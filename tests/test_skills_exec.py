@@ -15,6 +15,15 @@ class ExecuteReferenceTests(unittest.TestCase):
         for part in parts:
             self.assertIn(part, text)
 
+    def test_execute_descreve_exit_3(self):
+        start = REF.index("## 2. Dispatch one ticket")
+        sec = REF[start:REF.index("\n## ", start + 1)]
+        i = sec.index("**Exit 3**")
+        item = sec[i:sec.index("\n4. ", i)]
+        self.assertIn("`worker-start` succeeded but the second `Dispatched` write failed", item)
+        self.assertIn('python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · ... · <dispatch id>"', item)
+        self.assertIn("no new `start` for the same ticket", item)
+
     def test_execute_ref_dispatch_steps(self):  # R8, R11, R12
         self.assertAll(REF, "**or reuse `I` if it already exists**", "--integration-branch feature/<slug>` **before\nthe first dispatch**",
                        "dispatch.py\" start <slug> <T> --cli <laforge cli> --model <laforge model> --json",
@@ -88,6 +97,12 @@ class ExecuteReferenceTests(unittest.TestCase):
     def test_execute_fleet_start_failure_isolated(self):  # R17
         self.assertAll(REF, "A `start` that fails", "entry already removed by the command",
                        "**other tickets go on**", "apply **only to that ticket**")
+
+    def test_execute_fleet_start_exit_3(self):
+        fleet = REF[REF.index("## 2F."):]
+        step3 = fleet[fleet.index("3. **A `start` that fails**"):fleet.index("4. **Wait.**")]
+        self.assertAll(step3, "**Exit 3**", "handoff.py\" set <slug> --dispatch-add",
+                       "no new `start` for the same ticket", "**other tickets go on**")
 
     def test_execute_fleet_wait_uses_nearest_deadline(self):  # R20
         self.assertAll(REF, "check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline>",

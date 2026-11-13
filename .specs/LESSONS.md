@@ -157,6 +157,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:C32
 - updated: 2026-11-13T14:57:34Z
 
+### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
+- signal: `weak_test` · features: 1
+- features: ajustes-review-pr39
+- sources: verification.md:C2 (tests/test_coverage_rule.py:22)
+- updated: 2026-11-13T16:43:22Z
+
+### L26 - Asserção sobre texto de contrato deve fixar o comando completo e o comportamento exigido, porque fragmentos aceitam textos que não cumprem o critério.
+- signal: `weak_test` · features: 1
+- features: ajustes-review-pr39
+- sources: verification.md:C8 (tests/test_skills_exec.py:18)
+- updated: 2026-11-13T16:43:22Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.

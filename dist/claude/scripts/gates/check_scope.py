@@ -17,7 +17,6 @@ Exit 0 ok, 1 out of scope, 2 usage error.
 from __future__ import annotations
 
 import argparse
-import fnmatch
 import re
 import subprocess
 import sys
@@ -38,15 +37,7 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
 
 
 def allowed(path: str, patterns: list[str]) -> bool:
-    p = gc.norm_path(path)
-    for pat in patterns:
-        pat = gc.norm_path(pat)
-        if pat.endswith("/"):
-            if p.startswith(pat):
-                return True
-        elif p == pat or fnmatch.fnmatch(p, pat):
-            return True
-    return False
+    return any(gc.covers(path, pat) for pat in patterns)
 
 
 def handoff_text(text: str) -> str:

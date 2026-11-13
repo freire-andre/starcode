@@ -1,0 +1,32 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. W1 resolvido: o passo 3 da seção 2F do execute.md trata o exit 3 do start (completar a entrada com handoff.py set --dispatch-add, sem novo start), com teste próprio. W2 resolvido: covers recusa caminho com letra de drive, com teste de C:/, c: com barra invertida e D:/. Nenhum blocker novo no intervalo main...HEAD local (7e09dc2). Build, suíte (769 ok), check_decisions verdes, 0 candidatos de bypass. dist/ é mecânico e ficou fora (build --check confirma em dia).",
+  "findings": [],
+  "carryover": {
+    "W1": "resolved: 8ed1276, o passo 3 da seção 2F trata o exit 3 do start (skills/engajar/references/execute.md:84); test_execute_fleet_start_exit_3 (tests/test_skills_exec.py:101)",
+    "W2": "resolved: 2e781bb, covers recusa letra de drive (scripts/gates/gates_common.py:381); test_covers_recusa_letra_de_drive (tests/test_coverage_rule.py:51)"
+  },
+  "research": [
+    "https://docs.python.org/3/library/fnmatch.html",
+    "https://docs.python.org/3/library/re.html"
+  ],
+  "ladder": [
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python -m unittest discover -s tests",
+      "result": "Ran 769 tests, OK (skipped=1)"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "0 candidatos"
+    }
+  ]
+}

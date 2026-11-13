@@ -12,6 +12,7 @@ from __future__ import annotations
 import fnmatch
 import json
 import os
+import posixpath
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -368,3 +369,20 @@ def feature_root_hint(feature_dir: Path) -> str:
         return os.path.relpath(feature_dir, project_root(feature_dir)).replace("\\", "/")
     except ValueError:
         return str(feature_dir)
+
+
+# One path-coverage rule shared by check_scope and the tasks gate (R1, R3).
+def normalize(path: str) -> str:
+    return posixpath.normpath(path.strip().strip("`'\"").replace("\\", "/"))
+
+
+def covers(path: str, entry: str) -> bool:
+    p = normalize(path)
+    if p == ".." or p.startswith("../") or p.startswith("/") or re.match(r"[A-Za-z]:/", p):
+        return False
+    e = entry.strip().strip("`'\"").replace("\\", "/")
+    while e.startswith("./"):
+        e = e[2:]
+    if e.endswith("/"):
+        return p.startswith(e)
+    return p == e or fnmatch.fnmatch(p, e)

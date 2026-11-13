@@ -54,6 +54,22 @@ class FakeOrca:
         return [c for c in self.calls if c[0] == "orca"]
 
 
+class FailSecondHandoff(FakeOrca):
+    """The second handoff.py write (after worker-start) fails."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.writes = 0
+
+    def __call__(self, cmd, **kw):
+        if self.key(cmd) == "handoff" and "--dispatch-add" in cmd:
+            self.writes += 1
+            if self.writes == 2:
+                self.calls.append(list(cmd))
+                return SimpleNamespace(returncode=1, stdout="", stderr="disco cheio\nsegunda linha")
+        return super().__call__(cmd, **kw)
+
+
 class StartTests(TempRepoCase):
     def setUp(self) -> None:
         super().setUp()
@@ -178,3 +194,23 @@ class StartTests(TempRepoCase):
         handoff.dispatch_remove(values, "T1")
         self.assertEqual([handoff.entry_ticket(e) for e in handoff.dispatch_entries(values["dispatched"])],
                          ["T2"])
+
+    def test_start_segunda_gravacao_falha_sai_3(self):
+        fake = FailSecondHandoff()
+        code, _, out = self.go(fake)
+        self.assertEqual(code, 3)
+        entries = handoff.dispatch_entries(self.dispatched())
+        self.assertEqual(len(entries), 1)
+        self.assertTrue(entries[0].startswith("T1 · PROJ-1 · base "))
+        self.assertNotIn("ctx_abc", entries[0])
+
+    def test_start_exit_3_avisa_e_liga_worktree(self):
+        fake = FailSecondHandoff()
+        code, res, out = self.go(fake)
+        self.assertEqual(code, 3)
+        self.assertIn("worker ativo sem registro completo: T1 · ctx_abc · wt-123: handoff.py falhou: disco cheio",
+                      out)
+        self.assertEqual(fake.calls[-1][1:], ["worktree", "set", "--worktree", "wt-123", "--linear-issue",
+                                              "PROJ-1"])
+        self.assertEqual(res["dispatch"], "ctx_abc")
+        self.assertEqual(list(res), ["ticket", "issue", "base", "dispatch", "worktree", "model"])
