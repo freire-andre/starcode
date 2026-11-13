@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
+import shutil
 import subprocess
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -214,3 +218,124 @@ class StartTests(TempRepoCase):
                                               "PROJ-1"])
         self.assertEqual(res["dispatch"], "ctx_abc")
         self.assertEqual(list(res), ["ticket", "issue", "base", "dispatch", "worktree", "model"])
+
+
+SPEC_MEDIA = """# Média: Spec
+
+**Size**: MEDIUM
+{linear}
+## Scope
+
+- Faz a coisa.
+
+## Requirements
+
+- **R1** - WHEN x THEN y.
+
+## Checks
+
+- **C1** - R1: teste prova y.
+"""
+
+
+class MediaStartTests(TempRepoCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.write_repo_config()
+        self.fdir = self.repo / ".specs" / "features" / "media"
+        self.fdir.mkdir(parents=True)
+
+    def publish(self, linear: str = "**Linear**: PROJ-9\n", handoff_text: str | None = None,
+                dispatched: str = "none") -> None:
+        body = SPEC_MEDIA.format(linear=linear) + (
+            HANDOFF.format(d=dispatched) if handoff_text is None else handoff_text)
+        (self.fdir / "spec.md").write_text(body, encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "--allow-empty", "-m", "specs")
+        run_git(self.repo, "branch", "-f", "feature/media")
+
+    def go(self, runner, ticket="PROJ-9"):
+        out: list[str] = []
+        code, res = dispatch.start("media", ticket, "claude", "claude-sonnet-5-5", self.repo, runner=runner,
+                                   emit=out.append)
+        return code, res, out
+
+    def dispatched(self) -> str:
+        lines = (self.fdir / "spec.md").read_text(encoding="utf-8").splitlines()
+        return handoff.read_fields(lines, handoff.section_bounds(lines))["dispatched"]
+
+    def test_start_media_despacha_t1(self):
+        for ticket in ("PROJ-9", "T1"):
+            self.publish()
+            sha = run_git(self.repo, "rev-parse", "--short", "feature/media")
+            fake = FakeOrca()
+            code, res, _ = self.go(fake, ticket)
+            self.assertEqual(code, 0)
+            self.assertEqual(res["ticket"], "T1")
+            self.assertEqual(res["issue"], "PROJ-9")
+            first = fake.calls[1][fake.calls[1].index("--dispatch-add") + 1]
+            self.assertTrue(first.startswith(f"T1 · PROJ-9 · base {sha} · claude:claude-sonnet-5-5 · "), first)
+            self.assertIn("worker-start", fake.keys())
+            self.assertEqual(fake.keys(), ["git", "handoff", "status", "label", "worker-start", "handoff",
+                                           "worktree set"])
+            ws = fake.calls[fake.keys().index("worker-start")]
+            self.assertEqual(ws[ws.index("--task-title") + 1], "T1: Média: Spec")
+            self.assertTrue(self.dispatched().startswith("T1 · PROJ-9 · base "))
+
+    def test_start_media_sem_linear_recusa(self):
+        self.publish(linear="")
+        before = (self.fdir / "spec.md").read_text(encoding="utf-8")
+        fake = FakeOrca()
+        code, _, out = self.go(fake, "T1")
+        self.assertEqual(code, 2)
+        self.assertEqual(out, ["start recusado: spec sem **Linear**:"])
+        self.assertEqual(fake.calls, [])
+        self.assertEqual((self.fdir / "spec.md").read_text(encoding="utf-8"), before)
+
+    def test_media_ticket_errado_recusa(self):
+        self.publish()
+        fake = FakeOrca()
+        code, _, out = self.go(fake, "PROJ-8")
+        self.assertEqual(code, 2)
+        self.assertEqual(out, ["start recusado: ticket PROJ-8 não é desta feature MÉDIA (use PROJ-9 ou T1)"])
+        self.assertEqual(fake.calls, [])
+        out2: list[str] = []
+        code = dispatch.settle("media", "PROJ-8", "ticket/t1", self.repo, runner=fake, emit=out2.append)
+        self.assertEqual(code, 2)
+        self.assertEqual(out2, ["settle recusado: ticket PROJ-8 não é desta feature MÉDIA (use PROJ-9 ou T1)"])
+        self.assertEqual(fake.calls, [])
+
+    def test_main_arquivo_ausente_sai_2(self):
+        self.publish()
+        missing = self.fdir / "tasks.md"
+        buf, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(dispatch, "load_tasks", side_effect=FileNotFoundError(2, "No such file", str(missing))),                 contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            code = dispatch.main(["next", "media", "--root", str(self.repo)])
+        self.assertEqual(code, 2)
+        self.assertEqual(err.getvalue().splitlines(), [f"dispatch: arquivo não encontrado: {missing}"])
+        self.assertNotIn("Traceback", buf.getvalue() + err.getvalue())
+        shutil.rmtree(self.fdir)
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            code = dispatch.main(["next", "media", "--root", str(self.repo)])
+        self.assertEqual(code, 2)
+        self.assertNotIn("Traceback", buf.getvalue() + err.getvalue())
+
+    def test_start_sem_ramo_aponta_modo_1(self):
+        self.publish(handoff_text="\n## Handoff\n**Phase:** execute\n")
+        fake = FakeOrca()
+        code, _, out = self.go(fake)
+        self.assertEqual(code, 2)
+        self.assertEqual(out, ["start recusado: o Handoff não tem **Integration branch:** "
+                               "(modo 1: siga a seção 7 do execute.md, sem start)"])
+        self.assertEqual(fake.calls, [])
+
+    def test_start_entrada_aberta_aponta_dispatch_remove(self):
+        self.publish(dispatched="T1 · PROJ-9 · base abc1234 · claude:claude-sonnet-5-5 · 2026-11-07T16:40:00Z")
+        fake = FakeOrca()
+        code, _, out = self.go(fake)
+        self.assertEqual(code, 2)
+        self.assertEqual(out, ["start recusado: T1 já tem entrada em Dispatched "
+                               "(nova tentativa: handoff.py set media --dispatch-remove T1)"])
+        self.assertEqual(fake.calls, [])
+

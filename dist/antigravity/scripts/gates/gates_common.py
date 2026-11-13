@@ -368,6 +368,18 @@ def split_paths(value: str) -> list[str]:
     return [norm_path(x) for x in items if norm_path(x) and norm_path(x).lower() not in ("none", "nenhum")]
 
 
+DECISIONS_FILE = "DECISIONS.md"
+
+
+def effective_may_change(paths: list[str]) -> list[str]:
+    """The `May change` that counts: the given paths plus DECISIONS.md when one starts with `scripts/` and
+    DECISIONS.md is not listed. The brief (large and medium) and `check_scope` both read it from here."""
+    norm = [p.strip().strip("`").replace("\\", "/").removeprefix("./") for p in paths]
+    if any(p.startswith("scripts/") for p in norm) and DECISIONS_FILE not in norm:
+        return [*paths, DECISIONS_FILE]
+    return list(paths)
+
+
 ALLOWED_TOKENS = ("<ID-LINEAR>",)  # filled by the worker from the issue linked to its worktree
 
 

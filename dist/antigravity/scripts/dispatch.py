@@ -96,29 +96,23 @@ PROOF_RULE = ("O teste deve se chamar exatamente como na linha Proof: o `run_gat
               "saída; outro nome deixa a prova vermelha.")
 
 
-DECISIONS_FILE = "DECISIONS.md"
-
-
-def needs_decisions(paths: list[str]) -> bool:
-    """A ticket that touches `scripts/` must record its decision in DECISIONS.md (R1, R2)."""
-    norm = [p.strip().strip("`").replace("\\", "/").removeprefix("./") for p in paths]
-    return any(p.startswith("scripts/") for p in norm) and DECISIONS_FILE not in norm
+DECISIONS_FILE = gc.DECISIONS_FILE
 
 
 def effective_may_change(task: vt.Task) -> list[str]:
-    paths = task.may_change
-    return [*paths, DECISIONS_FILE] if needs_decisions(paths) else paths
+    return gc.effective_may_change(task.may_change)
 
 
 def with_decisions(task: vt.Task) -> vt.Task:
-    if not needs_decisions(task.may_change):
+    extra = effective_may_change(task)[len(task.may_change):]
+    if not extra:
         return task
     done = False
     lines = []
     for ln in task.blocks.get("BOUNDARIES", []):
         if not done and re.match(r"^[-*]?\s*\**May change\**\s*:", ln.strip(), re.IGNORECASE):
             body = ln.rstrip()
-            ln = body + (", `DECISIONS.md`" if body.endswith("`") else ", DECISIONS.md")
+            ln = body + "".join(f", `{x}`" if body.endswith("`") else f", {x}" for x in extra)
             done = True
         lines.append(ln)
     return dataclasses.replace(task, blocks={**task.blocks, "BOUNDARIES": lines})
@@ -367,7 +361,7 @@ def spec_brief(slug: str, ticket: str, root: Path) -> str:
     for name in ("Scope", "Requirements", "Checks"):
         body = gc.section(lines, name) or []
         out += [f"## {name}", *body, ""]
-    may = gc.split_paths(gc.field_value(lines, "May change") or "")
+    may = gc.effective_may_change(gc.split_paths(gc.field_value(lines, "May change") or ""))
     out += ["## BOUNDARIES", "May change: " + (", ".join(may) if may else
             "não definido na spec; pare e pergunte antes de alterar arquivos fora do Scope"), ""]
     return "\n".join(out).rstrip() + "\n\n" + PROOF_RULE + "\n\n" + WORKER_RULES.format(
@@ -659,29 +653,61 @@ def _receipt(out: str) -> dict:
             "worktree": _text_of(_find(data, "workspace", "worktreeId", "worktree"))}
 
 
+def medium_ticket(fdir: Path, ticket: str) -> tuple[str, str, str] | None:
+    """MEDIUM feature (no tasks.md): the only ticket is `T1`, with the issue of the spec's `**Linear**:`.
+    Returns (tid, issue, title), or None when `ticket` is neither `T1` nor that issue."""
+    lines = gc.read_lines(fdir / "spec.md")
+    ids = gc.LINEAR_ID_RE.findall(gc.field_value(lines, "Linear") or "")
+    if ticket.upper() not in ("T1", ids[0] if ids else "T1"):
+        return None
+    title = next((ln[2:].strip() for ln in lines if ln.startswith("# ")), fdir.name)
+    return "T1", ids[0] if ids else "", title
+
+
+def spec_issue(fdir: Path) -> str | None:
+    ids = gc.LINEAR_ID_RE.findall(gc.field_value(gc.read_lines(fdir / "spec.md"), "Linear") or "")
+    return ids[0] if ids else None
+
+
 def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=default_runner,
           emit=print, now: datetime | None = None) -> tuple[int, dict]:
     """Start one worker (R5-R11, R17). Exit 2 refuses before writing or calling Orca."""
-    fdir, tasks = load_tasks(slug, root)
-    proj = gc.project_root(fdir)
-    want = ticket.upper()
-    task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
+    fdir0 = gc.resolve_feature(slug, root, "spec.md")
+    medium = not (fdir0 / "tasks.md").exists()
 
     def refuse(why: str) -> tuple[int, dict]:
         emit(f"start recusado: {why}")
         return 2, {}
 
-    if task is None:
-        return refuse(f"ticket {ticket} não existe em tasks.md")
-    issue = linear_id(task)
-    if not issue:
-        return refuse(f"{task.tid} não tem **Linear**:")
+    if medium:
+        fdir = fdir0
+        proj = gc.project_root(fdir)
+        issue = spec_issue(fdir)
+        if not issue:
+            return refuse("spec sem **Linear**:")
+        found = medium_ticket(fdir, ticket)
+        if found is None:
+            return refuse(f"ticket {ticket} não é desta feature MÉDIA (use {issue} ou T1)")
+        tid, issue, title = found
+    else:
+        fdir, tasks = load_tasks(slug, root)
+        proj = gc.project_root(fdir)
+        want = ticket.upper()
+        task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
+        if task is None:
+            return refuse(f"ticket {ticket} não existe em tasks.md")
+        tid, title = task.tid, task.title
+        issue = linear_id(task)
+        if not issue:
+            return refuse(f"{tid} não tem **Linear**:")
     values = handoff_values(fdir)
     open_ids = [handoff.entry_ticket(e).upper() for e in handoff.dispatch_entries(values.get("dispatched", "none"))]
-    if task.tid in open_ids:
-        return refuse(f"{task.tid} já tem entrada em Dispatched")
+    if tid in open_ids:
+        return refuse(f"{tid} já tem entrada em Dispatched "
+                      f"(nova tentativa: handoff.py set {fdir.name} --dispatch-remove {tid})")
     if values.get("integration branch", "").strip() in ("", "not created", "none yet", "none"):
-        return refuse("o Handoff não tem **Integration branch:**")
+        return refuse("o Handoff não tem **Integration branch:** "
+                      "(modo 1: siga a seção 7 do execute.md, sem start)")
     branch = f"feature/{fdir.name}"
     code, sha, _ = _call(runner, ["git", "rev-parse", "--short", branch], proj)
     sha = sha.strip()
@@ -689,11 +715,11 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
         return refuse(f"ramo {branch} não existe")
     cfg, _ = sc.load_repo_config(proj)
     started = (((cfg or {}).get("linear") or {}).get("states") or {}).get("started") or "started"
-    brief = Path(tempfile.mkdtemp(prefix="starcode-")) / f"{fdir.name}-{task.tid}.md"
-    brief.write_text(worker_brief(slug, task.tid, root), encoding="utf-8", newline="\n")
+    brief = Path(tempfile.mkdtemp(prefix="starcode-")) / f"{fdir.name}-{tid}.md"
+    brief.write_text(worker_brief(slug, tid, root), encoding="utf-8", newline="\n")
     emit(f"briefing: {brief}")
     stamp = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    head = f"{task.tid} · {issue} · base {sha} · "
+    head = f"{tid} · {issue} · base {sha} · "
     handoff_cmd = [sys.executable, str(HERE / "handoff.py"), "set", fdir.name, "--root", str(root)]
 
     def record(pair: str, tail: str = "") -> None:
@@ -702,10 +728,10 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
             raise ValueError(f"handoff.py falhou: {_first_line(e, o)}")
 
     def unrecord() -> None:
-        _call(runner, [*handoff_cmd, "--dispatch-remove", task.tid], proj)
+        _call(runner, [*handoff_cmd, "--dispatch-remove", tid], proj)
 
     record(f"{cli}:{model}")
-    emit(f"Dispatched: {task.tid} registrado (base {sha})")
+    emit(f"Dispatched: {tid} registrado (base {sha})")
     for label, cmd in (
             (f"status {started}", ["orca", "linear", "status", "set", issue, "--to", started]),
             ("label crew:laforge", ["orca", "linear", "label", "add", issue, "--label", "crew:laforge"])):
@@ -713,7 +739,7 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
         emit(f"{label}: {issue}" if c == 0 else f"aviso: {label}: {_first_line(e, o)}")
     worktree = "new-child"
     if cli == "opencode":
-        c, o, e = _call(runner, ["orca", "worktree", "create", "--name", task.tid, "--base-branch", branch,
+        c, o, e = _call(runner, ["orca", "worktree", "create", "--name", tid, "--base-branch", branch,
                                  "--json"], proj)
         created = _receipt(o)["worktree"] if c == 0 else ""
         if not created:
@@ -724,7 +750,7 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
         emit(f"worktree criado: {worktree}")
     c, o, e = _call(runner, ["orca", "orchestration", "worker-start", "--agent", cli, "--model", model,
                              "--worktree", worktree, "--base-branch", branch, "--spec-file", str(brief),
-                             "--task-title", f"{task.tid}: {task.title}", "--json"], proj)
+                             "--task-title", f"{tid}: {title}", "--json"], proj)
     if c != 0:
         unrecord()
         emit(f"worker-start falhou: {_first_line(e, o)}")
@@ -734,10 +760,10 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
     code = 0
     try:
         record(f"{cli}:{used}", f" · {rec['dispatch']}" if rec["dispatch"] else "")
-        emit(f"worker iniciado: {task.tid} · {cli}:{used} · {rec['dispatch'] or '-'}")
+        emit(f"worker iniciado: {tid} · {cli}:{used} · {rec['dispatch'] or '-'}")
     except ValueError as exc:
         code = 3
-        emit(f"worker ativo sem registro completo: {task.tid} · {rec['dispatch'] or '-'} · "
+        emit(f"worker ativo sem registro completo: {tid} · {rec['dispatch'] or '-'} · "
              f"{rec['worktree'] or '-'}: {_first_line(str(exc))}")
     if rec["worktree"]:
         c, o, e = _call(runner, ["orca", "worktree", "set", "--worktree", rec["worktree"], "--linear-issue",
@@ -746,7 +772,7 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
              else f"aviso: worktree set: {_first_line(e, o)}")
     else:
         emit("aviso: worktree set: o recibo não traz o workspace")
-    return code, {"ticket": task.tid, "issue": issue, "base": sha, "dispatch": rec["dispatch"],
+    return code, {"ticket": tid, "issue": issue, "base": sha, "dispatch": rec["dispatch"],
                "worktree": rec["worktree"], "model": used}
 
 
@@ -758,17 +784,27 @@ def _entry_base(entry: str) -> str:
 def settle(slug: str, ticket: str, branch: str, root: Path, runner=default_runner,
            emit=print) -> int:
     """Integrate one ticket into feature/<slug> (R12-R17). Exit 2 refuses before the gate and the merge."""
-    fdir, tasks = load_tasks(slug, root)
-    proj = gc.project_root(fdir)
-    want = ticket.upper()
-    task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
-    tid = task.tid if task else want
-    issue = (linear_id(task) if task else None) or "-"
-    target = f"feature/{fdir.name}"
+    fdir0 = gc.resolve_feature(slug, root, "spec.md")
+    target = f"feature/{fdir0.name}"
 
     def refuse(why: str) -> int:
         emit(f"settle recusado: {why}")
         return 2
+
+    if not (fdir0 / "tasks.md").exists():
+        fdir = fdir0
+        proj = gc.project_root(fdir)
+        found = medium_ticket(fdir, ticket)
+        if found is None:
+            return refuse(f"ticket {ticket} não é desta feature MÉDIA (use {spec_issue(fdir) or 'o ID do Linear'} ou T1)")
+        tid, issue = found[0], found[1] or "-"
+    else:
+        fdir, tasks = load_tasks(slug, root)
+        proj = gc.project_root(fdir)
+        want = ticket.upper()
+        task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
+        tid = task.tid if task else want
+        issue = (linear_id(task) if task else None) or "-"
 
     entry = next((e for e in handoff.dispatch_entries(handoff_values(fdir).get("dispatched", "none"))
                   if handoff.entry_ticket(e).upper() == tid), None)
@@ -920,6 +956,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(family(a.spec))
         return 0
+    except FileNotFoundError as exc:
+        print(f"dispatch: arquivo não encontrado: {exc.filename or exc}", file=sys.stderr)
+        return 2
     except (LookupError, ValueError, screens.ScreenError) as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2
