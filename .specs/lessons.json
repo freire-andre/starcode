@@ -291,16 +291,18 @@
       "id": "L20",
       "text": "Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "fase-12-robustez"
+        "fase-12-robustez",
+        "gate-d30-ci"
       ],
       "sources": [
-        "verification.md:C11,C12,C28-C31"
+        "verification.md:C11,C12,C28-C31",
+        "verification.md: achados 2 a 8 (C4-C10)"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-12T20:27:15Z"
+      "updated": "2026-11-13T22:23:26Z"
     },
     {
       "id": "L21",
@@ -391,6 +393,36 @@
       "scope": "",
       "created": "2026-11-13T16:43:22Z",
       "updated": "2026-11-13T16:43:22Z"
+    },
+    {
+      "id": "L27",
+      "text": "Compare a saída de um comando git com o valor exato depois de remover só o fim de linha, não com strip(), e teste uma saída com espaços, porque ' false ' passava como clone completo.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "gate-d30-ci"
+      ],
+      "sources": [
+        "verification.md: achado 1 (C3)"
+      ],
+      "scope": "",
+      "created": "2026-11-13T22:23:26Z",
+      "updated": "2026-11-13T22:23:26Z"
+    },
+    {
+      "id": "L28",
+      "text": "Escreva a prova isolada só com o comando entre crases, sem '| linha esperada', porque o check_proofs roda a linha num shell e o pipe vira um comando inexistente (exit 127).",
+      "signal": "gate_fail",
+      "status": "candidate",
+      "features": [
+        "gate-d30-ci"
+      ],
+      "sources": [
+        "spec.md C11; Handoff attempt proofs-C11=fail"
+      ],
+      "scope": "specs",
+      "created": "2026-11-13T22:23:26Z",
+      "updated": "2026-11-13T22:23:26Z"
     }
   ]
 }

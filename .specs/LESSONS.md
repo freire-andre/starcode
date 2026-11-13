@@ -7,7 +7,11 @@
 
 Vistas em features distintas. Entram nos briefs.
 
-_nenhuma_
+### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
+- signal: `weak_test` · features: 2
+- features: fase-12-robustez, gate-d30-ci
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10)
+- updated: 2026-11-13T22:23:26Z
 
 ## Candidates
 
@@ -127,12 +131,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:R21
 - updated: 2026-11-12T20:27:14Z
 
-### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 1
-- features: fase-12-robustez
-- sources: verification.md:C11,C12,C28-C31
-- updated: 2026-11-12T20:27:15Z
-
 ### L21 - Compare o bloco completo da mensagem de erro com o motivo retornado, não só o prefixo, porque qualquer texto com o prefixo passava no teste.
 - signal: `weak_test` · features: 1
 - features: fase-12-robustez
@@ -168,6 +166,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: ajustes-review-pr39
 - sources: verification.md:C8 (tests/test_skills_exec.py:18)
 - updated: 2026-11-13T16:43:22Z
+
+### L27 - Compare a saída de um comando git com o valor exato depois de remover só o fim de linha, não com strip(), e teste uma saída com espaços, porque ' false ' passava como clone completo.
+- signal: `weak_test` · features: 1
+- features: gate-d30-ci
+- sources: verification.md: achado 1 (C3)
+- updated: 2026-11-13T22:23:26Z
+
+### L28 - Escreva a prova isolada só com o comando entre crases, sem '| linha esperada', porque o check_proofs roda a linha num shell e o pipe vira um comando inexistente (exit 127).
+- signal: `gate_fail` · features: 1 · scope: `specs`
+- features: gate-d30-ci
+- sources: spec.md C11; Handoff attempt proofs-C11=fail
+- updated: 2026-11-13T22:23:26Z
 
 ## Quarantined
 
