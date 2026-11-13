@@ -6,24 +6,24 @@ from unittest import mock
 from test_validate_tasks_citations import OLD_MAY, OLD_TASK, CitationCase
 
 import check_scope
-import gate_common
+import gates_common
 import validate_tasks
 
 
 class CoverageRuleTests(unittest.TestCase):
     def test_covers_pasta_igualdade_e_glob(self):
-        self.assertTrue(gate_common.covers("dist/x.json", "dist/"))
-        self.assertTrue(gate_common.covers("dist\\a\\x.json", "dist/"))
-        self.assertTrue(gate_common.covers("scripts/a.py", "scripts/a.py"))
-        self.assertTrue(gate_common.covers("tests/test_x.py", "tests/test_*.py"))
-        self.assertFalse(gate_common.covers("tests/other.py", "tests/test_*.py"))
-        self.assertFalse(gate_common.covers("scripts/a.py", "dist/"))
+        self.assertTrue(gates_common.covers("dist/x.json", "dist/"))
+        self.assertTrue(gates_common.covers("dist\\a\\x.json", "dist/"))
+        self.assertTrue(gates_common.covers("scripts/a.py", "scripts/a.py"))
+        self.assertTrue(gates_common.covers("tests/test_x.py", "tests/test_*.py"))
+        self.assertFalse(gates_common.covers("tests/other.py", "tests/test_*.py"))
+        self.assertFalse(gates_common.covers("scripts/a.py", "dist/"))
 
     def test_gates_usam_a_mesma_regra(self):
-        with mock.patch.object(gate_common, "covers", return_value=False) as spy:
+        with mock.patch.object(gates_common, "covers", return_value=False) as spy:
             self.assertFalse(check_scope.allowed("a/b.py", ["a/b.py"]))
             self.assertEqual(spy.call_count, 1)
-        with mock.patch.object(gate_common, "covers", return_value=True) as spy:
+        with mock.patch.object(gates_common, "covers", return_value=True) as spy:
             self.assertTrue(check_scope.allowed("zzz.py", ["a/b.py"]))
             self.assertEqual(spy.call_count, 1)
 
@@ -31,7 +31,7 @@ class CoverageRuleTests(unittest.TestCase):
         for path in ("scripts/../../outside.py", "/etc/x.py", "../x.py", ".."):
             for entry in ("*", "scripts/*", "*.py"):
                 with self.subTest(path=path, entry=entry):
-                    self.assertFalse(gate_common.covers(path, entry))
+                    self.assertFalse(gates_common.covers(path, entry))
 
 
 class CoverageCitationTests(CitationCase):

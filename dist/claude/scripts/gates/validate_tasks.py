@@ -33,7 +33,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import gate_common  # noqa: E402
 import gates_common as gc  # noqa: E402
 
 TASK_RE = re.compile(r"^###\s+(T\d+)\s*:\s*(.*)$", re.IGNORECASE)
@@ -88,7 +87,7 @@ def uncovered_citations(task: Task) -> list[str]:
             path = cand.replace("\\", "/")
             if not path.lower().endswith(CITE_EXTS) or path in out:
                 continue
-            covered = any(gate_common.covers(path, e) or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1])
+            covered = any(gc.covers(path, e) or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1])
                           for e in entries)
             if not covered:
                 out.append(path)

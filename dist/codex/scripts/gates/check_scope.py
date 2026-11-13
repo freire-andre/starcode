@@ -24,7 +24,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import gate_common  # noqa: E402
 import gates_common as gc  # noqa: E402
 import validate_tasks as vt  # noqa: E402
 
@@ -38,7 +37,7 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
 
 
 def allowed(path: str, patterns: list[str]) -> bool:
-    return any(gate_common.covers(path, pat) for pat in patterns)
+    return any(gc.covers(path, pat) for pat in patterns)
 
 
 def handoff_text(text: str) -> str:
