@@ -209,6 +209,12 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([(h["command"], h["timeout"]) for h in start[0]["hooks"]],
                          [('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/banner.py" --full --cli codex', 30)])
 
+    def test_codex_session_end_timeout_within_limit(self):
+        build.build(self.src, self.out)
+        hooks = self._hooks_json("codex", "hooks", "hooks.json")["hooks"]
+        self.assertEqual([h["timeout"] for h in hooks["SessionEnd"][0]["hooks"]], [3])
+        self.assertEqual(hooks["Stop"][0]["hooks"][0]["timeout"], 10)
+
     def test_antigravity_hooks_json_native_format(self):  # C2
         build.build(self.src, self.out)
         data = self._hooks_json("antigravity", "hooks.json")
