@@ -1,6 +1,6 @@
 # gate-d30-ci proofs
 
-**HEAD**: 8e1547f
+**HEAD**: 6369977
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 14 pass, 0 fail
@@ -39,7 +39,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 820 tests in 902.698s
+Ran 820 tests in 376.256s
 
 OK (skipped=1)
 ```
@@ -47,5 +47,5 @@ OK (skipped=1)
 `python scripts/check_decisions.py` - exit 0
 
 ```
-check_decisions: OK (DECISIONS.md atualizado no mesmo commit 7d7fd99c)
+check_decisions: OK (DECISIONS.md em 6369977e, depois de 7c242026)
 ```
