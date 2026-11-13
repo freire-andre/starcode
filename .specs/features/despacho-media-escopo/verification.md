@@ -27,10 +27,10 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C5 aceita uma entrada com qualquer conteúdo depois do prefixo; não prova a hora UTC nem a entrada completa fixada por R5. | `tests/test_dispatch_start.py:277` | Asserir a entrada integral, incluindo os campos e o formato `YYYY-MM-DDTHH:MM:SSZ`. | |
-| C9 seleciona só o caminho `next`; não verifica a garantia para cada subcomando de R9. | `tests/test_dispatch_start.py:308` | Exercitar falha de arquivo ausente em cada subcomando que lê arquivos ou testar explicitamente o handler comum para todos eles. | |
-| C13 pode passar se a entrada SC-169 omitir requisitos de R1 a R14, pois só busca palavras e nomes de testes. | `tests/test_dispatch_decisions.py:120` | Verificar na entrada a descrição de cada requisito R1 a R14, além dos campos e referências de teste. | |
-| A comparação de ID de ticket sem diferença de maiúsculas é implementada, mas nenhum check a fixa como regra; uma regressão silenciosa pode rejeitar um ID em minúsculas. | `scripts/dispatch.py:661` | Acrescentar um teste de start e settle com o ID Linear em minúsculas. | |
+| C5 aceita uma entrada com qualquer conteúdo depois do prefixo; não prova a hora UTC nem a entrada completa fixada por R5. | `tests/test_dispatch_start.py:277` | Asserir a entrada integral, incluindo os campos e o formato `YYYY-MM-DDTHH:MM:SSZ`. | 8c5fb8e |
+| C9 seleciona só o caminho `next`; não verifica a garantia para cada subcomando de R9. | `tests/test_dispatch_start.py:308` | Exercitar falha de arquivo ausente em cada subcomando que lê arquivos ou testar explicitamente o handler comum para todos eles. | 8c5fb8e |
+| C13 pode passar se a entrada SC-169 omitir requisitos de R1 a R14, pois só busca palavras e nomes de testes. | `tests/test_dispatch_decisions.py:120` | Verificar na entrada a descrição de cada requisito R1 a R14, além dos campos e referências de teste. | 0010fd1 |
+| A comparação de ID de ticket sem diferença de maiúsculas é implementada, mas nenhum check a fixa como regra; uma regressão silenciosa pode rejeitar um ID em minúsculas. | `scripts/dispatch.py:661` | Acrescentar um teste de start e settle com o ID Linear em minúsculas. | e0a81e9 |
 
 ## Limits
 
