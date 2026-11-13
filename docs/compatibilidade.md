@@ -133,6 +133,7 @@ Achados registrados, sem correção nesta fase:
 
 ## Consequências para o plano
 
+- **Orca, `orca plugin test` e `orca plugin check`** (Orca 1.4.257): só rodam com o plugin no mesmo drive da instalação da Orca; em outro drive o harness falha com `orca-testing.mjs: cannot import "./orca-runtime.mjs"` (não acha o `orca-runtime.mjs`). Contorno: rodar a partir de um worktree no drive da Orca. Rascunho do relato: `docs/relatos/orca-plugin-test-drive.md`.
 - **Codex**: os hooks vêm do plugin, mas dependem de trust. O setup orienta a aprovação em `/hooks` e o banner avisa quando os hooks não estão confiáveis. O Picard checa se há hooks pendentes antes de despachar um worker do Codex.
 - **Antigravity**: o adaptador é nativo (F0-6), e o Antigravity é agente de despacho da Orca com `--model`. Ele serve de opção para o Q com um modelo de outra família (Gemini).
 - **OpenCode**: o setup copia o plugin para `~/.config/opencode/plugins/` e grava as skills com caminho absoluto.
