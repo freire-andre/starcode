@@ -465,15 +465,15 @@ Proof: run unit | test_citacao_em_context_nao_conta ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** LARGE
 **Git mode:** 3
-**Next:** aguardar T7 e integrar
+**Next:** Q (codex) verifica a feature
 **Linear:** SC-148 (mãe); SC-157..SC-166; doc https://linear.app/cifren/document/spec-manutencao-das-retros-da-fase-11-e-do-patch-v151-2008cd0d7d29
 **Integration branch:** feature/manutencao-retros-f11
-**Last integrated:** ec49684
-**Dispatched:** T7 · SC-163 · base ec49684 · claude:claude-sonnet-5-5 · ctx_1e7adb4bcdac
+**Last integrated:** b4be0a9
+**Dispatched:** none
 **Settled:** 2026-11-13: T7: May change ampliado com tests/test_skills_exec.py (asserções do R18) (user: "Ampliar o May change")
 **Attempts:** none
-**Reports:** 2026-11-13: T1: handoff.py --report sem data duplicada; F12-9; dist reconstruído; gate ticket verde; integrado em 380e876; 2026-11-13: T2: proofs.md em LF; F12-10; gate ticket verde; integrado em df34563; 2026-11-13: T3: DECISIONS.md implícito no brief e no lote, regra de assinatura; F12-11; gate ticket verde; integrado em a863a31; 2026-11-13: T4: gate das tasks recusa citação fora do May change; F12-12; fases 3-12 ficariam vermelhas no gate tasks (só reexecução); gate ticket verde; integrado em 1169fcf; 2026-11-13: T5: dispatch.py start; F12-13; recibo repoId::caminho conferido na Orca real; gate ticket verde; integrado em da2a129; 2026-11-13: T6: dispatch.py settle; F12-14; gate ticket verde; integrado em ec49684
+**Reports:** 2026-11-13: T1: handoff.py --report sem data duplicada; F12-9; dist reconstruído; gate ticket verde; integrado em 380e876; 2026-11-13: T2: proofs.md em LF; F12-10; gate ticket verde; integrado em df34563; 2026-11-13: T3: DECISIONS.md implícito no brief e no lote, regra de assinatura; F12-11; gate ticket verde; integrado em a863a31; 2026-11-13: T4: gate das tasks recusa citação fora do May change; F12-12; fases 3-12 ficariam vermelhas no gate tasks (só reexecução); gate ticket verde; integrado em 1169fcf; 2026-11-13: T5: dispatch.py start; F12-13; recibo repoId::caminho conferido na Orca real; gate ticket verde; integrado em da2a129; 2026-11-13: T6: dispatch.py settle; F12-14; gate ticket verde; integrado em ec49684; 2026-11-13: T7: execute.md com start/settle e worker-read --dispatch; test_skills_exec.py atualizado (escopo ampliado); 1 erro transitório de API retomado; gate ticket verde; integrado em d500752; 2026-11-13: T8: brief do Q exige comando e saída literal; teste falha no brief antigo (conferido pelo Picard); gate ticket verde; integrado em 1e1bb0e; 2026-11-13: T9: testes da Ponte falham com recusa do host; orca plugin test 71/71; gate ticket verde; integrado em 1837649; 2026-11-13: T10: registros, linha de compatibilidade, rascunho do relato e CHANGELOG; gate ticket verde; integrado em 798111c; 2026-11-13: proofs vermelho: check_decisions sem entrada para o T7 (execute.md, 75fe604/3a3eba7); 2026-11-13: proofs-fix: F12-15 no DECISIONS.md (94abab1), integrado em b4be0a9
 **Breaker:** closed
