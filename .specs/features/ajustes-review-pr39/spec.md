@@ -72,12 +72,12 @@ Proof: run unit | test_execute_descreve_exit_3 ... ok
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Worf rodada 2
+**Next:** push, publicar review e merge (confirmação)
 **Linear:** SC-167
 **Integration branch:** not created
 **Last integrated:** de519c0
 **Dispatched:** none
 **Settled:** 2026-11-13: spec aprovada com exit 3 e entrada mantida (user: "sim"); 2026-11-13: R1/May change: covers em gates_common.py, não gate_common.py (user: "Mover para gates_common")
 **Attempts:** none
-**Reports:** 2026-11-13: SC-167 1ª entrega 3b31657 (gate ticket verde); pedido: mover covers para gates_common.py; 2026-11-13: SC-167: covers em gates_common.py e exit 3 no start (3b31657, b6c6fbe); suíte 767 ok; integrado em 30f6d31; 2026-11-13: Q (codex, gpt-6-luna, ctx_2a1702566163): FAIL - C2 não exercita o gate das tasks; C8 asserção frouxa; 2026-11-13: fix pós-Q: 22e7907 (C2), 2b4d7e1 (C8); proofs e done verdes; 2026-11-13: retro da Guinan: 49eeb2f (L25-L26, 4 sugestões não aplicadas); 2026-11-13: push e PR confirmados (user: "Push e PR (Recomendado)"): https://github.com/freire-andre/starcode/pull/42, HEAD 424f6e5; 2026-11-13: Worf rodada 1: COMMENT (d909d28); W1 should-fix 2F sem exit 3; W2 nit covers aceita C:/; 2026-11-13: fix Worf r1: W1 8ed1276, W2 2e781bb; suíte 769 ok; proofs e done verdes
+**Reports:** 2026-11-13: SC-167 1ª entrega 3b31657 (gate ticket verde); pedido: mover covers para gates_common.py; 2026-11-13: SC-167: covers em gates_common.py e exit 3 no start (3b31657, b6c6fbe); suíte 767 ok; integrado em 30f6d31; 2026-11-13: Q (codex, gpt-6-luna, ctx_2a1702566163): FAIL - C2 não exercita o gate das tasks; C8 asserção frouxa; 2026-11-13: fix pós-Q: 22e7907 (C2), 2b4d7e1 (C8); proofs e done verdes; 2026-11-13: retro da Guinan: 49eeb2f (L25-L26, 4 sugestões não aplicadas); 2026-11-13: push e PR confirmados (user: "Push e PR (Recomendado)"): https://github.com/freire-andre/starcode/pull/42, HEAD 424f6e5; 2026-11-13: Worf rodada 1: COMMENT (d909d28); W1 should-fix 2F sem exit 3; W2 nit covers aceita C:/; 2026-11-13: fix Worf r1: W1 8ed1276, W2 2e781bb; suíte 769 ok; proofs e done verdes; 2026-11-13: Worf rodada 2: APPROVE (6f72107), W1/W2 resolvidos
 **Breaker:** closed
