@@ -114,7 +114,10 @@ before any new `batch`.
 - **Failure** (outcome failed, no report, or the wait timed out): do **not** integrate. Comment the reason
   in one line on the issue and count `python "P/scripts/handoff.py" set <slug> --attempt worker-<T>=fail`.
   A breaker error id the worker reported (`gate-...=n`) is counted the same way. Retry the ticket with a
-  new dispatch (same brief plus the failure line) until it succeeds or the breaker opens.
+  new dispatch (same brief plus the failure line) until it succeeds or the breaker opens. The failed
+  dispatch still has its entry, and `start` refuses a ticket that has one (exit 2), so first remove it:
+  `python "P/scripts/handoff.py" set <slug> --dispatch-remove <T>`, and only then run the new
+  `dispatch.py start` of step 2.3.
 - **Success**: from the worktree of `I`, `python "P/scripts/dispatch.py" settle <slug> <T> --branch <ticket branch>`
   runs the `ticket` gate over the base recorded in the entry and, if green, the `git merge --no-ff` (no extra
   authorization: it is local to the feature, D11). Exit 1 with a red gate → treat as a failure
@@ -217,6 +220,8 @@ yourself, as `git-modes.md` requires.
 - Stops: only the closed list (STARCODE.md, D29). Ordinary technical errors are fixed and counted.
 
 ## 7. Git mode 1 (degraded)
+- No modo 1 não se usa dispatch.py start nem settle: o `start` exige
+  `**Integration branch:**` no Handoff e recusa sem ele (exit 2), e o `settle` mescla um ramo que o modo 1 não tem.
 - **One worktree** (the main issue's), tickets in sequence in the same tree, **no integration branch and
   no commits**. Dispatch with `--worktree <that worktree>`; skip `run_gates.py ticket` (no range) and
   the merge; compare `git status` before and after each worker instead.
@@ -233,6 +238,15 @@ yourself, as `git-modes.md` requires.
 
 ## 8. MEDIUM and SMALL
 One LaForge worker in a new child worktree from the current branch; the brief is the spec's
-`## Checks` (MEDIUM) or the inline checks (SMALL) plus the worker rules of `dispatch.py brief`. Integrate
-as in step 3, with the gate `run_gates.py ticket <slug> <ID> <base>..<head>` using the spec's `**May change**:` (no tasks.md), then steps 4–5. Progress without tasks.md is one ticket:
+`## Checks` (MEDIUM) or the inline checks (SMALL) plus the worker rules of `dispatch.py brief`.
+`<ID>` is the spec's `**Linear**:`. MEDIUM, with no `tasks.md`, has one ticket, `T1`, and the same two
+commands as the large path (the `Dispatched` entry and the Handoff live in `spec.md`):
+
+    python "P/scripts/dispatch.py" start <slug> <ID> --cli <laforge cli> --model <laforge model> --json
+    python "P/scripts/dispatch.py" settle <slug> <ID> --branch <ramo do ticket>
+
+`start` refuses with exit 2 and `start recusado: spec sem **Linear**:` when the spec has no ID, and both
+commands refuse a ticket that is neither `<ID>` nor `T1`. `settle` runs the gate
+`run_gates.py ticket <slug> T1 <base>..<ramo>` using the spec's `**May change**:` (plus `DECISIONS.md` when it lists
+`scripts/`), merges, and removes the `T1` entry; then steps 4–5. Progress without tasks.md is one ticket:
 `crew_live.py progress <slug> --done 0 --total 1` at dispatch, `--done 1 --total 1` after the merge.

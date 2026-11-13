@@ -13,6 +13,22 @@ from test_dispatch import make_tasks
 HANDOFF = "\n## Handoff\n**Phase:** execute\n**Integration branch:** feature/demo\n**Dispatched:** {d}\n"
 
 
+SPEC_MEDIA_SETTLE = """# Média: Spec
+
+**Size**: MEDIUM
+**Linear**: PROJ-9
+
+## Checks
+
+- **C1** - R1: teste prova y.
+
+## Handoff
+**Phase:** execute
+**Integration branch:** feature/media
+**Dispatched:** {d}
+"""
+
+
 def entry(tid: str, base: str) -> str:
     return f"{tid} · PROJ-{tid[1:]} · base {base} · claude:claude-sonnet-5-5 · 2026-11-07T16:40:00Z · ctx_{tid}"
 
@@ -156,6 +172,54 @@ class SettleTests(TempRepoCase):
         self.assertEqual(code, 0)
         entries = handoff.dispatch_entries(self.fields()["dispatched"])
         self.assertEqual([handoff.entry_ticket(e) for e in entries], ["T2"])
+
+
+
+class MediaSettleTests(TempRepoCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.write_repo_config()
+        self.fdir = self.repo / ".specs" / "features" / "media"
+        self.fdir.mkdir(parents=True)
+        self.spec = SPEC_MEDIA_SETTLE
+        (self.fdir / "spec.md").write_text(self.spec.format(d="none"), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "specs")
+        self.base = run_git(self.repo, "rev-parse", "--short", "HEAD")
+        run_git(self.repo, "checkout", "-q", "-b", "feature/media")
+
+    def fields(self) -> dict[str, str]:
+        lines = (self.fdir / "spec.md").read_text(encoding="utf-8").splitlines()
+        return handoff.read_fields(lines, handoff.section_bounds(lines))
+
+    def open_t1(self) -> None:
+        (self.fdir / "spec.md").write_text(self.spec.format(d=entry("T1", self.base).replace("PROJ-1", "PROJ-9")),
+                                           encoding="utf-8")
+        run_git(self.repo, "commit", "-q", "-am", "dispatch")
+        run_git(self.repo, "checkout", "-q", "-b", "ticket/t1")
+        (self.repo / "a.txt").write_text("x" + chr(10), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "feat: t1", "-m", "Refs: PROJ-9")
+        run_git(self.repo, "checkout", "-q", "feature/media")
+
+    def test_settle_media_integra_t1(self):
+        self.open_t1()
+        fake = FakeGate()
+        out: list[str] = []
+        code = dispatch.settle("media", "PROJ-9", "ticket/t1", self.repo, runner=fake, emit=out.append)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(fake.gates()), 1)
+        self.assertLess(fake.gates()[0], fake.merges()[0])
+        gate = fake.calls[fake.gates()[0]]
+        self.assertEqual(gate[2:6], ["ticket", "media", "T1", f"{self.base}..ticket/t1"])
+        self.assertEqual(run_git(self.repo, "log", "-1", "--format=%B").splitlines(),
+                         ["merge: integra T1 (PROJ-9) em feature/media", "", "Refs: PROJ-9"])
+        head = run_git(self.repo, "rev-parse", "HEAD")
+        values = self.fields()
+        self.assertEqual(values["dispatched"], "none")
+        self.assertEqual(values["last integrated"], head)
+        self.assertEqual(fake.calls[-2][-2:], ["--attempt", "worker-T1=ok"])
+        self.assertEqual(out[-1], f"integrado T1 em feature/media: {run_git(self.repo, 'rev-parse', '--short', 'HEAD')}")
 
 
 if __name__ == "__main__":
