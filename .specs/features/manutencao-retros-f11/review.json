@@ -1,0 +1,51 @@
+{
+  "round": 1,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. O PR acrescenta dispatch.py start e settle, o DECISIONS.md implícito no brief e no lote, o gate de citações do TASK, a data preservada no --report, o proofs.md em LF e a regra de evidência das sondagens do Q. Escada verde. Três nits: o gate de citações não aceita entrada com glob que o check_scope aceita; uma falha do handoff.py depois do worker-start sai com 2 (código de recusa); um noqa sem link de issue num teste novo. Arquivos mecânicos fora do review: dist/ (5 alvos), .specs/lessons.json.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "nit",
+      "path": "scripts/gates/validate_tasks.py",
+      "line": 95,
+      "body": "🟡 `uncovered_citations` não trata entrada com glob do May change (scripts/gates/validate_tasks.py:95). Com May change `tests/test_*.py` e TASK citando `tests/test_a.py`, o gate tasks acusa citação fora do May change, enquanto `check_scope.allowed` (scripts/gates/check_scope.py:47) aceita o mesmo caminho por `fnmatch`. Correção: reusar `check_scope.allowed` ou acrescentar `fnmatch.fnmatch(norm, e)` ao `any(...)` (exige ajustar o R21).",
+      "evidence": "scripts/gates/check_scope.py:47"
+    },
+    {
+      "id": "W2",
+      "severity": "nit",
+      "path": "scripts/dispatch.py",
+      "line": 719,
+      "body": "🟡 A segunda gravação do `start` (scripts/dispatch.py:719) levanta `ValueError` se o handoff.py falhar, e o `main` converte em exit 2 (scripts/dispatch.py:902), o código de recusa \"antes de gravar ou chamar a Orca\". Nesse ponto o worker já está rodando e a entrada fica sem o dispatch id. Correção: capturar a falha dessa gravação e emitir `aviso: handoff.py: <linha>` seguindo com exit 0, como os demais passos pós-start do R10.",
+      "evidence": "scripts/dispatch.py:902"
+    },
+    {
+      "id": "W3",
+      "severity": "nit",
+      "path": "tests/test_handoff_report_date.py",
+      "line": 7,
+      "body": "🟡 `import helpers  # noqa: F401  (sys.path)` traz justificativa, mas sem link de issue (tests/test_handoff_report_date.py:7). O padrão já existe em 3 testes da main e não esconde defeito; rebaixado por falta de impacto. Correção, se o repo quiser manter a regra: registrar a convenção num comentário do helpers.py e citá-lo.",
+      "evidence": "tests/test_handoff_report_date.py:7"
+    }
+  ],
+  "carryover": {},
+  "research": [],
+  "ladder": [
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK"
+    },
+    {
+      "command": "python -m unittest discover -s tests",
+      "result": "OK: 758 testes, 1 skip"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "1 candidato (noqa em teste, W3)"
+    }
+  ]
+}

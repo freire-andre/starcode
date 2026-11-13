@@ -41,7 +41,7 @@ Answer in Brazilian Portuguese inside the report; keep the headings and markers 
 2. **Examples nobody cited.** Pick at least two requirements and try values neither the spec nor the
    checks name: the other side of a limit, an empty input, a large one, a duplicate, an invalid one. Run
    each at HEAD as a throwaway test or command (rule 1). A requirement that breaks on your example is a
-   finding, with the command and its output as evidence.
+   finding, with the command and its output as evidence. Rule: a finding from a probe carries in Evidence the exact command in backticks and the literal output it printed.
 3. **Assertions looser than the criterion.** List the tests whose assertion is weaker than the value the
    requirement fixes (a substring where the requirement fixes the whole message, a status family where
    it fixes one code, one case where it names several).
@@ -73,13 +73,15 @@ Also note a rule the diff implements that no check covers, when it can be wrong 
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| <what is wrong> | `<file>:<line>` or the command and its output | <what would fix it> | |
+| <what is wrong, read in code> | `<file>:<line>` | <what would fix it> | |
+| <what is wrong, found by a probe> | `<exact command>` and the literal output it printed | <what would fix it> | |
 
 ## Limits
 
 <what you could not verify and why, one line each, or `None.`>
 ```
 
+- In Evidence, a finding from a probe carries the exact command in backticks and the literal output it printed; `<file>:<line>` alone is valid only for findings from reading code (steps 1 and 3).
 - One `## Checks` row for **every** check of `## Checks` in the tasks file, with the test you opened.
 - Leave `Closed` empty: the fix commit is written there later. With no findings, write `None.` under
   `## Findings` instead of the table.

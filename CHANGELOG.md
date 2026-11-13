@@ -8,6 +8,18 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+### Adicionado
+
+- Manutenção das retros (SC-148), item 1: `dispatch.py brief` acrescenta `DECISIONS.md` ao May change de ticket que mexe em `scripts/`.
+- Item 2: `proofs.md` é gravado só com LF.
+- Item 3: `dispatch.py start` e `dispatch.py settle` fazem o despacho e a integração de um ticket, e o `execute.md` passa a usá-los.
+- Item 4: o brief do Q exige comando e saída literal na Evidence dos achados vindos de sondagem.
+- Item 5: o gate das tasks recusa arquivo citado no TASK fora do May change, e o brief repete a regra de assinatura de commits.
+- Item 6: `handoff.py set --report` não duplica a data.
+- Item 7: `docs/compatibilidade.md` registra a limitação do `orca plugin test`/`check` por drive, com rascunho do relato à Orca.
+- Item 8: os testes da Ponte falham quando o host recusa uma chamada.
+- Item 9: o `execute.md` usa `worker-read`/`worker-show` com `--dispatch` e diz onde ler o modelo efetivo.
+
 ## [1.6.1] - 2026-11-13
 
 ### Corrigido

@@ -12,6 +12,7 @@ What it checks
   ERRO   task without `Depends on`, `Requirements`, `Tests` or `Gate`; Gate not in `## Gate Commands`
   ERRO   unknown dependency, dependency cycle, unknown requirement
   ERRO   missing or empty briefing block; no `May change:` entry
+  ERRO   the TASK block quotes a file path that May change does not cover (cite it in CONTEXT instead)
   ERRO   two independent tasks share a path in `May change` (add a dependency or split the file)
   ERRO   a sensitive file in `May change` without `**Runs alone**: yes`
   ERRO   `## Checks` invalid (a check per spec requirement, proofs, Build/Run lines)
@@ -25,6 +26,7 @@ Exit: 0 pass, 1 errors (or warnings with --strict), 2 usage error.
 from __future__ import annotations
 
 import argparse
+import posixpath
 import re
 import sys
 from dataclasses import dataclass, field
@@ -36,6 +38,9 @@ import gates_common as gc  # noqa: E402
 
 TASK_RE = re.compile(r"^###\s+(T\d+)\s*:\s*(.*)$", re.IGNORECASE)
 BLOCKS = ("TASK", "CONTEXT", "BOUNDARIES", "RULES", "DELIVERY")
+CITE_RE = re.compile(r"`([^`\s<>*{}]+)`")
+CITE_EXTS = (".py", ".md", ".json", ".ts", ".tsx", ".js", ".mjs", ".toml", ".yaml", ".yml", ".txt", ".sh",
+             ".ps1", ".rs", ".css", ".html", ".lock")
 YES_RE = re.compile(r"^\W*(yes|sim|true)\b", re.IGNORECASE)
 
 
@@ -72,6 +77,26 @@ class Task:
     @property
     def runs_alone(self) -> bool:
         return bool(YES_RE.match(self.value("Runs alone") or ""))
+
+
+def uncovered_citations(task: Task) -> list[str]:
+    """Paths quoted in backticks in the TASK block that the May change does not cover (R20, R21)."""
+    entries = [e.replace("\\", "/").strip() for e in task.may_change]
+    out: list[str] = []
+    for ln in task.blocks.get("TASK", []):
+        for cand in CITE_RE.findall(ln):
+            path = cand.replace("\\", "/")
+            if not path.lower().endswith(CITE_EXTS) or path in out:
+                continue
+            norm = posixpath.normpath(path)
+            if norm == ".." or norm.startswith("../") or norm.startswith("/"):
+                covered = False
+            else:
+                covered = any(norm == e or (e.endswith("/") and norm.startswith(e))
+                              or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1]) for e in entries)
+            if not covered:
+                out.append(path)
+    return out
 
 
 def parse_tasks(lines: list[str]) -> list[Task]:
@@ -200,6 +225,8 @@ def evaluate(target: str | None, root: Path, execute: bool = False, published: b
                 errors.append(f"{t.tid}: o bloco `#### {b}` está vazio")
         if "BOUNDARIES" in t.blocks and not t.may_change:
             errors.append(f"{t.tid}: BOUNDARIES sem `May change: <arquivos ou pastas>`")
+        for cited in uncovered_citations(t):
+            errors.append(f"{t.tid}: o TASK cita {cited}, fora do May change: acrescente ao May change ou cite em CONTEXT")
         if "RULES" in t.blocks and not any("refs:" in x.lower() for x in t.blocks["RULES"]):
             warnings.append(f"{t.tid}: RULES não lembra o rodapé `Refs: <ID-LINEAR>` do commit")
         hits = sorted({p for p in t.may_change if gc.is_sensitive(p, patterns)})

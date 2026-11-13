@@ -139,6 +139,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:C33
 - updated: 2026-11-12T20:27:15Z
 
+### L22 - Valide a data com o calendário antes de preservar um prefixo ISO, porque 2026-99-99 era aceita como data válida.
+- signal: `ac_gap` · features: 1
+- features: manutencao-retros-f11
+- sources: verification.md:R23
+- updated: 2026-11-13T14:57:34Z
+
+### L23 - Normalize o caminho citado e rejeite segmentos .. antes de conferir a pasta do May change, porque scripts/../../x passava como coberto.
+- signal: `weak_test` · features: 1
+- features: manutencao-retros-f11
+- sources: verification.md:R20/R21
+- updated: 2026-11-13T14:57:34Z
+
+### L24 - Teste de idioma deve verificar o relato inteiro, não só palavras proibidas, porque a asserção deixava passar texto em português.
+- signal: `weak_test` · features: 1
+- features: manutencao-retros-f11
+- sources: verification.md:C32
+- updated: 2026-11-13T14:57:34Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
