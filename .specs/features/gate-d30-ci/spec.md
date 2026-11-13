@@ -92,7 +92,7 @@ Proof: `python scripts/check_decisions.py`
 **Linear:** SC-168
 **Integration branch:** feature/gate-d30-ci
 **Last integrated:** 8e1547f
-**Dispatched:** none
+**Dispatched:** Q · 525dd8a
 **Settled:** none
 **Attempts:** none
 **Reports:** 2026-11-13: SC-168: fetch-depth 0, check_decisions sai 2 em clone raso/indeterminado, V18-1..V18-5 e SC-168 no DECISIONS.md, 8 testes, dist regerado; gate ticket verde; suíte completa não conferida pelo worker
