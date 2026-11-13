@@ -19,6 +19,10 @@
         Exit 0 with a batch, 1 when empty, 2 on a usage or read error.
     python dispatch.py brief <slug> <ticket> --out <file>
         The worker brief for --spec-file: the ticket's 5 blocks plus the fixed worker rules.
+    python dispatch.py start <slug> <ticket> --cli <cli> --model <model> [--root DIR] [--json]
+        Starts one worker: brief, `Dispatched` entry, Linear status and label, `worker-start` (OpenCode: a
+        worktree first), then the entry again with dispatch id and model, and `worktree set`. Refusal: exit 2.
+        `worker-start` failure: entry removed, exit 1. Linear and `worktree set` failures are warnings.
     python dispatch.py q-brief <slug> --base <ref> --head <sha> --out <file>
         Fills the Q brief (briefs/q-verify.md) with the feature paths and the range; no session history.
     python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
@@ -39,6 +43,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -583,6 +588,143 @@ def q_cli(laforge: str | list[str], configured: str | None = None, caps_dir: Pat
     return None
 
 
+def default_runner(cmd, **kw):
+    """`subprocess.run`, resolving `orca` through PATH (`orca.cmd` on Windows)."""
+    if cmd and cmd[0] == "orca":
+        cmd = [shutil.which("orca") or "orca", *cmd[1:]]
+    return subprocess.run(cmd, **kw)
+
+
+def _call(runner, cmd: list[str], cwd: Path) -> tuple[int, str, str]:
+    res = runner(cmd, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8", errors="replace",
+                 stdin=subprocess.DEVNULL)
+    return res.returncode, res.stdout or "", res.stderr or ""
+
+
+def _first_line(*texts: str) -> str:
+    for t in texts:
+        for ln in t.splitlines():
+            if ln.strip():
+                return ln.strip()
+    return "sem mensagem"
+
+
+def _find(data, *names: str):
+    """First value of a key in `names` anywhere in a JSON document (breadth first)."""
+    queue = [data]
+    while queue:
+        cur = queue.pop(0)
+        if isinstance(cur, dict):
+            for n in names:
+                if cur.get(n) not in (None, "", {}):
+                    return cur[n]
+            queue += list(cur.values())
+        elif isinstance(cur, list):
+            queue += cur
+    return None
+
+
+def _text_of(value) -> str:
+    if isinstance(value, dict):
+        value = _find(value, "id", "path", "selector", "name")
+    return str(value) if value not in (None, "") else ""
+
+
+def _receipt(out: str) -> dict:
+    try:
+        data = json.loads(out)
+    except ValueError:
+        return {"dispatch": "", "model": "", "worktree": ""}
+    dispatch = _find(data, "dispatchId", "dispatch_id", "dispatch")
+    return {"dispatch": _text_of(dispatch), "model": _text_of(_find(data, "model")),
+            "worktree": _text_of(_find(data, "workspace", "worktreeId", "worktree"))}
+
+
+def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=default_runner,
+          emit=print, now: datetime | None = None) -> tuple[int, dict]:
+    """Start one worker (R5-R11, R17). Exit 2 refuses before writing or calling Orca."""
+    fdir, tasks = load_tasks(slug, root)
+    proj = gc.project_root(fdir)
+    want = ticket.upper()
+    task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
+
+    def refuse(why: str) -> tuple[int, dict]:
+        emit(f"start recusado: {why}")
+        return 2, {}
+
+    if task is None:
+        return refuse(f"ticket {ticket} não existe em tasks.md")
+    issue = linear_id(task)
+    if not issue:
+        return refuse(f"{task.tid} não tem **Linear**:")
+    values = handoff_values(fdir)
+    open_ids = [handoff.entry_ticket(e).upper() for e in handoff.dispatch_entries(values.get("dispatched", "none"))]
+    if task.tid in open_ids:
+        return refuse(f"{task.tid} já tem entrada em Dispatched")
+    if values.get("integration branch", "").strip() in ("", "not created", "none yet", "none"):
+        return refuse("o Handoff não tem **Integration branch:**")
+    branch = f"feature/{fdir.name}"
+    code, sha, _ = _call(runner, ["git", "rev-parse", "--short", branch], proj)
+    sha = sha.strip()
+    if code != 0 or not sha:
+        return refuse(f"ramo {branch} não existe")
+    cfg, _ = sc.load_repo_config(proj)
+    started = (((cfg or {}).get("linear") or {}).get("states") or {}).get("started") or "started"
+    brief = Path(tempfile.mkdtemp(prefix="starcode-")) / f"{fdir.name}-{task.tid}.md"
+    brief.write_text(worker_brief(slug, task.tid, root), encoding="utf-8", newline="\n")
+    emit(f"briefing: {brief}")
+    stamp = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    head = f"{task.tid} · {issue} · base {sha} · "
+    handoff_cmd = [sys.executable, str(HERE / "handoff.py"), "set", fdir.name, "--root", str(root)]
+
+    def record(pair: str, tail: str = "") -> None:
+        c, o, e = _call(runner, [*handoff_cmd, "--dispatch-add", f"{head}{pair} · {stamp}{tail}"], proj)
+        if c != 0:
+            raise ValueError(f"handoff.py falhou: {_first_line(e, o)}")
+
+    def unrecord() -> None:
+        _call(runner, [*handoff_cmd, "--dispatch-remove", task.tid], proj)
+
+    record(f"{cli}:{model}")
+    emit(f"Dispatched: {task.tid} registrado (base {sha})")
+    for label, cmd in (
+            (f"status {started}", ["orca", "linear", "status", "set", issue, "--to", started]),
+            ("label crew:laforge", ["orca", "linear", "label", "add", issue, "--label", "crew:laforge"])):
+        c, o, e = _call(runner, cmd, proj)
+        emit(f"{label}: {issue}" if c == 0 else f"aviso: {label}: {_first_line(e, o)}")
+    worktree = "new-child"
+    if cli == "opencode":
+        c, o, e = _call(runner, ["orca", "worktree", "create", "--name", task.tid, "--base-branch", branch,
+                                 "--json"], proj)
+        created = _receipt(o)["worktree"] if c == 0 else ""
+        if not created:
+            unrecord()
+            emit(f"worker-start falhou: worktree create: {_first_line(e, o)}")
+            return 1, {}
+        worktree = created
+        emit(f"worktree criado: {worktree}")
+    c, o, e = _call(runner, ["orca", "orchestration", "worker-start", "--agent", cli, "--model", model,
+                             "--worktree", worktree, "--base-branch", branch, "--spec-file", str(brief),
+                             "--task-title", f"{task.tid}: {task.title}", "--json"], proj)
+    if c != 0:
+        unrecord()
+        emit(f"worker-start falhou: {_first_line(e, o)}")
+        return 1, {}
+    rec = _receipt(o)
+    used = rec["model"] or model
+    record(f"{cli}:{used}", f" · {rec['dispatch']}" if rec["dispatch"] else "")
+    emit(f"worker iniciado: {task.tid} · {cli}:{used} · {rec['dispatch'] or '-'}")
+    if rec["worktree"]:
+        c, o, e = _call(runner, ["orca", "worktree", "set", "--worktree", rec["worktree"], "--linear-issue",
+                                 issue], proj)
+        emit(f"worktree {rec['worktree']} ligado a {issue}" if c == 0
+             else f"aviso: worktree set: {_first_line(e, o)}")
+    else:
+        emit("aviso: worktree set: o recibo não traz o workspace")
+    return 0, {"ticket": task.tid, "issue": issue, "base": sha, "dispatch": rec["dispatch"],
+               "worktree": rec["worktree"], "model": used}
+
+
 def main(argv: list[str] | None = None) -> int:
     sc.utf8_stdio()
     p = argparse.ArgumentParser(prog="dispatch.py", description="Apoio ao despacho sequencial do Picard.")
@@ -604,6 +746,13 @@ def main(argv: list[str] | None = None) -> int:
     pb.add_argument("ticket")
     pb.add_argument("--out", required=True)
     pb.add_argument("--root", default=".")
+    pst = sub.add_parser("start")
+    pst.add_argument("slug")
+    pst.add_argument("ticket")
+    pst.add_argument("--cli", required=True)
+    pst.add_argument("--model", required=True)
+    pst.add_argument("--json", action="store_true")
+    pst.add_argument("--root", default=".")
     pq = sub.add_parser("q-brief")
     pq.add_argument("slug")
     pq.add_argument("--base", required=True)
@@ -651,6 +800,13 @@ def main(argv: list[str] | None = None) -> int:
             Path(a.out).write_text(worker_brief(a.slug, a.ticket, Path(a.root).resolve()), encoding="utf-8")
             print(f"briefing do ticket gravado em {a.out}")
             return 0
+        if a.cmd == "start":
+            def emit(line: str) -> None:
+                print(line, file=sys.stderr if a.json else sys.stdout)
+            code, res = start(a.slug, a.ticket, a.cli, a.model, Path(a.root).resolve(), emit=emit)
+            if a.json and code == 0:
+                print(json.dumps(res, ensure_ascii=False))
+            return code
         if a.cmd == "q-brief":
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")
