@@ -22,8 +22,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C2 não verifica o uso compartilhado por `validate_tasks`: o teste passa sem exercitar esse gate. | `tests/test_coverage_rule.py:22` | Com `gates_common.covers` mockado, avaliar uma citação no gate das tasks e afirmar a chamada/resultado, além de verificar `check_scope`. | |
-| A asserção C8 aceita qualquer texto que contenha fragmentos do contrato; não fixa o comando completo nem o comportamento descrito. | `tests/test_skills_exec.py:18` | Verificar o texto completo do comando e as instruções de recuperação necessárias no contexto da seção 2. | |
+| C2 não verifica o uso compartilhado por `validate_tasks`: o teste passa sem exercitar esse gate. | `tests/test_coverage_rule.py:22` | Com `gates_common.covers` mockado, avaliar uma citação no gate das tasks e afirmar a chamada/resultado, além de verificar `check_scope`. |  22e7907 |
+| A asserção C8 aceita qualquer texto que contenha fragmentos do contrato; não fixa o comando completo nem o comportamento descrito. | `tests/test_skills_exec.py:18` | Verificar o texto completo do comando e as instruções de recuperação necessárias no contexto da seção 2. |  2b4d7e1 |
 
 ## Limits
 
