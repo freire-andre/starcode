@@ -8,24 +8,26 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-13
+
 ### Adicionado
 
 - Skill `menu` (`/starcode:menu`, `/sc-menu`): lista cada skill do StarCode com o comando, o tripulante e uma linha sobre o que faz; só leitura, sem rodar ferramentas. Um teste garante que o menu cita todas as skills de `skills/`.
 - Skill `config` (`/starcode:config`, `/sc-config`): pergunta quais CLIs e assinaturas você tem (Claude, Codex, Antigravity, OpenCode), analisa cada modelo informado (Muse Spark, GLM, Kimi, OpenRouter...) pelo catálogo público do models.dev, propõe um modelo por tripulante mantendo a faixa de custo do papel (raciocínio pesado `$$$`, execução `$$`, tarefas repetitivas `$`) e põe o Q em outra família de modelo; sem outra família, avisa que a verificação fica degradada. Grava o `~/.starcode/config.json` pelo validador, preservando as outras chaves. Novos comandos `setup_helpers.py clis` e `setup_helpers.py suggest`.
 - `scripts/model_info.py`: ficha de qualquer modelo pelo models.dev (preço, contexto, ferramentas, raciocínio, família do fabricante, faixa de custo) e veredito por papel; cache de 7 dias em `~/.starcode/cache/`.
 - Config local por repositório (`.starcode/config.local.json`, fora do Git): modelos só daquele projeto, com prioridade sobre o config do usuário. O banner, a tabela da tripulação, o painel e o despacho já o aplicam.
-
-### Corrigido
-
-- O despacho reconhece a família de modelos do OpenCode no formato `provedor/modelo` (GLM, Muse, Kimi...) pelo cache do models.dev; antes eram `unknown` e o Q nunca os escolhia.
-- `gpt-6-luna` passa à faixa `$`, pelo preço do catálogo.
 - Skill `piloto-automatico` (`/starcode:piloto-automatico`): a Troi entrevista você a fundo (modo grill, adaptado do `grilling` de mattpocock/skills) e monta um mandato de decisão; você aprova a spec e, dali em diante, o Picard responde por você cada pergunta do fluxo com base na entrevista, registrando pergunta, opções, decisão, motivo, base e confiança em `.specs/features/<slug>/piloto.md` (`scripts/piloto.py`). Decisões sem base na entrevista ficam marcadas `⚠️ revisar`. Push, PR, merge e deploy continuam com você. O banner mostra o piloto ativo e a Guinan lê o registro na retro.
 - Modo grill da Troi (seção 2G): rodadas pela fronteira da árvore de decisões, sem teto de rodadas, perguntas numeradas com recomendação.
 - Os gates de tasks e de verificação aceitam `**Approved**: <data> - piloto: "D<n> ..."` no tasks.md só com piloto ativo e mandato confirmado pelo usuário; a spec continua exigindo a aprovação do usuário.
 
+### Corrigido
+
+- O despacho reconhece a família de modelos do OpenCode no formato `provedor/modelo` (GLM, Muse, Kimi...) pelo cache do models.dev; antes eram `unknown` e o Q nunca os escolhia.
+
 ### Alterado
 
 - A etapa de config do usuário do `setup` passa a seguir a skill `config`.
+- `gpt-6-luna` passa à faixa `$`, pelo preço do catálogo.
 
 ## [1.7.1] - 2026-11-13
 

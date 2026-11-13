@@ -386,13 +386,13 @@ class BuildTests(unittest.TestCase):
         self.assertIn("### F3-1:", decisions)
 
     def test_version_is_1_2_0_in_all_manifests(self):  # C6
-        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "1.7.1")
+        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "1.8.0")
         market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
-        self.assertEqual(market["plugins"][0]["version"], "1.7.1")
+        self.assertEqual(market["plugins"][0]["version"], "1.8.0")
         for rel in ("dist/claude/.claude-plugin/plugin.json", "dist/codex/.codex-plugin/plugin.json",
                     "dist/antigravity/plugin.json"):
             data = json.loads((ROOT / rel).read_text(encoding="utf-8"))
-            self.assertEqual(data["version"], "1.7.1", rel)
+            self.assertEqual(data["version"], "1.8.0", rel)
 
     def test_check_fails_when_manifest_version_diverges(self):  # C7
         script = self.src / "tools" / "build.py"
