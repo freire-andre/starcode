@@ -32,28 +32,25 @@ batch, or in Git mode 1, this section runs as written, without a question.
 1. `python "P/scripts/dispatch.py" next <slug>` → the first ticket whose dependencies are integrated.
    Exit 3 (open dispatch) → step 6 (resume). Exit 1 with "todos os tickets integrados" → step 4.
 2. `python "P/scripts/dispatch.py" brief <slug> <T> --out <temp>/<slug>-<T>.md`.
-3. Record **before sending**: `python "P/scripts/handoff.py" set <slug> --dispatched "<T> · <ID> · base <sha of I>"`.
-4. Move the issue to the `started` state of the repo config and add `crew:laforge`
-   (`orca linear status set <ID> --to "<started>"`, `orca linear label add <ID> --label crew:laforge`).
-5. Start the worker:
+3. Start the worker in one command (brief, `Dispatched` entry, Linear status and `crew:laforge` label,
+   `worker-start` with a new child worktree, the entry again with the dispatch id and model, and the
+   `worktree set` link; OpenCode gets its worktree created first by the command):
 
-       orca orchestration worker-start --agent <laforge cli> --model <laforge model> \
-         --worktree new-child --base-branch feature/<slug> --spec-file <temp>/<slug>-<T>.md \
-         --task-title "<T>: <title>" --json
+       python "P/scripts/dispatch.py" start <slug> <T> --cli <laforge cli> --model <laforge model> --json
 
-   If the LaForge CLI is `opencode`, it cannot create the child itself: first
-   `orca worktree create --name <T> --base-branch feature/<slug> --json`, then
-   `orca orchestration worker-start --agent opencode --model <laforge model> --worktree <that worktree> --spec-file <temp>/<slug>-<T>.md --task-title "<T>: <title>" --json`.
-   If `worker-start` fails with `nested_worker_depth_exceeded` (Orca: "Sub-worker dispatch is not permitted at
-   depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or more (Settings → Orchestration).
-   It does **not** count as an attempt of the breaker and no retry is made.
-   If a Codex worker's `worker-start` fails with `agent-hooks-review-prompt` (or `agent_readiness` with pending
+   For an OpenCode CLI the command first runs `orca worktree create --name <T> --base-branch feature/<slug> --json`
+   and then `worker-start --agent opencode --model <laforge model> --worktree <that worktree>`, because OpenCode
+   cannot create the child itself. The effective model of the worker is the `model` field of the
+   `worker-start --json` receipt, which `start` records in the `Dispatched` entry. Exit 2 = refused; exit 1 = `worker-start` failed (entry removed).
+4. Read the output of `start`. If `worker-start` failed with `nested_worker_depth_exceeded` (Orca: "Sub-worker
+   dispatch is not permitted at depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or more
+   (Settings → Orchestration). It does **not** count as an attempt of the breaker and no retry is made.
+   If a Codex worker's `worker-start` failed with `agent-hooks-review-prompt` (or `agent_readiness` with pending
    hooks, e.g. "Agent startup blocked: agent-hooks-review-prompt"), **stop** the dispatch and show the trust
    step: open `/hooks` in Codex and approve the `starcode` hooks. Do **not** retry, do **not** use
    `--dangerously-bypass-hook-trust`, and it does **not** count as an attempt of the breaker.
-   Then add the dispatch id and the `model` field of the result to `--dispatched`, and mark the worker as working:
-   `python "P/scripts/crew_live.py" set laforge 1` (F6-7).
-6. Link the new worktree to the issue: `orca worktree set --worktree <new worktree> --linear-issue <ID>`.
+5. Mark the worker as working: `python "P/scripts/crew_live.py" set laforge 1` (F6-7).
+6. (Done by `start`: the worktree is already linked to the issue.)
 7. Wait: `orca orchestration check --wait --types worker_done --timeout-ms 3600000 --json`. The
    `worker_done` carries the worker's report (≤5 lines); record it with `--report "<T>: <report>"` and run
    `python "P/scripts/crew_live.py" set laforge 0` (also on failure or timeout).
@@ -68,29 +65,26 @@ Each worker is still a LaForge in its own child worktree; you coordinate and nev
    - **Two or more** → one message: one line per ticket (ticket, issue, CLI, model, cost tier), the total,
      and the excluded tickets with the reason, then **one confirmation**. A swap the user asks for becomes
      `--assign <T>=<cli>:<model>` and the `batch` is run again.
-2. **Start, per ticket, in this order** (brief as in section 2 step 2):
-   1. `python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · <ID> · base <sha of I> · <cli:model> · <UTC time>"` **before** the `worker-start`.
-   2. Issue to `started` plus `crew:laforge`, then `orca orchestration worker-start --agent <cli> --model <model>
-      --worktree new-child --base-branch feature/<slug> --spec-file <temp>/<slug>-<T>.md --task-title "<T>: <title>" --json`
-      (OpenCode: create the worktree first, as in section 2 step 5). Its `--timeout-ms` is only the wait for the
-      worker to **start**, not for the work.
-   3. `--dispatch-add` again with the dispatch id and the `model` field of the receipt
-      (`"<T> · <ID> · base <sha> · <cli:model> · <UTC time> · <dispatch id>"`).
-   4. `orca worktree set --worktree <new worktree> --linear-issue <ID>`.
-   5. **No `--deps`**: independence is already decided by `batch`; say so in the line of the reason.
-   6. `python "P/scripts/crew_live.py" set laforge <n>` with the number of open entries, at every change.
-3. **A `worker-start` that fails** for one ticket: `--dispatch-remove <T>`, one line with the reason, and the
-   **other tickets go on**. The Codex trust stop (`agent-hooks-review-prompt`) and the nesting stop
-   (`nested_worker_depth_exceeded`) apply **only to that ticket**; neither counts as an attempt.
+2. **Start, per ticket:** `python "P/scripts/dispatch.py" start <slug> <T> --cli <cli> --model <model> --json`
+   (it writes the `Dispatched` entry before and after the `worker-start`, moves the issue to `started` with
+   `crew:laforge` and links the worktree; the brief is made by the command). The effective model is the `model`
+   field of the `worker-start --json` receipt, recorded by `start`. A `worker-start` timeout is only the wait
+   for the worker to **start**, not for the work.
+   1. **No `--deps`**: independence is already decided by `batch`; say so in the line of the reason.
+   2. `python "P/scripts/crew_live.py" set laforge <n>` with the number of open entries, at every change.
+3. **A `start` that fails** (exit 1, entry already removed by the command) for one ticket: one line with the
+   reason, and the **other tickets go on**. The Codex trust stop (`agent-hooks-review-prompt`) and the nesting
+   stop (`nested_worker_depth_exceeded`), read in the output of `start`, apply **only to that ticket**; neither
+   counts as an attempt.
 4. **Wait.** `orca orchestration check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline> --json`.
    The deadline of an entry is its dispatch time plus `fleet.timeoutMinutes` (default 30). A `question` is
    answered with `orca orchestration reply`; the others keep running.
-5. **Integrate on arrival.** A `worker_done` with success: `python "P/scripts/gates/run_gates.py" ticket <slug> <T> <base sha recorded in that ticket's entry>..<ticket branch>`
-   (the base is the one recorded at dispatch, never the current `HEAD` of `I`, which moves at every merge) and, if green,
-   `git merge --no-ff` in the worktree of `I` as in section 3, **one merge at a time** (the next arrival waits
-   for the previous merge). Then `--dispatch-remove <T>`, `--last-integrated <sha>`,
-   `python "P/scripts/crew_live.py" progress <slug>`, the comment "integrado em `feature/<slug>`" and
-   `crew_live.py set laforge <n>`. The other workers **keep running**.
+5. **Integrate on arrival.** A `worker_done` with success: in the worktree of `I`,
+   `python "P/scripts/dispatch.py" settle <slug> <T> --branch <ticket branch>`, **one at a time** (the next
+   arrival waits for the previous one). It runs the `ticket` gate over the base recorded in that ticket's entry
+   (never the current `HEAD` of `I`), the `git merge --no-ff`, and removes the entry, sets `--last-integrated`
+   and `worker-<T>=ok`. Then `python "P/scripts/crew_live.py" progress <slug>`, the comment "integrado em
+   `feature/<slug>`" and `crew_live.py set laforge <n>`. The other workers **keep running**.
 6. **Overdue.** After each wait run `python "P/scripts/dispatch.py" overdue <slug>`. For each entry: the
    `blocked` state of the config, or, without one, the comment `bloqueado: worker sem resposta após <N> min (dispatch <id>)`.
    Warn in **one line**; the entry stays with ` · blocked`. **No automatic stop, abandon or redispatch.** A late
@@ -105,7 +99,7 @@ Each worker is still a LaForge in its own child worktree; you coordinate and nev
    others go on. The summary at the end of the batch gives the options of section 3.
 10. **Next.** No active entries left → run `batch` again (step 1). Every ticket integrated → section 4 (proofs).
 
-**Resume:** check each `**Dispatched:**` entry with `orca orchestration worker-show <dispatch>` (section 6)
+**Resume:** check each `**Dispatched:**` entry with `orca orchestration worker-show --dispatch <id>` (section 6)
 before any new `batch`.
 
 ## 3. Check and integrate the ticket
@@ -113,15 +107,14 @@ before any new `batch`.
   in one line on the issue and count `python "P/scripts/handoff.py" set <slug> --attempt worker-<T>=fail`.
   A breaker error id the worker reported (`gate-...=n`) is counted the same way. Retry the ticket with a
   new dispatch (same brief plus the failure line) until it succeeds or the breaker opens.
-- **Success**: run `python "P/scripts/gates/run_gates.py" ticket <slug> <T> <base sha>..<ticket branch>`
-  (base sha = the HEAD of `I` recorded at dispatch). Red → treat as a failure (`--attempt gate-<T>=fail`)
-  and redispatch with the gate lines. A `check_scope` error on `.specs/STATE.md` or `## Handoff` is
-  never integrated (D28).
-- Green → from the worktree of `I`, `git merge --no-ff <ticket branch> -m "merge: integra <T> (<ID>) em feature/<slug>" -m "Refs: <ID>"`
-  (no extra authorization: it is local to the feature, D11).
-- **Conflict** → `git merge --abort`, `I` stays at the previous commit, and stop with the list of
+- **Success**: from the worktree of `I`, `python "P/scripts/dispatch.py" settle <slug> <T> --branch <ticket branch>`
+  runs the `ticket` gate over the base recorded in the entry and, if green, the `git merge --no-ff` (no extra
+  authorization: it is local to the feature, D11). Exit 1 with a red gate → treat as a failure
+  (`--attempt gate-<T>=fail`) and redispatch with the gate lines. A `check_scope` error on `.specs/STATE.md` or
+  `## Handoff` is never integrated (D28).
+- **Conflict** (`settle` exits 1) → it ran `git merge --abort`, `I` stays at the previous commit, and stop with the list of
   conflicting files (options: redispatch the ticket rebased on `I`, or rethink the slicing).
-- After the merge: `--last-integrated <sha> --attempt worker-<T>=ok --dispatched none`, then
+- After `settle` (it already set `--last-integrated`, `worker-<T>=ok` and removed the entry): run
   `python "P/scripts/crew_live.py" progress <slug>` (counts the integrated tickets from Git), comment on the issue
   "integrado em `feature/<slug>`" with the short hash, then go straight to step 2 for the next ticket
   **without asking the user** (end of a ticket is never a stop, D29).
@@ -146,7 +139,7 @@ before any new `batch`.
    Mark it: `python "P/scripts/crew_live.py" set q 1` after the start, `set q 0` after its `worker_done` (the Q
    brief is self-contained and does not update the panel itself).
 5. Wait as in step 2.7. Then read the effective model with
-   `orca orchestration worker-read <dispatch> --source auto` and write in `verification.md`
+   `orca orchestration worker-read --dispatch <id> --source auto` and write in `verification.md`
    `**Verifier**: <cli> · requested <model field of the result> · effective <model | unconfirmed>` (F0-2);
    same in `--report`.
 6. **Screens (F11, R28).** When `python "P/scripts/screens.py" list <slug>` is not empty, right after dispatching the Q:
@@ -201,7 +194,7 @@ In both cases Uhura returns text only: you confirm it and run `gh pr create` and
 yourself, as `git-modes.md` requires.
 
 ## 6. Resume and the circuit breaker (D27)
-- On resume with a `**Dispatched:**` not integrated: `orca orchestration worker-show <dispatch>` before
+- On resume with a `**Dispatched:**` not integrated: `orca orchestration worker-show --dispatch <id>` before
   anything else. Running → wait (step 2.7). Finished → step 3. **Never start a second worker for the same
   ticket while the first is not closed** (`worker-stop` first, with a line to the user).
 - `handoff.py` prints `DISJUNTOR ABERTO` on the 3rd failure of the same error id: record nothing more,

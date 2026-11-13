@@ -17,18 +17,18 @@ class ExecuteReferenceTests(unittest.TestCase):
 
     def test_execute_ref_dispatch_steps(self):  # R8, R11, R12
         self.assertAll(REF, "**or reuse `I` if it already exists**", "--integration-branch feature/<slug>` **before\nthe first dispatch**",
-                       "Record **before sending**", "orca orchestration worker-start --agent <laforge cli> --model <laforge model>",
-                       "--worktree new-child --base-branch feature/<slug> --spec-file",
-                       "orca worktree set --worktree <new worktree> --linear-issue <ID>",
+                       "dispatch.py\" start <slug> <T> --cli <laforge cli> --model <laforge model> --json",
+                       "`worker-start` with a new child worktree", "`worktree set` link",
                        "orca orchestration check --wait --types worker_done --timeout-ms 3600000")
         self.assertAll(SKILL, "### 5b. Execute (Phase 3)", "references/execute.md")
 
     def test_execute_ref_integration_and_resume(self):  # R13-R17
         self.assertAll(REF, "do **not** integrate", "--attempt worker-<T>=fail",
-                       "run_gates.py\" ticket <slug> <T> <base sha>..<ticket branch>", "git merge --no-ff",
+                       "dispatch.py\" settle <slug> <T> --branch <ticket branch>", "`ticket` gate over the base recorded in the entry",
+                       "git merge --no-ff",
                        "`git merge --abort`, `I` stays at the previous commit", "conflicting files",
                        "\"integrado em `feature/<slug>`\"", "**without asking the user**",
-                       "orca orchestration worker-show <dispatch>",
+                       "orca orchestration worker-show --dispatch <id>",
                        "**Never start a second worker for the same\n  ticket while the first is not closed**")
 
     def test_execute_ref_q_dispatch(self):  # R18, R20, R23
@@ -43,7 +43,7 @@ class ExecuteReferenceTests(unittest.TestCase):
                        "goes to the user with the finding and the evidence")
 
     def test_execute_ref_linear_states(self):  # R28, R29, R31
-        self.assertAll(REF, "`started` state of the repo config and add `crew:laforge`",
+        self.assertAll(REF, "Linear status and `crew:laforge` label",
                        "`review` state of the config", "\"pronto para revisão\"",
                        "`completed` only with the user's explicit confirmation", "**never in mode 1**")
 
@@ -59,7 +59,7 @@ class ExecuteReferenceTests(unittest.TestCase):
 
     def test_execute_ref_opencode_and_q_cli(self):  # R20
         self.assertAll(REF, "orca worktree create --name <T> --base-branch feature/<slug>",
-                       "orca orchestration worker-start --agent opencode --model <laforge model> --worktree <that worktree>",
+                       "`worker-start --agent opencode --model <laforge model> --worktree <that worktree>`",
                        "dispatch.py\" q-cli --laforge <laforge cli:model>")
 
     def test_execute_ref_integration_worktree(self):  # R21
@@ -67,7 +67,7 @@ class ExecuteReferenceTests(unittest.TestCase):
 
     def test_execute_ref_nested_depth_stop(self):  # R22
         self.assertAll(REF, "nested_worker_depth_exceeded", "Settings → Orchestration", "2 or more",
-                       "does **not** count as an attempt")
+                       "does **not** count as an attempt", "agent-hooks-review-prompt", "Read the output of `start`")
 
     def test_execute_fleet_batch_confirmation(self):  # R13
         self.assertAll(REF, "## 2F. Fleet (v1.1)", "dispatch.py\" batch <slug> --json", "**Two or more**",
@@ -77,26 +77,26 @@ class ExecuteReferenceTests(unittest.TestCase):
         self.assertIn("2F", SKILL)
 
     def test_execute_fleet_worker_start_flags(self):  # R16
-        self.assertAll(REF, "handoff.py\" set <slug> --dispatch-add \"<T> · <ID> · base <sha of I> · <cli:model> · <UTC time>\"", "**before** the `worker-start`",
-                       "--worktree new-child --base-branch feature/<slug> --spec-file",
-                       "orca worktree set --worktree <new worktree> --linear-issue <ID>", "**No `--deps`**",
-                       "dispatch id and the `model` field of the receipt", "crew_live.py\" set laforge <n>")
+        self.assertAll(REF, "dispatch.py\" start <slug> <T> --cli <cli> --model <model> --json",
+                       "writes the `Dispatched` entry before and after the `worker-start`",
+                       "links the worktree", "**No `--deps`**",
+                       "`model`\n   field of the `worker-start --json` receipt", "crew_live.py\" set laforge <n>")
         fleet = REF[REF.index("## 2F."):]
-        self.assertLess(fleet.index("**before** the `worker-start`"), fleet.index("--worktree new-child"))
+        self.assertLess(fleet.index("writes the `Dispatched` entry before"), fleet.index("**No `--deps`**"))
         self.assertNotIn("--deps`", fleet.replace("**No `--deps`**", ""))
 
     def test_execute_fleet_start_failure_isolated(self):  # R17
-        self.assertAll(REF, "A `worker-start` that fails", "`--dispatch-remove <T>`, one line with the reason",
+        self.assertAll(REF, "A `start` that fails", "entry already removed by the command",
                        "**other tickets go on**", "apply **only to that ticket**")
 
     def test_execute_fleet_wait_uses_nearest_deadline(self):  # R20
         self.assertAll(REF, "check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline>",
-                       "`fleet.timeoutMinutes`", "only the wait for the\n      worker to **start**")
+                       "`fleet.timeoutMinutes`", "only the wait\n   for the worker to **start**")
 
     def test_execute_fleet_integrates_on_arrival(self):  # R21
-        self.assertAll(REF, "**Integrate on arrival.**", "`run_gates.py ticket`", "`git merge --no-ff`",
-                       "**one merge at a time**", "`--last-integrated <sha>`", "The other workers **keep running**",
-                       "run_gates.py\" ticket <slug> <T> <base sha recorded in that ticket's entry>..<ticket branch>",
+        self.assertAll(REF, "**Integrate on arrival.**", "dispatch.py\" settle <slug> <T> --branch <ticket branch>",
+                       "`git merge --no-ff`", "**one at a time**", "sets `--last-integrated`",
+                       "The other workers **keep running**", "`ticket` gate over the base recorded in that ticket's entry",
                        "never the current `HEAD` of `I`")
 
     def test_execute_fleet_timeout_blocks_without_relaunch(self):  # R23
@@ -122,7 +122,7 @@ class ExecuteReferenceTests(unittest.TestCase):
 
     def test_execute_fleet_unavailable_in_mode_1(self):  # R28
         self.assertAll(REF, "`Frota indisponível no modo 1 (um só worktree)`", "go to section 7 (sequential)")
-        self.assertAll(REF, "**Resume:** check each `**Dispatched:**` entry with `orca orchestration worker-show <dispatch>`")
+        self.assertAll(REF, "**Resume:** check each `**Dispatched:**` entry with `orca orchestration worker-show --dispatch <id>`")
 
 
 if __name__ == "__main__":
