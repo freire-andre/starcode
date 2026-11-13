@@ -118,7 +118,23 @@ class DecisionsFileTests(unittest.TestCase):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         entry = next(e for e in re.split(r"^### ", text, flags=re.M) if e.startswith("SC-169"))
         for part in ("effective_may_change", "T1", "arquivo não encontrado", "--dispatch-remove",
-                     "**Problema:**", "**Decisão:**", "**Motivo:**", "**Por que não é bug:**"):
+                     "**Problema:**", "**Decisão:**", "**Motivo:**", "**Por que não é bug:**",
+                     "a lista dada mais `DECISIONS.md` quando algum caminho começa com `scripts/`",
+                     "pelo brief (GRANDE e MÉDIA) e pelo `check_scope` (GRANDE e MÉDIA)",
+                     "`T1 · <ID> · base <sha> · ...`",
+                     "`start recusado: spec sem **Linear**:`",
+                     "`ticket <ticket> não é desta feature MÉDIA (use <ID> ou T1)`",
+                     "`merge: integra T1 (<ID>) em feature/<slug>` com `Refs: <ID>`",
+                     "só a entrada `T1` removida, `Last integrated` e `worker-T1=ok` gravados",
+                     "`dispatch: arquivo não encontrado: <caminho>`",
+                     "`start recusado: o Handoff não tem **Integration branch:** "
+                     "(modo 1: siga a seção 7 do execute.md, sem start)`",
+                     "`start recusado: <T> já tem entrada em Dispatched "
+                     "(nova tentativa: handoff.py set <slug> --dispatch-remove <T>)`",
+                     "na seção 3 `--dispatch-remove <T>` antes do novo `dispatch.py start`",
+                     "`dispatch.py start <slug> <ID> --cli <laforge cli> --model <laforge model> --json`",
+                     "`dispatch.py settle <slug> <ID> --branch <ramo do ticket>`",
+                     "`No modo 1 não se usa dispatch.py start nem settle`"):
             self.assertIn(part, entry, part)
         why = entry[entry.index("**Por que não é bug:**"):]
         for name in ("test_regra_decisions_compartilhada", "test_scope_aceita_decisions_com_scripts",
