@@ -42,6 +42,12 @@ If `.specs/features/<slug>/` has none of `verification.md`, `proofs.md`, `review
 5. Keep the IDs the script prints (`L<n>`). A script exit 2 is reported as is; never edit `.specs/lessons.json`
    or `.specs/LESSONS.md` by hand.
 
+## 1b. Autopilot log
+If `.specs/features/<slug>/piloto.md` exists, read it. In retro.md add a section `## Piloto automático` with:
+how many decisions, the `⚠️ revisar` ones (ID and one line each), and each decision a Q or Worf finding
+later contradicted (decision ID → finding). It gives no lesson by itself; a contradicted decision may
+become one of the suggestions (e.g. a mandate item to add next time). Never edit piloto.md.
+
 ## 2. Retro (R24)
 Follow `references/retro.md`. Write `.specs/features/<slug>/retro.md` with **at most 7** suggestions, ordered by
 severity (highest first). Each suggestion has:

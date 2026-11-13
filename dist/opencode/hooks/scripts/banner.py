@@ -148,6 +148,18 @@ def plugin_version() -> str | None:
         return None
 
 
+def pilot_lines(root: Path | None) -> list[str]:
+    """One line per active autopilot (piloto.md), so the user knows the Picard decides in their place."""
+    try:
+        import piloto  # noqa: PLC0415
+
+        found = piloto.actives(root) if root else []
+    except Exception:  # noqa: BLE001 - the banner never fails because of the log
+        return []
+    return [f"🛸 Piloto automático: ativo em {slug} ({n} decisão(ões), {rev} para revisar; "
+            f".specs/features/{slug}/piloto.md)" for slug, n, rev in found]
+
+
 def outdated_plugin_line(root: Path | None) -> str | None:
     """F7-12: when the open repository is the StarCode source and the running plugin is older than its VERSION."""
     if root is None:
@@ -335,6 +347,7 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
             summary.append("config local inválido")
         elif local_cfg is not None:
             lines.append("Config local do repositório: ✅ válido (modelos só deste repositório)")
+        lines.extend(pilot_lines(root))
         lines.extend(crew_lines(None if user_err else user_cfg, None if local_err else local_cfg))
     else:
         lines.append(f"Este repositório ainda não usa o StarCode. {cmd_ref(cli, 'setup')} configura; "

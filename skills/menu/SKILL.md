@@ -15,6 +15,7 @@ specific item, show the block anyway and then answer that question in at most 2 
 • {{CMD:engajar}} · 🛸 Picard: Começa ou retoma uma missão: dimensiona a tarefa e conduz a tripulação.
 • {{CMD:setup}} · 🛸 Picard: Configura o StarCode no repositório e na máquina (Linear, estados, labels).
 • {{CMD:config}} · 🛸 Picard: Escolhe o modelo de cada tripulante conforme as assinaturas que você tem.
+• {{CMD:piloto-automatico}} · 🛸 Picard: Entrevista você a fundo, você aprova a spec e ele decide o resto por você, registrando tudo.
 • {{CMD:troi}} · 💜 Troi: Descoberta: entrevista você e escreve o context.md da feature.
 • {{CMD:spock}} · 🖖 Spock: Escreve ou revisa a spec.md da feature e roda o gate da spec.
 • {{CMD:data}} · 🤖 Data: Quebra a spec em tasks.md e publica os tickets no Linear.

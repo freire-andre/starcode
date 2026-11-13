@@ -166,3 +166,7 @@ skills:
     owner: picard
     invocation: both
     release: "1.8"
+  piloto-automatico:
+    owner: picard
+    invocation: user
+    release: "1.8"

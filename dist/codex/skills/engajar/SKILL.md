@@ -50,6 +50,8 @@ If the banner shows work in progress, an open circuit breaker or a degraded veri
 `## Handoff`), `git log` and the Linear issues. Use the resume table in `references/state-format.md`.
 **If they disagree, Git evidence wins; an approval line beats a Handoff that says it is pending.**
 Propose the next step (continue, or one of the breaker exits) before anything else.
+**Autopilot:** if `python "<plugin-root>/scripts/piloto.py" ativo <slug>` exits 0 for the feature, follow
+`<plugin-root>/skills/piloto-automatico/SKILL.md` sections 4–7 for every stop after the spec approval.
 Do not turn these into questions (F2-12):
 - Features whose next step belongs to a crew member not installed in this version: one line in the
   report, no question. Ask only when the user's message is about them.

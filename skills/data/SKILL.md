@@ -69,6 +69,9 @@ give its path. Ask exactly one question and **stop**:
   asking again.
 - **só aprovar**: record the approval the same way; nothing goes to Linear. The Picard records
   `**Linear:** not published (user declined)`; the feature can still proceed locally.
+- **Autopilot** (`piloto.py ativo <slug>` exit 0): the Picard answers this question as a recorded decision
+  and writes `**Approved**: <YYYY-MM-DD> - piloto: "D<n> <resumo>"` instead of a `user:` line
+  (`skills/piloto-automatico/SKILL.md`, section 4).
 - **ajustes** or a question: apply, rerun the gate, ask the same single question again. Never record an
   approval for a version the user did not see.
 

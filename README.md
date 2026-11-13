@@ -67,6 +67,10 @@ trabalho com a tripulação):
 Para ver todas as ferramentas do StarCode com uma linha sobre cada uma, chame o menu: `/starcode:menu`
 (Claude Code), `/sc-menu` (OpenCode) ou a skill `menu` do StarCode (Codex e Antigravity).
 
+Para tocar uma feature inteira com uma entrevista só, use `/starcode:piloto-automatico` (`/sc-piloto-automatico`
+no OpenCode): a Troi entrevista você a fundo, você aprova a spec e o Picard decide o resto por você, registrando
+cada pergunta e decisão em `.specs/features/<slug>/piloto.md`. Push, PR, merge e deploy continuam pedindo o seu sim.
+
 Para escolher o modelo de cada tripulante conforme as assinaturas que você tem, use `/starcode:config`
 (`/sc-config` no OpenCode, a skill `config` no Codex e no Antigravity). O StarCode sugere o modelo por
 papel e custo (ex.: Haiku para as tarefas repetitivas) e você aceita ou troca linha por linha. Qualquer modelo do
