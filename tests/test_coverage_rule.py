@@ -20,12 +20,27 @@ class CoverageRuleTests(unittest.TestCase):
         self.assertFalse(gates_common.covers("scripts/a.py", "dist/"))
 
     def test_gates_usam_a_mesma_regra(self):
-        with mock.patch.object(gates_common, "covers", return_value=False) as spy:
-            self.assertFalse(check_scope.allowed("a/b.py", ["a/b.py"]))
-            self.assertEqual(spy.call_count, 1)
-        with mock.patch.object(gates_common, "covers", return_value=True) as spy:
+        calls = []
+
+        def fake(path, entry):
+            calls.append((path, entry))
+            return True
+
+        task = validate_tasks.Task(
+            "T1", "t", blocks={"TASK": ["Veja `src/x.py`."], "BOUNDARIES": ["- May change: `a/b.py`"]})
+        with mock.patch.object(gates_common, "covers", side_effect=fake):
+            self.assertEqual(validate_tasks.uncovered_citations(task), [])
+        self.assertEqual(calls, [("src/x.py", "a/b.py")])
+
+        calls.clear()
+        with mock.patch.object(gates_common, "covers", side_effect=fake):
             self.assertTrue(check_scope.allowed("zzz.py", ["a/b.py"]))
-            self.assertEqual(spy.call_count, 1)
+        self.assertEqual(calls, [("zzz.py", "a/b.py")])
+
+        with mock.patch.object(gates_common, "covers", return_value=False) as spy:
+            self.assertEqual(validate_tasks.uncovered_citations(task), ["src/x.py"])
+            self.assertFalse(check_scope.allowed("a/b.py", ["a/b.py"]))
+            self.assertEqual(spy.call_count, 2)
 
     def test_covers_recusa_travessia(self):
         for path in ("scripts/../../outside.py", "/etc/x.py", "../x.py", ".."):
