@@ -23,6 +23,10 @@
         Starts one worker: brief, `Dispatched` entry, Linear status and label, `worker-start` (OpenCode: a
         worktree first), then the entry again with dispatch id and model, and `worktree set`. Refusal: exit 2.
         `worker-start` failure: entry removed, exit 1. Linear and `worktree set` failures are warnings.
+    python dispatch.py settle <slug> <ticket> --branch <ticket branch> [--root DIR]
+        Integrates one ticket into feature/<slug> (run in that worktree): gate `ticket` over <entry base>..<branch>,
+        `git merge --no-ff`, then entry removed, `Last integrated` and `worker-<T>=ok`. Refusal: exit 2. Red gate or
+        merge conflict (merge aborted): exit 1, entry kept.
     python dispatch.py q-brief <slug> --base <ref> --head <sha> --out <file>
         Fills the Q brief (briefs/q-verify.md) with the feature paths and the range; no session history.
     python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
@@ -725,6 +729,66 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
                "worktree": rec["worktree"], "model": used}
 
 
+def _entry_base(entry: str) -> str:
+    parts = [x.strip() for x in entry.split("·")]
+    return parts[2].removeprefix("base").strip() if len(parts) > 2 else ""
+
+
+def settle(slug: str, ticket: str, branch: str, root: Path, runner=default_runner,
+           emit=print) -> int:
+    """Integrate one ticket into feature/<slug> (R12-R17). Exit 2 refuses before the gate and the merge."""
+    fdir, tasks = load_tasks(slug, root)
+    proj = gc.project_root(fdir)
+    want = ticket.upper()
+    task = next((t for t in tasks if t.tid == want or linear_id(t) == want), None)
+    tid = task.tid if task else want
+    issue = (linear_id(task) if task else None) or "-"
+    target = f"feature/{fdir.name}"
+
+    def refuse(why: str) -> int:
+        emit(f"settle recusado: {why}")
+        return 2
+
+    entry = next((e for e in handoff.dispatch_entries(handoff_values(fdir).get("dispatched", "none"))
+                  if handoff.entry_ticket(e).upper() == tid), None)
+    if entry is None:
+        return refuse(f"{tid} não tem entrada em Dispatched")
+    base = _entry_base(entry)
+    if not base:
+        return refuse(f"a entrada de {tid} em Dispatched não traz a base")
+    _, current, _ = _call(runner, ["git", "rev-parse", "--abbrev-ref", "HEAD"], proj)
+    if current.strip() != target:
+        return refuse(f"o ramo atual é {current.strip() or '?'}, não {target}")
+    if _call(runner, ["git", "rev-parse", "--verify", "--quiet", f"{branch}^{{commit}}"], proj)[0] != 0:
+        return refuse(f"ramo {branch} não existe")
+    c, o, e = _call(runner, [sys.executable, str(HERE / "gates" / "run_gates.py"), "ticket", fdir.name, tid,
+                             f"{base}..{branch}", "--root", str(root)], proj)
+    if c != 0:
+        emit(f"gate vermelho: {tid}")
+        lines = [ln.strip() for ln in (o + chr(10) + e).splitlines() if "FALHA" in ln or "ERRO" in ln]
+        for ln in lines or [_first_line(o, e)]:
+            emit(ln)
+        return 1
+    msg = ["-m", f"merge: integra {tid} ({issue}) em {target}", "-m", f"Refs: {issue}"]
+    c, o, e = _call(runner, ["git", "merge", "--no-ff", branch, *msg], proj)
+    if c != 0:
+        _, files, _ = _call(runner, ["git", "diff", "--name-only", "--diff-filter=U"], proj)
+        _call(runner, ["git", "merge", "--abort"], proj)
+        names = ", ".join(f for f in files.split() if f) or _first_line(e, o)
+        emit(f"conflito no merge de {tid}: {names}")
+        return 1
+    _, sha, _ = _call(runner, ["git", "rev-parse", "HEAD"], proj)
+    sha = sha.strip()
+    c, o, e = _call(runner, [sys.executable, str(HERE / "handoff.py"), "set", fdir.name, "--root", str(root),
+                             "--dispatch-remove", tid, "--last-integrated", sha, "--attempt", f"worker-{tid}=ok"],
+                    proj)
+    if c != 0:
+        emit(f"aviso: handoff.py falhou depois do merge: {_first_line(e, o)}")
+    _, short, _ = _call(runner, ["git", "rev-parse", "--short", "HEAD"], proj)
+    emit(f"integrado {tid} em {target}: {short.strip()}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     sc.utf8_stdio()
     p = argparse.ArgumentParser(prog="dispatch.py", description="Apoio ao despacho sequencial do Picard.")
@@ -753,6 +817,11 @@ def main(argv: list[str] | None = None) -> int:
     pst.add_argument("--model", required=True)
     pst.add_argument("--json", action="store_true")
     pst.add_argument("--root", default=".")
+    pse = sub.add_parser("settle")
+    pse.add_argument("slug")
+    pse.add_argument("ticket")
+    pse.add_argument("--branch", required=True)
+    pse.add_argument("--root", default=".")
     pq = sub.add_parser("q-brief")
     pq.add_argument("slug")
     pq.add_argument("--base", required=True)
@@ -807,6 +876,8 @@ def main(argv: list[str] | None = None) -> int:
             if a.json and code == 0:
                 print(json.dumps(res, ensure_ascii=False))
             return code
+        if a.cmd == "settle":
+            return settle(a.slug, a.ticket, a.branch, Path(a.root).resolve())
         if a.cmd == "q-brief":
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")
