@@ -932,3 +932,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** o `--report` entra como veio quando o texto casa `^\d{4}-\d{2}-\d{2}` (com ou sem hora depois); qualquer outro texto, inclusive `T1 em 2026-11-13` (data no meio), continua como `<data de hoje>: <texto>`. O `--settle` não muda e sempre prefixa.
 - **Motivo:** o relatório do worker já traz a data do evento, e a data de hoje na frente confundia a leitura do histórico.
 - **Por que não é bug:** `test_report_com_data_iso_nao_prefixa` falha com o prefixo sempre aplicado, e `test_report_sem_data_prefixa_hoje` e `test_settle_continua_prefixando` falham se a regra se estender ao texto sem data no começo ou ao `--settle`.
+
+### F12-10: `check_proofs.py` grava o `proofs.md` só com LF (R4, R31)
+- **Problema:** no Windows o `write_text` traduzia `\n` em `\r\n`, e o `proofs.md` saía com CR e gerava diff de fim de linha entre sistemas.
+- **Decisão:** o `check_proofs.py` grava com `newline="\n"`; o arquivo tem os mesmos bytes em qualquer sistema operacional. Os itens de scripts da fase (`handoff.py`, `check_proofs.py`, `dispatch.py brief`, `dispatch.py start`, `dispatch.py settle` e `validate_tasks.py`) ficam registrados em entradas F12.
+- **Motivo:** artefato versionado precisa ser idêntico em qualquer máquina.
+- **Por que não é bug:** `test_proofs_md_gravado_sem_cr` falha no Windows sem o `newline="\n"`.

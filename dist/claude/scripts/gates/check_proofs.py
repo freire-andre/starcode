@@ -200,7 +200,7 @@ def evaluate(feature: str | None, root: Path, write: bool = True) -> gc.Result:
             code, output = results[proof]
             out += [f"`{_cell(proof)}` - exit {code}", "", "```", *_tail(output), "```", ""]
     if write:
-        (fdir / "proofs.md").write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
+        (fdir / "proofs.md").write_text("\n".join(out).rstrip() + "\n", encoding="utf-8", newline="\n")
 
     for c, p, r in failed:
         res.errors.append(f"{c}: {r} ({p[:80]})")
