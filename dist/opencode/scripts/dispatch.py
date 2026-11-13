@@ -23,6 +23,8 @@
         Starts one worker: brief, `Dispatched` entry, Linear status and label, `worker-start` (OpenCode: a
         worktree first), then the entry again with dispatch id and model, and `worktree set`. Refusal: exit 2.
         `worker-start` failure: entry removed, exit 1. Linear and `worktree set` failures are warnings.
+        Exit 3: the worker is running but the second Handoff write failed; the first entry stays, a
+        `worker ativo sem registro completo` line is printed and `worktree set` is still tried.
     python dispatch.py settle <slug> <ticket> --branch <ticket branch> [--root DIR]
         Integrates one ticket into feature/<slug> (run in that worktree): gate `ticket` over <entry base>..<branch>,
         `git merge --no-ff`, then entry removed, `Last integrated` and `worker-<T>=ok`. Refusal: exit 2. Red gate or
@@ -716,8 +718,14 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
         return 1, {}
     rec = _receipt(o)
     used = rec["model"] or model
-    record(f"{cli}:{used}", f" · {rec['dispatch']}" if rec["dispatch"] else "")
-    emit(f"worker iniciado: {task.tid} · {cli}:{used} · {rec['dispatch'] or '-'}")
+    code = 0
+    try:
+        record(f"{cli}:{used}", f" · {rec['dispatch']}" if rec["dispatch"] else "")
+        emit(f"worker iniciado: {task.tid} · {cli}:{used} · {rec['dispatch'] or '-'}")
+    except ValueError as exc:
+        code = 3
+        emit(f"worker ativo sem registro completo: {task.tid} · {rec['dispatch'] or '-'} · "
+             f"{rec['worktree'] or '-'}: {_first_line(str(exc))}")
     if rec["worktree"]:
         c, o, e = _call(runner, ["orca", "worktree", "set", "--worktree", rec["worktree"], "--linear-issue",
                                  issue], proj)
@@ -725,7 +733,7 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
              else f"aviso: worktree set: {_first_line(e, o)}")
     else:
         emit("aviso: worktree set: o recibo não traz o workspace")
-    return 0, {"ticket": task.tid, "issue": issue, "base": sha, "dispatch": rec["dispatch"],
+    return code, {"ticket": task.tid, "issue": issue, "base": sha, "dispatch": rec["dispatch"],
                "worktree": rec["worktree"], "model": used}
 
 
@@ -873,7 +881,7 @@ def main(argv: list[str] | None = None) -> int:
             def emit(line: str) -> None:
                 print(line, file=sys.stderr if a.json else sys.stdout)
             code, res = start(a.slug, a.ticket, a.cli, a.model, Path(a.root).resolve(), emit=emit)
-            if a.json and code == 0:
+            if a.json and code in (0, 3):
                 print(json.dumps(res, ensure_ascii=False))
             return code
         if a.cmd == "settle":

@@ -15,6 +15,11 @@ class ExecuteReferenceTests(unittest.TestCase):
         for part in parts:
             self.assertIn(part, text)
 
+    def test_execute_descreve_exit_3(self):
+        self.assertAll(REF, "Exit 3", "worker-start` succeeded but the second `Dispatched` write failed",
+                       "handoff.py\" set <slug> --dispatch-add \"<T> · ... · <dispatch id>\"",
+                       "no new `start` for the same ticket")
+
     def test_execute_ref_dispatch_steps(self):  # R8, R11, R12
         self.assertAll(REF, "**or reuse `I` if it already exists**", "--integration-branch feature/<slug>` **before\nthe first dispatch**",
                        "dispatch.py\" start <slug> <T> --cli <laforge cli> --model <laforge model> --json",
