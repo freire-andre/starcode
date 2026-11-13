@@ -115,18 +115,3 @@ N/A - os comandos são de linha única, sem estado próprio além das entradas d
 
 ## Open Questions
 None.
-
-## Handoff
-
-**Phase:** spec-approved
-**Size:** LARGE
-**Git mode:** 3
-**Next:** Data quebra em tasks
-**Linear:** SC-148
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** none
-**Attempts:** none
-**Reports:** none
-**Breaker:** closed
