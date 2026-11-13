@@ -64,6 +64,9 @@ trabalho com a tripulação):
 | Antigravity CLI | a skill `setup` do StarCode | a skill `engajar` do StarCode |
 | OpenCode | `/sc-setup` | `/sc-engajar` |
 
+Para ver todas as ferramentas do StarCode com uma linha sobre cada uma, chame o menu: `/starcode:menu`
+(Claude Code), `/sc-menu` (OpenCode) ou a skill `menu` do StarCode (Codex e Antigravity).
+
 ## Painel ao vivo
 
 O StarCode mantém dois arquivos pequenos para um painel visual, em `.starcode/live/` no worktree principal

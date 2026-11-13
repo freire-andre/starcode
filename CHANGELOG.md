@@ -8,6 +8,10 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+### Adicionado
+
+- Skill `menu` (`/starcode:menu`, `/sc-menu`): lista cada skill do StarCode com o comando, o tripulante e uma linha sobre o que faz; só leitura, sem rodar ferramentas. Um teste garante que o menu cita todas as skills de `skills/`.
+
 ## [1.7.1] - 2026-11-13
 
 ### Corrigido
