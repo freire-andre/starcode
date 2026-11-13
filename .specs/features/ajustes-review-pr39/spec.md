@@ -69,15 +69,15 @@ Proof: run unit | test_execute_descreve_exit_3 ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa (worker)
+**Next:** Q (codex) verifica
 **Linear:** SC-167
 **Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** SC-167 · base 0958835 · claude:claude-sonnet-5-5 · ctx_e5b6baffbab4
+**Last integrated:** 30f6d31
+**Dispatched:** none
 **Settled:** 2026-11-13: spec aprovada com exit 3 e entrada mantida (user: "sim"); 2026-11-13: R1/May change: covers em gates_common.py, não gate_common.py (user: "Mover para gates_common")
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-13: SC-167 1ª entrega 3b31657 (gate ticket verde); pedido: mover covers para gates_common.py; 2026-11-13: SC-167: covers em gates_common.py e exit 3 no start (3b31657, b6c6fbe); suíte 767 ok; integrado em 30f6d31
 **Breaker:** closed
