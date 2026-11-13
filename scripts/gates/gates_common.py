@@ -378,7 +378,7 @@ def normalize(path: str) -> str:
 
 def covers(path: str, entry: str) -> bool:
     p = normalize(path)
-    if p == ".." or p.startswith("../") or p.startswith("/"):
+    if p == ".." or p.startswith("../") or p.startswith("/") or re.match(r"[A-Za-z]:/", p):
         return False
     e = entry.strip().strip("`'\"").replace("\\", "/")
     while e.startswith("./"):
