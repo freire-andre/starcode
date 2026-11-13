@@ -1,9 +1,23 @@
 // Testes do worker da Ponte, com um executor falso no lugar dos processos filhos.
-import { assert, hostError, mockHost, mountWorker, test } from 'orca/testing'
+import { assert, hostError, mockHost as baseMockHost, mountWorker, test as baseTest } from 'orca/testing'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as main from './worker'
+
+// Todo mockHost do arquivo é registrado; ao fim de cada teste, nenhum pode ter recusa do host.
+const hosts: ReturnType<typeof baseMockHost>[] = []
+const mockHost: typeof baseMockHost = (opts) => {
+  const host = baseMockHost(opts)
+  hosts.push(host)
+  return host
+}
+const test = (name: string, fn: () => unknown) =>
+  baseTest(name, async () => {
+    hosts.length = 0
+    await fn()
+    for (const host of hosts) assert.deepEqual(host.refusals, [])
+  })
 
 const EXE = process.platform === 'win32' ? 'orca.exe' : 'orca'
 const CLI_DIR = mkdtempSync(join(tmpdir(), 'ponte-cli-'))
@@ -955,5 +969,25 @@ test('atalho foca o worktree da missão ativa', async () => {
   assert.equal(miss.message, 'worktree não aberto na Orca: C:/wt/fora')
   assert.equal(host.callsOf('workspace.open').length, 2)
   assert.equal(host.callsOf('notifications.show').length, 0)
+  await worker.deactivate()
+})
+
+test('host recusa agent.launch sem a capacidade', async () => {
+  const fake = install()
+  cliDown(fake)
+  fake.python = withFeature(FILES)
+  const host = baseMockHost({ // recusa esperada: fora do registro que exige refusals vazio
+    capabilities: ['workspace:read', 'agent:read', 'workspace:write', 'storage:own'],
+    results: {
+      'workspace.readContext': CTX_A,
+      'workspace.list': { workspaces: [WS_A, WS_B], truncated: false },
+      'agents.list': { agents: [] },
+      'statusBar.update': { ok: true },
+      'agent.launch': { terminalId: 'term-1' },
+    },
+  })
+  const worker = await mount(host)
+  await worker.request('ponte.launchPicard', {}).catch(() => undefined)
+  assert.ok(host.refusals.some((r) => r.method === 'agent.launch' && r.code === 'capability_denied'))
   await worker.deactivate()
 })
