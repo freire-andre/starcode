@@ -10,12 +10,20 @@
   python setup_helpers.py repo-config --workspace ID --team KEY --base-branch B --states-json FILE
                           [--stack a,b] [--sensitive p1,p2]
       Prints a repo config (schemaVersion 1) for review; write it with validate_config.py --write.
+  python setup_helpers.py clis
+      Which StarCode CLIs are on PATH (claude, codex, agy, opencode): one line each.
+  python setup_helpers.py suggest --have claude,codex [--model opencode=<id> ...] [--json]
+      Proposes a model per crew member from only the CLIs the user has, keeping the cost tier of each
+      default (heavy reasoning $$$, execution $$, repetitive $). Q goes to another family when there is
+      one; otherwise it stays degraded (self-verified). Prints a table, notes and the user config with
+      only the differences from crew.yaml; write it with validate_config.py --kind user --write.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import shutil
 import sys
 from datetime import date
 from pathlib import Path
@@ -91,6 +99,126 @@ def crew_table() -> str:
     return "\n".join(rows)
 
 
+# --- model suggestion (/starcode:config) -----------------------------------------------------
+
+CLIS = ("claude", "codex", "antigravity", "opencode")
+CLI_BINARIES = {"claude": "claude", "codex": "codex", "antigravity": "agy", "opencode": "opencode"}
+CLI_FAMILIES = {"claude": "anthropic", "codex": "openai", "antigravity": "google"}
+Q_ORDER = ("codex", "antigravity", "opencode")  # same order as dispatch.q_cli
+TIER_RANK = {"grátis": 0, "$": 1, "$$": 2, "$$$": 3}
+
+
+def clis_found(which=shutil.which) -> dict[str, bool]:
+    return {cli: bool(which(CLI_BINARIES[cli])) for cli in CLIS}
+
+
+def _candidates(doc: dict, have: list[str], extra: dict[str, list[str]]) -> list[tuple[str, str, str]]:
+    """(cli, model, tier) the user can run: crew.yaml models of the CLI family plus the --model ones.
+    A CLI with no known model offers its own default (tier '?')."""
+    tiers = doc.get("costTiers", {})
+    out: list[tuple[str, str, str]] = []
+    for cli in have:
+        models = [m for m, fam in doc.get("families", {}).items() if fam == CLI_FAMILIES.get(cli)]
+        models += [m for m in extra.get(cli, []) if m not in models]
+        if not models:
+            out.append((cli, "cli-default", "?"))
+        out += [(cli, m, sc.cost_tier(m, tiers)) for m in models]
+    return out
+
+
+def _pick(cands: list[tuple[str, str, str]], want: str) -> tuple[str, str, str] | None:
+    """Same tier first, else the nearest known tier (a tie goes to the stronger one), else an unknown one."""
+    known = [c for c in cands if c[2] in TIER_RANK]
+    if known and want in TIER_RANK:
+        target = TIER_RANK[want]
+        return min(known, key=lambda c: (abs(TIER_RANK[c[2]] - target), -TIER_RANK[c[2]]))
+    if known:
+        return known[0]
+    return cands[0] if cands else None
+
+
+def _family(cli: str, model: str, doc: dict) -> str:
+    """Same rule the dispatch uses to pick the Q (crew.yaml families, openrouter/<vendor>/..., prefixes)."""
+    import dispatch  # noqa: PLC0415  (heavy import, only for suggest)
+
+    return dispatch.family(f"{cli}:{model}")
+
+
+def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = None) -> dict:
+    """Model per crew member using only the CLIs in `have`. A member whose default CLI is available keeps
+    its default; the others get the candidate nearest to the cost tier of their default model. Q gets
+    another family than the LaForge (like dispatch.q_cli); with none, it stays degraded (self-verified)."""
+    extra = extra or {}
+    have = [c for c in CLIS if c in have]
+    if not have:
+        return {"rows": [], "config": {"schemaVersion": 1}, "notes": ["nenhum CLI informado: nada a sugerir"]}
+    tiers = doc.get("costTiers", {})
+    crew = doc.get("crew", {})
+    cands = _candidates(doc, have, extra)
+    chosen: dict[str, tuple[str, str]] = {}
+    overrides: dict[str, dict] = {}
+    notes: list[str] = []
+    for key, m in crew.items():
+        if key == "q":
+            continue
+        d = m.get("default", {})
+        want = sc.cost_tier(d.get("model", ""), tiers)
+        if d.get("cli") in have:
+            chosen[key] = (d["cli"], d["model"])
+            continue
+        pick = _pick(cands, want)
+        chosen[key] = (pick[0], pick[1])
+        overrides[key] = {"cli": pick[0], "model": pick[1]}
+        if pick[2] != want:
+            notes.append(f"{m['name']}: pedia a faixa {want}; o mais próximo disponível é {pick[2]} ({pick[1]})")
+    if "q" in crew:
+        qd = crew["q"].get("default", {})
+        lf_fam = _family(*chosen.get("laforge", ("claude", "")), doc)
+        q_pick = None
+        if qd.get("cli") in have and _family(qd["cli"], qd.get("model", ""), doc) not in (lf_fam, "unknown"):
+            q_pick = (qd["cli"], qd.get("model"), "")  # the default already verifies in another family
+        for cli in Q_ORDER if q_pick is None else ():
+            if cli not in have:
+                continue
+            q_cands = [c for c in cands if c[0] == cli and _family(c[0], c[1], doc) not in (lf_fam, "unknown")]
+            if not q_cands and CLI_FAMILIES.get(cli, lf_fam) != lf_fam:
+                q_cands = [(cli, "cli-default", "?")]
+            if q_cands:
+                q_pick = _pick(q_cands, "$$")
+                break
+        if q_pick is None:
+            chosen["q"] = ("—", "self-verified (degradado)")
+            notes.append("Q sem CLI de outra família: a verificação fica degradada (self-verified). Codex, "
+                         "Antigravity ou um modelo de outra família no OpenCode resolvem.")
+        else:
+            chosen["q"] = (q_pick[0], q_pick[1])
+            if (q_pick[0], q_pick[1]) != (qd.get("cli"), qd.get("model")):
+                overrides["q"] = {"cli": q_pick[0], "model": q_pick[1]}
+    rows = []
+    for key, m in crew.items():
+        cli, model = chosen[key]
+        rows.append({"member": key, "name": m["name"], "emoji": m.get("emoji", ""), "role": m.get("role", ""),
+                     "cli": cli, "model": model, "tier": "—" if cli == "—" else sc.cost_tier(model or "", tiers),
+                     "changed": key in overrides})
+    cfg: dict = {"schemaVersion": 1}
+    if overrides:
+        cfg["crew"] = overrides
+    return {"rows": rows, "config": cfg, "notes": notes}
+
+
+def render_suggestion(res: dict) -> str:
+    out = ["| Tripulante | Papel | CLI | Modelo | Faixa | |", "|---|---|---|---|---|---|"]
+    for r in res["rows"]:
+        model = "padrão do CLI" if r["model"] == "cli-default" else r["model"]
+        out.append(f"| {r['emoji']} {r['name']} | {r['role']} | {r['cli']} | {model} | {r['tier']} | "
+                   f"{'alterado' if r['changed'] else '= padrão'} |")
+    if res["notes"]:
+        out.append("")
+        out += [f"- {n}" for n in res["notes"]]
+    out += ["", "Config proposto:", json.dumps(res["config"], ensure_ascii=False, indent=2)]
+    return "\n".join(out)
+
+
 def main(argv: list[str] | None = None) -> int:
     sc.utf8_stdio()
     parser = argparse.ArgumentParser(description="Ajudantes determinísticos do /starcode:setup.")
@@ -98,6 +226,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("map-states")
     sub.add_parser("missing-labels")
     sub.add_parser("crew-table")
+    sub.add_parser("clis")
+    sg = sub.add_parser("suggest")
+    sg.add_argument("--have", required=True, help="CLIs que o usuário tem, separados por vírgula")
+    sg.add_argument("--model", action="append", default=[], help="<cli>=<modelo> confirmado pelo usuário")
+    sg.add_argument("--json", action="store_true")
     rc = sub.add_parser("repo-config")
     rc.add_argument("--workspace", required=True)
     rc.add_argument("--team", required=True)
@@ -123,6 +256,26 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "crew-table":
         print(crew_table())
+        return 0
+    if args.cmd == "clis":
+        for cli, ok in clis_found().items():
+            print(f"{cli} ({CLI_BINARIES[cli]}): {'encontrado' if ok else 'não encontrado'}")
+        return 0
+    if args.cmd == "suggest":
+        have = [c.strip() for c in args.have.split(",") if c.strip()]
+        bad = [c for c in have if c not in CLIS]
+        extra: dict[str, list[str]] = {}
+        for item in args.model:
+            cli, sep, model = item.partition("=")
+            if not sep or cli not in CLIS or not model.strip():
+                bad.append(item)
+                continue
+            extra.setdefault(cli, []).append(model.strip())
+        if bad:
+            print(f"ERRO: valor inválido: {', '.join(bad)} (CLIs: {', '.join(CLIS)}; --model <cli>=<modelo>)")
+            return 2
+        res = suggest(sc.load_crew(), have, extra)
+        print(json.dumps(res, ensure_ascii=False, indent=2) if args.json else render_suggestion(res))
         return 0
     states = json.loads(args.states_json.read_text(encoding="utf-8"))
     cfg: dict = {

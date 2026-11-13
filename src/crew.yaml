@@ -161,3 +161,7 @@ skills:
     owner: picard
     invocation: both
     release: "1.8"
+  config:
+    owner: picard
+    invocation: both
+    release: "1.8"

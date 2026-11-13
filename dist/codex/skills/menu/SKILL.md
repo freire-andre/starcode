@@ -13,7 +13,8 @@ specific item, show the block anyway and then answer that question in at most 2 
 🖖 StarCode · Menu
 
 • a skill `engajar` do StarCode · 🛸 Picard: Começa ou retoma uma missão: dimensiona a tarefa e conduz a tripulação.
-• a skill `setup` do StarCode · 🛸 Picard: Configura o StarCode na máquina e no repositório (Linear, labels, modelos).
+• a skill `setup` do StarCode · 🛸 Picard: Configura o StarCode no repositório e na máquina (Linear, estados, labels).
+• a skill `config` do StarCode · 🛸 Picard: Escolhe o modelo de cada tripulante conforme as assinaturas que você tem.
 • a skill `troi` do StarCode · 💜 Troi: Descoberta: entrevista você e escreve o context.md da feature.
 • a skill `spock` do StarCode · 🖖 Spock: Escreve ou revisa a spec.md da feature e roda o gate da spec.
 • a skill `data` do StarCode · 🤖 Data: Quebra a spec em tasks.md e publica os tickets no Linear.

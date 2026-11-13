@@ -11,6 +11,11 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 ### Adicionado
 
 - Skill `menu` (`/starcode:menu`, `/sc-menu`): lista cada skill do StarCode com o comando, o tripulante e uma linha sobre o que faz; só leitura, sem rodar ferramentas. Um teste garante que o menu cita todas as skills de `skills/`.
+- Skill `config` (`/starcode:config`, `/sc-config`): pergunta quais CLIs e assinaturas você tem (Claude, Codex, Antigravity, OpenCode), propõe um modelo por tripulante mantendo a faixa de custo do papel (raciocínio pesado `$$$`, execução `$$`, tarefas repetitivas `$`) e põe o Q em outra família de modelo; sem outra família, avisa que a verificação fica degradada. Grava o `~/.starcode/config.json` pelo validador, preservando as outras chaves. Novos comandos `setup_helpers.py clis` e `setup_helpers.py suggest`.
+
+### Alterado
+
+- A etapa de config do usuário do `setup` passa a seguir a skill `config`.
 
 ## [1.7.1] - 2026-11-13
 

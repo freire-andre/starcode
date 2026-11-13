@@ -67,6 +67,10 @@ trabalho com a tripulação):
 Para ver todas as ferramentas do StarCode com uma linha sobre cada uma, chame o menu: `/starcode:menu`
 (Claude Code), `/sc-menu` (OpenCode) ou a skill `menu` do StarCode (Codex e Antigravity).
 
+Para escolher o modelo de cada tripulante conforme as assinaturas que você tem, use `/starcode:config`
+(`/sc-config` no OpenCode, a skill `config` no Codex e no Antigravity). O StarCode sugere o modelo por
+papel e custo (ex.: Haiku para as tarefas repetitivas) e você aceita ou troca linha por linha.
+
 ## Painel ao vivo
 
 O StarCode mantém dois arquivos pequenos para um painel visual, em `.starcode/live/` no worktree principal
