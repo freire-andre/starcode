@@ -8,6 +8,10 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+### Corrigido
+
+- OpenCode: `install_local.py` copia o pacote para `~/.config/opencode/starcode` e aponta as skills e o plugin para essa cópia, em vez do `dist/` do clone.
+
 ## [1.8.0] - 2026-11-13
 
 ### Adicionado
