@@ -234,7 +234,7 @@ resultado, commits, pendências, tentativas do disjuntor.
 **Requirements**: R18, R29, R30
 **Tests**: unit
 **Gate**: full
-May change: `skills/engajar/references/execute.md`, `tests/test_execute_doc_start_settle.py`, `dist/`
+May change: `skills/engajar/references/execute.md`, `tests/test_execute_doc_start_settle.py`, `tests/test_skills_exec.py`, `dist/`
 Do not touch: `scripts/`, `src/`, `hooks/`
 
 #### TASK
@@ -249,7 +249,7 @@ Spec: R18, R29, R30. Checks: C25, C26, C27.
 Os comandos `start` e `settle` já existem em `scripts/dispatch.py` (T5, T6; só leitura): leia o `--help` deles. Formas posicionais hoje: linhas perto de 108, 149 e 204. O teste lê o arquivo de `skills/` (fonte), não o `dist/`.
 
 #### BOUNDARIES
-May change: `skills/engajar/references/execute.md`, `tests/test_execute_doc_start_settle.py`, `dist/`
+May change: `skills/engajar/references/execute.md`, `tests/test_execute_doc_start_settle.py`, `tests/test_skills_exec.py`, `dist/`
 Do not touch: `scripts/`, `src/`, `hooks/`
 
 #### RULES
@@ -465,15 +465,15 @@ Proof: run unit | test_citacao_em_context_nao_conta ... ok
 
 ## Handoff
 
-**Phase:** published
+**Phase:** execute
 **Size:** LARGE
 **Git mode:** 3
-**Next:** worktree de integração e T1
+**Next:** aguardar T7 e integrar
 **Linear:** SC-148 (mãe); SC-157..SC-166; doc https://linear.app/cifren/document/spec-manutencao-das-retros-da-fase-11-e-do-patch-v151-2008cd0d7d29
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
-**Settled:** none
+**Integration branch:** feature/manutencao-retros-f11
+**Last integrated:** ec49684
+**Dispatched:** T7 · SC-163 · base ec49684 · claude:claude-sonnet-5-5 · ctx_1e7adb4bcdac
+**Settled:** 2026-11-13: T7: May change ampliado com tests/test_skills_exec.py (asserções do R18) (user: "Ampliar o May change")
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-13: T1: handoff.py --report sem data duplicada; F12-9; dist reconstruído; gate ticket verde; integrado em 380e876; 2026-11-13: T2: proofs.md em LF; F12-10; gate ticket verde; integrado em df34563; 2026-11-13: T3: DECISIONS.md implícito no brief e no lote, regra de assinatura; F12-11; gate ticket verde; integrado em a863a31; 2026-11-13: T4: gate das tasks recusa citação fora do May change; F12-12; fases 3-12 ficariam vermelhas no gate tasks (só reexecução); gate ticket verde; integrado em 1169fcf; 2026-11-13: T5: dispatch.py start; F12-13; recibo repoId::caminho conferido na Orca real; gate ticket verde; integrado em da2a129; 2026-11-13: T6: dispatch.py settle; F12-14; gate ticket verde; integrado em ec49684
 **Breaker:** closed
