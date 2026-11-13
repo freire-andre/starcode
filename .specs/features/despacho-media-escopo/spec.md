@@ -102,15 +102,15 @@ Proof: run unit | test_decisions_despacho_media ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Despachar LaForge (T1) por dispatch.py start
+**Next:** Gate proofs e Q
 **Linear:** SC-169
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/despacho-media-escopo
+**Last integrated:** ded8b31
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-13: T1: effective_may_change em gates_common, start/settle aceitam a MÉDIA (T1 ou ID), FileNotFoundError sai 2, recusas apontam modo 1 e --dispatch-remove, execute.md 3/7/8, SC-169 no DECISIONS.md; 98 testes e gate ticket verdes
 **Breaker:** closed
