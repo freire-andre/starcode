@@ -73,7 +73,7 @@ class CheckDecisionsTests(TempRepoCase):
         real = cd.git
         esperado = ("check_decisions: não foi possível confirmar que o clone é completo "
                     "(git rev-parse --is-shallow-repository)")
-        for fake in ((0, "--is-shallow-repository"), (128, "")):
+        for fake in ((0, "--is-shallow-repository"), (128, ""), (0, " false "), (0, "false ")):
             def fake_git(repo, *args, _fake=fake):
                 if args[:2] == ("rev-parse", "--is-shallow-repository"):
                     return _fake

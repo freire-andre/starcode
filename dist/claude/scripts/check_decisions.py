@@ -21,7 +21,7 @@ DECISIONS = "DECISIONS.md"
 def git(repo: Path, *args: str) -> tuple[int, str]:
     res = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, encoding="utf-8",
                          stdin=subprocess.DEVNULL)
-    return res.returncode, res.stdout.rstrip()
+    return res.returncode, res.stdout.rstrip("\r\n")
 
 
 def check(repo: Path) -> tuple[int, str]:
@@ -31,10 +31,10 @@ def check(repo: Path) -> tuple[int, str]:
     if not (repo / DECISIONS).exists():
         return 2, f"check_decisions: {DECISIONS} não existe"
     code, shallow = git(repo, "rev-parse", "--is-shallow-repository")
-    if code != 0 or shallow.strip() not in ("true", "false"):
+    if code != 0 or shallow not in ("true", "false"):
         return 2, ("check_decisions: não foi possível confirmar que o clone é completo "
                    "(git rev-parse --is-shallow-repository)")
-    if shallow.strip() == "true":
+    if shallow == "true":
         return 2, ("check_decisions: repositório raso; o gate D30 precisa do histórico completo "
                    "(use fetch-depth: 0 no actions/checkout ou rode git fetch --unshallow)")
     _, dirty = git(repo, "status", "--porcelain", "--", *WATCHED, DECISIONS)
