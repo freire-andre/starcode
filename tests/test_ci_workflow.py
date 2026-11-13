@@ -71,6 +71,11 @@ class CiWorkflowTests(unittest.TestCase):
         for name, cmd in expected.items():
             self.assertEqual(got.get(name), cmd, name)
 
+    def test_ci_checkout_historico_completo(self):
+        checkouts = [s for s in _steps("checks") if str(s.get("uses", "")) == "actions/checkout@v4"]
+        self.assertEqual(len(checkouts), 1)
+        self.assertEqual(str(checkouts[0]["with"]["fetch-depth"]), "0")
+
     def test_ci_matrix_ubuntu_windows_python_312(self):
         job = _jobs()["checks"]
         self.assertEqual(job["strategy"]["matrix"]["os"], ["ubuntu-latest", "windows-latest"])

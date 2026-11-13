@@ -5,7 +5,7 @@ Compares commits, not dates: passes when the last commit touching the watched fo
 fail unless DECISIONS.md is also modified in the working tree.
 
 Usage: python scripts/check_decisions.py [--repo DIR]
-Exit: 0 ok, 1 DECISIONS.md out of date, 2 not a git repo / no DECISIONS.md.
+Exit: 0 ok, 1 DECISIONS.md out of date, 2 not a git repo / no DECISIONS.md / shallow or unconfirmed-complete clone.
 """
 from __future__ import annotations
 
@@ -30,6 +30,13 @@ def check(repo: Path) -> tuple[int, str]:
         return 2, "check_decisions: não é um repositório Git"
     if not (repo / DECISIONS).exists():
         return 2, f"check_decisions: {DECISIONS} não existe"
+    code, shallow = git(repo, "rev-parse", "--is-shallow-repository")
+    if code != 0 or shallow.strip() not in ("true", "false"):
+        return 2, ("check_decisions: não foi possível confirmar que o clone é completo "
+                   "(git rev-parse --is-shallow-repository)")
+    if shallow.strip() == "true":
+        return 2, ("check_decisions: repositório raso; o gate D30 precisa do histórico completo "
+                   "(use fetch-depth: 0 no actions/checkout ou rode git fetch --unshallow)")
     _, dirty = git(repo, "status", "--porcelain", "--", *WATCHED, DECISIONS)
     dirty_paths = [line[3:] for line in dirty.splitlines()]
     dirty_watched = [p for p in dirty_paths if p.split("/", 1)[0] in WATCHED]

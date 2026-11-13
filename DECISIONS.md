@@ -974,3 +974,39 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 - **Decisão:** `scripts/gates/gates_common.py` tem `covers(path, entry)`, usada pelo `check_scope` e pelo gate das tasks: com o caminho normalizado (`\` vira `/`, `posixpath.normpath`), entrada terminada em `/` cobre o que começa com ela, e as demais cobrem igualdade ou `fnmatch`. Caminho `..`, `../x`, `/x` ou com letra de drive (`C:/x`, depois de normalizar `\`) nunca é coberto, nem por `*`. O gate das tasks mantém a regra do nome sem pasta. No `dispatch.py start`, falha da segunda gravação sai com 3, mantém a entrada da primeira gravação, imprime `worker ativo sem registro completo: <T> · <dispatch id> · <worktree>: <primeira linha do erro>` (`-` se faltar), ainda tenta `orca worktree set` e com `--json` imprime o objeto do recibo. O `execute.md` (seções 2 e 2F) descreve o exit 3 e a correção com `handoff.py set <slug> --dispatch-add`, sem novo `start`.
 - **Motivo:** duas regras de cobertura divergentes geram erro falso num gate e brecha no outro; e o exit 1 levava o Picard a redespachar um worker que já estava rodando.
 - **Por que não é bug:** `test_covers_pasta_igualdade_e_glob` e `test_gates_usam_a_mesma_regra` falham sem a regra única, `test_citacao_coberta_por_glob` falha sem o glob no gate das tasks, `test_travessia_nao_coberta_por_glob` falha se `*` cobrir `..` ou `/`, `test_covers_recusa_letra_de_drive` falha se um caminho com letra de drive for coberto, `test_nome_sem_pasta_continua_coberto` falha se a regra do nome sair, `test_start_segunda_gravacao_falha_sai_3` e `test_start_exit_3_avisa_e_liga_worktree` falham com exit 1 ou sem aviso, `test_execute_descreve_exit_3` falha sem a seção 2 e `test_execute_fleet_start_exit_3` falha sem o exit 3 na 2F.
+
+### V18-1: piloto automático decide as paradas delegáveis depois da spec (R5)
+- **Problema:** o fluxo do Picard parava para o usuário em cada pergunta de negócio, área cinzenta e aprovação de tasks, mesmo quando a entrevista já dava a resposta.
+- **Decisão:** a skill `piloto-automatico` faz a Troi entrevistar a fundo e montar um mandato. Depois da aprovação da spec, o Picard responde às paradas da lista D29 que são delegáveis e aprova as tasks pelo mandato, registrando cada decisão em `piloto.md` (base, confiança, `⚠️ revisar` sem base). A spec continua com o usuário. Nunca são delegados, conforme a seção 5 de `skills/piloto-automatico/SKILL.md`: o modo Git, a aprovação da spec, push, abrir o PR, publicar o review do Worf no PR, merge na base, deploy, credencial ou acesso faltando, operação destrutiva, a confirmação de custo do lote sem limite no mandato (ou acima dele) e disjuntor ainda aberto depois do diagnóstico do McCoy.
+- **Motivo:** o usuário aprova uma vez o que importa (a spec) e o resto segue a entrevista com rastro auditável, sem abrir mão do que é irreversível ou externo.
+- **Por que não é bug:** `tests/test_piloto.py` falha se o registro, a marca `⚠️ revisar` ou a regra de nunca ampliar a spec deixarem de valer.
+
+### V18-2: aprovação `piloto:` só no tasks.md, com piloto ativo e mandato confirmado (R6)
+- **Problema:** os gates só aceitavam `**Approved**: <data> - user: "..."`, então o piloto não conseguia aprovar as tasks.
+- **Decisão:** `**Approved**: <data> - piloto: "D<n> ..."` é aceito só no `tasks.md`, com `piloto.md` `**Status:** ativo` e `**Mandato confirmado:**` de uma linha `user:`. O `spec.md` exige sempre a aprovação do usuário: os gates chamam `approved` sem `allow_pilot` para a spec.
+- **Motivo:** a delegação vale só enquanto o usuário confirmou o mandato, e nunca cobre a spec.
+- **Por que não é bug:** `tests/test_piloto.py` falha se `piloto:` valer no `spec.md`, sem piloto ativo ou sem mandato confirmado.
+
+### V18-3: skill `config` e `model_info.py` escolhem modelo pelo catálogo do models.dev (R7)
+- **Problema:** escolher o modelo de cada tripulante dependia de editar o config à mão, sem dado sobre preço, contexto ou família, e IDs do OpenCode (`provedor/modelo`) saíam `unknown`.
+- **Decisão:** a skill `config` pergunta quais CLIs o usuário tem, consulta cada modelo no catálogo do models.dev por `scripts/model_info.py` (preço, contexto, ferramentas, raciocínio, família, faixa de custo) e propõe um modelo por papel, gravando pelo validador. O catálogo fica em cache de 7 dias em `~/.starcode/cache/`. A faixa vem do preço de saída por 1M de tokens: `$` abaixo de 2, `$$` abaixo de 12, `$$$` a partir de 12; raciocínio pesado fica em `$$$`, execução em `$$` e tarefas repetitivas em `$`. O Q vai para outra família; sem outra, o aviso é de verificação degradada.
+- **Motivo:** a fonte pública evita inventar ID e preço, e o cache evita rede a cada consulta.
+- **Por que não é bug:** `tests/test_model_info.py` e `tests/test_config_skill.py` falham se a faixa, o cache de 7 dias ou o veredito por papel mudarem.
+
+### V18-4: config local do repositório em `.starcode/config.local.json` (R8)
+- **Problema:** escolher um modelo só para um projeto exigia mudar o config do usuário e afetava todos os repositórios.
+- **Decisão:** `.starcode/config.local.json`, fora do Git, guarda os modelos só daquele repositório. A precedência é sessão > config local do repositório > config do usuário > padrão do `crew.yaml`. O banner, a tabela da tripulação, o painel e o despacho já aplicam essa ordem.
+- **Motivo:** preferência pessoal de um projeto não deve vazar para o Git nem para os outros projetos.
+- **Por que não é bug:** `tests/test_config_skill.py` e `tests/test_model_info.py` falham se o config local deixar de ter prioridade sobre o do usuário.
+
+### V18-5: skill `menu` só lê e cobre todas as skills (R9)
+- **Problema:** não havia lista única do que o StarCode faz e de como invocar cada skill.
+- **Decisão:** a skill `menu` mostra um bloco fixo com cada skill, o comando, o tripulante e uma linha sobre o que faz. Ela só lê: não roda ferramentas nem abre arquivos. Um teste garante que o menu cita todas as skills de `skills/`.
+- **Motivo:** o menu fixo é barato e previsível, e o teste impede que uma skill nova fique fora dele.
+- **Por que não é bug:** `tests/test_menu_skill.py` falha se alguma skill de `skills/` não aparecer no menu.
+
+### SC-168: gate D30 exige clone completo e o CI faz checkout do histórico (R1 a R3)
+- **Problema:** o `actions/checkout` raso (profundidade 1) faz o `git log` ver um só commit, então o gate D30 comparava commits que não conseguia ordenar e dava resultado sem sentido no CI.
+- **Decisão:** o job `checks` do `ci.yml` usa `actions/checkout@v4` com `fetch-depth: 0`. O `check_decisions.py` roda `git rev-parse --is-shallow-repository` antes de comparar: `true` sai com 2 e a mensagem pedindo `fetch-depth: 0` ou `git fetch --unshallow`; saída que não seja exatamente `true` nem `false` (comando falhou ou git antigo) sai com 2 e diz que não conseguiu confirmar que o clone é completo. Em clone completo, os resultados de antes não mudam.
+- **Motivo:** falhar alto com instrução clara é melhor que passar ou falhar por falta de histórico.
+- **Por que não é bug:** `test_ci_checkout_historico_completo` falha sem o `fetch-depth: 0`, `test_clone_raso_sai_2` falha se o clone raso passar a comparar commits e `test_raso_indeterminado_sai_2` falha se a saída indeterminada não sair com 2.
