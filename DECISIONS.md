@@ -926,3 +926,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
   - W5: no `restore --yes` os `remover` rodam antes dos `voltar`, para o arquivo do snapshot que virou pasta de mesmo nome (a pasta sai e o arquivo volta); `test_restore_falha_parcial_e_retomada` agora força a falha parcial com um erro de gravação injetado, já que a pasta no lugar do arquivo deixou de falhar.
 - **Motivo:** o brief do Q não pode cair por causa de um nome de arquivo, e a seleção precisa enxergar o que mudou de verdade.
 - **Por que não é bug:** `test_q_brief_regression_com_marcador_no_caminho` falha sem a ordem nova, e `test_diff_renomeacao_lista_apagado` falha sem o `--no-renames`, e `test_q_brief_modo_1_usa_arvore_de_trabalho` falha com `<base>..HEAD`, e `test_conftest_mudado_roda_tudo` falha sem o caso do `conftest.py`, e `test_restore_pasta_no_lugar_de_arquivo` falha com os `voltar` primeiro.
+
+### F12-9: `handoff.py --report` não prefixa a data quando o texto já começa com uma (R23, R24, R31)
+- **Problema:** quem passava `--report "2026-11-13: T1 ok"` via a data duplicada no `Reports` (`2026-11-14: 2026-11-13: T1 ok`).
+- **Decisão:** o `--report` entra como veio quando o texto casa `^\d{4}-\d{2}-\d{2}` (com ou sem hora depois); qualquer outro texto, inclusive `T1 em 2026-11-13` (data no meio), continua como `<data de hoje>: <texto>`. O `--settle` não muda e sempre prefixa.
+- **Motivo:** o relatório do worker já traz a data do evento, e a data de hoje na frente confundia a leitura do histórico.
+- **Por que não é bug:** `test_report_com_data_iso_nao_prefixa` falha com o prefixo sempre aplicado, e `test_report_sem_data_prefixa_hoje` e `test_settle_continua_prefixando` falham se a regra se estender ao texto sem data no começo ou ao `--settle`.
