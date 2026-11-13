@@ -9,7 +9,7 @@
       "name": "starcode",
       "source": "./dist/claude",
       "description": "StarCode: spec-driven development with a Star Trek crew (Picard, Spock, Troi, Data, LaForge, McCoy, Q) for Orca IDE and Linear.",
-      "version": "1.6.0"
+      "version": "1.6.1"
     }
   ]
 }
