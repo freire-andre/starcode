@@ -38,11 +38,13 @@ batch, or in Git mode 1, this section runs as written, without a question.
 
        python "P/scripts/dispatch.py" start <slug> <T> --cli <laforge cli> --model <laforge model> --json
 
-   The effective model of the worker is the `model` field of the `worker-start --json` receipt, which `start`
-   records in the `Dispatched` entry. Exit 2 = refused; exit 1 = `worker-start` failed (entry removed).
+   For an OpenCode CLI the command first runs `orca worktree create --name <T> --base-branch feature/<slug> --json`
+   and then `worker-start --agent opencode --model <laforge model> --worktree <that worktree>`, because OpenCode
+   cannot create the child itself. The effective model of the worker is the `model` field of the
+   `worker-start --json` receipt, which `start` records in the `Dispatched` entry. Exit 2 = refused; exit 1 = `worker-start` failed (entry removed).
 4. Read the output of `start`. If `worker-start` failed with `nested_worker_depth_exceeded` (Orca: "Sub-worker
-   dispatch is not permitted at depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or
-   more (Settings → Orchestration). It does **not** count as an attempt of the breaker and no retry is made.
+   dispatch is not permitted at depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or more
+   (Settings → Orchestration). It does **not** count as an attempt of the breaker and no retry is made.
    If a Codex worker's `worker-start` failed with `agent-hooks-review-prompt` (or `agent_readiness` with pending
    hooks, e.g. "Agent startup blocked: agent-hooks-review-prompt"), **stop** the dispatch and show the trust
    step: open `/hooks` in Codex and approve the `starcode` hooks. Do **not** retry, do **not** use
@@ -110,7 +112,7 @@ before any new `batch`.
   authorization: it is local to the feature, D11). Exit 1 with a red gate → treat as a failure
   (`--attempt gate-<T>=fail`) and redispatch with the gate lines. A `check_scope` error on `.specs/STATE.md` or
   `## Handoff` is never integrated (D28).
-- **Conflict** (`settle` aborts the merge, exit 1) → `I` stays at the previous commit, and stop with the list of
+- **Conflict** (`settle` exits 1) → it ran `git merge --abort`, `I` stays at the previous commit, and stop with the list of
   conflicting files (options: redispatch the ticket rebased on `I`, or rethink the slicing).
 - After `settle` (it already set `--last-integrated`, `worker-<T>=ok` and removed the entry): run
   `python "P/scripts/crew_live.py" progress <slug>` (counts the integrated tickets from Git), comment on the issue

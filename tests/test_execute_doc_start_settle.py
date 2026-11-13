@@ -33,6 +33,7 @@ class ExecuteDocStartSettle(unittest.TestCase):
 
     def test_execute_diz_onde_ler_o_modelo(self):
         text = DOC.read_text(encoding="utf-8")
+        text = " ".join(text.split())
         self.assertRegex(text, r"`model` field of the (`worker-start`|`worker-start --json`) receipt")
 
 
