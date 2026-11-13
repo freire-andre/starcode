@@ -105,7 +105,7 @@ Proof: run unit | test_decisions_despacho_media ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Guinan faz a retro
+**Next:** PR com confirmação, depois Worf
 **Linear:** SC-169
 **Integration branch:** feature/despacho-media-escopo
 **Last integrated:** ded8b31
