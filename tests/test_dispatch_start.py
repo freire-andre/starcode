@@ -5,6 +5,7 @@ import io
 import json
 import shutil
 import subprocess
+from datetime import datetime, timezone
 from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
@@ -265,22 +266,26 @@ class MediaStartTests(TempRepoCase):
         return handoff.read_fields(lines, handoff.section_bounds(lines))["dispatched"]
 
     def test_start_media_despacha_t1(self):
-        for ticket in ("PROJ-9", "T1"):
+        stamp = datetime(2026, 11, 13, 9, 8, 7, tzinfo=timezone.utc)
+        for ticket in ("PROJ-9", "T1", "proj-9"):
             self.publish()
             sha = run_git(self.repo, "rev-parse", "--short", "feature/media")
             fake = FakeOrca()
-            code, res, _ = self.go(fake, ticket)
-            self.assertEqual(code, 0)
+            out: list[str] = []
+            code, res = dispatch.start("media", ticket, "claude", "claude-sonnet-5-5", self.repo, runner=fake,
+                                       emit=out.append, now=stamp)
+            self.assertEqual(code, 0, ticket)
             self.assertEqual(res["ticket"], "T1")
             self.assertEqual(res["issue"], "PROJ-9")
             first = fake.calls[1][fake.calls[1].index("--dispatch-add") + 1]
-            self.assertTrue(first.startswith(f"T1 · PROJ-9 · base {sha} · claude:claude-sonnet-5-5 · "), first)
+            self.assertEqual(first, f"T1 · PROJ-9 · base {sha} · claude:claude-sonnet-5-5 · 2026-11-13T09:08:07Z")
             self.assertIn("worker-start", fake.keys())
             self.assertEqual(fake.keys(), ["git", "handoff", "status", "label", "worker-start", "handoff",
                                            "worktree set"])
             ws = fake.calls[fake.keys().index("worker-start")]
             self.assertEqual(ws[ws.index("--task-title") + 1], "T1: Média: Spec")
-            self.assertTrue(self.dispatched().startswith("T1 · PROJ-9 · base "))
+            self.assertEqual(self.dispatched(),
+                             f"T1 · PROJ-9 · base {sha} · claude:claude-sonnet-5-5 · 2026-11-13T09:08:07Z · ctx_abc")
 
     def test_start_media_sem_linear_recusa(self):
         self.publish(linear="")
@@ -308,16 +313,27 @@ class MediaStartTests(TempRepoCase):
     def test_main_arquivo_ausente_sai_2(self):
         self.publish()
         missing = self.fdir / "tasks.md"
-        buf, err = io.StringIO(), io.StringIO()
-        with mock.patch.object(dispatch, "load_tasks", side_effect=FileNotFoundError(2, "No such file", str(missing))),                 contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
-            code = dispatch.main(["next", "media", "--root", str(self.repo)])
-        self.assertEqual(code, 2)
-        self.assertEqual(err.getvalue().splitlines(), [f"dispatch: arquivo não encontrado: {missing}"])
-        self.assertNotIn("Traceback", buf.getvalue() + err.getvalue())
+        root = ["--root", str(self.repo)]
+        cases = [(["next", "media", *root], "load_tasks"),
+                 (["batch", "media", *root], "batch"),
+                 (["brief", "media", "T1", "--out", str(self.repo / "b.md"), *root], "worker_brief"),
+                 (["start", "media", "T1", "--cli", "claude", "--model", "m", *root], "start"),
+                 (["settle", "media", "T1", "--branch", "ticket/t1", *root], "settle"),
+                 (["q-brief", "media", "--base", "main", "--head", "HEAD", "--out", str(self.repo / "q.md"), *root],
+                  "q_brief")]
+        for argv, target in cases:
+            with self.subTest(cmd=argv[0]):
+                buf, err = io.StringIO(), io.StringIO()
+                boom = FileNotFoundError(2, "No such file", str(missing))
+                with mock.patch.object(dispatch, target, side_effect=boom),                         contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                    code = dispatch.main(argv)
+                self.assertEqual(code, 2)
+                self.assertEqual(err.getvalue().splitlines(), [f"dispatch: arquivo não encontrado: {missing}"])
+                self.assertNotIn("Traceback", buf.getvalue() + err.getvalue())
         shutil.rmtree(self.fdir)
         buf, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
-            code = dispatch.main(["next", "media", "--root", str(self.repo)])
+            code = dispatch.main(["next", "media", *root])
         self.assertEqual(code, 2)
         self.assertNotIn("Traceback", buf.getvalue() + err.getvalue())
 
