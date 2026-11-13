@@ -1,37 +1,32 @@
 {
-  "round": 1,
-  "verdict": "COMMENT",
-  "summary": "TL;DR: COMMENT. A regra única de cobertura e o exit 3 do start estão corretos e cobertos por teste; build, suíte (767 ok), check_decisions e CI verdes, 0 candidatos de bypass. Um should-fix: a seção 2F (frota) do execute.md não trata o exit 3 do mesmo start. Um nit: covers aceita caminho absoluto com letra de drive. dist/ é mecânico e ficou fora (build --check confirma em dia).",
-  "findings": [
-    {
-      "id": "W1",
-      "severity": "should-fix",
-      "path": "skills/engajar/references/execute.md",
-      "line": 80,
-      "body": "🟠 A seção 2F (frota) roda o mesmo `dispatch.py start`, mas o passo 3 só descreve a falha com exit 1 (entrada removida) (skills/engajar/references/execute.md:80). O exit 3 ficou documentado só na seção 2 (linha 45). Num lote, um start com exit 3 deixa o worker rodando e a entrada sem dispatch id, sem instrução de completar a entrada nem de não redespachar. Correção: no passo 3 da 2F, uma linha remetendo ao exit 3 da seção 2 (completar com `handoff.py set <slug> --dispatch-add` e seguir com os outros tickets).",
-      "evidence": ["skills/engajar/references/execute.md:80", "skills/engajar/references/execute.md:45"],
-      "state": "open"
-    },
-    {
-      "id": "W2",
-      "severity": "nit",
-      "path": "scripts/gates/gates_common.py",
-      "line": 381,
-      "body": "🟡 `covers` recusa `..`, `../` e `/`, mas aceita caminho absoluto com letra de drive (scripts/gates/gates_common.py:381): `covers('C:/x/y.py', '*')` e `covers('C:\\x\\y.py', '*.py')` dão True, porque o `fnmatch` trata `/` como caractere comum. Correção: recusar também `re.match(r'^[A-Za-z]:/', p)`.",
-      "evidence": ["scripts/gates/gates_common.py:381", "https://docs.python.org/3/library/fnmatch.html"],
-      "state": "open"
-    }
-  ],
-  "carryover": {},
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. W1 resolvido: o passo 3 da seção 2F do execute.md trata o exit 3 do start (completar a entrada com handoff.py set --dispatch-add, sem novo start), com teste próprio. W2 resolvido: covers recusa caminho com letra de drive, com teste de C:/, c: com barra invertida e D:/. Nenhum blocker novo no intervalo main...HEAD local (7e09dc2). Build, suíte (769 ok), check_decisions verdes, 0 candidatos de bypass. dist/ é mecânico e ficou fora (build --check confirma em dia).",
+  "findings": [],
+  "carryover": {
+    "W1": "resolved: 8ed1276, o passo 3 da seção 2F trata o exit 3 do start (skills/engajar/references/execute.md:84); test_execute_fleet_start_exit_3 (tests/test_skills_exec.py:101)",
+    "W2": "resolved: 2e781bb, covers recusa letra de drive (scripts/gates/gates_common.py:381); test_covers_recusa_letra_de_drive (tests/test_coverage_rule.py:51)"
+  },
   "research": [
     "https://docs.python.org/3/library/fnmatch.html",
-    "https://docs.python.org/3/library/os.path.html"
+    "https://docs.python.org/3/library/re.html"
   ],
   "ladder": [
-    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
-    {"command": "python -m unittest discover -s tests", "result": "Ran 767 tests, OK (skipped=1)"},
-    {"command": "python scripts/check_decisions.py", "result": "OK"},
-    {"command": "gh pr checks 42", "result": "checks ubuntu e windows: pass; eval e release-check: skipping"},
-    {"command": "git diff origin/main...HEAD | scan_bypasses.py", "result": "0 candidatos"}
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python -m unittest discover -s tests",
+      "result": "Ran 769 tests, OK (skipped=1)"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "0 candidatos"
+    }
   ]
 }
