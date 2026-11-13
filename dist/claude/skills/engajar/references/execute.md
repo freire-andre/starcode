@@ -81,6 +81,9 @@ Each worker is still a LaForge in its own child worktree; you coordinate and nev
    reason, and the **other tickets go on**. The Codex trust stop (`agent-hooks-review-prompt`) and the nesting
    stop (`nested_worker_depth_exceeded`), read in the output of `start`, apply **only to that ticket**; neither
    counts as an attempt.
+   **Exit 3** (worker running, entry without the dispatch id, as in section 2) for one ticket: complete the entry
+   with `python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · ... · <dispatch id>"` (the dispatch id as
+   the last field), with no new `start` for the same ticket; the **other tickets go on**.
 4. **Wait.** `orca orchestration check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline> --json`.
    The deadline of an entry is its dispatch time plus `fleet.timeoutMinutes` (default 30). A `question` is
    answered with `orca orchestration reply`; the others keep running.
