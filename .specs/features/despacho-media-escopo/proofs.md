@@ -1,6 +1,6 @@
 # despacho-media-escopo proofs
 
-**HEAD**: 2c37c9d
+**HEAD**: bf95d77
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 16 pass, 0 fail
@@ -41,7 +41,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 833 tests in 364.008s
+Ran 834 tests in 365.636s
 
 OK (skipped=1)
 ```
