@@ -221,6 +221,16 @@ class MediaSettleTests(TempRepoCase):
         self.assertEqual(fake.calls[-2][-2:], ["--attempt", "worker-T1=ok"])
         self.assertEqual(out[-1], f"integrado T1 em feature/media: {run_git(self.repo, 'rev-parse', '--short', 'HEAD')}")
 
+    def test_settle_media_id_minusculo(self):
+        self.open_t1()
+        fake = FakeGate()
+        out: list[str] = []
+        code = dispatch.settle("media", "proj-9", "ticket/t1", self.repo, runner=fake, emit=out.append)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(run_git(self.repo, "log", "-1", "--format=%B").splitlines(),
+                         ["merge: integra T1 (PROJ-9) em feature/media", "", "Refs: PROJ-9"])
+        self.assertEqual(self.fields()["dispatched"], "none")
+
 
 if __name__ == "__main__":
     unittest.main()
