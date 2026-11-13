@@ -929,9 +929,9 @@ Formato de cada entrada: **problema → decisão → motivo → por que não é 
 
 ### F12-9: `handoff.py --report` não prefixa a data quando o texto já começa com uma (R23, R24, R31)
 - **Problema:** quem passava `--report "2026-11-13: T1 ok"` via a data duplicada no `Reports` (`2026-11-14: 2026-11-13: T1 ok`).
-- **Decisão:** o `--report` entra como veio quando o texto casa `^\d{4}-\d{2}-\d{2}` (com ou sem hora depois); qualquer outro texto, inclusive `T1 em 2026-11-13` (data no meio), continua como `<data de hoje>: <texto>`. O `--settle` não muda e sempre prefixa.
+- **Decisão:** o `--report` entra como veio quando o texto começa com uma data de calendário válida `AAAA-MM-DD` (conferida com `datetime.date.fromisoformat`, com ou sem hora depois); um prefixo de forma ISO mas impossível, como `2026-99-99: inválida`, conta como texto sem data e recebe a data de hoje (correção do achado SC-157 do Q); qualquer outro texto, inclusive `T1 em 2026-11-13` (data no meio), continua como `<data de hoje>: <texto>`. O `--settle` não muda e sempre prefixa.
 - **Motivo:** o relatório do worker já traz a data do evento, e a data de hoje na frente confundia a leitura do histórico.
-- **Por que não é bug:** `test_report_com_data_iso_nao_prefixa` falha com o prefixo sempre aplicado, e `test_report_sem_data_prefixa_hoje` e `test_settle_continua_prefixando` falham se a regra se estender ao texto sem data no começo ou ao `--settle`.
+- **Por que não é bug:** `test_report_com_data_iso_nao_prefixa` falha com o prefixo sempre aplicado, e `test_report_com_data_impossivel_prefixa_hoje` falha se a data só precisar ter a forma ISO, e `test_report_sem_data_prefixa_hoje` e `test_settle_continua_prefixando` falham se a regra se estender ao texto sem data no começo ou ao `--settle`.
 
 ### F12-10: `check_proofs.py` grava o `proofs.md` só com LF (R4, R31)
 - **Problema:** no Windows o `write_text` traduzia `\n` em `\r\n`, e o `proofs.md` saía com CR e gerava diff de fim de linha entre sistemas.

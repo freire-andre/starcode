@@ -30,5 +30,11 @@ class HandoffReportDateTest(unittest.TestCase):
     def test_report_sem_data_prefixa_hoje(self):
         self.assertEqual(self.values(report="T1 em 2026-11-13")["reports"], "2026-11-14: T1 em 2026-11-13")
 
+    def test_report_com_data_impossivel_prefixa_hoje(self):
+        got = self.values(report="2026-99-99: inválida")["reports"]
+        self.assertEqual(got, "2026-11-14: 2026-99-99: inválida")
+        got = self.values(report="2026-02-30: inválida")["reports"]
+        self.assertEqual(got, "2026-11-14: 2026-99-99: inválida; 2026-11-14: 2026-02-30: inválida")
+
     def test_settle_continua_prefixando(self):
         self.assertEqual(self.values(settle="2026-11-13: x")["settled"], "2026-11-14: 2026-11-13: x")
