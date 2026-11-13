@@ -119,8 +119,15 @@ def apply_attempt(values: dict[str, str], attempt: str) -> None:
     values["attempts"] = ", ".join(f"{k}={v}" for k, v in counts.items()) or "none"
 
 
-def append_item(values: dict[str, str], key: str, text: str, today: str | None) -> None:
-    stamp = f"{today or dt.date.today().isoformat()}: {text}"
+ISO_DATE_START = re.compile(r"^\d{4}-\d{2}-\d{2}")
+
+
+def append_item(values: dict[str, str], key: str, text: str, today: str | None,
+                keep_leading_date: bool = False) -> None:
+    if keep_leading_date and ISO_DATE_START.match(text):
+        stamp = text
+    else:
+        stamp = f"{today or dt.date.today().isoformat()}: {text}"
     old = values.get(key, "")
     values[key] = stamp if old in ("", "none") else f"{old}; {stamp}"
 
@@ -192,7 +199,7 @@ def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | No
     if settle:
         append_item(values, "settled", settle, today)
     if report:
-        append_item(values, "reports", report, today)
+        append_item(values, "reports", report, today, keep_leading_date=True)
     if attempt:
         apply_attempt(values, attempt)
     if dispatch_add_entry:
