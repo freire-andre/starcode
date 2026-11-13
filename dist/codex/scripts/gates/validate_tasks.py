@@ -26,7 +26,6 @@ Exit: 0 pass, 1 errors (or warnings with --strict), 2 usage error.
 from __future__ import annotations
 
 import argparse
-import posixpath
 import re
 import sys
 from dataclasses import dataclass, field
@@ -34,6 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import gate_common  # noqa: E402
 import gates_common as gc  # noqa: E402
 
 TASK_RE = re.compile(r"^###\s+(T\d+)\s*:\s*(.*)$", re.IGNORECASE)
@@ -88,12 +88,8 @@ def uncovered_citations(task: Task) -> list[str]:
             path = cand.replace("\\", "/")
             if not path.lower().endswith(CITE_EXTS) or path in out:
                 continue
-            norm = posixpath.normpath(path)
-            if norm == ".." or norm.startswith("../") or norm.startswith("/"):
-                covered = False
-            else:
-                covered = any(norm == e or (e.endswith("/") and norm.startswith(e))
-                              or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1]) for e in entries)
+            covered = any(gate_common.covers(path, e) or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1])
+                          for e in entries)
             if not covered:
                 out.append(path)
     return out

@@ -42,6 +42,11 @@ batch, or in Git mode 1, this section runs as written, without a question.
    and then `worker-start --agent opencode --model <laforge model> --worktree <that worktree>`, because OpenCode
    cannot create the child itself. The effective model of the worker is the `model` field of the
    `worker-start --json` receipt, which `start` records in the `Dispatched` entry. Exit 2 = refused; exit 1 = `worker-start` failed (entry removed).
+   **Exit 3** = the worker is running (`worker-start` succeeded but the second `Dispatched` write failed): the
+   first entry stays, `start` prints `worker ativo sem registro completo: <T> · <dispatch id> · <worktree>: <error>`
+   and still links the worktree; with `--json` it prints the receipt object. Complete the entry with
+   `python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · ... · <dispatch id>"` (the same entry, with the
+   dispatch id as the last field) and wait for the worker as usual, with no new `start` for the same ticket.
 4. Read the output of `start`. If `worker-start` failed with `nested_worker_depth_exceeded` (Orca: "Sub-worker
    dispatch is not permitted at depth 2 (max 1)"), **stop** with one line: the Orca depth limit must be 2 or more
    (Settings → Orchestration). It does **not** count as an attempt of the breaker and no retry is made.
