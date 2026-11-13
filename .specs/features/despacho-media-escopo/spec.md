@@ -102,10 +102,10 @@ Proof: run unit | test_decisions_despacho_media ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Gate proofs e Q
+**Next:** Q verifica a feature
 **Linear:** SC-169
 **Integration branch:** feature/despacho-media-escopo
 **Last integrated:** ded8b31
