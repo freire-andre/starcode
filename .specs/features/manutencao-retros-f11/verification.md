@@ -48,9 +48,9 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| R23 aceita prefixo de data impossível como data ISO; regra de gravação mantém texto inválido sem prefixo. | `scripts/handoff.py:122-128`; probe Python: `2026-99-99: inválida` resultou em `'2026-99-99: inválida'` | Validar a data com calendário antes de preservar o prefixo, e rejeitar ou prefixar entradas inválidas. | |
-| R20/R21 consideram caminho de travessia fora da pasta coberto por prefixo textual. | `scripts/gates/validate_tasks.py:91-92`; probe: TASK `` `scripts/../../outside.py` `` com May change `` `scripts/` `` resultou em `[]` (nenhuma citação descoberta) | Normalizar/rejeitar segmentos `..` antes de conferir cobertura por diretório. | |
-| C32 não demonstra que o rascunho inteiro está em inglês; as asserções permitem texto em português que evite as quatro palavras proibidas. | `tests/test_registros_retros_f11.py:18-24` | Verificar idioma de modo robusto ou revisar conteúdo manualmente e registrar a conclusão. | |
+| R23 aceita prefixo de data impossível como data ISO; regra de gravação mantém texto inválido sem prefixo. | `scripts/handoff.py:122-128`; probe Python: `2026-99-99: inválida` resultou em `'2026-99-99: inválida'` | Validar a data com calendário antes de preservar o prefixo, e rejeitar ou prefixar entradas inválidas. || 9403771 |
+| R20/R21 consideram caminho de travessia fora da pasta coberto por prefixo textual. | `scripts/gates/validate_tasks.py:91-92`; probe: TASK `` `scripts/../../outside.py` `` com May change `` `scripts/` `` resultou em `[]` (nenhuma citação descoberta) | Normalizar/rejeitar segmentos `..` antes de conferir cobertura por diretório. || 866a9c7 |
+| C32 não demonstra que o rascunho inteiro está em inglês; as asserções permitem texto em português que evite as quatro palavras proibidas. | `tests/test_registros_retros_f11.py:18-24` | Verificar idioma de modo robusto ou revisar conteúdo manualmente e registrar a conclusão. || d43870a |
 
 ## Limits
 
