@@ -79,5 +79,5 @@ Proof: run unit | test_execute_descreve_exit_3 ... ok
 **Dispatched:** none
 **Settled:** 2026-11-13: spec aprovada com exit 3 e entrada mantida (user: "sim"); 2026-11-13: R1/May change: covers em gates_common.py, não gate_common.py (user: "Mover para gates_common")
 **Attempts:** none
-**Reports:** 2026-11-13: SC-167 1ª entrega 3b31657 (gate ticket verde); pedido: mover covers para gates_common.py; 2026-11-13: SC-167: covers em gates_common.py e exit 3 no start (3b31657, b6c6fbe); suíte 767 ok; integrado em 30f6d31
+**Reports:** 2026-11-13: SC-167 1ª entrega 3b31657 (gate ticket verde); pedido: mover covers para gates_common.py; 2026-11-13: SC-167: covers em gates_common.py e exit 3 no start (3b31657, b6c6fbe); suíte 767 ok; integrado em 30f6d31; 2026-11-13: Q (codex, gpt-6-luna, ctx_2a1702566163): FAIL - C2 não exercita o gate das tasks; C8 asserção frouxa
 **Breaker:** closed
