@@ -8,6 +8,13 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-11-13
+
+### Corrigido
+
+- O gate das tasks e o `check_scope` usam a mesma regra de cobertura de caminho (`covers`), que aceita glob no May change (ex.: `tests/test_*.py`) e nunca cobre caminho com `..`, absoluto ou com letra de drive (SC-167).
+- `dispatch.py start` sai com 3, e não mais com 2 (recusado), quando o worker já foi iniciado mas a gravação do dispatch id no Handoff falhou; a saída avisa o worker ativo e o `execute.md` explica como completar o registro (SC-167).
+
 ## [1.7.0] - 2026-11-13
 
 ### Adicionado
