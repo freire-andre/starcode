@@ -316,6 +316,51 @@
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
       "updated": "2026-11-12T20:27:15Z"
+    },
+    {
+      "id": "L22",
+      "text": "Valide a data com o calendário antes de preservar um prefixo ISO, porque 2026-99-99 era aceita como data válida.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "manutencao-retros-f11"
+      ],
+      "sources": [
+        "verification.md:R23"
+      ],
+      "scope": "",
+      "created": "2026-11-13T14:57:34Z",
+      "updated": "2026-11-13T14:57:34Z"
+    },
+    {
+      "id": "L23",
+      "text": "Normalize o caminho citado e rejeite segmentos .. antes de conferir a pasta do May change, porque scripts/../../x passava como coberto.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "manutencao-retros-f11"
+      ],
+      "sources": [
+        "verification.md:R20/R21"
+      ],
+      "scope": "",
+      "created": "2026-11-13T14:57:34Z",
+      "updated": "2026-11-13T14:57:34Z"
+    },
+    {
+      "id": "L24",
+      "text": "Teste de idioma deve verificar o relato inteiro, não só palavras proibidas, porque a asserção deixava passar texto em português.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "manutencao-retros-f11"
+      ],
+      "sources": [
+        "verification.md:C32"
+      ],
+      "scope": "",
+      "created": "2026-11-13T14:57:34Z",
+      "updated": "2026-11-13T14:57:34Z"
     }
   ]
 }
