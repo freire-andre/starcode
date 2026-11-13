@@ -1,0 +1,35 @@
+{
+  "anthropic": {"models": {
+    "claude-opus-5-5": {"id": "claude-opus-5-5", "name": "Claude Opus 5.5", "tool_call": true, "reasoning": true,
+      "limit": {"context": 1000000}, "cost": {"input": 4, "output": 20}, "canonical_model_id": "anthropic/claude-opus-5-5"},
+    "claude-haiku-5-5": {"id": "claude-haiku-5-5", "name": "Claude Haiku 5.5", "tool_call": true, "reasoning": true,
+      "limit": {"context": 1000000}, "cost": {"input": 0.1, "output": 0.5}, "canonical_model_id": "anthropic/claude-haiku-5-5"}
+  }},
+  "openai": {"models": {
+    "gpt-6-luna": {"id": "gpt-6-luna", "name": "GPT-6 Luna", "tool_call": true, "reasoning": true,
+      "limit": {"context": 1050000}, "cost": {"input": 0.1, "output": 0.5}, "canonical_model_id": "openai/gpt-6-luna"}
+  }},
+  "opencode": {"models": {
+    "muse-spark-1.2": {"id": "muse-spark-1.2", "name": "Muse Spark 1.2", "description": "Coding-focused Muse.",
+      "tool_call": true, "reasoning": true, "limit": {"context": 1048576}, "cost": {"input": 1.25, "output": 4.25},
+      "canonical_model_id": "meta/muse-spark-1.2"}
+  }},
+  "zai": {"models": {
+    "glm-5.3": {"id": "glm-5.3", "name": "GLM-5.3", "tool_call": true, "reasoning": true,
+      "limit": {"context": 1000000}, "cost": {"input": 1.4, "output": 4.4}, "canonical_model_id": "zhipuai/glm-5.3"},
+    "glm-notools": {"id": "glm-notools", "name": "GLM sem ferramentas", "tool_call": false, "reasoning": true,
+      "limit": {"context": 1000000}, "cost": {"input": 0.1, "output": 0.3}},
+    "glm-tiny": {"id": "glm-tiny", "name": "GLM Tiny", "tool_call": true, "reasoning": false,
+      "limit": {"context": 128000}, "cost": {"input": 0.05, "output": 0.2}, "canonical_model_id": "zhipuai/glm-tiny"}
+  }},
+  "moonshotai": {"models": {
+    "kimi-k3": {"id": "kimi-k3", "name": "Kimi K3", "tool_call": true, "reasoning": true,
+      "limit": {"context": 1048576}, "cost": {"input": 3, "output": 15}, "canonical_model_id": "moonshotai/kimi-k3"}
+  }},
+  "openrouter": {"models": {
+    "moonshotai/kimi-k3.1-pro": {"id": "moonshotai/kimi-k3.1-pro", "name": "Kimi K3.1 Pro", "tool_call": true,
+      "reasoning": true, "limit": {"context": 1048576}, "cost": {"input": 2, "output": 10}},
+    "nvidia/nemo-x:free": {"id": "nvidia/nemo-x:free", "name": "Nemo X (free)", "tool_call": true, "reasoning": true,
+      "limit": {"context": 262144}, "cost": {"input": 0, "output": 0}}
+  }}
+}

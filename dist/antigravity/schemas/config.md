@@ -32,6 +32,19 @@ in either file.
 }
 ```
 
+## Local config: `<repo>/.starcode/config.local.json` (not versioned)
+
+Personal crew models for **this repository only** (e.g. a paid OpenCode model in one project). It wins over
+the user config, member by member. `validate_config.py --kind local --write` also adds `config.local.json` to
+`<repo>/.starcode/.gitignore`. Written by `/starcode:config`.
+
+| Key | Type | Required | Values |
+|---|---|---|---|
+| `schemaVersion` | integer | yes | `1` |
+| `crew` | object | no | same keys and entries as the user config `crew` |
+
+Precedence of a crew member's cli/model: session override (Handoff) > local config > user config > `src/crew.yaml`.
+
 ## Repo config: `<repo>/.starcode/config.json` (versioned)
 
 | Key | Type | Required | Values |

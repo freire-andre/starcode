@@ -15,12 +15,13 @@ families:
   gemini-3.8-flash-medium: google
   gemini-3.8-flash-low: google
 
-# Faixas de custo por modelo, declaradas pelo dono do repositório (sem preço): grátis, $, $$ ou $$$.
+# Faixas de custo por modelo: grátis, $, $$ ou $$$. Mesma régua do scripts/model_info.py: preço de saída por
+# 1M tokens no models.dev, $ < 2, $$ < 12, $$$ >= 12. Modelos fora desta lista recebem a faixa pelo catálogo.
 costTiers:
   claude-opus-5-5: "$$$"
   claude-sonnet-5-5: "$$"
   claude-haiku-5-5: "$"
-  gpt-6-luna: "$$"
+  gpt-6-luna: "$"
   gemini-3.8-flash-high: "$"
   gemini-3.8-flash-medium: "$"
   gemini-3.8-flash-low: "$"

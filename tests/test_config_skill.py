@@ -8,11 +8,26 @@ import unittest
 
 from helpers import ROOT
 
+import os
+
 import setup_helpers as sh
 import starcode_common as sc
 import validate_config as vc
 
 CLIS = ("claude", "codex", "antigravity", "opencode")
+_OLD = {}
+
+
+def setUpModule():  # a machine cache of models.dev must not change the suggestions under test
+    _OLD["file"] = os.environ.get("STARCODE_MODELS_DEV_FILE")
+    os.environ["STARCODE_MODELS_DEV_FILE"] = str(ROOT / "tests" / "fixtures" / "models-dev.json")
+
+
+def tearDownModule():
+    if _OLD["file"] is None:
+        os.environ.pop("STARCODE_MODELS_DEV_FILE", None)
+    else:
+        os.environ["STARCODE_MODELS_DEV_FILE"] = _OLD["file"]
 
 
 def _doc() -> dict:
@@ -33,13 +48,12 @@ class SuggestTests(unittest.TestCase):
     def test_without_claude_keeps_cost_tier_per_role(self):
         res = sh.suggest(_doc(), ["codex", "antigravity"])
         crew = res["config"]["crew"]
-        # repetitive roles ($) go to the cheapest model; execution ($$) to the middle one
-        self.assertEqual(crew["uhura"], {"cli": "antigravity", "model": "gemini-3.8-flash-high"})
-        self.assertEqual(crew["guinan"]["cli"], "antigravity")
+        # only $ models: repetitive roles match; the others get the nearest tier, with a note
+        self.assertEqual(crew["uhura"], {"cli": "codex", "model": "gpt-6-luna"})
         self.assertEqual(crew["laforge"], {"cli": "codex", "model": "gpt-6-luna"})
-        # $$$ not available: nearest tier, with a note
         self.assertEqual(crew["picard"]["model"], "gpt-6-luna")
         self.assertTrue(any(n.startswith("Picard: pedia a faixa $$$") for n in res["notes"]))
+        self.assertTrue(any(n.startswith("LaForge: pedia a faixa $$") for n in res["notes"]))
         # Q in another family than the LaForge (openai) -> google
         self.assertEqual(crew["q"]["cli"], "antigravity")
 
@@ -94,11 +108,13 @@ class ConfigSkillTests(unittest.TestCase):
             desc = text.split("---", 2)[1]
             for trigger in ("configurar os agentes", "não tenho ChatGPT/Codex", "starcode config"):
                 self.assertIn(trigger, desc, root)
-            for needle in ('setup_helpers.py" clis', 'setup_helpers.py" suggest', "Never invent a model ID",
-                           "validate_config.py\" --kind user --write", "keep every key the user did not change"):
+            for needle in ('setup_helpers.py" clis', 'setup_helpers.py" suggest', 'model_info.py" --cli',
+                           "Never invent a model ID", "validate_config.py\" --kind user --write",
+                           "validate_config.py\" --kind local --write", "keep every key the user did not change",
+                           "Propose a ⛔ vetado model", "family differs from the LaForge"):
                 self.assertIn(needle, text, f"{root}: {needle}")
-            order = [text.index(h) for h in ("## 1. Current state", "## 2. What the user has", "## 3. Suggestion",
-                                              "## 5. Write")]
+            order = [text.index(h) for h in ("## 1. Current state", "## 2. What the user has",
+                                              "## 3. Analyze each model", "## 4. Suggestion", "## 6. Write")]
             self.assertEqual(order, sorted(order), root)
 
     def test_setup_delegates_user_config_to_config_skill(self):

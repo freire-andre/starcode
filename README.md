@@ -69,7 +69,9 @@ Para ver todas as ferramentas do StarCode com uma linha sobre cada uma, chame o 
 
 Para escolher o modelo de cada tripulante conforme as assinaturas que você tem, use `/starcode:config`
 (`/sc-config` no OpenCode, a skill `config` no Codex e no Antigravity). O StarCode sugere o modelo por
-papel e custo (ex.: Haiku para as tarefas repetitivas) e você aceita ou troca linha por linha.
+papel e custo (ex.: Haiku para as tarefas repetitivas) e você aceita ou troca linha por linha. Qualquer modelo do
+OpenCode (Muse Spark, GLM, Kimi...) é analisado pelo catálogo do models.dev antes da escolha, e a escolha pode
+valer para todos os projetos ou só para o repositório atual (`.starcode/config.local.json`, fora do Git).
 
 ## Painel ao vivo
 

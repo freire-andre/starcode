@@ -12,11 +12,12 @@
       Prints a repo config (schemaVersion 1) for review; write it with validate_config.py --write.
   python setup_helpers.py clis
       Which StarCode CLIs are on PATH (claude, codex, agy, opencode): one line each.
-  python setup_helpers.py suggest --have claude,codex [--model opencode=<id> ...] [--json]
+  python setup_helpers.py suggest --have claude,codex [--model opencode=<id>[@$$] ...] [--json]
       Proposes a model per crew member from only the CLIs the user has, keeping the cost tier of each
       default (heavy reasoning $$$, execution $$, repetitive $). Q goes to another family when there is
       one; otherwise it stays degraded (self-verified). Prints a table, notes and the user config with
       only the differences from crew.yaml; write it with validate_config.py --kind user --write.
+      A --model tier comes from @<tier>, else crew.yaml costTiers, else the cached models.dev catalog.
 """
 from __future__ import annotations
 
@@ -83,19 +84,24 @@ def missing_labels(doc: dict, crew_keys: list[str]) -> list[str]:
 
 def crew_table() -> str:
     doc = sc.load_crew()
+    root = sc.repo_root(None)
     user_cfg, errors = sc.load_user_config()
-    crew = sc.effective_crew(doc, user_cfg)
+    local_cfg, local_errors = sc.load_local_config(root)
+    crew = sc.effective_crew(doc, None if errors else user_cfg, None if local_errors else local_cfg)
     available = set(doc.get("available", crew.keys()))
-    rows = ["| Tripulante | Papel | Release | CLI padrão | Modelo padrão | Efetivo (config do usuário) |",
+    rows = ["| Tripulante | Papel | Release | CLI padrão | Modelo padrão | Efetivo |",
             "|---|---|---|---|---|---|"]
     for key, m in crew.items():
         d = m.get("default", {})
-        eff = f"{m['cli']} · {m['model']}" if m["overridden"] else "= padrão"
+        where = {"user": "config do usuário", "local": "config local do repositório"}.get(m["source"], "")
+        eff = f"{m['cli']} · {m['model']} ({where})" if m["overridden"] else "= padrão"
         rel = m.get("release", "?") + ("" if key in available else " (ainda não instalado)")
         model = "padrão do CLI" if d.get("model") == "cli-default" else d.get("model")
         rows.append(f"| {m.get('emoji', '')} {m['name']} | {m.get('role', '')} | {rel} | {d.get('cli')} | {model} | {eff} |")
     if errors:
         rows.append("\nConfig do usuário INVÁLIDO (não aplicado): " + "; ".join(errors))
+    if local_errors:
+        rows.append("\nConfig local do repositório INVÁLIDO (não aplicado): " + "; ".join(local_errors))
     return "\n".join(rows)
 
 
@@ -112,17 +118,45 @@ def clis_found(which=shutil.which) -> dict[str, bool]:
     return {cli: bool(which(CLI_BINARIES[cli])) for cli in CLIS}
 
 
-def _candidates(doc: dict, have: list[str], extra: dict[str, list[str]]) -> list[tuple[str, str, str]]:
+def parse_model_arg(item: str) -> tuple[str, str, str | None] | None:
+    """`<cli>=<id>[@<tier>]` -> (cli, id, tier or None); None when malformed."""
+    cli, sep, rest = item.partition("=")
+    model, _, tier = rest.rpartition("@") if "@" in rest else (rest, "", "")
+    tier = {"gratis": "grátis"}.get(tier.strip(), tier.strip()) or None
+    if not sep or cli not in CLIS or not model.strip() or (tier is not None and tier not in TIER_RANK):
+        return None
+    return cli, model.strip(), tier
+
+
+def model_tier(model: str, tiers: dict, declared: str | None = None) -> str:
+    """Tier of a model: given by the user, else crew.yaml costTiers, else the cached models.dev catalog,
+    else 'grátis' for :free, else '?'."""
+    if declared:
+        return declared
+    if model in tiers:
+        return tiers[model]
+    try:
+        import model_info  # noqa: PLC0415
+
+        cached = model_info.cached_tier(model)
+    except Exception:  # noqa: BLE001
+        cached = None
+    return cached or sc.cost_tier(model, tiers)
+
+
+def _candidates(doc: dict, have: list[str], extra: dict[str, list]) -> list[tuple[str, str, str]]:
     """(cli, model, tier) the user can run: crew.yaml models of the CLI family plus the --model ones.
     A CLI with no known model offers its own default (tier '?')."""
     tiers = doc.get("costTiers", {})
     out: list[tuple[str, str, str]] = []
     for cli in have:
-        models = [m for m, fam in doc.get("families", {}).items() if fam == CLI_FAMILIES.get(cli)]
-        models += [m for m in extra.get(cli, []) if m not in models]
+        known = [m for m, fam in doc.get("families", {}).items() if fam == CLI_FAMILIES.get(cli)]
+        given = [(m, None) if isinstance(m, str) else tuple(m) for m in extra.get(cli, [])]
+        given_ids = {m for m, _ in given}
+        models = [(m, None) for m in known if m not in given_ids] + given
         if not models:
             out.append((cli, "cli-default", "?"))
-        out += [(cli, m, sc.cost_tier(m, tiers)) for m in models]
+        out += [(cli, m, model_tier(m, tiers, t)) for m, t in models]
     return out
 
 
@@ -157,12 +191,13 @@ def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = Non
     cands = _candidates(doc, have, extra)
     chosen: dict[str, tuple[str, str]] = {}
     overrides: dict[str, dict] = {}
-    notes: list[str] = []
+    notes: list[str] = [f"--model {cli}=... ignorado: {cli} não está entre os CLIs informados"
+                        for cli in extra if cli not in have]
     for key, m in crew.items():
         if key == "q":
             continue
         d = m.get("default", {})
-        want = sc.cost_tier(d.get("model", ""), tiers)
+        want = model_tier(d.get("model", ""), tiers)
         if d.get("cli") in have:
             chosen[key] = (d["cli"], d["model"])
             continue
@@ -194,11 +229,13 @@ def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = Non
             chosen["q"] = (q_pick[0], q_pick[1])
             if (q_pick[0], q_pick[1]) != (qd.get("cli"), qd.get("model")):
                 overrides["q"] = {"cli": q_pick[0], "model": q_pick[1]}
+    given_tier = {(c, m): t for c, m, t in cands}
     rows = []
     for key, m in crew.items():
         cli, model = chosen[key]
         rows.append({"member": key, "name": m["name"], "emoji": m.get("emoji", ""), "role": m.get("role", ""),
-                     "cli": cli, "model": model, "tier": "—" if cli == "—" else sc.cost_tier(model or "", tiers),
+                     "cli": cli, "model": model,
+                     "tier": "—" if cli == "—" else model_tier(model or "", tiers, given_tier.get((cli, model))),
                      "changed": key in overrides})
     cfg: dict = {"schemaVersion": 1}
     if overrides:
@@ -264,15 +301,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "suggest":
         have = [c.strip() for c in args.have.split(",") if c.strip()]
         bad = [c for c in have if c not in CLIS]
-        extra: dict[str, list[str]] = {}
+        extra: dict[str, list] = {}
         for item in args.model:
-            cli, sep, model = item.partition("=")
-            if not sep or cli not in CLIS or not model.strip():
+            parsed = parse_model_arg(item)
+            if parsed is None:
                 bad.append(item)
                 continue
-            extra.setdefault(cli, []).append(model.strip())
+            extra.setdefault(parsed[0], []).append((parsed[1], parsed[2]))
         if bad:
-            print(f"ERRO: valor inválido: {', '.join(bad)} (CLIs: {', '.join(CLIS)}; --model <cli>=<modelo>)")
+            print(f"ERRO: valor inválido: {', '.join(bad)} (CLIs: {', '.join(CLIS)}; "
+                  "--model <cli>=<modelo>[@grátis|$|$$|$$$])")
             return 2
         res = suggest(sc.load_crew(), have, extra)
         print(json.dumps(res, ensure_ascii=False, indent=2) if args.json else render_suggestion(res))

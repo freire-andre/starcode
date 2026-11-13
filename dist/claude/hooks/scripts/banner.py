@@ -241,19 +241,22 @@ def codex_crew_hooks_warning() -> list[str]:
     return []
 
 
-def crew_lines(user_cfg: dict | None) -> list[str]:
+SOURCE_MARK = {"user": " (config do usuário)", "local": " (config local do repositório)"}
+
+
+def crew_lines(user_cfg: dict | None, local_cfg: dict | None = None) -> list[str]:
     try:
         doc = sc.load_crew()
     except Exception as exc:  # noqa: BLE001
         return [f"Tripulação: ⚠️ não foi possível ler a tripulação ({exc})"]
-    crew = sc.effective_crew(doc, user_cfg)
+    crew = sc.effective_crew(doc, user_cfg, local_cfg)
     available = set(doc["available"]) if "available" in doc else None
     parts = []
     for key, m in crew.items():
         if available is not None and key not in available:
             continue
         model = "padrão do CLI" if m["model"] in (None, "cli-default") else m["model"]
-        mark = " (config do usuário)" if m["overridden"] else ""
+        mark = SOURCE_MARK.get(m.get("source", "user" if m["overridden"] else "default"), "")
         parts.append(f"{m.get('emoji', '')} {m['name']}: {m['cli']} · {model}{mark}")
     return ["Tripulação ativa: " + ("; ".join(parts) if parts else "nenhuma")]
 
@@ -263,6 +266,7 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
     root = sc.repo_root(cwd)
     user_cfg, user_err = sc.load_user_config()
     repo_cfg, repo_err = sc.load_repo_config(root)
+    local_cfg, local_err = sc.load_local_config(root)
     has_repo_cfg = bool(root and sc.repo_config_path(root).exists())
     has_specs = bool(root and (root / ".specs").is_dir())
     active = has_repo_cfg or has_specs or full
@@ -326,7 +330,12 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
         if found:
             lines.append("⚠️ " + conflicts.format_report(found))
             summary.append(f"{len(found)} skill(s) concorrente(s)")
-        lines.extend(crew_lines(user_cfg))
+        if local_err:
+            lines.append("Config local do repositório: ❌ INVÁLIDO, não aplicado: " + "; ".join(local_err))
+            summary.append("config local inválido")
+        elif local_cfg is not None:
+            lines.append("Config local do repositório: ✅ válido (modelos só deste repositório)")
+        lines.extend(crew_lines(None if user_err else user_cfg, None if local_err else local_cfg))
     else:
         lines.append(f"Este repositório ainda não usa o StarCode. {cmd_ref(cli, 'setup')} configura; "
                      f"{cmd_ref(cli, 'engajar')} inicia.")

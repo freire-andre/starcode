@@ -11,7 +11,14 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 ### Adicionado
 
 - Skill `menu` (`/starcode:menu`, `/sc-menu`): lista cada skill do StarCode com o comando, o tripulante e uma linha sobre o que faz; só leitura, sem rodar ferramentas. Um teste garante que o menu cita todas as skills de `skills/`.
-- Skill `config` (`/starcode:config`, `/sc-config`): pergunta quais CLIs e assinaturas você tem (Claude, Codex, Antigravity, OpenCode), propõe um modelo por tripulante mantendo a faixa de custo do papel (raciocínio pesado `$$$`, execução `$$`, tarefas repetitivas `$`) e põe o Q em outra família de modelo; sem outra família, avisa que a verificação fica degradada. Grava o `~/.starcode/config.json` pelo validador, preservando as outras chaves. Novos comandos `setup_helpers.py clis` e `setup_helpers.py suggest`.
+- Skill `config` (`/starcode:config`, `/sc-config`): pergunta quais CLIs e assinaturas você tem (Claude, Codex, Antigravity, OpenCode), analisa cada modelo informado (Muse Spark, GLM, Kimi, OpenRouter...) pelo catálogo público do models.dev, propõe um modelo por tripulante mantendo a faixa de custo do papel (raciocínio pesado `$$$`, execução `$$`, tarefas repetitivas `$`) e põe o Q em outra família de modelo; sem outra família, avisa que a verificação fica degradada. Grava o `~/.starcode/config.json` pelo validador, preservando as outras chaves. Novos comandos `setup_helpers.py clis` e `setup_helpers.py suggest`.
+- `scripts/model_info.py`: ficha de qualquer modelo pelo models.dev (preço, contexto, ferramentas, raciocínio, família do fabricante, faixa de custo) e veredito por papel; cache de 7 dias em `~/.starcode/cache/`.
+- Config local por repositório (`.starcode/config.local.json`, fora do Git): modelos só daquele projeto, com prioridade sobre o config do usuário. O banner, a tabela da tripulação, o painel e o despacho já o aplicam.
+
+### Corrigido
+
+- O despacho reconhece a família de modelos do OpenCode no formato `provedor/modelo` (GLM, Muse, Kimi...) pelo cache do models.dev; antes eram `unknown` e o Q nunca os escolhia.
+- `gpt-6-luna` passa à faixa `$`, pelo preço do catálogo.
 
 ### Alterado
 
