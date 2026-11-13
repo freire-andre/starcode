@@ -16,9 +16,13 @@ class ExecuteReferenceTests(unittest.TestCase):
             self.assertIn(part, text)
 
     def test_execute_descreve_exit_3(self):
-        self.assertAll(REF, "Exit 3", "worker-start` succeeded but the second `Dispatched` write failed",
-                       "handoff.py\" set <slug> --dispatch-add \"<T> · ... · <dispatch id>\"",
-                       "no new `start` for the same ticket")
+        start = REF.index("## 2. Dispatch one ticket")
+        sec = REF[start:REF.index("\n## ", start + 1)]
+        i = sec.index("**Exit 3**")
+        item = sec[i:sec.index("\n4. ", i)]
+        self.assertIn("`worker-start` succeeded but the second `Dispatched` write failed", item)
+        self.assertIn('python "P/scripts/handoff.py" set <slug> --dispatch-add "<T> · ... · <dispatch id>"', item)
+        self.assertIn("no new `start` for the same ticket", item)
 
     def test_execute_ref_dispatch_steps(self):  # R8, R11, R12
         self.assertAll(REF, "**or reuse `I` if it already exists**", "--integration-branch feature/<slug>` **before\nthe first dispatch**",
