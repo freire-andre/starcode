@@ -8,6 +8,12 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-13
+
+### Corrigido
+
+- Codex: o hook `SessionEnd` do StarCode passa a usar timeout de 3 s (o limite do Codex); com 10 s o Codex o marcava como inválido.
+
 ## [1.6.0] - 2026-11-12
 
 ### Adicionado
