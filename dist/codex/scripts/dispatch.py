@@ -77,11 +77,40 @@ WORKER_RULES = """## Regras fixas do worker (StarCode)
   `python "{plugin}/scripts/screens.py" capture` em `captures/<nome>.running.png` e commite-a, dentro do `May change`.
 - Relatório final (até 5 linhas): o que mudou, gates executados com resultado, commits, pendências,
   tentativas do disjuntor (`<id>=<n>` ou `none`).
+- Nunca desligue a assinatura de commits (commit.gpgsign false, --no-gpg-sign) em código de produto; só repositórios Git temporários de teste podem fazê-lo.
 """
 
 
 PROOF_RULE = ("O teste deve se chamar exatamente como na linha Proof: o `run_gates.py` procura esse nome na "
               "saída; outro nome deixa a prova vermelha.")
+
+
+DECISIONS_FILE = "DECISIONS.md"
+
+
+def needs_decisions(paths: list[str]) -> bool:
+    """A ticket that touches `scripts/` must record its decision in DECISIONS.md (R1, R2)."""
+    norm = [p.strip().strip("`").replace("\\", "/").removeprefix("./") for p in paths]
+    return any(p.startswith("scripts/") for p in norm) and DECISIONS_FILE not in norm
+
+
+def effective_may_change(task: vt.Task) -> list[str]:
+    paths = task.may_change
+    return [*paths, DECISIONS_FILE] if needs_decisions(paths) else paths
+
+
+def with_decisions(task: vt.Task) -> vt.Task:
+    if not needs_decisions(task.may_change):
+        return task
+    done = False
+    lines = []
+    for ln in task.blocks.get("BOUNDARIES", []):
+        if not done and re.match(r"^[-*]?\s*\**May change\**\s*:", ln.strip(), re.IGNORECASE):
+            body = ln.rstrip()
+            ln = body + (", `DECISIONS.md`" if body.endswith("`") else ", DECISIONS.md")
+            done = True
+        lines.append(ln)
+    return dataclasses.replace(task, blocks={**task.blocks, "BOUNDARIES": lines})
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
@@ -213,7 +242,7 @@ def batch(slug: str, root: Path, branch: str | None = None, base: str | None = N
         else:
             candidates.append(t)
     patterns = gc.sensitive_patterns(proj)
-    reserved = [(tid, p) for tid in active_ids if tid in by_id for p in by_id[tid].may_change]
+    reserved = [(tid, p) for tid in active_ids if tid in by_id for p in effective_may_change(by_id[tid])]
     slots = max_batch - len(entries)
     chosen: list[vt.Task] = []
     solo = False
@@ -221,7 +250,7 @@ def batch(slug: str, root: Path, branch: str | None = None, base: str | None = N
         if solo:
             excluded.append({"ticket": t.tid, "reason": f"roda sozinho: {chosen[0].tid}"})
             continue
-        paths = t.may_change
+        paths = effective_may_change(t)
         if not paths:
             excluded.append({"ticket": t.tid, "reason": "sem May change"})
             continue
@@ -410,7 +439,7 @@ def _worker_brief(slug: str, ticket: str, root: Path) -> str:
         blocks = dict(task.blocks)
         blocks["CONTEXT"] = [*blocks.get("CONTEXT", []), *extra]
         task = dataclasses.replace(task, blocks=blocks)
-    body = tasks_export.briefing(task, fdir.name)
+    body = tasks_export.briefing(with_decisions(task), fdir.name)
     head = f"# Ticket {task.tid}: {task.title}\n\nIssue: {linear_id(task) or 'sem issue'}\n\n"
     return head + body + "\n" + WORKER_RULES.format(slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
 
