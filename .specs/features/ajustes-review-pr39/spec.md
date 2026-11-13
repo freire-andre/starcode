@@ -1,12 +1,13 @@
 # Ajustes do review do PR #39: Spec
 
 **Approved**: 2026-11-13 - user: "sim"
+**Approved**: 2026-11-13 - user: "Mover para gates_common" (R1 e May change: `gates_common.py`, o módulo existente)
 **Status**: Approved
 
 **Size**: MEDIUM
 **Risk triggers**: Concurrency and state
 **Linear**: SC-167
-**May change**: `scripts/gates/gate_common.py`, `scripts/gates/validate_tasks.py`, `scripts/gates/check_scope.py`, `scripts/dispatch.py`, `skills/engajar/references/execute.md`, `tests/test_coverage_rule.py`, `tests/test_dispatch_start.py`, `tests/test_skills_exec.py`, `DECISIONS.md`, `dist/`
+**May change**: `scripts/gates/gates_common.py`, `scripts/gates/validate_tasks.py`, `scripts/gates/check_scope.py`, `scripts/dispatch.py`, `skills/engajar/references/execute.md`, `tests/test_coverage_rule.py`, `tests/test_dispatch_start.py`, `tests/test_skills_exec.py`, `DECISIONS.md`, `dist/`
 
 ## Context
 O review do PR #39 (`.specs/features/manutencao-retros-f11/review.md`, W1 e W2) achou duas inconsistências. O gate das tasks e o `check_scope` cobrem caminhos com regras diferentes (glob só no `check_scope`). E o `dispatch.py start` sai com 2 ("recusado") quando a segunda gravação do Handoff falha depois de um `worker-start` bem-sucedido, escondendo um worker ativo. Detalhes e fatos: `context.md`.
@@ -21,7 +22,7 @@ O review do PR #39 (`.specs/features/manutencao-retros-f11/review.md`, W1 e W2) 
 - Mudar os códigos 0, 1 e 2 do `start` ou o comportamento do `settle`.
 
 ## Requirements
-- **R1** - The system SHALL ter em `scripts/gates/gate_common.py` uma função `covers(path, entry)` usada pelo `check_scope` e pelo gate das tasks: com o caminho normalizado (`\` vira `/`, `posixpath.normpath`), uma entrada terminada em `/` cobre o caminho que começa com ela, e uma entrada sem `/` no fim cobre o caminho igual a ela ou que casa com ela por `fnmatch`.
+- **R1** - The system SHALL ter em `scripts/gates/gates_common.py` uma função `covers(path, entry)` usada pelo `check_scope` e pelo gate das tasks: com o caminho normalizado (`\` vira `/`, `posixpath.normpath`), uma entrada terminada em `/` cobre o caminho que começa com ela, e uma entrada sem `/` no fim cobre o caminho igual a ela ou que casa com ela por `fnmatch`.
 - **R2** - WHEN o bloco `#### TASK` cita `` `tests/test_x.py` `` e o May change tem `` `tests/test_*.py` `` THEN the system SHALL dar a citação como coberta (nenhum erro do R20 no `run_gates.py tasks`).
 - **R3** - IF o caminho citado no TASK, normalizado, é `..`, começa com `../` ou com `/` THEN the system SHALL dá-lo como não coberto por qualquer entrada, inclusive por glob como `*` ou `scripts/*`.
 - **R4** - The system SHALL manter no gate das tasks a regra do nome sem pasta: a citação `` `snapshot.py` `` é coberta pela entrada `scripts/snapshot.py`.
@@ -68,15 +69,15 @@ Proof: run unit | test_execute_descreve_exit_3 ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MEDIUM
 **Git mode:** 3
 **Next:** LaForge implementa (worker)
 **Linear:** SC-167
 **Integration branch:** not created
 **Last integrated:** none
-**Dispatched:** none
-**Settled:** 2026-11-13: spec aprovada com exit 3 e entrada mantida (user: "sim")
+**Dispatched:** SC-167 · base 0958835 · claude:claude-sonnet-5-5 · ctx_e5b6baffbab4
+**Settled:** 2026-11-13: spec aprovada com exit 3 e entrada mantida (user: "sim"); 2026-11-13: R1/May change: covers em gates_common.py, não gate_common.py (user: "Mover para gates_common")
 **Attempts:** none
 **Reports:** none
 **Breaker:** closed
