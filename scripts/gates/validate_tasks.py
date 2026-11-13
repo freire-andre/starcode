@@ -26,6 +26,7 @@ Exit: 0 pass, 1 errors (or warnings with --strict), 2 usage error.
 from __future__ import annotations
 
 import argparse
+import posixpath
 import re
 import sys
 from dataclasses import dataclass, field
@@ -87,8 +88,12 @@ def uncovered_citations(task: Task) -> list[str]:
             path = cand.replace("\\", "/")
             if not path.lower().endswith(CITE_EXTS) or path in out:
                 continue
-            covered = any(path == e or (e.endswith("/") and path.startswith(e))
-                          or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1]) for e in entries)
+            norm = posixpath.normpath(path)
+            if norm == ".." or norm.startswith("../") or norm.startswith("/"):
+                covered = False
+            else:
+                covered = any(norm == e or (e.endswith("/") and norm.startswith(e))
+                              or ("/" not in path and path == e.rstrip("/").rsplit("/", 1)[-1]) for e in entries)
             if not covered:
                 out.append(path)
     return out

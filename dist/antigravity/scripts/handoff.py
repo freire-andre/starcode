@@ -122,9 +122,20 @@ def apply_attempt(values: dict[str, str], attempt: str) -> None:
 ISO_DATE_START = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
 
+def starts_with_iso_date(text: str) -> bool:
+    """True when the text opens with a real calendar date (AAAA-MM-DD), not just that shape."""
+    if not ISO_DATE_START.match(text):
+        return False
+    try:
+        dt.date.fromisoformat(text[:10])
+    except ValueError:
+        return False
+    return True
+
+
 def append_item(values: dict[str, str], key: str, text: str, today: str | None,
                 keep_leading_date: bool = False) -> None:
-    if keep_leading_date and ISO_DATE_START.match(text):
+    if keep_leading_date and starts_with_iso_date(text):
         stamp = text
     else:
         stamp = f"{today or dt.date.today().isoformat()}: {text}"

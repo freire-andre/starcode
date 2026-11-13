@@ -21,7 +21,8 @@ class RegistrosRetrosF11Tests(unittest.TestCase):
             self.assertRegex(text, rf"(?m)^## {re.escape(sec)}\s*$")
         self.assertIn("orca-runtime.mjs", text)
         self.assertIn("1.4.257", text)
-        self.assertNotRegex(text, r"(?i)\b(não|para|com|quando)\b")
+        self.assertNotRegex(text, r"[ãõçáéíóúâêô]")
+        self.assertNotRegex(text, r"(?i)\b(não|para|com|uma|que|está|quando)\b")
 
     def test_decisions_registra_os_itens_de_scripts(self) -> None:
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")

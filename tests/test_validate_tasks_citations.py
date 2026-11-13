@@ -56,6 +56,20 @@ class CitationTests(CitationCase):
         self.edit(OLD_CTX, OLD_CTX + " Veja também `scripts/y.py`.")
         self.assertEqual(self.cit(), [])
 
+    def test_citacao_com_travessia_nao_e_coberta_pela_pasta(self):
+        self.edit(OLD_MAY, OLD_MAY + ", `scripts/`")
+        self.edit(OLD_TASK, OLD_TASK + " Veja `scripts/../../outside.py` e `scripts/../other.py`.")
+        self.assertEqual(self.cit(), [
+            "T1: o TASK cita scripts/../../outside.py, fora do May change: "
+            "acrescente ao May change ou cite em CONTEXT",
+            "T1: o TASK cita scripts/../other.py, fora do May change: "
+            "acrescente ao May change ou cite em CONTEXT"])
+
+    def test_citacao_com_ponto_dentro_da_pasta_continua_coberta(self):
+        self.edit(OLD_MAY, OLD_MAY + ", `scripts/`")
+        self.edit(OLD_TASK, OLD_TASK + " Veja `scripts/./a/../b.py`.")
+        self.assertEqual(self.cit(), [])
+
 
 if __name__ == "__main__":
     unittest.main()
