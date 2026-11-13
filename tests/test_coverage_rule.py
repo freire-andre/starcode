@@ -48,6 +48,12 @@ class CoverageRuleTests(unittest.TestCase):
                 with self.subTest(path=path, entry=entry):
                     self.assertFalse(gates_common.covers(path, entry))
 
+    def test_covers_recusa_letra_de_drive(self):
+        for path in ("C:/x/y.py", "c:\\x\\y.py", "D:/a.py"):
+            for entry in ("*", "*.py", "C:/x/"):
+                with self.subTest(path=path, entry=entry):
+                    self.assertFalse(gates_common.covers(path, entry))
+
 
 class CoverageCitationTests(CitationCase):
     def cit(self):

@@ -98,6 +98,12 @@ class ExecuteReferenceTests(unittest.TestCase):
         self.assertAll(REF, "A `start` that fails", "entry already removed by the command",
                        "**other tickets go on**", "apply **only to that ticket**")
 
+    def test_execute_fleet_start_exit_3(self):
+        fleet = REF[REF.index("## 2F."):]
+        step3 = fleet[fleet.index("3. **A `start` that fails**"):fleet.index("4. **Wait.**")]
+        self.assertAll(step3, "**Exit 3**", "handoff.py\" set <slug> --dispatch-add",
+                       "no new `start` for the same ticket", "**other tickets go on**")
+
     def test_execute_fleet_wait_uses_nearest_deadline(self):  # R20
         self.assertAll(REF, "check --wait --types worker_done,question --timeout-ms <ms until the nearest deadline>",
                        "`fleet.timeoutMinutes`", "only the wait\n   for the worker to **start**")
