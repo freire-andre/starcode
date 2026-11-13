@@ -88,12 +88,12 @@ Proof: `python scripts/check_decisions.py`
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** CI do PR #47 e autorização de merge
+**Next:** Merge do PR #47
 **Linear:** SC-168
 **Integration branch:** feature/gate-d30-ci
 **Last integrated:** 8e1547f
 **Dispatched:** LaForge pós-Q · fcb0394
-**Settled:** none
+**Settled:** 2026-11-13: push dos .specs, review não publicado, merge na main e SC-168 em Done: user: "SIM"
 **Attempts:** none
 **Reports:** 2026-11-13: SC-168: fetch-depth 0, check_decisions sai 2 em clone raso/indeterminado, V18-1..V18-5 e SC-168 no DECISIONS.md, 8 testes, dist regerado; gate ticket verde; suíte completa não conferida pelo worker; 2026-11-13: Q (codex · effective gpt-6-luna): FAIL, 8 achados (R3 aceita ' false '; C4-C10 com asserções fracas); suíte 820 ok; 2026-11-13: LaForge pós-Q: achado 1 em 7c24202, achados 2-8 em 6369977; 26 testes ok; usou git checkout no próprio arquivo de teste (sem perda); 2026-11-13: PR #47 aberto: https://github.com/freire-andre/starcode/pull/47; 2026-11-13: Worf: APPROVE, 0 blocker, 0 should-fix, 1 nit (verification.md mantém Verdict FAIL do Q)
 **Breaker:** closed
