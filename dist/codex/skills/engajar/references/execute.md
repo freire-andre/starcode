@@ -12,7 +12,7 @@ Variables: `<slug>` the feature, `B` the repo config `baseBranch`, `I` = `featur
 - `python "P/scripts/gates/run_gates.py" execute <slug>` green; Handoff `**Phase:** published` (or
   `execute`/`review` when resuming).
 - Git mode 2, 3 or 4 → this file as written. **Git mode 1 → section 7.**
-- Models: LaForge and Q from the effective crew (session override > user config > `crew.yaml`). Compare
+- Models: LaForge and Q from the effective crew (session override > local repo config > user config > `crew.yaml`; `setup_helpers.py crew-table` shows it). Compare
   them: `python "P/scripts/dispatch.py" family <laforge cli:model> --compare <q cli:model>`. `same` →
   warn in one line and plan `**Verification:** degraded` (step 5).
 

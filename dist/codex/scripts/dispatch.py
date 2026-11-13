@@ -233,6 +233,7 @@ def batch(slug: str, root: Path, branch: str | None = None, base: str | None = N
             raise ValueError(f"--assign espera Tn=cli:modelo, veio {item!r}")
         overrides[tid] = _valid_pair(pair.strip(), f"--assign {tid}")
     user_cfg, _ = sc.load_user_config()
+    local_cfg, local_err = sc.load_local_config(proj)
     fleet = (user_cfg or {}).get("fleet") or {}
     max_batch = fleet.get("maxBatch", DEFAULT_MAX_BATCH)
     pool = list(fleet.get("workers") or [])
@@ -287,7 +288,7 @@ def batch(slug: str, root: Path, branch: str | None = None, base: str | None = N
         if _entry_pair(e) in pool:
             start = pool.index(_entry_pair(e)) + 1
             break
-    lf = sc.effective_crew(crew, user_cfg).get("laforge", {})
+    lf = sc.effective_crew(crew, user_cfg, None if local_err else local_cfg).get("laforge", {})
     default_pair = f"{lf.get('cli')}:{lf.get('model')}"
     out = []
     for n, t in enumerate(chosen):
@@ -519,7 +520,7 @@ def family(spec: str) -> str:
         parts = [p.strip() for p in model.split("/", 2)]
         if len(parts) < 3 or not parts[1] or not parts[2]:
             return "unknown"
-        return VENDOR_FAMILIES.get(parts[1], "unknown")
+        return VENDOR_FAMILIES.get(parts[1]) or _catalog_family(model)
     fams = {k.lower(): v for k, v in (sc.load_crew().get("families") or {}).items()}
     if model in fams:
         return fams[model]
@@ -529,7 +530,19 @@ def family(spec: str) -> str:
                 return fam
         if model in CLI_FAMILIES and not cli:
             return CLI_FAMILIES[model]
+        if "/" in model:  # OpenCode `provider/model` (zai/glm-5.3, opencode/muse-spark-1.2...)
+            return _catalog_family(model)
     return CLI_FAMILIES.get(cli.strip().lower(), "unknown")
+
+
+def _catalog_family(model: str) -> str:
+    """Vendor family from the cached models.dev catalog (never downloads); 'unknown' when absent."""
+    try:
+        import model_info  # noqa: PLC0415
+
+        return model_info.cached_family(model) or "unknown"
+    except Exception:  # noqa: BLE001 - a broken cache never breaks the dispatch
+        return "unknown"
 
 
 def compare(a: str, b: str) -> str:

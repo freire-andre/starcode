@@ -74,7 +74,7 @@ apply to every crew member, in every CLI. Skill-specific rules live in each skil
   in one message.
 
 ## Models (D17, F0-2)
-- Precedence: session request > user config > `crew.yaml` default. A session override is recorded by
+- Precedence: session request > local repo config (`.starcode/config.local.json`) > user config > `crew.yaml` default. A session override is recorded by
   the Picard in `tasks.md ## Handoff` and shown in the banner; the config is not changed.
 - Record the **requested** model (the `model` field of the `worker-start` result) and the
   **effective** model read from the terminal or transcript. Without confirmation: `model: unconfirmed`.

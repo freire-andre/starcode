@@ -87,7 +87,7 @@ def _parse_at(value: object) -> datetime | None:
 
 def build_crew(snap: Snapshot, now: datetime) -> list[dict]:
     try:
-        crew, available = crew_live.crew_members()
+        crew, available = crew_live.crew_members(snap.root)
     except Exception as exc:  # noqa: BLE001
         snap.error("src/crew.yaml", f"tripulação ilegível ({type(exc).__name__})")
         return []

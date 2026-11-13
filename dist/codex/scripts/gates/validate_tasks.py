@@ -250,7 +250,7 @@ def evaluate(target: str | None, root: Path, execute: bool = False, published: b
 
     if execute:
         for name, lns in (("spec.md", spec_lines), ("tasks.md", lines)):
-            if lns and not gc.approved(lns):
+            if lns and not gc.approved(lns, fdir, allow_pilot=name == "tasks.md"):
                 errors.append(f"{name} sem `**Approved**: <AAAA-MM-DD> - user: \"<palavras do usuário>\"`: a execução "
                               "só começa depois da aprovação; nunca escreva uma aprovação que o usuário não deu")
     return res

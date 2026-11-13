@@ -1,15 +1,17 @@
 """StarCode config validator (D20). Python stdlib only.
 
-Two levels, both with schemaVersion 1:
-  user: ~/.starcode/config.json     (personal preferences, never versioned)
-  repo: <repo>/.starcode/config.json (project settings, versioned)
+Three files, all with schemaVersion 1:
+  user:  ~/.starcode/config.json            (personal preferences, never versioned)
+  repo:  <repo>/.starcode/config.json       (project settings, versioned)
+  local: <repo>/.starcode/config.local.json (personal crew models for this repo only, never versioned;
+         writing it also adds it to <repo>/.starcode/.gitignore)
 
 Unknown key = error. A schemaVersion newer than this plugin blocks and asks for an update.
 Field reference: schemas/config.md.
 
 Usage:
-  python validate_config.py --kind user|repo PATH
-  python validate_config.py --kind user|repo --write DEST --from SRC   (SRC may be "-" for stdin)
+  python validate_config.py --kind user|repo|local PATH
+  python validate_config.py --kind user|repo|local --write DEST --from SRC   (SRC may be "-" for stdin)
       Validates SRC and writes it to DEST only if valid (atomic replace). Never writes partial data.
 Exit codes: 0 valid / written, 1 invalid, 2 usage or I/O error.
 """
@@ -81,7 +83,23 @@ REPO_SCHEMA = _obj({
     "sensitiveFiles": {"type": "list", "item": {"type": "str"}, "unique": True},
 }, required=True)
 
-SCHEMAS = {"user": USER_SCHEMA, "repo": REPO_SCHEMA}
+LOCAL_SCHEMA = _obj({
+    "schemaVersion": {"type": "schema", "required": True},
+    "crew": {"type": "map", "keys": CREW, "value": CREW_ENTRY, "min_entry_keys": 1},
+}, required=True)
+
+SCHEMAS = {"user": USER_SCHEMA, "repo": REPO_SCHEMA, "local": LOCAL_SCHEMA}
+LOCAL_FILE = "config.local.json"
+
+
+def ensure_ignored(folder: Path) -> None:
+    """Make <folder>/.gitignore list the local config, so a personal choice never reaches Git."""
+    gi = folder / ".gitignore"
+    text = gi.read_text(encoding="utf-8") if gi.exists() else ""
+    if LOCAL_FILE in (ln.strip() for ln in text.splitlines()):
+        return
+    sep = "" if not text or text.endswith("\n") else "\n"
+    gi.write_text(text + sep + LOCAL_FILE + "\n", encoding="utf-8", newline="\n")
 
 
 def _tname(v: Any) -> str:
@@ -221,6 +239,8 @@ def write_validated(kind: str, data: Any, dest: Path) -> list[str]:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+    if kind == "local":
+        ensure_ignored(dest.parent)
     return []
 
 

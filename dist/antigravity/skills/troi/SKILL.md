@@ -53,6 +53,38 @@ Gray area = a user-visible behavior with more than one reasonable answer. The on
 in the rounds; the rest get a recorded default (above). A gray area the user declines to discuss is
 recorded with your default and `user declined`.
 
+## 2G. Grill mode (no round cap)
+Use it instead of section 2 when the Picard hands you `mode: grill` (always, for the autopilot) or the
+user asks to be grilled ("me entreviste a fundo", "grill me", "modo grill"). Adapted from `grilling`
+(mattpocock/skills, MIT).
+- Map the request as a **design tree**: every decision branches into the decisions that hang off it.
+- Work in **rounds**. The **frontier** is every decision whose prerequisites are already settled. Ask the
+  whole frontier in one round; a question that depends on another one still open goes to a later round.
+- Format each question like this, and word it so "sim" accepts your recommendation:
+
+      ❓ **Q<n>** - **<título>**: <pergunta, com as opções quando houver>
+
+      ➡️ <sua recomendação e o porquê em meia linha>
+
+  Number questions across the whole interview (Q1, Q2, ... never restart): the autopilot cites them.
+- Facts are yours, never the user's: look them up (section 1); if a subagent tool exists, send it to find
+  a fact with a fresh context and ask the rest of the frontier meanwhile. Decisions are the user's.
+- No round cap, no "default (não perguntado)": every gray area and implicit-requirement dimension that
+  changes behavior becomes a question. Still never ask about naming, wording or what conventions settle.
+- An "ungrillable" question (the user needs to see something to answer, e.g. a layout): record it as a
+  gray area with `protótipo necessário` and move on.
+- **Autopilot branch** (only when the Picard says the autopilot is on): after the feature branches, add
+  the branches about **how the user decides**, so the autopilot can decide in their place: priorities
+  (simplicidade, prazo, robustez, custo), risk tolerance, what must never be done, tie-breakers, who the
+  feature must please first, and how much scope may grow. Record each answer as a mandate item, in the
+  turn it arrives (never by editing piloto.md):
+
+      python "<plugin-root>/scripts/piloto.py" mandato <slug> --kind principio|limite|preferencia --text "<regra>" --source Q<n>
+
+- Done when the frontier is empty: every branch visited, nothing silently assumed. Then show the
+  shared understanding in at most 8 lines (plus the mandate items, when the autopilot is on) and **ask the
+  user to confirm it** (the only question of the closing turn). Do not hand off before the yes.
+
 ## 3. Write context.md
 Write in the turn each answer arrives (the chat does not survive a compaction). Headings in English,
 prose in PT-BR, no persona:
@@ -77,7 +109,8 @@ prose in PT-BR, no persona:
 ## 4. Close
 Re-read the source request sentence by sentence: each sentence lands on Scope Notes, a gray area, or an
 explicit out-of-scope note. Then tell the user in 3–5 lines what was understood, plus one line with the
-defaults you chose, and hand off without asking for confirmation:
+defaults you chose, and hand off without asking for confirmation (grill mode: only after the user confirmed
+the shared understanding, section 2G):
 "Próximo: Spock escreve a spec." Return to the Picard flow, which records the Handoff with exactly this command (never by editing the
 file, appending with `cat >>` or an inline script):
 

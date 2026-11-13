@@ -180,8 +180,27 @@ def field_value(lines: list[str], name: str) -> str | None:
     return None
 
 
-def approved(lines: list[str]) -> bool:
-    return any(APPROVED_RE.match(ln.strip()) for ln in lines)
+PILOT_APPROVED_RE = re.compile(
+    r"^\**\s*Approved\s*\**\s*:\s*\**\s*\d{4}-\d{2}-\d{2}\b.*\bpiloto\s*:\s*[\"“]D\d+[^\"”]*[\"”]", re.IGNORECASE)
+PILOT_CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*\d{4}-\d{2}-\d{2}\s*-\s*user:", re.M)
+PILOT_ACTIVE_RE = re.compile(r"^\*\*Status:\*\*\s*ativo\b", re.M)
+
+
+def pilot_confirmed(fdir: Path | None) -> bool:
+    """Autopilot active with a mandate the user confirmed (.specs/features/<slug>/piloto.md)."""
+    path = (fdir / "piloto.md") if fdir else None
+    if not path or not path.exists():
+        return False
+    text = path.read_text(encoding="utf-8")
+    return bool(PILOT_ACTIVE_RE.search(text) and PILOT_CONFIRMED_RE.search(text))
+
+
+def approved(lines: list[str], fdir: Path | None = None, allow_pilot: bool = False) -> bool:
+    """A user approval line; with allow_pilot, also `piloto: "D<n> ..."` when the autopilot mandate is
+    confirmed. The spec is never approved by the autopilot (callers keep allow_pilot False for it)."""
+    if any(APPROVED_RE.match(ln.strip()) for ln in lines):
+        return True
+    return allow_pilot and pilot_confirmed(fdir) and any(PILOT_APPROVED_RE.match(ln.strip()) for ln in lines)
 
 
 def size_of(lines: list[str]) -> str | None:

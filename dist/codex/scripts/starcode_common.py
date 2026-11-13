@@ -74,6 +74,20 @@ def repo_config_path(root: Path) -> Path:
     return root / ".starcode" / "config.json"
 
 
+def local_config_path(root: Path) -> Path:
+    return root / ".starcode" / validate_config.LOCAL_FILE
+
+
+def load_local_config(root: Path | None) -> tuple[dict | None, list[str]]:
+    """Per-repo personal crew models (never versioned); None when absent."""
+    if root is None:
+        return None, []
+    path = local_config_path(root)
+    if not path.exists():
+        return None, []
+    return validate_config.load("local", path)
+
+
 def load_repo_config(root: Path | None) -> tuple[dict | None, list[str]]:
     if root is None:
         return None, []
@@ -168,20 +182,31 @@ def load_crew() -> dict[str, Any]:
     return doc
 
 
-def effective_crew(crew_doc: dict, user_cfg: dict | None) -> dict[str, dict]:
-    """Crew members with cli/model after applying the user config (precedence: user > crew.yaml).
-    Session overrides live in tasks.md ## Handoff and are applied by the Picard, not here."""
-    overrides = (user_cfg or {}).get("crew", {})
+def effective_crew(crew_doc: dict, user_cfg: dict | None, local_cfg: dict | None = None) -> dict[str, dict]:
+    """Crew members with cli/model after the configs (precedence: local repo > user > crew.yaml).
+    `source` says where each value came from: local, user or default. Session overrides live in
+    tasks.md ## Handoff and are applied by the Picard, not here."""
+    user_ov = (user_cfg or {}).get("crew", {})
+    local_ov = (local_cfg or {}).get("crew", {})
     out = {}
     for key, member in crew_doc.get("crew", {}).items():
         entry = dict(member)
         default = member.get("default", {})
-        ov = overrides.get(key, {})
+        ov = {**user_ov.get(key, {}), **local_ov.get(key, {})}
         entry["cli"] = ov.get("cli", default.get("cli"))
         entry["model"] = ov.get("model", default.get("model"))
-        entry["overridden"] = bool(ov)
+        entry["source"] = "local" if local_ov.get(key) else ("user" if user_ov.get(key) else "default")
+        entry["overridden"] = entry["source"] != "default"
         out[key] = entry
     return out
+
+
+def crew_at(root: Path | None, crew_doc: dict | None = None) -> dict[str, dict]:
+    """Effective crew for a repo: invalid configs are ignored (the banner reports them)."""
+    doc = crew_doc if crew_doc is not None else load_crew()
+    user_cfg, user_err = load_user_config()
+    local_cfg, local_err = load_local_config(root)
+    return effective_crew(doc, None if user_err else user_cfg, None if local_err else local_cfg)
 
 
 def cost_tier(model: str, tiers: dict[str, str] | None) -> str:

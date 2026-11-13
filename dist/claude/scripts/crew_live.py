@@ -101,10 +101,9 @@ def write_json(path: Path, data: dict) -> None:
 
 # --- crew status ------------------------------------------------------------------------------
 
-def crew_members() -> tuple[dict[str, dict], list[str]]:
+def crew_members(root: Path | None = None) -> tuple[dict[str, dict], list[str]]:
     doc = sc.load_crew()
-    user_cfg, user_err = sc.load_user_config()
-    crew = sc.effective_crew(doc, None if user_err else user_cfg)
+    crew = sc.crew_at(root if root is not None else sc.repo_root(None), doc)
     available = doc.get("available") or list(crew)
     return crew, [k for k in crew if k in available]
 
