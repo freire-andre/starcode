@@ -81,19 +81,19 @@ Proof: run unit | test_decisions_v18_5_menu ... ok
 Proof: run unit | test_decisions_gate_raso ... ok
 
 **C11** - `check_decisions.py` sai com 0 no ramo da feature, em clone completo (R11)
-Proof: python scripts/check_decisions.py | check_decisions: OK
+Proof: `python scripts/check_decisions.py`
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Despachar LaForge (ticket único)
+**Next:** Q verifica a feature
 **Linear:** SC-168
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/gate-d30-ci
+**Last integrated:** 8e1547f
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-13: SC-168: fetch-depth 0, check_decisions sai 2 em clone raso/indeterminado, V18-1..V18-5 e SC-168 no DECISIONS.md, 8 testes, dist regerado; gate ticket verde; suíte completa não conferida pelo worker
 **Breaker:** closed
