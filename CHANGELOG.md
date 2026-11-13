@@ -8,6 +8,8 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-13
+
 ### Adicionado
 
 - Manutenção das retros (SC-148), item 1: `dispatch.py brief` acrescenta `DECISIONS.md` ao May change de ticket que mexe em `scripts/`.
@@ -19,6 +21,11 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 - Item 7: `docs/compatibilidade.md` registra a limitação do `orca plugin test`/`check` por drive, com rascunho do relato à Orca.
 - Item 8: os testes da Ponte falham quando o host recusa uma chamada.
 - Item 9: o `execute.md` usa `worker-read`/`worker-show` com `--dispatch` e diz onde ler o modelo efetivo.
+
+### Corrigido
+
+- `handoff.py --report` só trata como data um prefixo que seja data de calendário válida.
+- O gate das tasks normaliza o caminho citado (`..`) antes de conferir a cobertura por pasta.
 
 ## [1.6.1] - 2026-11-13
 
