@@ -1,0 +1,28 @@
+{
+  "round": 1,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. O checkout do job checks passa a usar fetch-depth: 0 e o check_decisions.py sai com 2 em clone raso ou com saída de rev-parse que não seja exatamente true/false, antes de comparar commits; os testes fixam código e mensagem completos e cobrem ' false ' e 'false '. As entradas V18-1 a V18-5 e SC-168 do DECISIONS.md batem com o código conferido (model_info.py, gates_common.py, seção 5 do piloto-automatico). Um nit de processo: verification.md segue com Verdict FAIL após as correções. dist/ é mecânico e ficou fora (build --check em dia).",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "nit",
+      "path": ".specs/features/gate-d30-ci/verification.md",
+      "line": 3,
+      "body": "🟡 `verification.md` continua com `**Verdict**: FAIL` e `**HEAD**: 8266cab`, embora os 8 achados estejam fechados em 7c24202 e 6369977 (.specs/features/gate-d30-ci/verification.md:3). Quem lê o PR vê uma verificação reprovada sem nova rodada do Q. Correção: rodar o Q de novo no HEAD atual ou registrar no handoff que a reverificação ficou pendente.",
+      "evidence": ".specs/features/gate-d30-ci/verification.md:3"
+    }
+  ],
+  "carryover": {},
+  "research": [
+    "/actions/checkout/v4",
+    "https://github.com/actions/checkout/blob/v4/README.md"
+  ],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "python scripts/check_decisions.py", "result": "exit 0: OK (DECISIONS.md em 6369977e, depois de 7c242026)"},
+    {"command": "python -m unittest discover -s tests -p test_check_decisions.py", "result": "Ran 13 tests, OK"},
+    {"command": "python -m unittest discover -s tests -p test_ci_workflow.py", "result": "Ran 13 tests, OK"},
+    {"command": "CI do PR #47 (gh pr checks 47)", "result": "checks (ubuntu-latest) pass; checks (windows-latest) pendente; eval e release-check pulados"},
+    {"command": "git diff main...HEAD | scan_bypasses.py", "result": "0 candidatos"}
+  ]
+}
