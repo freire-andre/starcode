@@ -88,7 +88,7 @@ Proof: `python scripts/check_decisions.py`
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Guinan faz a retro
+**Next:** PR com confirmação, depois Worf
 **Linear:** SC-168
 **Integration branch:** feature/gate-d30-ci
 **Last integrated:** 8e1547f
