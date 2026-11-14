@@ -191,6 +191,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md achado 1 (gates_common.py:200)
 - updated: 2026-11-14T14:18:22Z
 
+### L31 - Dê a cada valor de uma tabela fixada no requisito pelo menos uma linha no teste, porque a tabela de prefixos testava 13 de 15 e o1/o4 ficaram sem prova.
+- signal: `weak_test` · features: 1
+- features: q-familia-revendedor
+- sources: verification.md achado C7 (test_model_info.py:164)
+- updated: 2026-11-14T17:43:47Z
+
+### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
+- signal: `weak_test` · features: 1
+- features: q-familia-revendedor
+- sources: verification.md achado C9 (test_model_info.py:178)
+- updated: 2026-11-14T17:43:47Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
