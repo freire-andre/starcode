@@ -76,10 +76,10 @@ Proof: run unit | test_decisions_piloto_decisao_citada ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Usuário autoriza o merge do PR #49
+**Next:** Feature encerrada (PR #49 merged)
 **Linear:** SC-170
 **Integration branch:** feature/piloto-decisao-citada
 **Last integrated:** 5b87da5d7f70d9cb7c8cea28542fe52137c29d72

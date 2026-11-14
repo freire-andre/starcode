@@ -1,0 +1,34 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT. O Claude revendido sem `canonical_model_id` deixa de passar por Q independente de um LaForge Claude; R1 a R9 têm teste e os 24 testes de test_model_info passam. Conferida contra o catálogo real do models.dev (9135 entradas), a tabela de prefixos só diverge do id canônico em Llama-Nemotron (`meta` em vez de `nvidia`, direção conservadora), e `o1`/`o3`/`o4`/`codex` não casam nome de outro fornecedor. Um should-fix: fornecedor fora de `VENDOR_PROVIDERS` (ex.: `alibaba`, Qwen) vira `unknown`, e o Q `opencode:alibaba/qwen3-coder-plus`, aceito no main, passa a ser recusado e o `suggest` cai em self-verified. Um nit: id regional do Bedrock (`global.anthropic.claude-...`) sem canônico vira `unknown`. Pré-existente: `dispatch.family` faz `lower()` no modelo antes do lookup, que diferencia maiúsculas, então `opencode:minimax/MiniMax-M3` já era `unknown` no main. Fora do review: dist/ (gerado, build --check OK) e os arquivos de .specs/. Bypass: 0 candidatos.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "should-fix",
+      "path": "scripts/model_info.py",
+      "line": 50,
+      "body": "🟠 Fornecedor que não está em `VENDOR_PROVIDERS` cai em `_reseller_family` e vira `unknown` (scripts/model_info.py:50 e :142). No catálogo real, `alibaba/qwen3-coder-plus` não tem `canonical_model_id`: no main `dispatch.family` dava `alibaba` e `q_cli` aceitava o Q configurado; na branch dá `unknown`, o `q_cli` recusa e o `setup_helpers.suggest` com claude+opencode passa de Q `alibaba/qwen3-coder-plus` para self-verified (sondado com catálogo temporário em `STARCODE_MODELS_DEV_FILE`). Correção: incluir `alibaba` em `VENDOR_PROVIDERS` e `(\"qwen\", \"alibaba\")` em `NAME_PREFIX_FAMILIES` (cobre `alibaba-cn`, `alibaba-coding-plan` e revendedores de Qwen), com um caso no teste de prefixos.",
+      "evidence": "scripts/model_info.py:50"
+    },
+    {
+      "id": "W2",
+      "severity": "nit",
+      "path": "scripts/model_info.py",
+      "line": 151,
+      "body": "🟡 `_reseller_family` só olha o segmento antes do primeiro `.` (scripts/model_info.py:151). No catálogo real os ids do `amazon-bedrock` vêm com região (`global.anthropic.claude-sonnet-4-5-20250929-v1:0`, `eu.anthropic.claude-opus-4-7`); sem `canonical_model_id` dariam `unknown` em vez de `anthropic`. Hoje todos trazem o canônico e `unknown` é o lado seguro. Correção, se quiser fechar: procurar o fornecedor em qualquer segmento antes do nome (`name.split(\".\")[:-1]`).",
+      "evidence": "scripts/model_info.py:151"
+    }
+  ],
+  "carryover": {},
+  "research": [
+    "https://models.dev/api.json (baixado em 2026-11-14 para arquivo temporário fora do cache do usuário: 236 provedores, 9135 entradas, 7759 com canonical_model_id; os cinco revendedores servindo Claude e todas as entradas do opencode/muse-* trazem canonical_model_id, exceto azure/claude-opus-4-6, claude-opus-4-5 e claude-sonnet-4-5)"
+  ],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "python scripts/check_decisions.py", "result": "OK (DECISIONS.md atualizado no commit 5e6d0ad9)"},
+    {"command": "python -m unittest test_model_info (em tests/)", "result": "24 testes OK"},
+    {"command": "python -m unittest discover -s tests -v (informado pelo Picard)", "result": "856 OK, 1 skip"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"}
+  ]
+}
