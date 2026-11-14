@@ -131,8 +131,12 @@ def _setup_section(text: str) -> str:
 def interval_diff(setup_text: str, config_text: str) -> tuple[int, int]:
     """(M, N): M is the end of `steps 1–M` cited by the setup, N the number of the `Write` title of config."""
     m = re.search(r"steps 1[–-](\d+)", _setup_section(setup_text))
-    n = re.search(r"^## (\d+)\. Write$", config_text, re.M)
-    return int(m.group(1)), int(n.group(1))
+    titles = re.findall(r"^## (\d+)\. Write$", config_text, re.M)
+    if len(titles) != 1:
+        raise ValueError(f"a skill config deve ter exatamente um título `## <N>. Write`, achei {len(titles)}")
+    if m is None:
+        raise ValueError("a seção `## 4. User config` do setup não cita `steps 1–<M>`")
+    return int(m.group(1)), int(titles[0])
 
 
 class SetupIntervaloTests(unittest.TestCase):
@@ -148,6 +152,14 @@ class SetupIntervaloTests(unittest.TestCase):
         renumbered = config.replace("## 6. Write", "## 7. Write")
         m2, n2 = interval_diff(setup, renumbered)
         self.assertNotEqual(m2, n2)
+        sem_write = config.replace("## 6. Write", "## 6. Gravar")
+        with self.assertRaisesRegex(ValueError, "Write") as ctx:
+            interval_diff(setup, sem_write)
+        self.assertIn("achei 0", str(ctx.exception))
+        duplicado = config + "\n## 7. Write\n"
+        with self.assertRaisesRegex(ValueError, "Write") as ctx:
+            interval_diff(setup, duplicado)
+        self.assertIn("achei 2", str(ctx.exception))
 
     def test_dist_setup_cita_steps_1_6(self):
         for cli in CLIS:
