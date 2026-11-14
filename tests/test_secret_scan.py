@@ -146,6 +146,9 @@ class AddAntesDoCommitTests(TempRepoCase):
     def segredo(self):
         return f"TOKEN = '{FAKE['github']}'\n"
 
+    def achado(self, caminho):
+        return f"{caminho}:1: token do GitHub ({ss.mask(FAKE['github'])})"
+
     def test_add_antes_do_commit_escaneia_novo_e_modificado(self):
         self.write("README.md", self.segredo())
         self.write("app/novo.py", self.segredo())
@@ -154,19 +157,14 @@ class AddAntesDoCommitTests(TempRepoCase):
                     "git add .\ngit commit -m x"):
             with self.subTest(cmd=cmd):
                 findings = ss.evaluate(cmd, str(self.repo))
-                self.assertEqual(len(findings), 2, findings)
-                self.assertTrue(findings[0].startswith("README.md:1:"), findings)
-                self.assertTrue(findings[1].startswith("app/novo.py:1:"), findings)
-                self.assertTrue(all("token do GitHub" in f for f in findings), findings)
+                self.assertEqual(findings, [self.achado("README.md"), self.achado("app/novo.py")])
         semhead = self.tmp / "semhead"
         semhead.mkdir()
         run_git(semhead, "init", "-q", "-b", "main")
         self.write("README.md", self.segredo(), semhead)
         self.write("app/novo.py", self.segredo(), semhead)
         findings = ss.evaluate("git add -A && git commit -m x", str(semhead))
-        self.assertEqual(len(findings), 2, findings)
-        self.assertTrue(findings[0].startswith("README.md:1:"), findings)
-        self.assertTrue(findings[1].startswith("app/novo.py:1:"), findings)
+        self.assertEqual(findings, [self.achado("README.md"), self.achado("app/novo.py")])
 
     def test_add_antes_do_commit_sem_segredo_passa(self):
         self.write("README.md", "hello mudado\n")
@@ -179,8 +177,7 @@ class AddAntesDoCommitTests(TempRepoCase):
         self.assertEqual(ss.evaluate("git add --update && git commit -m x", str(self.repo)), [])
         self.write("README.md", self.segredo())
         findings = ss.evaluate("git add -u && git commit -m x", str(self.repo))
-        self.assertEqual(len(findings), 1, findings)
-        self.assertTrue(findings[0].startswith("README.md:1:"), findings)
+        self.assertEqual(findings, [self.achado("README.md")])
 
     def test_add_so_escaneia_caminhos_passados(self):
         self.write("a.py", "a = 1\n")
@@ -191,8 +188,7 @@ class AddAntesDoCommitTests(TempRepoCase):
         self.write("c.py", self.segredo())
         self.assertEqual(ss.evaluate("git add a.py && git commit -m x", str(self.repo)), [])
         findings = ss.evaluate("git add a.py c.py && git commit -m x", str(self.repo))
-        self.assertEqual(len(findings), 1, findings)
-        self.assertTrue(findings[0].startswith("c.py:1:"), findings)
+        self.assertEqual(findings, [self.achado("c.py")])
 
     def test_add_arquivo_novo_env_e_allowlist(self):
         self.write(".env", "DEBUG=1\n")
@@ -211,8 +207,20 @@ class AddAntesDoCommitTests(TempRepoCase):
         run_git(sub, "init", "-q", "-b", "main")
         self.write("novo.py", self.segredo(), sub)
         findings = ss.evaluate("git -C sub add -A; git -C sub commit -m x", str(self.tmp / "pai"))
-        self.assertEqual(len(findings), 1, findings)
-        self.assertTrue(findings[0].startswith("novo.py:1:"), findings)
+        self.assertEqual(findings, [self.achado("novo.py")])
+
+    def test_add_arquivo_novo_grande_nega(self):
+        self.write("grande.txt", ("x" * 99 + "\n") * 2_000)
+        tamanho = len((self.repo / "grande.txt").read_text(encoding="utf-8"))
+        old = ss.MAX_DIFF_BYTES
+        ss.MAX_DIFF_BYTES = 10_000
+        try:
+            findings = ss.evaluate("git add -A && git commit -m x", str(self.repo))
+        finally:
+            ss.MAX_DIFF_BYTES = old
+        self.assertEqual(findings, [
+            f"grande.txt: arquivo grande demais para verificar ({tamanho} caracteres; limite 10000). "
+            "Divida o commit ou aprove o arquivo em .starcode/secret-allowlist (path:<glob>)."])
 
     def test_secret_scan_nega_commit_pelo_powershell(self):
         self.write("app/novo.py", self.segredo())
