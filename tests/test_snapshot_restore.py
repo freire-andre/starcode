@@ -285,7 +285,13 @@ class RestoreTest(RestoreBase):
         self.write("notas.md", "editado\n")
         code, out = self.cli("restore", SLUG, "T1")
         self.assertEqual(code, 0)
-        self.assertIn("fora do ticket (não tocados):\n  notas.md", out)
+        cab = "fora do ticket (não tocados):"
+        listados = []
+        for ln in out.split(cab + "\n", 1)[1].splitlines():
+            if not ln.startswith("  "):
+                break
+            listados.append(ln[2:])
+        self.assertEqual(listados, ["notas.md"])
         code, out = self.cli("restore", SLUG, "T1", "--yes")
         self.assertEqual(code, 0)
         self.assertEqual(self.read("notas.md"), "editado\n")
