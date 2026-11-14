@@ -371,7 +371,7 @@ def select(root, changed=None, diff=None) -> dict:
         except (OSError, UnicodeDecodeError):
             continue
         for c in changed_list:
-            if c != t and posixpath.basename(c) in text:
+            if c != t and re.search(r"(?<![A-Za-z0-9_.-])" + re.escape(posixpath.basename(c)) + r"(?![A-Za-z0-9_.-])", text):
                 reverse.setdefault(c, []).append(t)
 
     def reach(starts: list[str]) -> dict[str, str | None]:
