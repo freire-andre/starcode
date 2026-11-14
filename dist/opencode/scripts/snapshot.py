@@ -375,13 +375,23 @@ def cmd_restore(args) -> int:
         done.append((action, path))
     try:
         plan_file.unlink()
-    except OSError:
-        pass
+    except OSError as exc:
+        print(f"restaurado {name}, mas o plano não foi apagado: {exc}; rode restore --yes de novo para limpar")
+        return 1
     v = sum(1 for a, _ in done if a == "voltar")
     print(f"restaurado {name}: {v} voltaram, {len(done) - v} removidos")
     for ln in outside_lines():
         print(ln)
     return 0
+
+
+def _longer_slugs(root, slug: str) -> set[str]:
+    """Slugs `<slug>-...` com ref de snapshot ou de pre-restore (donos possíveis de um plano ilegível)."""
+    found = set()
+    for prefix in (REF_PREFIX, PRE_PREFIX):
+        for name in run_git(root, "for-each-ref", "--format=%(refname)", f"{prefix}/{slug}-*/*").split():
+            found.add(name[len(prefix) + 1:].split("/", 1)[0])
+    return found
 
 
 def cmd_drop(args) -> int:
@@ -394,9 +404,14 @@ def cmd_drop(args) -> int:
             run_git(args.root, "update-ref", "-d", name)
         plans_dir = _plan_path(args.root, args.slug, "x").parent
         if plans_dir.is_dir():
+            longer = _longer_slugs(args.root, args.slug)
             for f in plans_dir.glob(f"restore-{args.slug}-*.json"):
                 data = _load_plan(f)  # o glob também casa slug que começa igual: confere o slug gravado
-                if data is not None and data.get("slug") == args.slug:
+                if data is not None:
+                    mine = data.get("slug") == args.slug
+                else:  # ilegível: não há slug gravado; é de outra feature só se um slug mais longo também casa o nome
+                    mine = not any(f.name.startswith(f"restore-{o}-") for o in longer)
+                if mine:
                     f.unlink()
     except GitError as exc:
         print(f"remoção falhou: {exc}")
