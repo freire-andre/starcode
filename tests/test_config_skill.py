@@ -170,8 +170,9 @@ class SetupIntervaloTests(unittest.TestCase):
     def test_decisions_setup_grava_config(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         entry = text.split("### SC-172:", 1)[1].split("\n### ", 1)[0]
+        for campo in ("- **Problema:**", "- **Decisão:**", "- **Motivo:**", "- **Por que não é bug:**"):
+            self.assertIn(campo, entry)
         self.assertIn("steps 1–6", entry)
-        self.assertIn("Por que não é bug", entry)
         self.assertIn("test_intervalo_do_setup_acompanha_titulo_write", entry.split("Por que não é bug", 1)[1])
 
 
