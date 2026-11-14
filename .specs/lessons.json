@@ -295,16 +295,18 @@
       "features": [
         "fase-12-robustez",
         "gate-d30-ci",
-        "despacho-media-escopo"
+        "despacho-media-escopo",
+        "piloto-decisao-citada"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
         "verification.md: achados 2 a 8 (C4-C10)",
-        "verification.md: achados C5 e C13"
+        "verification.md: achados C5 e C13",
+        "verification.md achados 2 e 3 (test_piloto.py:204, :231)"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-13T23:41:40Z"
+      "updated": "2026-11-14T14:18:22Z"
     },
     {
       "id": "L21",
@@ -442,6 +444,21 @@
       "scope": "specs",
       "created": "2026-11-13T23:41:40Z",
       "updated": "2026-11-13T23:41:40Z"
+    },
+    {
+      "id": "L30",
+      "text": "Limite o tamanho de todo número extraído por regex antes do int(), porque um ID de 5000 dígitos passava a regex e derrubava o gate com traceback em vez de recusa.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "piloto-decisao-citada"
+      ],
+      "sources": [
+        "verification.md achado 1 (gates_common.py:200)"
+      ],
+      "scope": "",
+      "created": "2026-11-14T14:18:22Z",
+      "updated": "2026-11-14T14:18:22Z"
     }
   ]
 }

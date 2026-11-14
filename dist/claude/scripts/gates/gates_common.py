@@ -181,26 +181,60 @@ def field_value(lines: list[str], name: str) -> str | None:
 
 
 PILOT_APPROVED_RE = re.compile(
-    r"^\**\s*Approved\s*\**\s*:\s*\**\s*\d{4}-\d{2}-\d{2}\b.*\bpiloto\s*:\s*[\"“]D\d+[^\"”]*[\"”]", re.IGNORECASE)
-PILOT_CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*\d{4}-\d{2}-\d{2}\s*-\s*user:", re.M)
-PILOT_ACTIVE_RE = re.compile(r"^\*\*Status:\*\*\s*ativo\b", re.M)
+    r"^\**\s*Approved\s*\**\s*:\s*\**\s*\d{4}-\d{2}-\d{2}\b.*\bpiloto\s*:\s*[\"“]D(\d{1,6})(?!\d)[^\"”]*[\"”]", re.IGNORECASE)
 
 
-def pilot_confirmed(fdir: Path | None) -> bool:
-    """Autopilot active with a mandate the user confirmed (.specs/features/<slug>/piloto.md)."""
-    path = (fdir / "piloto.md") if fdir else None
-    if not path or not path.exists():
+def _piloto():
+    import sys
+
+    scripts = str(Path(__file__).resolve().parent.parent)
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    import piloto
+
+    return piloto
+
+
+def pilot_cited(lines: list[str]) -> list[int]:
+    """Decision numbers cited by the `piloto: "D<n> ..."` approval lines (D07 is 7)."""
+    return [int(m.group(1)) for m in (PILOT_APPROVED_RE.match(ln.strip()) for ln in lines) if m]
+
+
+def pilot_approved(lines: list[str], fdir: Path | None) -> bool:
+    """Some `piloto:` line cites a decision registered in piloto.md, with the autopilot active and the mandate
+    confirmed by the user. piloto.py is the only reader of piloto.md."""
+    cited = pilot_cited(lines)
+    if not cited:
         return False
-    text = path.read_text(encoding="utf-8")
-    return bool(PILOT_ACTIVE_RE.search(text) and PILOT_CONFIRMED_RE.search(text))
+    pil = _piloto()
+    return pil.active_confirmed_in(fdir) and any(n in pil.registered_decisions_in(fdir) for n in cited)
+
+
+def pilot_unregistered(lines: list[str], fdir: Path | None) -> int | None:
+    """First decision number cited by a `piloto:` line when the autopilot is active and confirmed but no cited
+    decision is registered; None otherwise."""
+    cited = pilot_cited(lines)
+    if not cited or pilot_approved(lines, fdir) or not _piloto().active_confirmed_in(fdir):
+        return None
+    return cited[0]
+
+
+def approval_error(lines: list[str], fdir: Path | None, name: str, allow_pilot: bool, generic: str) -> str | None:
+    """None when `lines` carry an accepted approval; else the pilot message for an unregistered decision or `generic`."""
+    if approved(lines, fdir, allow_pilot):
+        return None
+    n = pilot_unregistered(lines, fdir) if allow_pilot else None
+    if n is not None:
+        return f"{name}: a aprovação do piloto cita D{n}, que não está registrada no piloto.md"
+    return generic
 
 
 def approved(lines: list[str], fdir: Path | None = None, allow_pilot: bool = False) -> bool:
     """A user approval line; with allow_pilot, also `piloto: "D<n> ..."` when the autopilot mandate is
-    confirmed. The spec is never approved by the autopilot (callers keep allow_pilot False for it)."""
+    confirmed and D<n> is registered. The spec is never approved by the autopilot (callers keep allow_pilot False)."""
     if any(APPROVED_RE.match(ln.strip()) for ln in lines):
         return True
-    return allow_pilot and pilot_confirmed(fdir) and any(PILOT_APPROVED_RE.match(ln.strip()) for ln in lines)
+    return allow_pilot and pilot_approved(lines, fdir)
 
 
 def size_of(lines: list[str]) -> str | None:

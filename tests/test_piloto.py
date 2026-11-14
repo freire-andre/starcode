@@ -108,6 +108,8 @@ class PilotApprovalGateTests(PilotoCase):
     def test_pilot_line_needs_confirmed_active_mandate(self):
         self.assertFalse(gc.approved([self.LINE], self.fdir, allow_pilot=True))
         self.confirmed()
+        for _ in range(4):
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
         self.assertTrue(gc.approved([self.LINE], self.fdir, allow_pilot=True))
         self.assertFalse(gc.approved([self.LINE], self.fdir))  # the spec never accepts it
         self.assertFalse(gc.approved(['**Approved**: 2026-11-13 - piloto: "sem id"'], self.fdir, allow_pilot=True))
@@ -125,6 +127,8 @@ class PilotApprovalGateTests(PilotoCase):
             text = (gates / name).read_text(encoding="utf-8")
             (self.fdir / name).write_text(text, encoding="utf-8")
         self.confirmed()
+        for _ in range(4):
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
         tasks = self.fdir / "tasks.md"
         text = tasks.read_text(encoding="utf-8")
         text = re.sub(r"^\*\*Approved\*\*:.*$", self.LINE, text, flags=re.M)
@@ -138,6 +142,152 @@ class PilotApprovalGateTests(PilotoCase):
                         encoding="utf-8")
         res = vt.evaluate(SLUG, self.repo, execute=True)
         self.assertTrue([e for e in res.errors if "spec.md sem" in e], res.errors)
+
+
+MSG_D4 = "tasks.md: a aprovação do piloto cita D4, que não está registrada no piloto.md"
+SEM_APPROVED = "tasks.md sem `**Approved**: <AAAA-MM-DD> - user: \"<palavras do usuário>\"`"
+APPROVED_LINE_RE = re.compile(r"^\*\*Approved\*\*:.*\n", re.M)
+MANDATE_DATE_RE = re.compile(r"^(\*\*Mandato confirmado:\*\* \d{4}-\d{2}-\d{2}).*$", re.M)
+
+
+class PilotDecisaoCitadaTests(PilotoCase):
+    def setUp(self):
+        super().setUp()
+        gates = ROOT / "tests" / "fixtures" / "gates" / "large" / ".specs" / "features" / "export-csv"
+        for name in ("spec.md", "tasks.md"):
+            (self.fdir / name).write_text((gates / name).read_text(encoding="utf-8"), encoding="utf-8")
+
+    def register(self, upto):
+        for _ in range(upto):
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
+
+    def set_approval(self, *lines, target="tasks.md"):
+        path = self.fdir / target
+        text = APPROVED_LINE_RE.sub("", path.read_text(encoding="utf-8"))
+        path.write_text(text.replace("\n", "\n" + "\n".join(lines) + "\n", 1), encoding="utf-8")
+
+    def gate_errors(self):
+        import validate_tasks as vt
+        import validate_verification as vv
+
+        return (vt.evaluate(SLUG, self.repo, execute=True).errors, vv.evaluate(SLUG, self.repo).errors)
+
+    def pil(self, text):
+        return f'**Approved**: 2026-11-14 - piloto: "{text}"'
+
+    def assert_tasks_ok(self):
+        for errors in self.gate_errors():
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [], errors)
+
+    def test_gates_leem_piloto_pelo_piloto_py(self):
+        src = (ROOT / "scripts" / "gates" / "gates_common.py").read_text(encoding="utf-8")
+        for needle in ("Mandato confirmado", "\\*\\*Status:", "### D"):
+            self.assertNotIn(needle, src)
+        body = src[src.index("def approved("):src.index("def size_of")]
+        self.assertIn("pilot_approved(", body)
+        pilot = src[src.index("def pilot_approved("):src.index("def pilot_unregistered(")]
+        self.assertIn("active_confirmed_in(", pilot)
+        self.assertIn("registered_decisions_in(", pilot)
+
+    def test_aprovacao_com_decisao_registrada_passa_nos_dois_gates(self):
+        self.confirmed()
+        self.register(7)
+        self.assertIn("⚠️ revisar", self.path.read_text(encoding="utf-8").split("### D7 · ")[1])
+        self.set_approval(self.pil("D7 tasks cobrem a spec"))
+        self.assert_tasks_ok()
+
+    def test_decisao_inexistente_reprova_nos_dois_gates(self):
+        self.confirmed()
+        self.register(1)
+        self.set_approval(self.pil("D4 tasks cobrem a spec"))
+        for errors in self.gate_errors():
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [MSG_D4], errors)
+
+    def test_id_longo_nao_derruba_o_gate(self):
+        self.confirmed()
+        self.register(1)
+        self.assertEqual(gc.pilot_cited([self.pil("D" + "9" * 5000 + " x")]), [])
+        self.set_approval(self.pil("D" + "9" * 5000 + " x"))
+        self.assertFalse(gc.approved([self.pil("D" + "9" * 5000 + " x")], self.fdir, allow_pilot=True))
+        for errors in self.gate_errors():
+            self.assertEqual(len([e for e in errors if e.startswith(SEM_APPROVED)]), 1, errors)
+
+    def test_spec_recusa_piloto_com_decisao_registrada(self):
+        self.confirmed()
+        self.register(1)
+        self.set_approval(self.pil("D1 ok"))
+        self.set_approval(self.pil("D1 ok"), target="spec.md")
+        for errors in self.gate_errors():
+            self.assertEqual(len([e for e in errors if e.startswith("spec.md sem")]), 1, errors)
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [], errors)
+
+    def test_mandato_sem_user_nao_vale(self):
+        self.confirmed()
+        self.register(1)
+        text = self.path.read_text(encoding="utf-8")
+        self.path.write_text(MANDATE_DATE_RE.sub(r"\1", text), encoding="utf-8")
+        self.assertEqual(piloto.main(["ativo", SLUG, "--root", str(self.repo)]), 1)
+        self.assertFalse(gc.approved([self.pil("D1 ok")], self.fdir, allow_pilot=True))
+        self.set_approval(self.pil("D1 ok"))
+        for errors in self.gate_errors():
+            self.assertEqual(len([e for e in errors if e.startswith(SEM_APPROVED)]), 1, errors)
+
+    def test_sem_piloto_md_reprova_sem_excecao(self):
+        self.path.unlink()
+        self.set_approval(self.pil("D1 ok"))
+        tasks_msg = SEM_APPROVED + (": a execução só começa depois da aprovação; "
+                                    "nunca escreva uma aprovação que o usuário não deu")
+        for errors, expected in zip(self.gate_errors(), (tasks_msg, SEM_APPROVED)):
+            self.assertEqual([e for e in errors if e.startswith("tasks.md sem")], [expected], errors)
+            self.assertEqual([e for e in errors if "não está registrada" in e], [], errors)
+
+    def test_d07_cita_d7(self):
+        self.confirmed()
+        self.register(7)
+        self.assertTrue(gc.approved([self.pil("D07 ok")], self.fdir, allow_pilot=True))
+        self.set_approval(self.pil("D07 ok"))
+        self.assert_tasks_ok()
+
+    def test_uma_linha_valida_basta(self):
+        self.confirmed()
+        self.register(1)
+        self.set_approval(self.pil("D9 ok"), self.pil("D1 ok"))
+        self.assert_tasks_ok()
+
+    def test_registrar_exige_mandato_com_user(self):
+        self.confirmed()
+        text = self.path.read_text(encoding="utf-8")
+        self.path.write_text(MANDATE_DATE_RE.sub(r"\1", text), encoding="utf-8")
+        res = subprocess.run([sys.executable, str(ROOT / "scripts" / "piloto.py"), "registrar", SLUG, "--by", "data",
+                              "--question", "q", "--options", "a", "--decision", "a", "--reason", "r",
+                              "--root", str(self.repo)], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 1)
+        self.assertEqual(res.stdout.strip(), "ERRO: mandato não confirmado: o piloto ainda não decide nada")
+        self.assertNotIn("### D1 · ", self.path.read_text(encoding="utf-8"))
+
+    def test_decisao_registrada_longa_nao_derruba_o_gate(self):
+        self.confirmed()
+        with self.path.open("a", encoding="utf-8") as fh:
+            fh.write("\n### D" + "9" * 5000 + " · x\n")
+        self.set_approval(self.pil("D1 tasks cobrem a spec"))
+        msg = "tasks.md: a aprovação do piloto cita D1, que não está registrada no piloto.md"
+        for errors in self.gate_errors():
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [msg], errors)
+        self.assertEqual(piloto.registered_decisions_in(self.fdir), set())
+
+    def test_decisions_piloto_decisao_citada(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        m = re.search(r"^### SC-170.*\n(.*?)(?=^### |\Z)", text, re.M | re.S)
+        self.assertIsNotNone(m)
+        body = m.group(0)
+        needles = ["**Problema:**", "**Decisão:**", "**Motivo:**", "**Por que não é bug:**", MSG_D4, "- user:", "D07"]
+        needles += [f"`{n}`" for n in (
+            "test_gates_leem_piloto_pelo_piloto_py", "test_aprovacao_com_decisao_registrada_passa_nos_dois_gates",
+            "test_decisao_inexistente_reprova_nos_dois_gates", "test_spec_recusa_piloto_com_decisao_registrada",
+            "test_mandato_sem_user_nao_vale", "test_sem_piloto_md_reprova_sem_excecao", "test_d07_cita_d7",
+            "test_uma_linha_valida_basta")]
+        for needle in needles:
+            self.assertIn(needle, body)
 
 
 class PilotBannerTests(PilotoCase):

@@ -192,8 +192,10 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
     ids = [c.cid for c in checks]
 
     for art in [spec] + ([tasks] if tasks.exists() else []):
-        if not gc.approved(gc.read_lines(art), fdir, allow_pilot=art == tasks):
-            res.errors.append(f"{art.name} sem `**Approved**: <AAAA-MM-DD> - user: \"<palavras do usuário>\"`")
+        err = gc.approval_error(gc.read_lines(art), fdir, art.name, art == tasks,
+                                f"{art.name} sem `**Approved**: <AAAA-MM-DD> - user: \"<palavras do usuário>\"`")
+        if err:
+            res.errors.append(err)
 
     vpath, ppath = fdir / "verification.md", fdir / "proofs.md"
     vlines = gc.read_lines(vpath) if vpath.exists() else []
