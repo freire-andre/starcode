@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 3
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13
-- updated: 2026-11-13T23:41:40Z
+- signal: `weak_test` · features: 4
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231)
+- updated: 2026-11-14T14:18:22Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 2
@@ -184,6 +184,12 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: despacho-media-escopo
 - sources: verification.md: achado ID em minúscula; spec.md Edge Cases
 - updated: 2026-11-13T23:41:40Z
+
+### L30 - Limite o tamanho de todo número extraído por regex antes do int(), porque um ID de 5000 dígitos passava a regex e derrubava o gate com traceback em vez de recusa.
+- signal: `ac_gap` · features: 1
+- features: piloto-decisao-citada
+- sources: verification.md achado 1 (gates_common.py:200)
+- updated: 2026-11-14T14:18:22Z
 
 ## Quarantined
 
