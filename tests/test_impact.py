@@ -252,6 +252,16 @@ class TestImpact(ImpactCase):
         self.assertEqual(res["tests"], ["tests/test_cli.py"])
         self.assertEqual(res["chains"], {"tests/test_cli.py": ["scripts/tool.py", "tests/test_cli.py"]})
 
+    def test_referencia_textual_exige_fronteira(self) -> None:
+        write(self.repo, {"a.py": "A = 1\n", "tests/test_data.py": 'P = "fixtures/data.py"\n'})
+        res = impact.select(self.repo, changed=["a.py"])
+        self.assertEqual(res["verdict"], "run-all")
+        self.assertEqual(res["reason"], "nenhum teste alcança a.py")
+        write(self.repo, {"tests/test_cita.py": 'P = "scripts/a.py"\n'})
+        res = impact.select(self.repo, changed=["a.py"])
+        self.assertEqual(res["verdict"], "selected", res["reason"])
+        self.assertEqual(res["tests"], ["tests/test_cita.py"])
+
     def test_mudado_sem_teste_roda_tudo_mesmo_com_outros(self) -> None:
         write(self.repo, {"a.py": "A = 1\n", "tests/test_a.py": "import a\n",
                           "lonely.py": "L = 1\n", "zeta.py": "Z = 1\n"})
