@@ -75,10 +75,10 @@ Proof: run unit | test_decisions_q_familia_revendedor ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** none yet
 **Git mode:** none yet
-**Next:** Usuário autoriza o merge do PR #50
+**Next:** Feature encerrada (PR #50 merged)
 **Linear:** SC-171
 **Integration branch:** feature/q-familia-revendedor
 **Last integrated:** ac13e858e6897ceac4b20fcad079700e10cd811e

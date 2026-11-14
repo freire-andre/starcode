@@ -203,6 +203,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md achado C9 (test_model_info.py:178)
 - updated: 2026-11-14T17:43:47Z
 
+### L33 - Quando o teste extrai um valor de um título ou texto por regex, exija exatamente uma ocorrência e falhe com mensagem que nomeie o que faltou, porque a busca devolvia None (AttributeError) e aceitava duplicata.
+- signal: `weak_test` · features: 1
+- features: setup-grava-config
+- sources: verification.md:C2
+- updated: 2026-11-14T19:24:05Z
+
+### L34 - No teste de uma entrada do DECISIONS.md, asserte os quatro campos (Problema, Decisão, Motivo, Por que não é bug) dentro da entrada, porque o teste conferia só o cabeçalho e um termo e passava sem os campos.
+- signal: `weak_test` · features: 1
+- features: setup-grava-config
+- sources: verification.md:C4
+- updated: 2026-11-14T19:24:05Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
