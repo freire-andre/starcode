@@ -247,6 +247,39 @@ class RestoreTest(RestoreBase):
         self.assertEqual(git(self.root, "rev-parse", "refs/starcode/pre-restore/feat/T1").strip(), pre)
         self.assertFalse(self.plan_file().exists())
 
+    def test_restore_dry_run_apos_falha_parcial_regrava_pre_restore(self):
+        self.cli("take", SLUG, "T1")
+        self.write("src/a.txt", "a2\n")
+        self.write("src/c.txt", "c2\n")
+        (self.root / "src" / "b.txt").unlink()
+        real = snapshot._write_blob
+
+        def falha_em_b(root, snap, path):
+            if path == "src/b.txt":
+                raise OSError("disco cheio")
+            real(root, snap, path)
+
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        with mock.patch.object(snapshot, "_write_blob", falha_em_b):
+            self.assertEqual(self.cli("restore", SLUG, "T1", "--yes")[0], 1)
+        ref = "refs/starcode/pre-restore/feat/T1"
+        primeiro = git(self.root, "rev-parse", ref).strip()
+        self.write("src/novo.txt", "novo\n")
+        self.write("src/b.txt", "b editado\n")
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        self.assertFalse(json.loads(self.plan_file().read_text(encoding="utf-8"))["started"])
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 0)
+        segundo = git(self.root, "rev-parse", ref).strip()
+        self.assertIn("pre-restore " + segundo[:7], out)
+        self.assertNotEqual(segundo, primeiro)
+        self.assertEqual(git(self.root, "show", f"{ref}:src/novo.txt"), "novo\n")
+        self.assertEqual(git(self.root, "show", f"{ref}:src/b.txt"), "b editado\n")
+        parents = git(self.root, "rev-list", "--parents", "-n", "1", ref).split()
+        self.assertEqual(parents[1], git(self.root, "rev-parse", "HEAD").strip())
+        self.assertEqual(parents[2], primeiro)
+        self.assertEqual(len(parents), 3)
+
     def test_restore_falha_ao_apagar_plano_avisa(self):
         self.take_and_edit()
         self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
