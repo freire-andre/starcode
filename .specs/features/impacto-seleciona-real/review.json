@@ -1,24 +1,31 @@
 {
-  "round": 1,
-  "verdict": "COMMENT",
-  "summary": "TL;DR: COMMENT. Rodada 1 sobre main...feature/impacto-seleciona-real (335f557). O PR cumpre R1 a R4 e R7, e a escada passa. Um defeito real: a referência textual de R5 compara o basename como substring do texto do teste (scripts/impact.py:374), então um teste que cita data.py passa a alcançar a.py; um mudado sem teste deixa de forçar run-all e a seleção sai parcial, contra R6 (W1, should-fix, sonda em repositório temporário). dist/ é mecânico (build --check em dia, as 5 cópias iguais a scripts/impact.py); o scan de bypass não achou candidatos.",
-  "findings": [
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Rodada 2 sobre 1576f8c..91ac2c7, com releitura de main...HEAD. O W1 fechou em 103b26b: a referência textual casa o basename com fronteira ASCII (scripts/impact.py:374), e test_referencia_textual_exige_fronteira (tests/test_impact.py:255) cobre a sonda da rodada 1. Sondas em repositório temporário: a.py dentro de fixtures/data.py, a.pyc, a.py_old, x.a.py, my-a.py e a.py.bak dão run-all com o motivo de R6; scripts/a.py, 'a.py', a.py, no fim do texto, (a.py), scripts\\a.py e C:\\r\\a.py dão selected. re.escape segura basenames com +, ( ) e [ ]. Nenhum blocker novo. Duas observações residuais, abaixo do limiar de blocker e fora do que a rodada 2 aceita como achado novo: a fronteira é ASCII, então o.py casa dentro de ação.py (falso alcance, mesma classe do W1, só com letra não ASCII antes do nome); e o ponto na fronteira direita faz a prosa 'Ver a.py.' não citar a.py (só estreita, e o mudado sem outro teste cai em run-all). dist/ é mecânico (build --check em dia, as 5 cópias iguais a scripts/impact.py).",
+  "findings": [],
+  "carryover": {
+    "W1": "resolved em 103b26b (scripts/impact.py:374, tests/test_impact.py:255, DECISIONS.md:1045) e 91ac2c7 (dist)"
+  },
+  "residuals": [
     {
-      "id": "W1",
-      "severity": "should-fix",
-      "path": "scripts/impact.py",
-      "line": 374,
-      "body": "🟠 A referência textual testa `posixpath.basename(c) in text`, substring sem fronteira (scripts/impact.py:374). Sonda em repositório temporário: `a.py` sem teste nenhum e `tests/test_data.py` com a string `\"fixtures/data.py\"`; `select(changed=[\"a.py\"])` dá `selected` com a cadeia `a.py <- tests/test_data.py`, em vez de `run-all: nenhum teste alcança a.py`. O mesmo vale para `mod.py` dentro de `mymod.py`. Fere R6 e o sucesso da spec (nenhum mudado sem teste real passa sem rodar tudo); a nota \"colisão de basename só alarga a seleção\" da spec não vale com R6, porque o falso alcance tira o mudado de `lonely`. Correção: casar o basename com fronteira, por exemplo `re.search(r\"(?<![\\w.-])\" + re.escape(nome) + r\"(?![\\w.-])\", text)`, e um teste com `data.py` citado e `a.py` mudado.",
-      "evidence": "scripts/impact.py:374"
+      "kind": "observação, não achado (rodada 2 só aceita blocker novo)",
+      "where": "scripts/impact.py:374",
+      "body": "A classe da fronteira é [A-Za-z0-9_.-], só ASCII. Sonda: o.py mudado sem teste e tests/test_x.py com \"ação.py\" dão selected com a cadeia o.py <- tests/test_x.py, em vez de run-all. Falso alcance da mesma classe do W1, restrito a nome precedido de letra não ASCII. Trocar A-Za-z0-9_ por \\w (Unicode no re do Python) fecha o caso; cabe numa issue de acompanhamento."
+    },
+    {
+      "kind": "observação, não achado (rodada 2 só aceita blocker novo)",
+      "where": "scripts/impact.py:374",
+      "body": "O ponto na fronteira direita faz a.py no fim de frase ('Ver a.py.') e a.py.bak não citarem a.py. Sonda: a.py com tests/test_a.py (import) e tests/test_doc.py só com '\"\"\"Ver a.py.\"\"\"' dão selected só com tests/test_a.py. Estreita a seleção de R5 em prosa, mas não fere R6: sem outro teste, o mudado cai em run-all."
     }
   ],
-  "carryover": {},
   "research": [],
   "ladder": [
     {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
-    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
-    {"command": "python scripts/check_decisions.py", "result": "OK"},
-    {"command": "python -m unittest discover -s tests", "result": "Ran 882 tests, OK (skipped=1)"},
-    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"}
+    {"command": "cmp scripts/impact.py dist/{antigravity,claude,codex,opencode,orca}/scripts/impact.py", "result": "as 5 cópias iguais"},
+    {"command": "python scripts/check_decisions.py", "result": "PENDENTE"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "PENDENTE"},
+    {"command": "python -m unittest discover -s tests", "result": "PENDENTE"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"},
+    {"command": "sondas impact.select em repositórios temporários (scratchpad/w2/probe.py, p2.py, p3.py)", "result": "23 + 4 + 1 casos; fronteira conforme o esperado, exceto os 2 residuais"}
   ]
 }
