@@ -75,13 +75,13 @@ Proof: run unit | test_decisions_q_familia_revendedor ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** none yet
 **Git mode:** none yet
-**Next:** LaForge implementa o T1
+**Next:** Q verifica a feature
 **Linear:** SC-171
 **Integration branch:** feature/q-familia-revendedor
-**Last integrated:** 54dc548ffb0739da9a4b7037f7eb039267de7952
+**Last integrated:** ac13e858e6897ceac4b20fcad079700e10cd811e
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
