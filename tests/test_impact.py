@@ -265,7 +265,7 @@ class TestImpact(ImpactCase):
         entry = text.split("### SC-176:", 1)[1].split("\n### ", 1)[0]
         for campo in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
             self.assertIn(campo, entry)
-        for nome in (".specs/", "test_*.py", "F12"):
+        for nome in (".specs/", "test_*.py", "F12", "R15"):
             self.assertIn(nome, entry)
 
 
