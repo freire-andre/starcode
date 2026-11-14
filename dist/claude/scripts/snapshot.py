@@ -264,8 +264,13 @@ def _save_plan(path: Path, data: dict) -> None:
 def _write_pre_restore(root, slug: str, ticket: str) -> str:
     """Grava a árvore atual (índice temporário, pai HEAD) em refs/starcode/pre-restore/<slug>/<ticket>."""
     tree = _current_tree(root)
-    commit = run_git(root, "commit-tree", tree, "-p", "HEAD", "-m", f"starcode pre-restore {slug}/{ticket}").strip()
-    run_git(root, "update-ref", pre_ref_name(slug, ticket), commit)
+    ref = pre_ref_name(slug, ticket)
+    parents = ["-p", "HEAD"]
+    previous = _existing(root, ref)
+    if previous:  # mantém o pre-restore anterior alcançável pelo mesmo ref (segundo pai)
+        parents += ["-p", previous]
+    commit = run_git(root, "commit-tree", tree, *parents, "-m", f"starcode pre-restore {slug}/{ticket}").strip()
+    run_git(root, "update-ref", ref, commit)
     return commit
 
 
@@ -318,7 +323,9 @@ def cmd_restore(args) -> int:
 
     if not args.yes:
         old = _load_plan(plan_file)
-        started = bool(old and old.get("snapshot") == snap and old.get("started"))
+        old_lines = {tuple(r) for r in old["lines"] if isinstance(r, list) and len(r) == 2} if old else set()
+        # só herda "iniciado" se o plano novo cabe no antigo; trabalho novo pede outro pre-restore
+        started = bool(old and old.get("snapshot") == snap and old.get("started") and set(plan) <= old_lines)
         try:
             _save_plan(plan_file, {"slug": args.slug, "ticket": args.ticket, "snapshot": snap,
                                    "lines": [list(r) for r in plan], "started": started})
