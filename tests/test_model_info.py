@@ -114,6 +114,83 @@ class DispatchFamilyTests(CatalogCase):
         self.assertEqual(dispatch.family("opencode:zai/glm-5.3"), "unknown")
 
 
+RESELLERS = (("github-copilot", "claude-sonnet-5-5"), ("azure", "claude-sonnet-5-5"),
+             ("google-vertex-anthropic", "claude-sonnet-5-5"), ("opencode", "claude-sonnet-5-5"),
+             ("amazon-bedrock", "anthropic.claude-sonnet-5-5"))
+
+
+def _entry(mid: str) -> dict:
+    return {"id": mid, "name": mid, "tool_call": True, "reasoning": True, "limit": {"context": 200000},
+            "cost": {"input": 3, "output": 15}}
+
+
+class ResellerFamilyTests(CatalogCase):
+    def reseller_catalog(self) -> Path:
+        cat = {p: {"models": {m: _entry(m)}} for p, m in RESELLERS}
+        path = self.tmp / "resellers.json"
+        path.write_text(json.dumps(cat), encoding="utf-8")
+        os.environ["STARCODE_MODELS_DEV_FILE"] = str(path)
+        return path
+
+    def test_revendedor_claude_vira_anthropic(self):
+        for p in ("github-copilot", "azure", "google-vertex-anthropic", "opencode"):
+            self.assertEqual(mi.vendor(p, {}, "claude-sonnet-5-5"), "anthropic", p)
+            self.assertEqual(mi.vendor(p, {}, f"{p}/claude-sonnet-5-5"), "anthropic", p)
+
+    def test_bedrock_prefixo_do_fornecedor(self):
+        self.assertEqual(mi.vendor("amazon-bedrock", {}, "anthropic.claude-sonnet-5-5"), "anthropic")
+        self.assertEqual(mi.vendor("amazon-bedrock", {}, "amazon-bedrock/anthropic.claude-sonnet-5-5"), "anthropic")
+
+    def test_revendedor_modelo_desconhecido_vira_unknown(self):
+        for p in ("github-copilot", "azure", "opencode"):
+            self.assertEqual(mi.vendor(p, {}, "acme-x"), "unknown", p)
+
+    def test_fornecedor_e_id_canonico_mantem_familia(self):
+        self.assertEqual(mi.info(self.catalog, "zai/glm-notools")["family"], "zhipu")
+        self.assertEqual(mi.info(self.catalog, "opencode/muse-spark-1.2")["family"], "meta")
+        self.assertEqual(mi.info(self.catalog, "anthropic/claude-opus-5-5")["family"], "anthropic")
+
+    def test_compare_revendedor_claude_e_same(self):
+        self.reseller_catalog()
+        for p, m in RESELLERS:
+            self.assertEqual(dispatch.compare(f"opencode:{p}/{m}", "claude:claude-sonnet-5-5"), "same", p)
+
+    def test_q_cli_recusa_revendedor_claude(self):
+        self.reseller_catalog()
+        pick = dispatch.q_cli("claude:claude-sonnet-5-5", "opencode:github-copilot/claude-sonnet-5-5",
+                              which=lambda b: "/x/" + b)
+        self.assertEqual(pick, "codex")
+
+    def test_prefixos_de_modelo_por_revendedor(self):
+        table = {"gpt-6-luna": "openai", "o3-mini": "openai", "codex-mini": "openai", "gemini-3": "google",
+                 "deepseek-v4": "deepseek", "glm-5.3": "zhipu", "kimi-k3": "moonshotai", "grok-5": "xai",
+                 "mistral-large": "mistral", "codestral-2": "mistral", "devstral-2": "mistral",
+                 "llama-5": "meta", "claude-sonnet-5-5": "anthropic"}
+        for model, want in table.items():
+            self.assertEqual(mi.vendor("azure", {}, model), want, model)
+            card = mi.info({"azure": {"models": {model: _entry(model)}}}, f"azure/{model}")
+            self.assertEqual(card["family"], want, model)
+
+    def test_sem_catalogo_revendedor_unknown(self):
+        os.environ["STARCODE_MODELS_DEV_FILE"] = str(self.tmp / "nada.json")
+        self.assertEqual(dispatch.family("opencode:github-copilot/claude-sonnet-5-5"), "unknown")
+
+    def test_decisions_q_familia_revendedor(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text.partition("### SC-171:")[2].partition("\n### ")[0]
+        self.assertTrue(entry, "falta a entrada ### SC-171:")
+        for word in ("github-copilot", "amazon-bedrock", "unknown", "Por que não é bug", "**Problema:**",
+                     "**Decisão:**", "**Motivo:**"):
+            self.assertIn(word, entry)
+        why = entry.partition("**Por que não é bug:**")[2]
+        for name in ("test_revendedor_claude_vira_anthropic", "test_bedrock_prefixo_do_fornecedor",
+                     "test_revendedor_modelo_desconhecido_vira_unknown",
+                     "test_fornecedor_e_id_canonico_mantem_familia", "test_compare_revendedor_claude_e_same",
+                     "test_q_cli_recusa_revendedor_claude", "test_prefixos_de_modelo_por_revendedor",
+                     "test_sem_catalogo_revendedor_unknown"):
+            self.assertIn(name, why)
+
+
 class SuggestCatalogTests(CatalogCase):
     def test_tier_from_catalog_places_models_by_role(self):
         res = sh.suggest(sc.load_crew(), ["opencode"], {"opencode": [("opencode/muse-spark-1.2", None),

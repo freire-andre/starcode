@@ -46,6 +46,14 @@ GROUP_LABEL = {"pesado": "Raciocínio pesado (Picard, Spock, McCoy, Worf)",
                "repetitivo": "Repetitivo e rápido (Uhura, Guinan)",
                "q": "Q (verificador de outra família)"}
 MIN_CONTEXT = 200_000
+# Providers that are the vendor of their own models (the family is the provider); any other provider resells.
+VENDOR_PROVIDERS = frozenset({"anthropic", "openai", "google", "deepseek", "zai", "zhipuai", "moonshotai",
+                              "mistral", "xai", "meta"})
+# Model-name prefix -> family, for a reseller entry without canonical_model_id.
+NAME_PREFIX_FAMILIES = (("claude", "anthropic"), ("gpt", "openai"), ("o1", "openai"), ("o3", "openai"),
+                        ("o4", "openai"), ("codex", "openai"), ("gemini", "google"), ("deepseek", "deepseek"),
+                        ("glm", "zhipu"), ("kimi", "moonshotai"), ("grok", "xai"), ("mistral", "mistral"),
+                        ("codestral", "mistral"), ("devstral", "mistral"), ("llama", "meta"))
 
 
 # --- catalog --------------------------------------------------------------------------------
@@ -128,10 +136,25 @@ def vendor(provider: str, entry: dict, model_id: str = "") -> str:
         v = model_id.split("/")[1]
     elif provider == "openrouter" and "/" in str(entry.get("id", "")):
         v = str(entry["id"]).lstrip("~").split("/", 1)[0]
-    else:
+    elif provider.lower() in VENDOR_PROVIDERS:
         v = provider
+    else:
+        return _reseller_family(model_id or str(entry.get("id", "")))
     v = v.lower()
     return VENDOR_ALIASES.get(v, v)
+
+
+def _reseller_family(model_id: str) -> str:
+    """Family of a reseller's model without canonical id: vendor before the first `.` of the name
+    (`anthropic.claude-...`), else the name prefix table; 'unknown' when neither recognises it."""
+    name = model_id.rsplit("/", 1)[-1].strip().lower()
+    head = name.partition(".")[0] if "." in name else ""
+    if head in VENDOR_PROVIDERS:
+        return VENDOR_ALIASES.get(head, head)
+    for prefix, fam in NAME_PREFIX_FAMILIES:
+        if name.startswith(prefix):
+            return fam
+    return "unknown"
 
 
 def tier(entry: dict, model_id: str = "") -> str:
