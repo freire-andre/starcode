@@ -72,12 +72,11 @@ def changed_from_diff(root, diff: str) -> list[str]:
 
 
 def is_test_file(path: str) -> bool:
-    """R15: padrões de teste de Python e TS/JS (a T4 usa a mesma função)."""
+    """Teste real: Python `test_*.py` ou `*_test.py` (SC-176 muda o F12 R15); o resto de tests/ é apoio. TS/JS como antes."""
     parts = path.split("/")
     name = parts[-1]
     if name.endswith(".py"):
-        return (name.startswith("test_") or name.endswith("_test.py")
-                or "tests" in parts[:-1] or "test" in parts[:-1])
+        return name.startswith("test_") or name.endswith("_test.py")
     if name.endswith(TS_JS_EXTS):
         return re.search(r"\.(test|spec)\.[^.]+$", name) is not None or "__tests__" in parts[:-1]
     return False
@@ -343,6 +342,9 @@ def select(root, changed=None, diff=None) -> dict:
         changed_list = sorted({_relative(root, p) for p in (changed or [])})
     if not changed_list:
         return run_all("nenhuma mudança informada", [])
+    changed_list = [c for c in changed_list if c != ".specs" and not c.startswith(".specs/")]
+    if not changed_list:
+        return run_all("nenhuma mudança fora de .specs/", [])
     conftests = [c for c in changed_list if posixpath.basename(c) == "conftest.py"]
     if conftests:  # o pytest carrega as fixtures sem import: o grafo não as vê
         return run_all("conftest.py muda fixtures sem import: " + ", ".join(conftests), changed_list)
@@ -361,17 +363,33 @@ def select(root, changed=None, diff=None) -> dict:
     for src in sorted(graph):
         for dst in sorted(graph[src]):
             reverse.setdefault(dst, []).append(src)
-    parent: dict[str, str | None] = {c: None for c in changed_list}
-    queue = deque(changed_list)
-    while queue:
-        cur = queue.popleft()
-        for dep in reverse.get(cur, ()):
-            if dep not in parent:
-                parent[dep] = cur
-                queue.append(dep)
+    # SC-176 R5: teste real que cita o basename de um mudado também o alcança, sem import
+    real_tests = [f for f in files if is_test_file(f) and posixpath.splitext(f)[1] in RESOLVERS]
+    for t in real_tests:
+        try:
+            text = (root / t).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for c in changed_list:
+            if c != t and re.search(r"(?<![A-Za-z0-9_.-])" + re.escape(posixpath.basename(c)) + r"(?![A-Za-z0-9_.-])", text):
+                reverse.setdefault(c, []).append(t)
+
+    def reach(starts: list[str]) -> dict[str, str | None]:
+        seen: dict[str, str | None] = {c: None for c in starts}
+        queue = deque(starts)
+        while queue:
+            cur = queue.popleft()
+            for dep in reverse.get(cur, ()):
+                if dep not in seen:
+                    seen[dep] = cur
+                    queue.append(dep)
+        return seen
+
+    lonely = [c for c in changed_list if not any(is_test_file(f) for f in reach([c]))]
+    if lonely:  # R6: um mudado sem teste real basta para rodar tudo
+        return run_all("nenhum teste alcança " + ", ".join(lonely), changed_list)
+    parent = reach(changed_list)
     tests = sorted(f for f in parent if is_test_file(f))
-    if not tests:
-        return run_all("nenhum teste alcança " + ", ".join(changed_list), changed_list)
     chains = {}
     for t in tests:
         chain, cur = [], t

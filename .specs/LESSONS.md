@@ -233,6 +233,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:achado 3
 - updated: 2026-11-14T20:27:54Z
 
+### L38 - Quando o requisito fixa uma mensagem ou motivo, compare o texto integral com assertEqual, porque assertIn de um trecho aceita caminho ou texto errado.
+- signal: `weak_test` · features: 1
+- features: impacto-seleciona-real
+- sources: verification.md:C7
+- updated: 2026-11-14T22:46:09Z
+
+### L39 - No teste de uma entrada de registro, asserte cada termo que o requisito manda citar, porque o teste conferia só parte deles e passava se um sumisse.
+- signal: `weak_test` · features: 1
+- features: impacto-seleciona-real
+- sources: verification.md:C8
+- updated: 2026-11-14T22:46:09Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.

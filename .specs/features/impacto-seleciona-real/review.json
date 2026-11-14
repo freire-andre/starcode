@@ -1,0 +1,31 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Rodada 2 sobre 1576f8c..91ac2c7, com releitura de main...HEAD. O W1 fechou em 103b26b: a referência textual casa o basename com fronteira ASCII (scripts/impact.py:374), e test_referencia_textual_exige_fronteira (tests/test_impact.py:255) cobre a sonda da rodada 1. Sondas em repositório temporário: a.py dentro de fixtures/data.py, a.pyc, a.py_old, x.a.py, my-a.py e a.py.bak dão run-all com o motivo de R6; scripts/a.py, 'a.py', a.py, no fim do texto, (a.py), scripts\\a.py e C:\\r\\a.py dão selected. re.escape segura basenames com +, ( ) e [ ]. Nenhum blocker novo. Duas observações residuais, abaixo do limiar de blocker e fora do que a rodada 2 aceita como achado novo: a fronteira é ASCII, então o.py casa dentro de ação.py (falso alcance, mesma classe do W1, só com letra não ASCII antes do nome); e o ponto na fronteira direita faz a prosa 'Ver a.py.' não citar a.py (só estreita, e o mudado sem outro teste cai em run-all). dist/ é mecânico (build --check em dia, as 5 cópias iguais a scripts/impact.py).",
+  "findings": [],
+  "carryover": {
+    "W1": "resolved em 103b26b (scripts/impact.py:374, tests/test_impact.py:255, DECISIONS.md:1045) e 91ac2c7 (dist)"
+  },
+  "residuals": [
+    {
+      "kind": "observação, não achado (rodada 2 só aceita blocker novo)",
+      "where": "scripts/impact.py:374",
+      "body": "A classe da fronteira é [A-Za-z0-9_.-], só ASCII. Sonda: o.py mudado sem teste e tests/test_x.py com \"ação.py\" dão selected com a cadeia o.py <- tests/test_x.py, em vez de run-all. Falso alcance da mesma classe do W1, restrito a nome precedido de letra não ASCII. Trocar A-Za-z0-9_ por \\w (Unicode no re do Python) fecha o caso; cabe numa issue de acompanhamento."
+    },
+    {
+      "kind": "observação, não achado (rodada 2 só aceita blocker novo)",
+      "where": "scripts/impact.py:374",
+      "body": "O ponto na fronteira direita faz a.py no fim de frase ('Ver a.py.') e a.py.bak não citarem a.py. Sonda: a.py com tests/test_a.py (import) e tests/test_doc.py só com '\"\"\"Ver a.py.\"\"\"' dão selected só com tests/test_a.py. Estreita a seleção de R5 em prosa, mas não fere R6: sem outro teste, o mudado cai em run-all."
+    }
+  ],
+  "research": [],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "cmp scripts/impact.py dist/{antigravity,claude,codex,opencode,orca}/scripts/impact.py", "result": "as 5 cópias iguais"},
+    {"command": "python scripts/check_decisions.py", "result": "OK (DECISIONS.md atualizado no mesmo commit 103b26b)"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
+    {"command": "python -m unittest discover -s tests", "result": "OK (skipped=1)"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"},
+    {"command": "sondas impact.select em repositórios temporários (scratchpad/w2/probe.py, p2.py, p3.py)", "result": "23 + 4 + 1 casos; fronteira conforme o esperado, exceto os 2 residuais"}
+  ]
+}
