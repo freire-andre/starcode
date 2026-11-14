@@ -22,8 +22,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C7 aceita qualquer motivo que contenha “fora do grafo”, mesmo com caminho ou texto incorreto. | `tests/test_impact.py:212` | Asserir o motivo integral `fora do grafo: README.md`. | |
-| O teste de R7 não detecta a remoção da referência ao padrão F12 R15. | `tests/test_impact.py:269` | Asserir explicitamente `R15` dentro da entrada SC-176. | |
+| C7 aceita qualquer motivo que contenha “fora do grafo”, mesmo com caminho ou texto incorreto. | `tests/test_impact.py:212` | Asserir o motivo integral `fora do grafo: README.md`. | 3e3824f |
+| O teste de R7 não detecta a remoção da referência ao padrão F12 R15. | `tests/test_impact.py:269` | Asserir explicitamente `R15` dentro da entrada SC-176. | 6806606 |
 
 ## Limits
 
