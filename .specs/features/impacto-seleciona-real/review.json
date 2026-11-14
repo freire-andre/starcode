@@ -1,0 +1,24 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT. Rodada 1 sobre main...feature/impacto-seleciona-real (335f557). O PR cumpre R1 a R4 e R7, e a escada passa. Um defeito real: a referência textual de R5 compara o basename como substring do texto do teste (scripts/impact.py:374), então um teste que cita data.py passa a alcançar a.py; um mudado sem teste deixa de forçar run-all e a seleção sai parcial, contra R6 (W1, should-fix, sonda em repositório temporário). dist/ é mecânico (build --check em dia, as 5 cópias iguais a scripts/impact.py); o scan de bypass não achou candidatos.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "should-fix",
+      "path": "scripts/impact.py",
+      "line": 374,
+      "body": "🟠 A referência textual testa `posixpath.basename(c) in text`, substring sem fronteira (scripts/impact.py:374). Sonda em repositório temporário: `a.py` sem teste nenhum e `tests/test_data.py` com a string `\"fixtures/data.py\"`; `select(changed=[\"a.py\"])` dá `selected` com a cadeia `a.py <- tests/test_data.py`, em vez de `run-all: nenhum teste alcança a.py`. O mesmo vale para `mod.py` dentro de `mymod.py`. Fere R6 e o sucesso da spec (nenhum mudado sem teste real passa sem rodar tudo); a nota \"colisão de basename só alarga a seleção\" da spec não vale com R6, porque o falso alcance tira o mudado de `lonely`. Correção: casar o basename com fronteira, por exemplo `re.search(r\"(?<![\\w.-])\" + re.escape(nome) + r\"(?![\\w.-])\", text)`, e um teste com `data.py` citado e `a.py` mudado.",
+      "evidence": "scripts/impact.py:374"
+    }
+  ],
+  "carryover": {},
+  "research": [],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
+    {"command": "python scripts/check_decisions.py", "result": "OK"},
+    {"command": "python -m unittest discover -s tests", "result": "Ran 882 tests, OK (skipped=1)"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"}
+  ]
+}
