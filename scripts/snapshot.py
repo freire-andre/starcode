@@ -375,8 +375,9 @@ def cmd_restore(args) -> int:
         done.append((action, path))
     try:
         plan_file.unlink()
-    except OSError:
-        pass
+    except OSError as exc:
+        print(f"restaurado {name}, mas o plano não foi apagado: {exc}; rode restore --yes de novo para limpar")
+        return 1
     v = sum(1 for a, _ in done if a == "voltar")
     print(f"restaurado {name}: {v} voltaram, {len(done) - v} removidos")
     for ln in outside_lines():

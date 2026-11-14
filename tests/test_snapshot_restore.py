@@ -247,6 +247,30 @@ class RestoreTest(RestoreBase):
         self.assertEqual(git(self.root, "rev-parse", "refs/starcode/pre-restore/feat/T1").strip(), pre)
         self.assertFalse(self.plan_file().exists())
 
+    def test_restore_falha_ao_apagar_plano_avisa(self):
+        self.take_and_edit()
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        real = Path.unlink
+
+        def unlink_falha(self_, *a, **k):
+            if self_.name.startswith("restore-"):
+                raise OSError("arquivo em uso")
+            return real(self_, *a, **k)
+
+        with mock.patch.object(Path, "unlink", unlink_falha):
+            code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 1)
+        self.assertIn("restaurado feat/T1, mas o plano não foi apagado: arquivo em uso; "
+                      "rode restore --yes de novo para limpar\n", out)
+        self.assertTrue(self.plan_file().exists())
+        self.assertEqual(self.read("src/a.txt"), "a\n")
+        pre = git(self.root, "rev-parse", "refs/starcode/pre-restore/feat/T1").strip()
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 0)
+        self.assertNotIn("pre-restore", out)
+        self.assertFalse(self.plan_file().exists())
+        self.assertEqual(git(self.root, "rev-parse", "refs/starcode/pre-restore/feat/T1").strip(), pre)
+
     def test_restore_dry_run_grava_plano(self):
         self.take_and_edit()
         idx = (self.root / ".git" / "index").read_bytes()
