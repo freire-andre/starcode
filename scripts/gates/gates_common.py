@@ -181,7 +181,7 @@ def field_value(lines: list[str], name: str) -> str | None:
 
 
 PILOT_APPROVED_RE = re.compile(
-    r"^\**\s*Approved\s*\**\s*:\s*\**\s*\d{4}-\d{2}-\d{2}\b.*\bpiloto\s*:\s*[\"“]D(\d+)[^\"”]*[\"”]", re.IGNORECASE)
+    r"^\**\s*Approved\s*\**\s*:\s*\**\s*\d{4}-\d{2}-\d{2}\b.*\bpiloto\s*:\s*[\"“]D(\d{1,6})(?!\d)[^\"”]*[\"”]", re.IGNORECASE)
 
 
 def _piloto():
