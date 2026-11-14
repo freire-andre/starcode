@@ -489,6 +489,36 @@
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
       "updated": "2026-11-14T17:43:47Z"
+    },
+    {
+      "id": "L33",
+      "text": "Quando o teste extrai um valor de um título ou texto por regex, exija exatamente uma ocorrência e falhe com mensagem que nomeie o que faltou, porque a busca devolvia None (AttributeError) e aceitava duplicata.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "setup-grava-config"
+      ],
+      "sources": [
+        "verification.md:C2"
+      ],
+      "scope": "",
+      "created": "2026-11-14T19:24:05Z",
+      "updated": "2026-11-14T19:24:05Z"
+    },
+    {
+      "id": "L34",
+      "text": "No teste de uma entrada do DECISIONS.md, asserte os quatro campos (Problema, Decisão, Motivo, Por que não é bug) dentro da entrada, porque o teste conferia só o cabeçalho e um termo e passava sem os campos.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "setup-grava-config"
+      ],
+      "sources": [
+        "verification.md:C4"
+      ],
+      "scope": "",
+      "created": "2026-11-14T19:24:05Z",
+      "updated": "2026-11-14T19:24:05Z"
     }
   ]
 }
