@@ -78,15 +78,15 @@ Proof: run unit | test_decisions_impacto_seleciona_real ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-176)
+**Next:** Q verifica a feature
 **Linear:** SC-176
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/impacto-seleciona-real
+**Last integrated:** 72d7301
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec e issue: "Sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-14: T1: .specs fora, teste real test_*/_test, referência textual, run-all por mudado sem teste; 882 OK; commit 7c10436
 **Breaker:** closed
