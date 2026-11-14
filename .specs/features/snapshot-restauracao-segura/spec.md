@@ -97,15 +97,15 @@ Proof: run unit | test_decisions_snapshot_restauracao_segura ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Usuário decide push+merge e a regressão leve
+**Next:** Feature encerrada (PR #52 merged)
 **Linear:** SC-174
 **Integration branch:** feature/snapshot-restauracao-segura
 **Last integrated:** a2d9d3e
 **Dispatched:** none
-**Settled:** 2026-11-14: aprovação da spec e issue: "Sim"; 2026-11-14: PR #52 aberto
+**Settled:** 2026-11-14: aprovação da spec e issue: "Sim"; 2026-11-14: PR #52 aberto; 2026-11-14: merge: "Push + merge após CI"; regressão leve: issue de acompanhamento; 2026-11-14: PR #52 merged: 58c41f8; 2026-11-14: SC-174 em Done: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-14: T1: take mantém, plano gravado, pre-restore, recusa ausente fora, drop amplo; 872 OK; commit a525e64; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 3 achados (drop com plano inválido; falha ao apagar plano ignorada; C4 por trecho); 872 OK; 2026-11-14: T1-fix: 481c246 (drop), 22b35a0 (plano), 0219e0a (C4), 5b26c06 (dist); 2026-11-14: Guinan: L35-L37; retro com 4 sugestões; 2026-11-14: Worf r1: COMMENT; W1 should-fix (dry-run sobre plano iniciado não regrava pre-restore, snapshot.py:321); W2 nit (Verdict FAIL histórico, mantido); 2026-11-14: W1-fix: e04581e, dist 8790372; 2026-11-14: Worf r2: COMMENT; W1 parcial (edição de caminho já no plano após falha parcial não é protegida, snapshot.py:326-328); W2 abandonado; 2026-11-14: W1b-fix: eb24a8e, dist df6aa19; 2026-11-14: Worf r3: APPROVE; W1 fechado (eb24a8e); regressão leve sem perda: dry-run com started herdado perde tree_after (snapshot.py:337-338) e o --yes seguinte recusa 'árvore mudou' sem edição
 **Breaker:** closed
