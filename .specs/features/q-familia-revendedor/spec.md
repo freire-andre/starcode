@@ -78,7 +78,7 @@ Proof: run unit | test_decisions_q_familia_revendedor ... ok
 **Phase:** review
 **Size:** none yet
 **Git mode:** none yet
-**Next:** LaForge corrige os achados do Q
+**Next:** Gates de provas e done após a correção
 **Linear:** SC-171
 **Integration branch:** feature/q-familia-revendedor
 **Last integrated:** ac13e858e6897ceac4b20fcad079700e10cd811e

@@ -23,8 +23,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C7 deixa sem prova dois prefixos exigidos por R7 (`o1` e `o4`), apesar de o código os listar. | `tests/test_model_info.py:164` | Inclua pelo menos um identificador iniciado por `o1` e outro por `o4` na tabela parametrizada e exija a família `openai`. | |
-| C9 não prova a parte substantiva de R9: pode passar mesmo se o texto da decisão deixar de descrever um ou mais requisitos R1–R8. | `tests/test_model_info.py:178` | Faça a asserção verificar o conteúdo da decisão que cobre os requisitos, além dos títulos e nomes dos testes. | |
+| C7 deixa sem prova dois prefixos exigidos por R7 (`o1` e `o4`), apesar de o código os listar. | `tests/test_model_info.py:164` | Inclua pelo menos um identificador iniciado por `o1` e outro por `o4` na tabela parametrizada e exija a família `openai`. | fa73232 |
+| C9 não prova a parte substantiva de R9: pode passar mesmo se o texto da decisão deixar de descrever um ou mais requisitos R1–R8. | `tests/test_model_info.py:178` | Faça a asserção verificar o conteúdo da decisão que cobre os requisitos, além dos títulos e nomes dos testes. | fa73232 |
 
 ## Limits
 
