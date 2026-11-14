@@ -56,12 +56,12 @@ Proof: run unit | test_decisions_setup_grava_config ... ok
 **Phase:** review
 **Size:** PEQUENA
 **Git mode:** 3
-**Next:** Q verifica a feature
+**Next:** LaForge corrige os 2 achados do Q
 **Linear:** SC-172
 **Integration branch:** feature/setup-grava-config
 **Last integrated:** 6334872
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec: "SIM"
 **Attempts:** none
-**Reports:** 2026-11-14: T1: setup cita (steps 1–6), 4 testes em test_config_skill.py, SC-172 no DECISIONS.md, dist regerado; commit 648cd43
+**Reports:** 2026-11-14: T1: setup cita (steps 1–6), 4 testes em test_config_skill.py, SC-172 no DECISIONS.md, dist regerado; commit 648cd43; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 2 achados (C2 sem Write/duplicado; C4 sem campos de R4); suíte 862 OK
 **Breaker:** closed
