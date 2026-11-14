@@ -26,9 +26,9 @@ A rodada 2 só aceita blocker novo, e nenhuma das duas chega a isso. Ficam regis
 ## Escada determinística
 - `python tools/build.py --check`: OK, dist/ em dia.
 - `cmp scripts/impact.py dist/*/scripts/impact.py`: as 5 cópias são iguais.
-- `python scripts/check_decisions.py`: PENDENTE.
-- `claude plugin validate dist/claude --strict`: PENDENTE.
-- `python -m unittest discover -s tests`: PENDENTE.
+- `python scripts/check_decisions.py`: OK (DECISIONS.md atualizado no mesmo commit 103b26b).
+- `claude plugin validate dist/claude --strict`: Validation passed.
+- `python -m unittest discover -s tests`: OK (skipped=1).
 - `git diff main...HEAD | python scripts/review/scan_bypasses.py`: 0 candidatos.
 - Sondas `impact.select` em repositórios temporários: 28 casos. A fronteira se comporta como esperado, exceto nos 2 residuais.
 

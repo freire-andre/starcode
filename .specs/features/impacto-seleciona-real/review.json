@@ -22,9 +22,9 @@
   "ladder": [
     {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
     {"command": "cmp scripts/impact.py dist/{antigravity,claude,codex,opencode,orca}/scripts/impact.py", "result": "as 5 cópias iguais"},
-    {"command": "python scripts/check_decisions.py", "result": "PENDENTE"},
-    {"command": "claude plugin validate dist/claude --strict", "result": "PENDENTE"},
-    {"command": "python -m unittest discover -s tests", "result": "PENDENTE"},
+    {"command": "python scripts/check_decisions.py", "result": "OK (DECISIONS.md atualizado no mesmo commit 103b26b)"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
+    {"command": "python -m unittest discover -s tests", "result": "OK (skipped=1)"},
     {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"},
     {"command": "sondas impact.select em repositórios temporários (scratchpad/w2/probe.py, p2.py, p3.py)", "result": "23 + 4 + 1 casos; fronteira conforme o esperado, exceto os 2 residuais"}
   ]
