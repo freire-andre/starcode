@@ -1,6 +1,6 @@
 # impacto-seleciona-real proofs
 
-**HEAD**: 72d7301
+**HEAD**: ebad39a
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 11 pass, 0 fail
@@ -35,7 +35,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 882 tests in 430.224s
+Ran 882 tests in 654.352s
 
 OK (skipped=1)
 inativo
