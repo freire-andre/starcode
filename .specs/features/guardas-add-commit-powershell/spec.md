@@ -90,15 +90,15 @@ Proof: run unit | test_decisions_guardas_add_commit_powershell ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** provas e Q
 **Linear:** SC-178
 **Integration branch:** feature/guardas-add-commit-powershell
-**Last integrated:** none
+**Last integrated:** 613d5a9
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec e issue: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-14: T1: scan do add antes do commit (R1-R6), matcher Bash|PowerShell no Claude (R7), C1-C10; ticket gate verde; a5090b9, 613d5a9
 **Breaker:** closed
