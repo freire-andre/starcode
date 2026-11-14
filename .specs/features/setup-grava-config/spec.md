@@ -53,15 +53,15 @@ Proof: run unit | test_decisions_setup_grava_config ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** PEQUENA
 **Git mode:** 3
-**Next:** Usuário autoriza o merge do PR #51
+**Next:** Feature encerrada (PR #51 merged)
 **Linear:** SC-172
 **Integration branch:** feature/setup-grava-config
 **Last integrated:** 6334872
 **Dispatched:** none
-**Settled:** 2026-11-14: aprovação da spec: "SIM"; 2026-11-14: PR #51 aberto: https://github.com/freire-andre/starcode/pull/51
+**Settled:** 2026-11-14: aprovação da spec: "SIM"; 2026-11-14: PR #51 aberto: https://github.com/freire-andre/starcode/pull/51; 2026-11-14: merge: "Push + merge após CI"; pré-existente: issue no Linear; 2026-11-14: PR #51 merged: 1278c77; 2026-11-14: SC-172 em Done: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-14: T1: setup cita (steps 1–6), 4 testes em test_config_skill.py, SC-172 no DECISIONS.md, dist regerado; commit 648cd43; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 2 achados (C2 sem Write/duplicado; C4 sem campos de R4); suíte 862 OK; 2026-11-14: T1-fix: b9acdde (C2), 137d33b (C4); 2026-11-14: Guinan: L33, L34; retro com 5 sugestões; 2026-11-14: Worf: APPROVE, 0 achados; pré-existente: escopo 'só este repositório' não cria ~/.starcode/config.json
 **Breaker:** closed
