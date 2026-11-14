@@ -79,7 +79,7 @@ Proof: run unit | test_decisions_piloto_decisao_citada ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Guinan faz a retro
+**Next:** Usuário confirma o push e o PR
 **Linear:** SC-170
 **Integration branch:** feature/piloto-decisao-citada
 **Last integrated:** 5b87da5d7f70d9cb7c8cea28542fe52137c29d72
