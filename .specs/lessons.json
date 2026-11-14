@@ -294,15 +294,17 @@
       "status": "confirmed",
       "features": [
         "fase-12-robustez",
-        "gate-d30-ci"
+        "gate-d30-ci",
+        "despacho-media-escopo"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
-        "verification.md: achados 2 a 8 (C4-C10)"
+        "verification.md: achados 2 a 8 (C4-C10)",
+        "verification.md: achados C5 e C13"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-13T22:23:26Z"
+      "updated": "2026-11-13T23:41:40Z"
     },
     {
       "id": "L21",
@@ -368,16 +370,18 @@
       "id": "L25",
       "text": "Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "ajustes-review-pr39"
+        "ajustes-review-pr39",
+        "despacho-media-escopo"
       ],
       "sources": [
-        "verification.md:C2 (tests/test_coverage_rule.py:22)"
+        "verification.md:C2 (tests/test_coverage_rule.py:22)",
+        "verification.md: achado C9"
       ],
       "scope": "",
       "created": "2026-11-13T16:43:22Z",
-      "updated": "2026-11-13T16:43:22Z"
+      "updated": "2026-11-13T23:41:40Z"
     },
     {
       "id": "L26",
@@ -423,6 +427,21 @@
       "scope": "specs",
       "created": "2026-11-13T22:23:26Z",
       "updated": "2026-11-13T22:23:26Z"
+    },
+    {
+      "id": "L29",
+      "text": "Dê a cada item de Edge Cases da spec um check com teste próprio, porque a comparação sem diferença de maiúsculas estava listada e nenhum check a fixava.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "despacho-media-escopo"
+      ],
+      "sources": [
+        "verification.md: achado ID em minúscula; spec.md Edge Cases"
+      ],
+      "scope": "specs",
+      "created": "2026-11-13T23:41:40Z",
+      "updated": "2026-11-13T23:41:40Z"
     }
   ]
 }

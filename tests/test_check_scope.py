@@ -89,5 +89,39 @@ class CheckScopeTests(TempRepoCase):
         self.assertTrue(res.usage_error)
 
 
+    def set_may_change(self, value: str) -> str:
+        (self.fdir / "tasks.md").write_text(TASKS.replace("`app/store.py`, `tests/`, `docs/*.md`", value),
+                                            encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "scope")
+        return run_git(self.repo, "rev-parse", "HEAD")
+
+    def test_scope_aceita_decisions_com_scripts(self):
+        base = self.set_may_change("`scripts/x.py`")
+        head = self.commit({"scripts/x.py": "x" + chr(10), "DECISIONS.md": "d" + chr(10)})
+        res = check_scope.evaluate("demo", "T1", f"{base}..{head}", self.repo)
+        self.assertEqual(res.errors, [])
+        head2 = self.commit({"README.md": "r" + chr(10), "DECISIONS.md": "e" + chr(10)})
+        res2 = check_scope.evaluate("demo", "T1", f"{head}..{head2}", self.repo)
+        self.assertEqual(res2.errors,
+                         ["README.md: fora do `May change` de T1 (scripts/x.py, DECISIONS.md)"])
+
+    def test_scope_media_aceita_decisions(self):
+        fdir = self.repo / ".specs" / "features" / "media"
+        fdir.mkdir(parents=True)
+        spec = "# Média: Spec" + chr(10) + chr(10) + "**Linear**: PROJ-9" + chr(10) + "**May change**: scripts/x.py" + chr(10)
+        (fdir / "spec.md").write_text(spec, encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "media")
+        base = run_git(self.repo, "rev-parse", "HEAD")
+        head = self.commit({"scripts/x.py": "x" + chr(10), "DECISIONS.md": "d" + chr(10)})
+        res = check_scope.evaluate("media", "T1", f"{base}..{head}", self.repo)
+        self.assertEqual(res.errors, [])
+        head2 = self.commit({"README.md": "r" + chr(10)})
+        res2 = check_scope.evaluate("media", "PROJ-9", f"{head}..{head2}", self.repo)
+        self.assertEqual(res2.errors,
+                         ["README.md: fora do `May change` de PROJ-9 (scripts/x.py, DECISIONS.md)"])
+
+
 if __name__ == "__main__":
     unittest.main()

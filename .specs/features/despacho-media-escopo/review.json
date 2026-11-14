@@ -1,0 +1,29 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Rodada 2 sobre 3f8f19c..d277449. W1 fechado em dcadac4: _call converte OSError em (127, executável não encontrado: <cmd>), e com orca fora do PATH o start segue o caminho de falha (status e label viram aviso, worker-start falha, unrecord remove a entrada, exit 1); conferido por test_start_executavel_ausente_remove_entrada e por uma sonda via main com which -> None e subprocess.run falso, sem chamar a Orca: exit 1 e Dispatched none. W3 fechado: start lê o spec.md uma vez e passa as linhas a spec_issue e medium_ticket. W2 (nit) segue aberto: verification.md ainda com Verdict FAIL. dist/ é mecânico (build --check em dia).",
+  "findings": [
+    {
+      "id": "W2",
+      "severity": "nit",
+      "path": ".specs/features/despacho-media-escopo/verification.md",
+      "line": 3,
+      "body": "🟡 `verification.md` segue com `**Verdict**: FAIL` e `**HEAD**: d8507bf` (.specs/features/despacho-media-escopo/verification.md:3), com os 4 achados do Q fechados. Correção: nova rodada do Q no HEAD atual ou registrar no Handoff que a reverificação ficou pendente.",
+      "evidence": ".specs/features/despacho-media-escopo/verification.md:3"
+    }
+  ],
+  "carryover": {
+    "W1": "resolved em dcadac4 (scripts/dispatch.py:611-617, tests/test_dispatch_start.py:174)",
+    "W2": "open",
+    "W3": "resolved em dcadac4 (scripts/dispatch.py:691-695)"
+  },
+  "research": [
+    "https://docs.python.org/3/library/subprocess.html"
+  ],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "python -m unittest discover -s tests -p test_dispatch*.py", "result": "Ran 77 tests, OK"},
+    {"command": "sonda via dispatch.main start com which -> None e subprocess.run falso para orca (sem Orca real)", "result": "exit 1, worker-start falhou: executável não encontrado: orca, Dispatched none"},
+    {"command": "rodada 1: python -m unittest discover -s tests", "result": "Ran 834 tests, OK (skipped=1)"}
+  ]
+}

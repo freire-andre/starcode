@@ -9,6 +9,8 @@ ticket's `**May change**:` in tasks.md and the files changed in a commit range.
   ERRO  the `## Handoff` section of context.md, spec.md or tasks.md of any feature changed
   ERRO  no commit in the range (the worker did not commit)
 
+  DECISIONS.md is allowed whenever the May change has a path under `scripts/` (gc.effective_may_change).
+
   MEDIUM (no tasks.md): the allowed list is the spec's `**May change**:` line; without it, a warning.
 
 Usage: python check_scope.py <feature> <ticket> <base>..<head> [--root DIR]
@@ -99,7 +101,7 @@ def evaluate(feature: str | None, ticket: str, rng: str, root: Path) -> gc.Resul
                                f"(use {ids[0] if ids else 'o ID do Linear'} ou T1)")
             return res
         tid = ticket
-        patterns = spec_may_change(fdir) or None
+        patterns = gc.effective_may_change(spec_may_change(fdir)) or None
         if patterns is None:
             res.warnings.append("spec sem **May change**: escopo não conferido")
     else:
@@ -108,7 +110,7 @@ def evaluate(feature: str | None, ticket: str, rng: str, root: Path) -> gc.Resul
             res.usage_error = f"ticket {ticket} não existe em tasks.md"
             return res
         tid = task.tid
-        patterns = task.may_change
+        patterns = gc.effective_may_change(task.may_change)
     proj = gc.project_root(fdir)
     files, commits = changed_files(proj, rng)
     if files is None:

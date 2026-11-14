@@ -37,5 +37,18 @@ class ExecuteDocStartSettle(unittest.TestCase):
         self.assertRegex(text, r"`model` field of the (`worker-start`|`worker-start --json`) receipt")
 
 
+class ExecuteDocMedia(unittest.TestCase):
+    def test_execute_media_retry_e_modo_1(self):
+        secs = _sections()
+        sec3 = " ".join(secs["3."].split())
+        self.assertIn("--dispatch-remove <T>", sec3)
+        self.assertLess(sec3.index("--dispatch-remove <T>"), sec3.index("new `dispatch.py start`"))
+        lines = [ln.strip() for ln in secs["8."].splitlines()]
+        self.assertIn('python "P/scripts/dispatch.py" start <slug> <ID> --cli <laforge cli> '
+                      '--model <laforge model> --json', lines)
+        self.assertIn('python "P/scripts/dispatch.py" settle <slug> <ID> --branch <ramo do ticket>', lines)
+        self.assertIn("No modo 1 não se usa dispatch.py start nem settle", " ".join(secs["7."].split()))
+
+
 if __name__ == "__main__":
     unittest.main()

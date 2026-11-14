@@ -85,10 +85,10 @@ Proof: `python scripts/check_decisions.py`
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Merge do PR #47
+**Next:** nenhum: feature concluída (PR #47, a1aa902)
 **Linear:** SC-168
 **Integration branch:** feature/gate-d30-ci
 **Last integrated:** 8e1547f

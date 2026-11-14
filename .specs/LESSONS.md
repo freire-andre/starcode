@@ -8,10 +8,16 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
+- signal: `weak_test` · features: 3
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13
+- updated: 2026-11-13T23:41:40Z
+
+### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 2
-- features: fase-12-robustez, gate-d30-ci
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10)
-- updated: 2026-11-13T22:23:26Z
+- features: ajustes-review-pr39, despacho-media-escopo
+- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9
+- updated: 2026-11-13T23:41:40Z
 
 ## Candidates
 
@@ -155,12 +161,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:C32
 - updated: 2026-11-13T14:57:34Z
 
-### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
-- signal: `weak_test` · features: 1
-- features: ajustes-review-pr39
-- sources: verification.md:C2 (tests/test_coverage_rule.py:22)
-- updated: 2026-11-13T16:43:22Z
-
 ### L26 - Asserção sobre texto de contrato deve fixar o comando completo e o comportamento exigido, porque fragmentos aceitam textos que não cumprem o critério.
 - signal: `weak_test` · features: 1
 - features: ajustes-review-pr39
@@ -178,6 +178,12 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: gate-d30-ci
 - sources: spec.md C11; Handoff attempt proofs-C11=fail
 - updated: 2026-11-13T22:23:26Z
+
+### L29 - Dê a cada item de Edge Cases da spec um check com teste próprio, porque a comparação sem diferença de maiúsculas estava listada e nenhum check a fixava.
+- signal: `ac_gap` · features: 1 · scope: `specs`
+- features: despacho-media-escopo
+- sources: verification.md: achado ID em minúscula; spec.md Edge Cases
+- updated: 2026-11-13T23:41:40Z
 
 ## Quarantined
 
