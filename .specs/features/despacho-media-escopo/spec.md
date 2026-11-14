@@ -102,10 +102,10 @@ Proof: run unit | test_decisions_despacho_media ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Push dos .specs, merge do PR #48 com autorização
+**Next:** nenhum: feature concluída (PR #48, 0456c36)
 **Linear:** SC-169
 **Integration branch:** feature/despacho-media-escopo
 **Last integrated:** ded8b31
