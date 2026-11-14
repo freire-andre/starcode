@@ -100,12 +100,12 @@ Proof: run unit | test_decisions_snapshot_restauracao_segura ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge corrige os 3 achados do Q
+**Next:** provas e done
 **Linear:** SC-174
 **Integration branch:** feature/snapshot-restauracao-segura
 **Last integrated:** a2d9d3e
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec e issue: "Sim"
 **Attempts:** none
-**Reports:** 2026-11-14: T1: take mantém, plano gravado, pre-restore, recusa ausente fora, drop amplo; 872 OK; commit a525e64; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 3 achados (drop com plano inválido; falha ao apagar plano ignorada; C4 por trecho); 872 OK
+**Reports:** 2026-11-14: T1: take mantém, plano gravado, pre-restore, recusa ausente fora, drop amplo; 872 OK; commit a525e64; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 3 achados (drop com plano inválido; falha ao apagar plano ignorada; C4 por trecho); 872 OK; 2026-11-14: T1-fix: 481c246 (drop), 22b35a0 (plano), 0219e0a (C4), 5b26c06 (dist)
 **Breaker:** closed

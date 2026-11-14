@@ -26,9 +26,9 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| `drop feat` deixa para trás um plano da feature quando o JSON está inválido; `drop` termina com sucesso. | Comando: `python "$env:TEMP\q_snapshot_r11.py"`<br>Saída literal:<br>`removidos 0 snapshots de feat`<br>`EXIT=0; PLAN_EXISTS=True` | Remova o arquivo de plano correspondente mesmo quando seu conteúdo não puder ser lido, sem apagar planos de slugs vizinhos. | |
-| O tratamento de erro ignora falha ao apagar o plano após restauração; o comando pode anunciar sucesso e deixar um plano iniciado gravado, contrariando R10. | `scripts/snapshot.py:378` | Não ignore a falha de limpeza; informe que a restauração terminou, mas a remoção do plano falhou, e mantenha um estado retomável ou permita nova limpeza. | |
-| A asserção de C4 aceita qualquer saída que contenha o fragmento `  notas.md`, inclusive um caminho maior ou texto adicional; não fixa a linha do caminho como critério. | `tests/test_snapshot_restore.py:288` | Compare a linha completa ou valide a lista de caminhos parseada. | |
+| `drop feat` deixa para trás um plano da feature quando o JSON está inválido; `drop` termina com sucesso. | Comando: `python "$env:TEMP\q_snapshot_r11.py"`<br>Saída literal:<br>`removidos 0 snapshots de feat`<br>`EXIT=0; PLAN_EXISTS=True` | Remova o arquivo de plano correspondente mesmo quando seu conteúdo não puder ser lido, sem apagar planos de slugs vizinhos. | 481c246 |
+| O tratamento de erro ignora falha ao apagar o plano após restauração; o comando pode anunciar sucesso e deixar um plano iniciado gravado, contrariando R10. | `scripts/snapshot.py:378` | Não ignore a falha de limpeza; informe que a restauração terminou, mas a remoção do plano falhou, e mantenha um estado retomável ou permita nova limpeza. | 22b35a0 |
+| A asserção de C4 aceita qualquer saída que contenha o fragmento `  notas.md`, inclusive um caminho maior ou texto adicional; não fixa a linha do caminho como critério. | `tests/test_snapshot_restore.py:288` | Compare a linha completa ou valide a lista de caminhos parseada. | 0219e0a |
 
 ## Limits
 
