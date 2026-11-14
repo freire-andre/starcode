@@ -162,7 +162,7 @@ class ResellerFamilyTests(CatalogCase):
         self.assertEqual(pick, "codex")
 
     def test_prefixos_de_modelo_por_revendedor(self):
-        table = {"gpt-6-luna": "openai", "o3-mini": "openai", "codex-mini": "openai", "gemini-3": "google",
+        table = {"gpt-6-luna": "openai", "o1-pro": "openai", "o3-mini": "openai", "o4-mini": "openai", "codex-mini": "openai", "gemini-3": "google",
                  "deepseek-v4": "deepseek", "glm-5.3": "zhipu", "kimi-k3": "moonshotai", "grok-5": "xai",
                  "mistral-large": "mistral", "codestral-2": "mistral", "devstral-2": "mistral",
                  "llama-5": "meta", "claude-sonnet-5-5": "anthropic"}
@@ -182,6 +182,17 @@ class ResellerFamilyTests(CatalogCase):
         for word in ("github-copilot", "amazon-bedrock", "unknown", "Por que não é bug", "**Problema:**",
                      "**Decisão:**", "**Motivo:**"):
             self.assertIn(word, entry)
+        decision = entry.partition("**Decisão:**")[2].partition("\n- **Motivo:**")[0]
+        self.assertTrue(decision, "falta a seção **Decisão:**")
+        resellers = ("github-copilot", "azure", "amazon-bedrock", "google-vertex-anthropic", "opencode")
+        suppliers = ("anthropic", "openai", "google", "deepseek", "zai", "zhipuai", "moonshotai", "mistral",
+                     "xai", "meta")
+        prefixes = ("claude", "gpt", "o1", "o3", "o4", "codex", "gemini", "deepseek", "glm", "kimi", "grok",
+                    "mistral", "codestral", "devstral", "llama")
+        for word in resellers + suppliers + prefixes:
+            self.assertIn(f"`{word}`", decision, word)
+        for word in ("canonical_model_id", "anthropic.", "unknown", "same", "codex"):
+            self.assertIn(word, decision, word)
         why = entry.partition("**Por que não é bug:**")[2]
         for name in ("test_revendedor_claude_vira_anthropic", "test_bedrock_prefixo_do_fornecedor",
                      "test_revendedor_modelo_desconhecido_vira_unknown",
