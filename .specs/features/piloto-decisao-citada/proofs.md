@@ -1,6 +1,6 @@
 # piloto-decisao-citada proofs
 
-**HEAD**: c351e91
+**HEAD**: 94c6569
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 12 pass, 0 fail
@@ -36,7 +36,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 845 tests in 1067.870s
+Ran 847 tests in 553.963s
 
 OK (skipped=1)
 inativo
