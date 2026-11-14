@@ -97,15 +97,15 @@ Proof: run unit | test_decisions_snapshot_restauracao_segura ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-174)
+**Next:** Q verifica a feature
 **Linear:** SC-174
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/snapshot-restauracao-segura
+**Last integrated:** a2d9d3e
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec e issue: "Sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-14: T1: take mantém, plano gravado, pre-restore, recusa ausente fora, drop amplo; 872 OK; commit a525e64
 **Breaker:** closed
