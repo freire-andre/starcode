@@ -76,12 +76,12 @@ Proof: run unit | test_decisions_piloto_decisao_citada ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** Despachar LaForge por dispatch.py start
 **Linear:** SC-170
-**Integration branch:** not created
+**Integration branch:** feature/piloto-decisao-citada
 **Last integrated:** none
 **Dispatched:** none
 **Settled:** none
