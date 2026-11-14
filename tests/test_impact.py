@@ -209,7 +209,7 @@ class TestImpact(ImpactCase):
         self.assertTrue(any(len(c) >= 3 for c in res["chains"].values()))
         res = impact.select(ROOT, changed=["README.md"])
         self.assertEqual(res["verdict"], "run-all")
-        self.assertIn("fora do grafo", res["reason"])
+        self.assertEqual(res["reason"], "fora do grafo: README.md")
 
     def test_intervalo_de_feature_ignora_specs(self) -> None:
         write(self.repo, {"src/mod.py": "A = 1\n", "tests/test_mod.py": "import mod\n"})
