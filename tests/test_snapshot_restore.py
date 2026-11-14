@@ -390,6 +390,8 @@ class RestoreTest(RestoreBase):
             self.assertEqual(self.cli("restore", slug, "T1")[0], 0)  # deixa um plano gravado
         pasta = self.root / ".git" / "starcode"
         self.assertEqual(len(list(pasta.glob("restore-*.json"))), 3)
+        for nome in ("restore-feat-T1.json", "restore-feat-x-T1.json"):
+            (pasta / nome).write_text("{ ilegível", encoding="utf-8")  # JSON ilegível: sem slug gravado
         code, out = self.cli("drop", "feat")
         self.assertEqual(code, 0)
         refs = git(self.root, "for-each-ref", "--format=%(refname)", "refs/starcode").split()
