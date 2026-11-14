@@ -280,6 +280,49 @@ class RestoreTest(RestoreBase):
         self.assertEqual(parents[2], primeiro)
         self.assertEqual(len(parents), 3)
 
+    def _falha_parcial(self):
+        self.cli("take", SLUG, "T1")
+        self.write("src/a.txt", "a2\n")
+        self.write("src/c.txt", "c2\n")
+        (self.root / "src" / "b.txt").unlink()
+        real = snapshot._write_blob
+
+        def falha_em_b(root, snap, path):
+            if path == "src/b.txt":
+                raise OSError("disco cheio")
+            real(root, snap, path)
+
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        with mock.patch.object(snapshot, "_write_blob", falha_em_b):
+            self.assertEqual(self.cli("restore", SLUG, "T1", "--yes")[0], 1)
+
+    def test_restore_retomada_recusa_edicao_apos_falha_parcial(self):
+        self._falha_parcial()
+        self.write("src/c.txt", "c editado\n")
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 1)
+        self.assertEqual(out.strip(), "árvore mudou desde a restauração parcial: rode restore sem --yes de novo")
+        self.assertEqual(self.read("src/c.txt"), "c editado\n")
+        self.assertFalse((self.root / "src" / "b.txt").exists())
+
+    def test_restore_dry_run_apos_edicao_em_caminho_do_plano_regrava_pre_restore(self):
+        self._falha_parcial()
+        ref = "refs/starcode/pre-restore/feat/T1"
+        primeiro = git(self.root, "rev-parse", ref).strip()
+        self.write("src/a.txt", "a editado\n")
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        self.assertFalse(json.loads(self.plan_file().read_text(encoding="utf-8"))["started"])
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 0)
+        segundo = git(self.root, "rev-parse", ref).strip()
+        self.assertIn("pre-restore " + segundo[:7], out)
+        self.assertNotEqual(segundo, primeiro)
+        self.assertEqual(git(self.root, "show", f"{ref}:src/a.txt"), "a editado\n")
+        parents = git(self.root, "rev-list", "--parents", "-n", "1", ref).split()
+        self.assertEqual(parents[2], primeiro)
+        self.assertEqual(len(parents), 3)
+        self.assertEqual(self.read("src/a.txt"), "a\n")
+
     def test_restore_falha_ao_apagar_plano_avisa(self):
         self.take_and_edit()
         self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)

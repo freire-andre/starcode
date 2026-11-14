@@ -325,7 +325,14 @@ def cmd_restore(args) -> int:
         old = _load_plan(plan_file)
         old_lines = {tuple(r) for r in old["lines"] if isinstance(r, list) and len(r) == 2} if old else set()
         # só herda "iniciado" se o plano novo cabe no antigo; trabalho novo pede outro pre-restore
-        started = bool(old and old.get("snapshot") == snap and old.get("started") and set(plan) <= old_lines)
+        # e a árvore atual é a deixada pela falha parcial: edição nova num caminho do plano pede outro pre-restore
+        try:
+            same_tree = bool(old and old.get("tree_after") and old.get("tree_after") == _current_tree(root))
+        except GitError as exc:
+            print(f"restauração falhou: {exc}")
+            return 1
+        started = bool(old and old.get("snapshot") == snap and old.get("started") and set(plan) <= old_lines
+                       and same_tree)
         try:
             _save_plan(plan_file, {"slug": args.slug, "ticket": args.ticket, "snapshot": snap,
                                    "lines": [list(r) for r in plan], "started": started})
@@ -348,7 +355,17 @@ def cmd_restore(args) -> int:
     if saved["snapshot"] != snap or not set(plan) <= saved_lines:
         print("plano mudou desde o dry-run: rode restore sem --yes de novo")
         return 1
-    if not saved.get("started"):
+    if saved.get("started"):
+        try:
+            current = _current_tree(root)
+        except GitError as exc:
+            print(f"restauração falhou: {exc}")
+            return 1
+        after = saved.get("tree_after")
+        if (after is None and plan) or (after is not None and after != current):
+            print("árvore mudou desde a restauração parcial: rode restore sem --yes de novo")
+            return 1
+    else:
         try:
             pre = _write_pre_restore(root, args.slug, args.ticket)
             saved["started"] = True
@@ -378,6 +395,11 @@ def cmd_restore(args) -> int:
             for a, p in rest:
                 print(f"  {a:<8} {p}")
             print("rode de novo com --yes para terminar")
+            try:
+                saved["tree_after"] = _current_tree(root)
+                _save_plan(plan_file, saved)
+            except (GitError, OSError) as exc2:
+                print(f"aviso: não gravou a árvore da falha parcial: {getattr(exc2, 'reason', None) or exc2}")
             return 1
         done.append((action, path))
     try:
