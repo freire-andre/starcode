@@ -83,8 +83,8 @@ Proof: run unit | test_decisions_piloto_decisao_citada ... ok
 **Linear:** SC-170
 **Integration branch:** feature/piloto-decisao-citada
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-170 · base a46335f · claude:claude-sonnet-5-5 · 2026-11-14T13:10:43Z · ctx_9d60e2be8ca6
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-14: T1: piloto.py único leitor (active_confirmed_in, registered_decisions_in), gates conferem a decisão citada, 8 testes, SC-170; suíte 844 ok
 **Breaker:** closed
