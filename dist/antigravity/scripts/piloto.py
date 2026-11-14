@@ -38,6 +38,7 @@ CONFIDENCE = ("alta", "media", "baixa")
 CONF_LABEL = {"alta": "alta", "media": "média", "baixa": "baixa"}
 STATUS_RE = re.compile(r"^\*\*Status:\*\*\s*(\S+)", re.M)
 CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*(\d{4}-\d{2}-\d{2})", re.M)
+USER_CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*\d{4}-\d{2}-\d{2}\s*-\s*user:", re.M)
 MANDATE_RE = re.compile(r"^- \*\*M(\d+)\*\*", re.M)
 DECISION_RE = re.compile(r"^### D(\d+) · ", re.M)
 REVIEW_RE = re.compile(r"^### (D\d+) · .*⚠️ revisar", re.M)
@@ -144,8 +145,28 @@ def is_active(slug: str, root: Path) -> bool:
         doc = _read(_path(slug, root))
     except PilotoError:
         return False
+    return _active_confirmed(doc)
+
+
+def _active_confirmed(doc: str) -> bool:
     st = STATUS_RE.search(doc)
-    return bool(st and st.group(1) == "ativo" and CONFIRMED_RE.search(doc))
+    return bool(st and st.group(1) == "ativo" and USER_CONFIRMED_RE.search(doc))
+
+
+def active_confirmed_in(fdir: Path | None) -> bool:
+    """Active autopilot whose mandate the user confirmed (a `- user:` quote), read from a feature folder."""
+    path = (fdir / FILE) if fdir else None
+    if not path or not path.exists():
+        return False
+    return _active_confirmed(_read(path))
+
+
+def registered_decisions_in(fdir: Path | None) -> set[int]:
+    """Numbers of the `### D<n> · ` decisions registered in the feature folder's piloto.md."""
+    path = (fdir / FILE) if fdir else None
+    if not path or not path.exists():
+        return set()
+    return {int(x) for x in DECISION_RE.findall(_read(path))}
 
 
 def record(slug: str, root: Path, by: str, question: str, options: str, decision: str, reason: str,
