@@ -75,13 +75,13 @@ Proof: run unit | test_decisions_q_familia_revendedor ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** none yet
 **Git mode:** none yet
-**Next:** Despachar LaForge por dispatch.py start
+**Next:** LaForge implementa o T1
 **Linear:** SC-171
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/q-familia-revendedor
+**Last integrated:** 54dc548ffb0739da9a4b7037f7eb039267de7952
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
