@@ -78,7 +78,7 @@ Proof: run unit | test_decisions_q_familia_revendedor ... ok
 **Phase:** review
 **Size:** none yet
 **Git mode:** none yet
-**Next:** Usuário decide os achados do Worf (W1 should-fix) antes do merge do PR #50
+**Next:** LaForge corrige W1 e W2 do Worf
 **Linear:** SC-171
 **Integration branch:** feature/q-familia-revendedor
 **Last integrated:** ac13e858e6897ceac4b20fcad079700e10cd811e
