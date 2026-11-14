@@ -7,6 +7,18 @@
 
 Vistas em features distintas. Entram nos briefs.
 
+### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
+- signal: `weak_test` · features: 2
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6)
+- updated: 2026-11-14T23:53:01Z
+
+### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
+- signal: `weak_test` · features: 2
+- features: fase-10-ponte, guardas-add-commit-powershell
+- sources: verification.md: achado R8 (scripts/ponte.py handoff_of), verification.md achado 2 (secret_scan.py:196)
+- updated: 2026-11-14T23:53:01Z
+
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
 - signal: `weak_test` · features: 4
 - features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada
@@ -29,23 +41,11 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: scripts/review/review_gate.py:72
 - updated: 2026-11-09T18:54:53Z
 
-### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 1
-- features: fase-9-worf-guinan-diagnostico
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py
-- updated: 2026-11-09T18:54:53Z
-
 ### L3 - Registre a decisão no DECISIONS.md no mesmo ciclo de qualquer correção em scripts/, skills/ ou hooks/, porque o check_decisions deixa as provas vermelhas.
 - signal: `gate_fail` · features: 1
 - features: fase-9-worf-guinan-diagnostico
 - sources: proofs.md: check_decisions após 9e7679a
 - updated: 2026-11-09T18:54:53Z
-
-### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
-- signal: `weak_test` · features: 1
-- features: fase-10-ponte
-- sources: verification.md: achado R8 (scripts/ponte.py handoff_of)
-- updated: 2026-11-10T14:38:54Z
 
 ### L5 - Faça o teste afirmar a chamada e o valor exigidos (método, timeout) e a ausência do que a palavra 'só' exclui, porque os testes conferiam só a presença das seções e passariam com o requisito falso.
 - signal: `weak_test` · features: 1
