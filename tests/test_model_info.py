@@ -175,6 +175,26 @@ class ResellerFamilyTests(CatalogCase):
         os.environ["STARCODE_MODELS_DEV_FILE"] = str(self.tmp / "nada.json")
         self.assertEqual(dispatch.family("opencode:github-copilot/claude-sonnet-5-5"), "unknown")
 
+    def test_fornecedores_fora_da_lista_original(self):
+        table = ((("alibaba", "qwen3-coder-plus"), "alibaba"), (("alibaba-cn", "qwen-math-plus"), "alibaba"),
+                 (("minimax", "MiniMax-M2.7"), "minimax"), (("minimax-cn", "MiniMax-M2.5"), "minimax"),
+                 (("cohere", "command-a"), "cohere"), (("zai-coding-plan", "glm-5.3"), "zhipu"),
+                 (("moonshotai-cn", "kimi-k3.1-pro"), "moonshotai"), (("github-copilot", "qwen3-coder"), "alibaba"),
+                 (("nvidia", "nemotron-x"), "unknown"))
+        for (p, m), want in table:
+            self.assertEqual(mi.vendor(p, {}, m), want, f"{p}/{m}")
+        path = self.tmp / "alibaba.json"
+        path.write_text(json.dumps({"alibaba": {"models": {"qwen3-coder-plus": {"id": "qwen3-coder-plus"}}}}),
+                        encoding="utf-8")
+        os.environ["STARCODE_MODELS_DEV_FILE"] = str(path)
+        self.assertEqual(dispatch.compare("opencode:alibaba/qwen3-coder-plus", "claude:claude-sonnet-5-5"),
+                         "different")
+
+    def test_bedrock_id_regional(self):
+        self.assertEqual(mi.vendor("amazon-bedrock", {}, "global.anthropic.claude-sonnet-5-5"), "anthropic")
+        self.assertEqual(mi.vendor("amazon-bedrock", {}, "us.anthropic.claude-sonnet-5-5"), "anthropic")
+        self.assertEqual(mi.vendor("amazon-bedrock", {}, "anthropic.claude-sonnet-5-5"), "anthropic")
+
     def test_decisions_q_familia_revendedor(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         entry = text.partition("### SC-171:")[2].partition("\n### ")[0]
