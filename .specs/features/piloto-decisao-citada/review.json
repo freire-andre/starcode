@@ -1,0 +1,32 @@
+{
+  "round": 1,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. A aprovação do piloto passa a exigir a decisão citada registrada e o piloto.md ganha um leitor só no gates_common.py; R1 a R9 têm teste e os 23 testes de test_piloto passam. Dois nits: o registrar ainda aceita mandato sem `- user:` (o ativo recusa) e um ID gigante no piloto.md derruba o gate com ValueError. Fora do review: dist/ (gerado, build --check OK). Bypass: 1 candidato (`# noqa: E402` em dist/orca/scripts/piloto.py), cópia gerada de código que já existia em scripts/piloto.py, sem achado.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "nit",
+      "path": "scripts/piloto.py",
+      "line": 179,
+      "body": "🟡 `record()` confere o mandato com `CONFIRMED_RE` (só a data), e `ativo` e os gates agora exigem `- user:` (scripts/piloto.py:179). Um `piloto.md` com data sem `- user:` aceita `registrar` e, ainda assim, a decisão não vale para aprovação. Correção: trocar por `_active_confirmed(doc)` ou `USER_CONFIRMED_RE` na linha 179.",
+      "evidence": "scripts/piloto.py:179"
+    },
+    {
+      "id": "W2",
+      "severity": "nit",
+      "path": "scripts/piloto.py",
+      "line": 169,
+      "body": "🟡 `registered_decisions_in` faz `int()` sem limite de dígitos (scripts/piloto.py:169). Com `### D<5000 dígitos> · ` no piloto.md, `gc.approved()` sai com `ValueError` (sondado em diretório temporário). O lado citado já tem o limite de 6 dígitos; o mesmo `\\d{1,6}` no `DECISION_RE` ou um filtro por `len(x) <= 6` fecha o caso.",
+      "evidence": "scripts/piloto.py:169"
+    }
+  ],
+  "carryover": {},
+  "research": [],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "python scripts/check_decisions.py", "result": "OK"},
+    {"command": "python -m unittest test_piloto (em tests/)", "result": "23 testes OK"},
+    {"command": "python -m unittest discover -s tests -v (informado pelo Picard)", "result": "844 OK, 1 skip"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "1 candidato"}
+  ]
+}
