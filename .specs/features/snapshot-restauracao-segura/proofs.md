@@ -1,6 +1,6 @@
 # snapshot-restauracao-segura proofs
 
-**HEAD**: e81d080
+**HEAD**: 8790372
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 15 pass, 0 fail
@@ -39,7 +39,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 873 tests in 378.644s
+Ran 874 tests in 379.791s
 
 OK (skipped=1)
 inativo
