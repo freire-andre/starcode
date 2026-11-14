@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -77,6 +79,17 @@ class RestoreBase(unittest.TestCase):
             code = snapshot.main([*args, "--root", str(self.root)])
         return code, out.getvalue()
 
+    def plan_then_yes(self, ticket="T1"):
+        code, out = self.cli("restore", SLUG, ticket)
+        self.assertEqual(code, 0, out)
+        return self.cli("restore", SLUG, ticket, "--yes")
+
+    def plan_file(self, ticket="T1"):
+        return self.root / ".git" / "starcode" / f"restore-{SLUG}-{ticket}.json"
+
+    def refs(self):
+        return git(self.root, "for-each-ref", "refs/starcode").strip()
+
     def tree_state(self):
         files = {}
         for p in sorted(self.root.rglob("*")):
@@ -111,7 +124,7 @@ class RestoreTest(RestoreBase):
     def test_restore_yes_volta_e_remove_so_no_may_change(self):
         self.take_and_edit()
         idx = (self.root / ".git" / "index").read_bytes()
-        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        code, out = self.plan_then_yes()
         self.assertEqual(code, 0)
         self.assertIn("restaurado feat/T1: 2 voltaram, 1 removidos", out)
         self.assertEqual(self.read("src/a.txt"), "a\n")
@@ -129,7 +142,7 @@ class RestoreTest(RestoreBase):
         self.cli("take", SLUG, "T1")
         (self.root / "src" / "run.sh").chmod(0o644)
         self.write("src/run.sh", "mudou\n")
-        self.assertEqual(self.cli("restore", SLUG, "T1", "--yes")[0], 0)
+        self.assertEqual(self.plan_then_yes()[0], 0)
         self.assertTrue(os.access(self.root / "src" / "run.sh", os.X_OK))
 
     def test_restore_lista_fora_do_ticket_com_limite(self):
@@ -141,7 +154,7 @@ class RestoreTest(RestoreBase):
         linhas = out.split("fora do ticket (não tocados):\n", 1)[1].splitlines()
         self.assertEqual([ln for ln in linhas if ln.startswith("  fora/")].__len__(), 50)
         self.assertIn("e mais 3", linhas)
-        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        code, out = self.plan_then_yes()
         self.assertIn("e mais 3", out)
         self.assertTrue((self.root / "fora" / "f52.txt").exists())
 
@@ -162,7 +175,7 @@ class RestoreTest(RestoreBase):
         self.assertEqual(self.cli("take", SLUG, "T1")[0], 0)
         (self.root / "src" / "a.txt").unlink()
         self.write("src/a.txt/dentro.txt", "x\n")
-        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        code, out = self.plan_then_yes()
         self.assertEqual(code, 0, out)
         self.assertEqual(self.read("src/a.txt"), "a\n")
         self.assertFalse((self.root / "src" / "a.txt").is_dir())
@@ -197,7 +210,7 @@ class RestoreTest(RestoreBase):
         self.cli("take", SLUG, "T1")
         self.write("src/a.txt", "a2\n")
         self.write("notas.md", "editado\n")
-        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        code, out = self.plan_then_yes()
         self.assertEqual(code, 0)
         self.assertEqual(self.read("src/a.txt"), "a\n")
         self.assertEqual(self.read("notas.md"), "editado\n")
@@ -214,8 +227,10 @@ class RestoreTest(RestoreBase):
                 raise OSError("disco cheio")
             real(root, snap, path)
 
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
         with mock.patch.object(snapshot, "_write_blob", falha_em_b):  # gravar b.txt falha
             code, out = self.cli("restore", SLUG, "T1", "--yes")
+        pre = git(self.root, "rev-parse", "refs/starcode/pre-restore/feat/T1").strip()
         self.assertEqual(code, 1)
         self.assertIn("restaurados (1):", out)
         self.assertIn("voltar   src/a.txt", out)
@@ -228,6 +243,137 @@ class RestoreTest(RestoreBase):
         self.assertEqual(self.read("src/b.txt"), "b\n")
         self.assertEqual(self.read("src/c.txt"), "c\n")
         self.assertEqual(self.read("src/a.txt"), "a\n")
+        self.assertNotIn("pre-restore", out)
+        self.assertEqual(git(self.root, "rev-parse", "refs/starcode/pre-restore/feat/T1").strip(), pre)
+        self.assertFalse(self.plan_file().exists())
+
+    def test_restore_dry_run_grava_plano(self):
+        self.take_and_edit()
+        idx = (self.root / ".git" / "index").read_bytes()
+        status = git(self.root, "status", "--porcelain")
+        refs = self.refs()
+        code, out = self.cli("restore", SLUG, "T1")
+        self.assertEqual(code, 0)
+        data = json.loads(self.plan_file().read_text(encoding="utf-8"))
+        self.assertEqual(data["snapshot"], git(self.root, "rev-parse", "refs/starcode/snapshots/feat/T1").strip())
+        self.assertEqual(sorted(map(tuple, data["lines"])),
+                         [("remover", "src/novo.txt"), ("voltar", "src/a.txt"), ("voltar", "src/b.txt")])
+        for acao, caminho in data["lines"]:
+            self.assertIn(f"  {acao:<8} {caminho}", out)
+        self.assertEqual((self.root / ".git" / "index").read_bytes(), idx)
+        self.assertEqual(git(self.root, "status", "--porcelain"), status)
+        self.assertEqual(self.refs(), refs)
+
+    def test_restore_recusa_snapshot_ausente_fora_do_ticket(self):
+        self.write("fora.txt", "fora\n")
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-q", "-m", "fora")
+        self.cli("take", SLUG, "T1")
+        (self.root / "fora.txt").rename(self.root / "src" / "fora.txt")
+        refs = self.refs()
+        for args in (("restore", SLUG, "T1"), ("restore", SLUG, "T1", "--yes")):
+            code, out = self.cli(*args)
+            self.assertEqual(code, 1)
+            self.assertEqual(out, "restauração recusada: arquivos do snapshot ausentes fora do ticket:\n  fora.txt\n")
+            self.assertTrue((self.root / "src" / "fora.txt").exists())
+            self.assertFalse(self.plan_file().exists())
+            self.assertEqual(self.refs(), refs)
+            self.assertNotIn("pre-restore", self.refs())
+
+    def test_restore_edicao_fora_do_ticket_nao_recusa(self):
+        self.cli("take", SLUG, "T1")
+        self.write("notas.md", "editado\n")
+        code, out = self.cli("restore", SLUG, "T1")
+        self.assertEqual(code, 0)
+        self.assertIn("fora do ticket (não tocados):\n  notas.md", out)
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.read("notas.md"), "editado\n")
+
+    def test_restore_yes_sem_plano_recusa(self):
+        self.take_and_edit()
+        antes = self.tree_state()
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "sem plano gravado de feat/T1: rode restore sem --yes primeiro\n")
+        self.assertEqual(self.tree_state(), antes)
+        self.assertNotIn("pre-restore", self.refs())
+
+    def test_restore_yes_plano_mudou_recusa(self):
+        self.take_and_edit()
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        self.write("src/novo2.txt", "novo2\n")
+        antes = self.tree_state()
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "plano mudou desde o dry-run: rode restore sem --yes de novo\n")
+        self.assertEqual(self.tree_state(), antes)
+        self.assertNotIn("pre-restore", self.refs())
+
+    def test_restore_yes_snapshot_diferente_do_plano_recusa(self):
+        self.take_and_edit()
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        git(self.root, "update-ref", "-d", "refs/starcode/snapshots/feat/T1")
+        self.cli("take", SLUG, "T1")
+        antes = self.tree_state()
+        code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual((code, out), (1, "plano mudou desde o dry-run: rode restore sem --yes de novo\n"))
+        self.assertEqual(self.tree_state(), antes)
+
+    def test_restore_grava_pre_restore_e_apaga_plano(self):
+        self.take_and_edit()
+        code, out = self.plan_then_yes()
+        self.assertEqual(code, 0)
+        pre_ref = "refs/starcode/pre-restore/feat/T1"
+        curto = git(self.root, "rev-parse", "--short", pre_ref).strip()
+        self.assertIn(f"pre-restore {curto}\n", out)
+        self.assertLess(out.index("pre-restore"), out.index("restaurado feat/T1"))
+        self.assertEqual(git(self.root, "show", f"{pre_ref}:src/a.txt"), "a2\n")
+        self.assertEqual(git(self.root, "show", f"{pre_ref}:src/novo.txt"), "novo\n")
+        self.assertEqual(git(self.root, "rev-parse", f"{pre_ref}^").strip(), git(self.root, "rev-parse", "HEAD").strip())
+        self.assertFalse(self.plan_file().exists())
+
+    def test_restore_pre_restore_falha_nao_toca_arquivos(self):
+        self.take_and_edit()
+        self.assertEqual(self.cli("restore", SLUG, "T1")[0], 0)
+        antes = self.tree_state()
+
+        def falha(*_a, **_k):
+            raise snapshot.GitError("update-ref", "sem espaço")
+
+        with mock.patch.object(snapshot, "_write_pre_restore", falha):
+            code, out = self.cli("restore", SLUG, "T1", "--yes")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "restauração recusada: pre-restore falhou: sem espaço\n")
+        self.assertEqual(self.tree_state(), antes)
+        self.assertNotIn("pre-restore", self.refs())
+
+    def test_drop_remove_pre_restore_e_planos_da_feature(self):
+        for slug in ("feat", "outra", "feat-x"):
+            if slug != "feat":
+                shutil.copytree(self.root / ".specs" / "features" / "feat", self.root / ".specs" / "features" / slug)
+            self.cli("take", slug, "T1")
+            self.write("src/a.txt", f"a-{slug}\n")
+            self.assertEqual(self.cli("restore", slug, "T1")[0], 0)
+            self.assertEqual(self.cli("restore", slug, "T1", "--yes")[0], 0)
+            self.write("src/a.txt", f"b-{slug}\n")
+            self.assertEqual(self.cli("restore", slug, "T1")[0], 0)  # deixa um plano gravado
+        pasta = self.root / ".git" / "starcode"
+        self.assertEqual(len(list(pasta.glob("restore-*.json"))), 3)
+        code, out = self.cli("drop", "feat")
+        self.assertEqual(code, 0)
+        refs = git(self.root, "for-each-ref", "--format=%(refname)", "refs/starcode").split()
+        self.assertEqual(sorted(refs), [
+            "refs/starcode/pre-restore/feat-x/T1", "refs/starcode/pre-restore/outra/T1",
+            "refs/starcode/snapshots/feat-x/T1", "refs/starcode/snapshots/outra/T1"])
+        self.assertEqual(sorted(f.name for f in pasta.glob("restore-*.json")),
+                         ["restore-feat-x-T1.json", "restore-outra-T1.json"])
+
+    def test_decisions_snapshot_restauracao_segura(self):
+        text = (Path(__file__).resolve().parents[1] / "DECISIONS.md").read_text(encoding="utf-8")
+        entrada = text.split("### SC-174:", 1)[1].split("\n### ", 1)[0]
+        for nome in ("**Problema:**", "**Decisão:**", "**Motivo:**", "**Por que não é bug:**", "F12-1", "F12-2", "pre-restore"):
+            self.assertIn(nome, entrada)
 
 
 class AcceptanceTest(RestoreBase):
@@ -245,6 +391,9 @@ class AcceptanceTest(RestoreBase):
         self.assertEqual(code, 0)
         self.assertIn("fora do ticket (não tocados):", out)
         self.assertIn("  notas.md", out.split("fora do ticket (não tocados):", 1)[1])
+        antes = git(self.root, "rev-parse", "refs/starcode/snapshots/feat/T1")
+        self.assertEqual(self.cli("take", SLUG, "T1")[0], 0)  # segundo take não muda o ref
+        self.assertEqual(git(self.root, "rev-parse", "refs/starcode/snapshots/feat/T1"), antes)
         code, out = self.cli("restore", SLUG, "T1", "--yes")
         self.assertEqual(code, 0)
         self.assertEqual(self.read("src/a.txt"), "a\n")
