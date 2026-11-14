@@ -81,12 +81,12 @@ Proof: run unit | test_decisions_impacto_seleciona_real ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** provas e done
+**Next:** push e PR com confirmação; depois Worf
 **Linear:** SC-176
 **Integration branch:** feature/impacto-seleciona-real
 **Last integrated:** 72d7301
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec e issue: "Sim"
 **Attempts:** none
-**Reports:** 2026-11-14: T1: .specs fora, teste real test_*/_test, referência textual, run-all por mudado sem teste; 882 OK; commit 7c10436; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 2 achados em testes (C7 motivo parcial; C8 sem R15); 882 OK; 2026-11-14: T1-fix: 3e3824f (C7), 6806606 (C8)
+**Reports:** 2026-11-14: T1: .specs fora, teste real test_*/_test, referência textual, run-all por mudado sem teste; 882 OK; commit 7c10436; 2026-11-14: Q: codex · gpt-6-luna · FAIL, 2 achados em testes (C7 motivo parcial; C8 sem R15); 882 OK; 2026-11-14: T1-fix: 3e3824f (C7), 6806606 (C8); 2026-11-14: Guinan: L38, L39; retro com 3 sugestões
 **Breaker:** closed
