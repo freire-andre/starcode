@@ -28,6 +28,7 @@ import check_scope  # noqa: E402
 import gates_common as gc  # noqa: E402
 
 REF_PREFIX = "refs/starcode/snapshots"
+PRE_PREFIX = "refs/starcode/pre-restore"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 TICKET_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
@@ -41,6 +42,10 @@ class GitError(Exception):
 
 def ref_name(slug: str, ticket: str) -> str:
     return f"{REF_PREFIX}/{slug}/{ticket}"
+
+
+def pre_ref_name(slug: str, ticket: str) -> str:
+    return f"{PRE_PREFIX}/{slug}/{ticket}"
 
 
 def run_git(root, *args: str, env: dict | None = None) -> str:
@@ -107,10 +112,12 @@ def cmd_take(args) -> int:
         print(f"nome inválido para o snapshot: {bad}")
         return 2
     try:
-        commit, old = snapshot_commit(args.root, args.slug, args.ticket)
+        kept = _existing(args.root, ref_name(args.slug, args.ticket))
+        if kept:
+            print(f"snapshot {args.slug}/{args.ticket} mantido {_short(args.root, kept)} ({_count(args.root, kept)} arquivos)")
+            return 0
+        commit, _old = snapshot_commit(args.root, args.slug, args.ticket)
         line = f"snapshot {args.slug}/{args.ticket} {_short(args.root, commit)} ({_count(args.root, commit)} arquivos)"
-        if old:
-            line += f" (substituído {_short(args.root, old)})"
     except GitError as exc:
         print(f"snapshot falhou: {exc}")
         return 1
@@ -191,15 +198,17 @@ def _current_tree(root) -> str:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
-def _diff(root, snapshot: str) -> list[tuple[str, str]]:
-    """(ação, caminho) das diferenças snapshot -> árvore atual: voltar (existe no snapshot) ou remover."""
+def _diff(root, snapshot: str) -> list[tuple[str, str, str]]:
+    """(ação, caminho, status) das diferenças snapshot -> árvore atual: voltar (existe no snapshot) ou remover.
+
+    O status é o do diff-tree: D = existe no snapshot e sumiu da árvore atual."""
     out = run_git(root, "-c", "core.quotepath=off", "diff-tree", "-r", "-z", "--name-status", "--no-renames",
                   f"{snapshot}^{{tree}}", _current_tree(root))
     parts = out.split("\0")
     rows = []
     for i in range(0, len(parts) - 1, 2):
         status, path = parts[i].strip(), parts[i + 1]
-        rows.append(("remover" if status.startswith("A") else "voltar", path))
+        rows.append(("remover" if status.startswith("A") else "voltar", path, status[:1]))
     return sorted(rows, key=lambda r: r[1])
 
 
@@ -232,6 +241,39 @@ def _remove(root, path: str) -> None:
         parent = parent.parent
 
 
+def _plan_path(root, slug: str, ticket: str) -> Path:
+    gitdir = Path(run_git(root, "rev-parse", "--absolute-git-dir").strip())
+    return gitdir / "starcode" / f"restore-{slug}-{ticket}.json"
+
+
+def _load_plan(path: Path) -> dict | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("snapshot"), str) or not isinstance(data.get("lines"), list):
+        return None
+    return data
+
+
+def _save_plan(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
+
+
+def _write_pre_restore(root, slug: str, ticket: str) -> str:
+    """Grava a árvore atual (índice temporário, pai HEAD) em refs/starcode/pre-restore/<slug>/<ticket>."""
+    tree = _current_tree(root)
+    ref = pre_ref_name(slug, ticket)
+    parents = ["-p", "HEAD"]
+    previous = _existing(root, ref)
+    if previous:  # mantém o pre-restore anterior alcançável pelo mesmo ref (segundo pai)
+        parents += ["-p", previous]
+    commit = run_git(root, "commit-tree", tree, *parents, "-m", f"starcode pre-restore {slug}/{ticket}").strip()
+    run_git(root, "update-ref", ref, commit)
+    return commit
+
+
 def cmd_restore(args) -> int:
     root = args.root
     if not valid_names(args.slug, args.ticket):
@@ -258,11 +300,18 @@ def cmd_restore(args) -> int:
             print(f"HEAD mudou desde o snapshot ({parent[:7]} → {head[:7]}): restauração recusada")
             return 1
         rows = _diff(root, snap)
+        plan_file = _plan_path(root, args.slug, args.ticket)
     except GitError as exc:
         print(f"restauração falhou: {exc}")
         return 1
-    plan = [r for r in rows if check_scope.allowed(r[1], patterns)]
-    outside = [r[1] for r in rows if not check_scope.allowed(r[1], patterns)]
+    plan = [(a, p) for a, p, _ in rows if check_scope.allowed(p, patterns)]
+    outside = [p for _, p, _ in rows if not check_scope.allowed(p, patterns)]
+    missing = [p for _, p, st in rows if st == "D" and not check_scope.allowed(p, patterns)]
+    if missing:
+        print("restauração recusada: arquivos do snapshot ausentes fora do ticket:")
+        for p in missing:
+            print(f"  {p}")
+        return 1
 
     def outside_lines() -> list[str]:
         if not outside:
@@ -273,6 +322,23 @@ def cmd_restore(args) -> int:
         return lines
 
     if not args.yes:
+        old = _load_plan(plan_file)
+        old_lines = {tuple(r) for r in old["lines"] if isinstance(r, list) and len(r) == 2} if old else set()
+        # só herda "iniciado" se o plano novo cabe no antigo; trabalho novo pede outro pre-restore
+        # e a árvore atual é a deixada pela falha parcial: edição nova num caminho do plano pede outro pre-restore
+        try:
+            same_tree = bool(old and old.get("tree_after") and old.get("tree_after") == _current_tree(root))
+        except GitError as exc:
+            print(f"restauração falhou: {exc}")
+            return 1
+        started = bool(old and old.get("snapshot") == snap and old.get("started") and set(plan) <= old_lines
+                       and same_tree)
+        try:
+            _save_plan(plan_file, {"slug": args.slug, "ticket": args.ticket, "snapshot": snap,
+                                   "lines": [list(r) for r in plan], "started": started})
+        except OSError as exc:
+            print(f"restauração falhou: não gravou o plano: {exc}")
+            return 1
         print(f"plano {name} (May change: {', '.join(patterns)})")
         for action, path in plan:
             print(f"  {action:<8} {path}")
@@ -280,6 +346,34 @@ def cmd_restore(args) -> int:
             print(ln)
         print("nada foi alterado: rode de novo com --yes depois da confirmação do usuário")
         return 0
+
+    saved = _load_plan(plan_file)
+    if saved is None:
+        print(f"sem plano gravado de {name}: rode restore sem --yes primeiro")
+        return 1
+    saved_lines = {tuple(r) for r in saved["lines"] if isinstance(r, list) and len(r) == 2}
+    if saved["snapshot"] != snap or not set(plan) <= saved_lines:
+        print("plano mudou desde o dry-run: rode restore sem --yes de novo")
+        return 1
+    if saved.get("started"):
+        try:
+            current = _current_tree(root)
+        except GitError as exc:
+            print(f"restauração falhou: {exc}")
+            return 1
+        after = saved.get("tree_after")
+        if (after is None and plan) or (after is not None and after != current):
+            print("árvore mudou desde a restauração parcial: rode restore sem --yes de novo")
+            return 1
+    else:
+        try:
+            pre = _write_pre_restore(root, args.slug, args.ticket)
+            saved["started"] = True
+            _save_plan(plan_file, saved)
+        except (GitError, OSError) as exc:
+            print(f"restauração recusada: pre-restore falhou: {getattr(exc, 'reason', None) or exc}")
+            return 1
+        print(f"pre-restore {_short(root, pre)}")
 
     done: list[tuple[str, str]] = []
     # remover antes de voltar: arquivo do snapshot trocado por pasta de mesmo nome (a pasta sai, o arquivo volta)
@@ -301,8 +395,18 @@ def cmd_restore(args) -> int:
             for a, p in rest:
                 print(f"  {a:<8} {p}")
             print("rode de novo com --yes para terminar")
+            try:
+                saved["tree_after"] = _current_tree(root)
+                _save_plan(plan_file, saved)
+            except (GitError, OSError) as exc2:
+                print(f"aviso: não gravou a árvore da falha parcial: {getattr(exc2, 'reason', None) or exc2}")
             return 1
         done.append((action, path))
+    try:
+        plan_file.unlink()
+    except OSError as exc:
+        print(f"restaurado {name}, mas o plano não foi apagado: {exc}; rode restore --yes de novo para limpar")
+        return 1
     v = sum(1 for a, _ in done if a == "voltar")
     print(f"restaurado {name}: {v} voltaram, {len(done) - v} removidos")
     for ln in outside_lines():
@@ -310,11 +414,34 @@ def cmd_restore(args) -> int:
     return 0
 
 
+def _longer_slugs(root, slug: str) -> set[str]:
+    """Slugs `<slug>-...` com ref de snapshot ou de pre-restore (donos possíveis de um plano ilegível)."""
+    found = set()
+    for prefix in (REF_PREFIX, PRE_PREFIX):
+        for name in run_git(root, "for-each-ref", "--format=%(refname)", f"{prefix}/{slug}-*/*").split():
+            found.add(name[len(prefix) + 1:].split("/", 1)[0])
+    return found
+
+
 def cmd_drop(args) -> int:
     try:
         refs = _refs(args.root, args.slug)
         for name, _ in refs:
             run_git(args.root, "update-ref", "-d", name)
+        pre = run_git(args.root, "for-each-ref", "--format=%(refname)", f"{PRE_PREFIX}/{args.slug}/").split()
+        for name in pre:
+            run_git(args.root, "update-ref", "-d", name)
+        plans_dir = _plan_path(args.root, args.slug, "x").parent
+        if plans_dir.is_dir():
+            longer = _longer_slugs(args.root, args.slug)
+            for f in plans_dir.glob(f"restore-{args.slug}-*.json"):
+                data = _load_plan(f)  # o glob também casa slug que começa igual: confere o slug gravado
+                if data is not None:
+                    mine = data.get("slug") == args.slug
+                else:  # ilegível: não há slug gravado; é de outra feature só se um slug mais longo também casa o nome
+                    mine = not any(f.name.startswith(f"restore-{o}-") for o in longer)
+                if mine:
+                    f.unlink()
     except GitError as exc:
         print(f"remoção falhou: {exc}")
         return 1

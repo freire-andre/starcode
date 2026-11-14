@@ -519,6 +519,51 @@
       "scope": "",
       "created": "2026-11-14T19:24:05Z",
       "updated": "2026-11-14T19:24:05Z"
+    },
+    {
+      "id": "L35",
+      "text": "Ao limpar arquivos de estado por padrão de nome, decida também o destino do arquivo ilegível, porque a limpeza só apagava o que conseguia ler e deixava lixo da feature.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "snapshot-restauracao-segura"
+      ],
+      "sources": [
+        "verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-14T20:27:54Z",
+      "updated": "2026-11-14T20:27:54Z"
+    },
+    {
+      "id": "L36",
+      "text": "Nunca engula a falha de limpeza depois de uma operação destrutiva: saia com erro e diga como terminar, porque o comando anunciava sucesso e deixava estado iniciado para trás.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "snapshot-restauracao-segura"
+      ],
+      "sources": [
+        "verification.md:achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-14T20:27:54Z",
+      "updated": "2026-11-14T20:27:54Z"
+    },
+    {
+      "id": "L37",
+      "text": "Para conferir uma lista impressa, compare a lista exata de linhas analisadas, porque assertIn de um trecho aceita caminho maior ou texto extra.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "snapshot-restauracao-segura"
+      ],
+      "sources": [
+        "verification.md:achado 3"
+      ],
+      "scope": "",
+      "created": "2026-11-14T20:27:54Z",
+      "updated": "2026-11-14T20:27:54Z"
     }
   ]
 }

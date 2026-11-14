@@ -65,14 +65,16 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(before, estado())
 
-    def test_take_substitui_snapshot_existente(self):
+    def test_take_mantem_snapshot_existente(self):
         _, first = self.run_cli("take", "feat", "SC-1")
         old = first.split()[2]
+        ref = "refs/starcode/snapshots/feat/SC-1"
+        antes = git(self.root, "rev-parse", ref).strip()
         (self.root / "novo.txt").write_text("novo\n")
         code, out = self.run_cli("take", "feat", "SC-1")
         self.assertEqual(code, 0)
-        self.assertIn(f"(substituído {old})", out)
-        self.assertIn("(3 arquivos)", out)
+        self.assertEqual(out, f"snapshot feat/SC-1 mantido {old} (2 arquivos)\n")
+        self.assertEqual(git(self.root, "rev-parse", ref).strip(), antes)
 
     def test_take_nome_invalido_sai_2(self):
         for slug, ticket in (("Feat", "SC-1"), ("feat", "_x"), ("feat", "a..b"), ("a/b", "SC-1"), ("feat", "x.lock")):

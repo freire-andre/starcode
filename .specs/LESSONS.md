@@ -215,6 +215,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:C4
 - updated: 2026-11-14T19:24:05Z
 
+### L35 - Ao limpar arquivos de estado por padrão de nome, decida também o destino do arquivo ilegível, porque a limpeza só apagava o que conseguia ler e deixava lixo da feature.
+- signal: `ac_gap` · features: 1
+- features: snapshot-restauracao-segura
+- sources: verification.md:achado 1
+- updated: 2026-11-14T20:27:54Z
+
+### L36 - Nunca engula a falha de limpeza depois de uma operação destrutiva: saia com erro e diga como terminar, porque o comando anunciava sucesso e deixava estado iniciado para trás.
+- signal: `ac_gap` · features: 1
+- features: snapshot-restauracao-segura
+- sources: verification.md:achado 2
+- updated: 2026-11-14T20:27:54Z
+
+### L37 - Para conferir uma lista impressa, compare a lista exata de linhas analisadas, porque assertIn de um trecho aceita caminho maior ou texto extra.
+- signal: `weak_test` · features: 1
+- features: snapshot-restauracao-segura
+- sources: verification.md:achado 3
+- updated: 2026-11-14T20:27:54Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
