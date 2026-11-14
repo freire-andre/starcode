@@ -87,10 +87,11 @@ class TestImpact(ImpactCase):
         self.assertEqual(res["reason"], "conftest.py muda fixtures sem import: tests/conftest.py")
 
     def test_identifica_testes_python_e_ts(self) -> None:
-        for p in ("test_a.py", "a_test.py", "tests/helpers.py", "test/x/y.py", "src/foo.test.ts",
+        for p in ("test_a.py", "a_test.py", "tests/test_x.py", "src/foo.test.ts",
                   "src/foo.spec.js", "src/__tests__/foo.ts", "a/b.test.tsx"):
             self.assertTrue(impact.is_test_file(p), p)
-        for p in ("a.py", "src/testing.py", "src/foo.ts", "latest.py", "README.md", "src/contest/x.ts"):
+        for p in ("tests/helpers.py", "tests/conftest.py", "tests/__init__.py", "test/x/y.py", "a.py",
+                  "src/testing.py", "src/foo.ts", "latest.py", "README.md", "src/contest/x.ts"):
             self.assertFalse(impact.is_test_file(p), p)
 
     def test_python_imports_absolutos_relativos_e_ambiguos(self) -> None:
@@ -209,6 +210,63 @@ class TestImpact(ImpactCase):
         res = impact.select(ROOT, changed=["README.md"])
         self.assertEqual(res["verdict"], "run-all")
         self.assertIn("fora do grafo", res["reason"])
+
+    def test_intervalo_de_feature_ignora_specs(self) -> None:
+        write(self.repo, {"src/mod.py": "A = 1\n", "tests/test_mod.py": "import mod\n"})
+        self.commit("base")
+        base = run_git(self.repo, "rev-parse", "HEAD").strip()
+        write(self.repo, {"src/mod.py": "A = 2\n", ".specs/features/x/proofs.md": "p\n",
+                          ".specs/features/x/spec.md": "s\n"})
+        self.commit("muda")
+        res = impact.select(self.repo, diff=f"{base}..HEAD")
+        self.assertEqual(res["verdict"], "selected", res["reason"])
+        self.assertEqual(res["tests"], ["tests/test_mod.py"])
+        self.assertEqual(res["changed"], ["src/mod.py"])
+        res = impact.select(self.repo, changed=[".specs/x.md", "src/mod.py"])
+        self.assertEqual(res["changed"], ["src/mod.py"])
+
+    def test_so_specs_roda_tudo(self) -> None:
+        write(self.repo, {"src/mod.py": "A = 1\n", "tests/test_mod.py": "import mod\n"})
+        self.commit("base")
+        res = impact.select(self.repo, changed=[".specs/features/x/spec.md"])
+        self.assertEqual(res["verdict"], "run-all")
+        self.assertEqual(res["reason"], "nenhuma mudança fora de .specs/")
+        self.assertEqual(res["changed"], [])
+
+    def test_apoio_propaga_mas_nao_e_teste(self) -> None:
+        write(self.repo, {"tests/helpers.py": "H = 1\n", "tests/test_a.py": "from helpers import H\n"})
+        res = impact.select(self.repo, changed=["tests/helpers.py"])
+        self.assertEqual(res["verdict"], "selected", res["reason"])
+        self.assertEqual(res["tests"], ["tests/test_a.py"])
+        self.assertEqual(res["chains"]["tests/test_a.py"], ["tests/helpers.py", "tests/test_a.py"])
+        self.assertNotIn("tests/helpers.py", res["tests"])
+
+    def test_referencia_textual_seleciona_teste(self) -> None:
+        write(self.repo, {
+            "scripts/tool.py": "T = 1\n",
+            "tests/test_cli.py": 'import json; P = ROOT / "scripts" / "tool.py"',
+            "tests/test_outro.py": "import json\n",
+        })
+        res = impact.select(self.repo, changed=["scripts/tool.py"])
+        self.assertEqual(res["verdict"], "selected", res["reason"])
+        self.assertEqual(res["tests"], ["tests/test_cli.py"])
+        self.assertEqual(res["chains"], {"tests/test_cli.py": ["scripts/tool.py", "tests/test_cli.py"]})
+
+    def test_mudado_sem_teste_roda_tudo_mesmo_com_outros(self) -> None:
+        write(self.repo, {"a.py": "A = 1\n", "tests/test_a.py": "import a\n",
+                          "lonely.py": "L = 1\n", "zeta.py": "Z = 1\n"})
+        res = impact.select(self.repo, changed=["zeta.py", "a.py", "lonely.py"])
+        self.assertEqual(res["verdict"], "run-all")
+        self.assertEqual(res["reason"], "nenhum teste alcança lonely.py, zeta.py")
+        self.assertEqual(res["tests"], [])
+
+    def test_decisions_impacto_seleciona_real(self) -> None:
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text.split("### SC-176:", 1)[1].split("\n### ", 1)[0]
+        for campo in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
+            self.assertIn(campo, entry)
+        for nome in (".specs/", "test_*.py", "F12"):
+            self.assertIn(nome, entry)
 
 
 if __name__ == "__main__":
