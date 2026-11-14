@@ -53,15 +53,15 @@ Proof: run unit | test_decisions_setup_grava_config ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** PEQUENA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-172)
+**Next:** Q verifica a feature
 **Linear:** SC-172
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/setup-grava-config
+**Last integrated:** 6334872
 **Dispatched:** none
 **Settled:** 2026-11-14: aprovação da spec: "SIM"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-14: T1: setup cita (steps 1–6), 4 testes em test_config_skill.py, SC-172 no DECISIONS.md, dist regerado; commit 648cd43
 **Breaker:** closed
