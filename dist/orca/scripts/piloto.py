@@ -40,7 +40,7 @@ STATUS_RE = re.compile(r"^\*\*Status:\*\*\s*(\S+)", re.M)
 CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*(\d{4}-\d{2}-\d{2})", re.M)
 USER_CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*\d{4}-\d{2}-\d{2}\s*-\s*user:", re.M)
 MANDATE_RE = re.compile(r"^- \*\*M(\d+)\*\*", re.M)
-DECISION_RE = re.compile(r"^### D(\d+) · ", re.M)
+DECISION_RE = re.compile(r"^### D(\d{1,6}) · ", re.M)
 REVIEW_RE = re.compile(r"^### (D\d+) · .*⚠️ revisar", re.M)
 QREF_RE = re.compile(r"^[MQD]\d+$")
 
@@ -176,7 +176,7 @@ def record(slug: str, root: Path, by: str, question: str, options: str, decision
     st = STATUS_RE.search(doc)
     if not st or st.group(1) != "ativo":
         raise PilotoError("piloto encerrado: a decisão é do usuário")
-    if not CONFIRMED_RE.search(doc):
+    if not USER_CONFIRMED_RE.search(doc):
         raise PilotoError("mandato não confirmado: o piloto ainda não decide nada")
     refs = [r.strip().upper() for r in (basis or "").split(",") if r.strip()]
     bad = [r for r in refs if not QREF_RE.match(r)]

@@ -254,6 +254,27 @@ class PilotDecisaoCitadaTests(PilotoCase):
         self.set_approval(self.pil("D9 ok"), self.pil("D1 ok"))
         self.assert_tasks_ok()
 
+    def test_registrar_exige_mandato_com_user(self):
+        self.confirmed()
+        text = self.path.read_text(encoding="utf-8")
+        self.path.write_text(MANDATE_DATE_RE.sub(r"\1", text), encoding="utf-8")
+        res = subprocess.run([sys.executable, str(ROOT / "scripts" / "piloto.py"), "registrar", SLUG, "--by", "data",
+                              "--question", "q", "--options", "a", "--decision", "a", "--reason", "r",
+                              "--root", str(self.repo)], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(res.returncode, 1)
+        self.assertEqual(res.stdout.strip(), "ERRO: mandato não confirmado: o piloto ainda não decide nada")
+        self.assertNotIn("### D1 · ", self.path.read_text(encoding="utf-8"))
+
+    def test_decisao_registrada_longa_nao_derruba_o_gate(self):
+        self.confirmed()
+        with self.path.open("a", encoding="utf-8") as fh:
+            fh.write("\n### D" + "9" * 5000 + " · x\n")
+        self.set_approval(self.pil("D1 tasks cobrem a spec"))
+        msg = "tasks.md: a aprovação do piloto cita D1, que não está registrada no piloto.md"
+        for errors in self.gate_errors():
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [msg], errors)
+        self.assertEqual(piloto.registered_decisions_in(self.fdir), set())
+
     def test_decisions_piloto_decisao_citada(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         m = re.search(r"^### SC-170.*\n(.*?)(?=^### |\Z)", text, re.M | re.S)
