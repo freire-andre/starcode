@@ -201,8 +201,16 @@ class PilotDecisaoCitadaTests(PilotoCase):
         self.register(1)
         self.set_approval(self.pil("D4 tasks cobrem a spec"))
         for errors in self.gate_errors():
-            self.assertIn(MSG_D4, errors)
-            self.assertEqual([e for e in errors if e.startswith("tasks.md sem")], [], errors)
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [MSG_D4], errors)
+
+    def test_id_longo_nao_derruba_o_gate(self):
+        self.confirmed()
+        self.register(1)
+        self.assertEqual(gc.pilot_cited([self.pil("D" + "9" * 5000 + " x")]), [])
+        self.set_approval(self.pil("D" + "9" * 5000 + " x"))
+        self.assertFalse(gc.approved([self.pil("D" + "9" * 5000 + " x")], self.fdir, allow_pilot=True))
+        for errors in self.gate_errors():
+            self.assertEqual(len([e for e in errors if e.startswith(SEM_APPROVED)]), 1, errors)
 
     def test_spec_recusa_piloto_com_decisao_registrada(self):
         self.confirmed()
@@ -227,8 +235,10 @@ class PilotDecisaoCitadaTests(PilotoCase):
     def test_sem_piloto_md_reprova_sem_excecao(self):
         self.path.unlink()
         self.set_approval(self.pil("D1 ok"))
-        for errors in self.gate_errors():
-            self.assertEqual(len([e for e in errors if e.startswith(SEM_APPROVED)]), 1, errors)
+        tasks_msg = SEM_APPROVED + (": a execução só começa depois da aprovação; "
+                                    "nunca escreva uma aprovação que o usuário não deu")
+        for errors, expected in zip(self.gate_errors(), (tasks_msg, SEM_APPROVED)):
+            self.assertEqual([e for e in errors if e.startswith("tasks.md sem")], [expected], errors)
             self.assertEqual([e for e in errors if "não está registrada" in e], [], errors)
 
     def test_d07_cita_d7(self):
