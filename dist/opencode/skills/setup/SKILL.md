@@ -57,7 +57,7 @@ If one exists, validate it first (`--kind repo <path>`) and show the result; off
 
 ## 4. User config (`~/.starcode/config.json`, never versioned)
 Only on the first run on this machine, or when the user asks: follow
-`<plugin-root>/skills/config/SKILL.md` (steps 1–5) here, in this same turn. It asks which CLIs the user
+`<plugin-root>/skills/config/SKILL.md` (steps 1–6) here, in this same turn. It asks which CLIs the user
 has, proposes a model per crew member, and writes the user config through the validator. On the first run
 the file is created even when every default is kept. Later model changes go through /sc-config.
 
