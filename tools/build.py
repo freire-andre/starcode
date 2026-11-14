@@ -283,6 +283,7 @@ def claude_hooks() -> dict:
     hooks = base_hooks()
     crew = [{"type": "command", "command": 'python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/crew_hook.py"', "timeout": 10}]
     events = hooks["hooks"]
+    events["PreToolUse"][0]["matcher"] = "Bash|PowerShell"  # SC-178: o Claude também tem a ferramenta PowerShell
     events["PreToolUse"].append({"matcher": "Skill", "hooks": crew})
     events["UserPromptExpansion"] = [{"matcher": "starcode:.*", "hooks": crew}]
     events["PostToolUse"] = [{"matcher": "*", "hooks": crew}]

@@ -209,6 +209,18 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([(h["command"], h["timeout"]) for h in start[0]["hooks"]],
                          [('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/banner.py" --full --cli codex', 30)])
 
+    def test_claude_hooks_cobrem_powershell(self):
+        build.build(self.src, self.out)
+        pre = self._hooks_json("claude", "hooks", "hooks.json")["hooks"]["PreToolUse"]
+        self.assertEqual([e["matcher"] for e in pre], ["Bash|PowerShell", "Skill"])
+        self.assertEqual([(h["command"], h["timeout"]) for h in pre[0]["hooks"]], [
+            ('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/git_guard.py"', 15),
+            ('python "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/secret_scan.py"', 30)])
+        codex = self._hooks_json("codex", "hooks", "hooks.json")["hooks"]["PreToolUse"]
+        self.assertEqual([e["matcher"] for e in codex], ["Bash", "Bash"])
+        agy = self._hooks_json("antigravity", "hooks.json")
+        self.assertNotIn("PowerShell", json.dumps(agy))
+
     def test_codex_session_end_timeout_within_limit(self):
         build.build(self.src, self.out)
         hooks = self._hooks_json("codex", "hooks", "hooks.json")["hooks"]
