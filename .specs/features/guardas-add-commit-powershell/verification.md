@@ -24,8 +24,8 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C1, C3, C4 e C6 não verificam o formato completo do achado de segredo para arquivo novo; aceitam apenas prefixo de caminho e, em C1, substring do tipo. Assim, saída sem o separador e sem o valor mascarado ainda passaria, embora R5 fixe `<caminho>:<linha>: <tipo> (<mascarado>)`. | `tests/test_secret_scan.py:158` | Comparar cada achado integralmente com o formato e valor mascarado esperados, incluindo todos os casos de arquivo novo desses checks. | |
-| A regra que nega arquivo não rastreado acima de `MAX_DIFF_BYTES` não tem check dedicado; a suíte prova o limite para diff rastreado, mas não para o caminho `untracked_findings`. | `hooks/scripts/secret_scan.py:196` | Adicionar check de arquivo novo grande que confirme a negação e o limite informado. | |
+| C1, C3, C4 e C6 não verificam o formato completo do achado de segredo para arquivo novo; aceitam apenas prefixo de caminho e, em C1, substring do tipo. Assim, saída sem o separador e sem o valor mascarado ainda passaria, embora R5 fixe `<caminho>:<linha>: <tipo> (<mascarado>)`. | `tests/test_secret_scan.py:158` | Comparar cada achado integralmente com o formato e valor mascarado esperados, incluindo todos os casos de arquivo novo desses checks. | 49fab08 |
+| A regra que nega arquivo não rastreado acima de `MAX_DIFF_BYTES` não tem check dedicado; a suíte prova o limite para diff rastreado, mas não para o caminho `untracked_findings`. | `hooks/scripts/secret_scan.py:196` | Adicionar check de arquivo novo grande que confirme a negação e o limite informado. | 49fab08 (`test_add_arquivo_novo_grande_nega`) |
 
 ## Limits
 
