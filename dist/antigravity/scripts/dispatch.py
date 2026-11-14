@@ -609,8 +609,11 @@ def default_runner(cmd, **kw):
 
 
 def _call(runner, cmd: list[str], cwd: Path) -> tuple[int, str, str]:
-    res = runner(cmd, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8", errors="replace",
-                 stdin=subprocess.DEVNULL)
+    try:
+        res = runner(cmd, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8", errors="replace",
+                     stdin=subprocess.DEVNULL)
+    except OSError:
+        return 127, "", f"executável não encontrado: {cmd[0] if cmd else ''}"
     return res.returncode, res.stdout or "", res.stderr or ""
 
 
@@ -653,10 +656,11 @@ def _receipt(out: str) -> dict:
             "worktree": _text_of(_find(data, "workspace", "worktreeId", "worktree"))}
 
 
-def medium_ticket(fdir: Path, ticket: str) -> tuple[str, str, str] | None:
+def medium_ticket(fdir: Path, ticket: str, lines: list[str] | None = None) -> tuple[str, str, str] | None:
     """MEDIUM feature (no tasks.md): the only ticket is `T1`, with the issue of the spec's `**Linear**:`.
     Returns (tid, issue, title), or None when `ticket` is neither `T1` nor that issue."""
-    lines = gc.read_lines(fdir / "spec.md")
+    if lines is None:
+        lines = gc.read_lines(fdir / "spec.md")
     ids = gc.LINEAR_ID_RE.findall(gc.field_value(lines, "Linear") or "")
     if ticket.upper() not in ("T1", ids[0] if ids else "T1"):
         return None
@@ -664,8 +668,10 @@ def medium_ticket(fdir: Path, ticket: str) -> tuple[str, str, str] | None:
     return "T1", ids[0] if ids else "", title
 
 
-def spec_issue(fdir: Path) -> str | None:
-    ids = gc.LINEAR_ID_RE.findall(gc.field_value(gc.read_lines(fdir / "spec.md"), "Linear") or "")
+def spec_issue(fdir: Path, lines: list[str] | None = None) -> str | None:
+    if lines is None:
+        lines = gc.read_lines(fdir / "spec.md")
+    ids = gc.LINEAR_ID_RE.findall(gc.field_value(lines, "Linear") or "")
     return ids[0] if ids else None
 
 
@@ -682,10 +688,11 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
     if medium:
         fdir = fdir0
         proj = gc.project_root(fdir)
-        issue = spec_issue(fdir)
+        spec_lines = gc.read_lines(fdir / "spec.md")
+        issue = spec_issue(fdir, spec_lines)
         if not issue:
             return refuse("spec sem **Linear**:")
-        found = medium_ticket(fdir, ticket)
+        found = medium_ticket(fdir, ticket, spec_lines)
         if found is None:
             return refuse(f"ticket {ticket} não é desta feature MÉDIA (use {issue} ou T1)")
         tid, issue, title = found

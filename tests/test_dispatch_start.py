@@ -171,6 +171,20 @@ class StartTests(TempRepoCase):
         self.assertEqual(self.dispatched(), "none")
         self.assertNotIn("worktree set", fake.keys())
 
+    def test_start_executavel_ausente_remove_entrada(self):
+        class SemOrca(FakeOrca):
+            def __call__(self, cmd, **kw):
+                if self.key(cmd) == "worker-start":
+                    self.calls.append(list(cmd))
+                    raise FileNotFoundError(2, "No such file", "orca")
+                return super().__call__(cmd, **kw)
+
+        fake = SemOrca()
+        code, _, out = self.go(fake)
+        self.assertEqual(code, 1)
+        self.assertEqual(out[-1], "worker-start falhou: executável não encontrado: orca")
+        self.assertEqual(self.dispatched(), "none")
+
     def test_start_linear_falha_vira_aviso(self):
         fake = FakeOrca(fail={"status": "sem rede", "label": "sem label", "worktree set": "sem vínculo"})
         code, _, out = self.go(fake)
