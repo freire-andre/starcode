@@ -82,8 +82,8 @@ Proof: run unit | test_decisions_piloto_decisao_citada ... ok
 **Next:** Despachar LaForge por dispatch.py start
 **Linear:** SC-170
 **Integration branch:** feature/piloto-decisao-citada
-**Last integrated:** none
-**Dispatched:** T1 · SC-170 · base a46335f · claude:claude-sonnet-5-5 · 2026-11-14T13:10:43Z · ctx_9d60e2be8ca6
+**Last integrated:** 5b87da5d7f70d9cb7c8cea28542fe52137c29d72
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
 **Reports:** 2026-11-14: T1: piloto.py único leitor (active_confirmed_in, registered_decisions_in), gates conferem a decisão citada, 8 testes, SC-170; suíte 844 ok
