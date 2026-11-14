@@ -105,12 +105,12 @@ Proof: run unit | test_decisions_despacho_media ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** Gates proofs/done e Worf rodada 2
+**Next:** Push dos .specs, merge do PR #48 com autorização
 **Linear:** SC-169
 **Integration branch:** feature/despacho-media-escopo
 **Last integrated:** ded8b31
 **Dispatched:** LaForge W1 · 3f8f19c
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-13: T1: effective_may_change em gates_common, start/settle aceitam a MÉDIA (T1 ou ID), FileNotFoundError sai 2, recusas apontam modo 1 e --dispatch-remove, execute.md 3/7/8, SC-169 no DECISIONS.md; 98 testes e gate ticket verdes; 2026-11-13: Q (codex · effective gpt-6-luna): FAIL, 4 achados (C5, C9, C13 fracos; ID em minúscula sem teste); suíte 833 ok; 2026-11-13: LaForge pós-Q: achados 1-2 em 8c5fb8e, 3 em 0010fd1, 4 em e0a81e9; 44 testes ok; 2026-11-13: PR #48 aberto; 2026-11-13: Worf rodada 1: COMMENT; should-fix W1 (FileNotFoundError do executável vira exit 2 depois de gravar Dispatched); nits W2, W3. Worker órfão 'T1: Média: Spec' veio da sonda do Worf (nunca subiu); 2026-11-13: LaForge: W1 e W3 corrigidos em dcadac4; 77 testes ok
+**Reports:** 2026-11-13: T1: effective_may_change em gates_common, start/settle aceitam a MÉDIA (T1 ou ID), FileNotFoundError sai 2, recusas apontam modo 1 e --dispatch-remove, execute.md 3/7/8, SC-169 no DECISIONS.md; 98 testes e gate ticket verdes; 2026-11-13: Q (codex · effective gpt-6-luna): FAIL, 4 achados (C5, C9, C13 fracos; ID em minúscula sem teste); suíte 833 ok; 2026-11-13: LaForge pós-Q: achados 1-2 em 8c5fb8e, 3 em 0010fd1, 4 em e0a81e9; 44 testes ok; 2026-11-13: PR #48 aberto; 2026-11-13: Worf rodada 1: COMMENT; should-fix W1 (FileNotFoundError do executável vira exit 2 depois de gravar Dispatched); nits W2, W3. Worker órfão 'T1: Média: Spec' veio da sonda do Worf (nunca subiu); 2026-11-13: LaForge: W1 e W3 corrigidos em dcadac4; 77 testes ok; 2026-11-13: Worf rodada 2: APPROVE; W1 e W3 fechados em dcadac4; W2 nit aberto (Verdict FAIL do Q, esperado)
 **Breaker:** closed
