@@ -52,7 +52,7 @@ Proof: run unit | test_opencode_install_twice_from_two_clones_no_duplicates ... 
 **Linear:** SC-184
 **Integration branch:** feature/opencode-copia-instalada
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-184 · base 41db2a7 · claude:claude-sonnet-5-5 · 2026-11-15T18:52:06Z · ctx_dea6cac3d7b9
 **Settled:** 2026-11-15: 2026-11-15: opção (a), fix do OpenCode agora: "A"; issue: "Sim"
 **Attempts:** none
 **Reports:** none
