@@ -161,8 +161,8 @@ before any new `batch`.
    and dispatch the screens judge as an Orca worker **in the worktree of `I`**, in the same CLI/family the `q-cli`
    picked for the Q and **never in the LaForge's family**. Fill `**Verifier**:` in `screens.md` as for the Q
    (step 5). Round 1 writes `screens.md`; its `differs` rows go into the single post-Q fix (section 5).
-7. **The Q writes only `verification.md`.** Right after the Q's `worker_done`, run
-   `python "P/scripts/dispatch.py" q-check <slug>` (it only reports): exit 0 means only the allowed files
+7. Right after the Q's `worker_done`, run
+   `python "P/scripts/dispatch.py" q-check <slug>` (it only reports; the Q writes only `verification.md`): exit 0 means only the allowed files
    changed; exit 1 lists the extra files. Discard those extra changes (`git restore --source=HEAD -- <file>` for
    tracked files; delete new untracked ones) before committing `verification.md`, and cite the files in the review comment.
 

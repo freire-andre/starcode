@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -76,33 +77,60 @@ class QCheckCase(TempRepoCase):
             1, f"fora da lista: M  {FEAT}/tasks.md\n"
                "q-check: 1 arquivo(s) fora da lista; desfaça com git restore (rastreados) ou apague (novos)\n", ""))
 
+    def test_q_check_renomeacao(self):
+        run_git(self.repo, "mv", f"{FEAT}/verification.md", f"{FEAT}/screens.md")
+        self.assertEqual(run_qcheck(self.repo), (0, OK_MSG, ""))
+        run_git(self.repo, "commit", "-q", "-m", "renomeia")
+        run_git(self.repo, "mv", f"{FEAT}/tasks.md", f"{FEAT}/verification.md")
+        self.assertEqual(run_qcheck(self.repo), (
+            1, f"fora da lista: R  {FEAT}/tasks.md -> {FEAT}/verification.md\n"
+               "q-check: 1 arquivo(s) fora da lista; desfaça com git restore (rastreados) ou apague (novos)\n", ""))
+
     def test_q_check_fora_de_repositorio_sai_2(self):
         with tempfile.TemporaryDirectory(prefix="starcode-nogit-") as d:
+            res = subprocess.run(["git", "status", "--porcelain"], cwd=d, capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
+            why = res.stderr.strip().splitlines()[0]
             code, out, err = run_qcheck(d)
             self.assertEqual((code, out), (2, ""))
-            self.assertTrue(err.startswith(f"ERRO: git status falhou em {Path(d).resolve()}: "), err)
+            self.assertEqual(err, f"ERRO: git status falhou em {Path(d).resolve()}: {why}\n")
 
 
 class WiringCase(unittest.TestCase):
     def test_execute_commita_handoff_antes_do_q(self):
         text = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
         sec = text[text.index("## 4. Proofs and the Q"):text.index("## 5. Post-Q cycle")]
-        phase = sec.index("--phase review")
-        commit = sec.index("commit the Handoff", phase)
-        start = sec.index("orca orchestration worker-start --agent codex")
+        lines = sec.splitlines()
+        phase = next(i for i, l in enumerate(lines) if 'python "P/scripts/handoff.py" set <slug> --phase review' in l)
+        self.assertEqual(lines[phase].strip(),
+                         '`python "P/scripts/handoff.py" set <slug> --phase review` and **commit the Handoff** '
+                         "(`docs(specs): handoff antes do Q (<slug>)` + `Refs`)")
+        self.assertEqual(lines[phase - 1].strip(), "2. Green → commit `proofs.md` (`docs(specs): provas (<slug>)` + `Refs`), then")
+        start = next(i for i, l in enumerate(lines) if l.strip().startswith("orca orchestration worker-start --agent codex"))
+        self.assertLess(phase, start)
         check = 'python "P/scripts/dispatch.py" q-check <slug>'
-        self.assertLess(phase, commit)
-        self.assertLess(commit, start)
         self.assertEqual(sec.count(check), 1)
-        self.assertLess(start, sec.index(check))
+        step = next(i for i, l in enumerate(lines) if l.startswith("7. Right after the Q's `worker_done`, run"))
+        self.assertLess(start, step)
+        self.assertEqual(lines[step + 1].strip(), f"`{check}` (it only reports; the Q writes only `verification.md`): exit 0 means only the allowed files")
+        self.assertEqual([i for i, l in enumerate(lines) if check in l], [step + 1])
 
     def test_decisions_q_preserva_handoff(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         entry = text[text.index("### SC-181:"):]
         nxt = entry.find("\n### ", 4)
         entry = entry if nxt == -1 else entry[:nxt]
-        for term in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**", "q-check", "Handoff", "D-i"):
-            self.assertIn(term, entry)
+        fields = {}
+        for line in entry.splitlines():
+            for name in ("Problema", "Decisão", "Motivo", "Por que não é bug"):
+                if line.startswith(f"- **{name}**: "):
+                    fields[name] = line
+        self.assertEqual(sorted(fields), sorted(("Problema", "Decisão", "Motivo", "Por que não é bug")))
+        decisao = fields["Decisão"]
+        self.assertIn("`q-check` é exceção registrada ao congelamento D-i (novos subcomandos e opções)", decisao)
+        self.assertIn("manda o Picard rodar `handoff.py set <slug> --phase review`, commitar o Handoff antes do `worker-start` do Q", decisao)
+        self.assertIn("e rodar `python \"P/scripts/dispatch.py\" q-check <slug>` logo após o `worker_done`", decisao)
+        self.assertIn("com o Handoff commitado a árvore do Q está limpa", fields["Motivo"])
 
 
 if __name__ == "__main__":
