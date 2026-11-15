@@ -52,6 +52,8 @@ cd starcode
 python tools/install_local.py --cli opencode
 ```
 
+O instalador copia o pacote para `~/.config/opencode/starcode` e aponta o `opencode.json` para essa cópia: o clone pode trocar de ramo sem afetar o OpenCode. Para atualizar, rode o comando de novo.
+
 ## Primeiros passos
 
 Em cada repositório, rode o setup (configura Linear, estados e labels) e depois engaje (inicia ou retoma o

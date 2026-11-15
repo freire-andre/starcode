@@ -141,7 +141,7 @@ class InstallLocalTests(unittest.TestCase):
         rc, out, _, _ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         js = self.home / ".config/opencode/plugins/starcode.js"
-        dist = (self.root / "dist/opencode").resolve().as_posix()
+        dist = (self.home / ".config/opencode/starcode").resolve().as_posix()
         self.assertEqual(js.read_text(encoding="utf-8"), f'const R = "{dist}"\n')
         self.assertIn(str(js), out)
 
@@ -224,7 +224,7 @@ class InstallLocalTests(unittest.TestCase):
         rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
-        mine = sorted(str((self.root / "dist/opencode/skills" / s).resolve()) for s in ("engajar", "spock"))
+        mine = sorted(str((self.home / ".config/opencode/starcode/skills" / s).resolve()) for s in ("engajar", "spock"))
         self.assertEqual(paths, ["/opt/alheio"] + mine)
 
     def test_opencode_install_keeps_foreign_skill_paths_in_order(self):  # C2
@@ -252,7 +252,7 @@ class InstallLocalTests(unittest.TestCase):
         rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
-        mine = sorted(str((self.root / "dist/opencode/skills" / s).resolve()) for s in ("engajar", "spock"))
+        mine = sorted(str((self.home / ".config/opencode/starcode/skills" / s).resolve()) for s in ("engajar", "spock"))
         self.assertEqual(paths, foreign + mine)
 
     def test_opencode_install_twice_from_two_clones_no_duplicates(self):  # C3
@@ -264,7 +264,7 @@ class InstallLocalTests(unittest.TestCase):
                                     runner=Fake(), which=lambda n: "/bin/" + n, root=other)
         self.assertEqual(rc, 0)
         paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
-        self.assertEqual(sorted(paths), sorted(str((other / "dist/opencode/skills" / s).resolve())
+        self.assertEqual(sorted(paths), sorted(str((self.home / ".config/opencode/starcode/skills" / s).resolve())
                                                for s in ("engajar", "spock")))
 
     def test_opencode_dry_run_reports_removed_and_written(self):
@@ -275,6 +275,29 @@ class InstallLocalTests(unittest.TestCase):
         self.assertIn("remover 1", out)
         self.assertIn("gravar 2", out)
         self.assertEqual(self.conf.read_text(encoding="utf-8"), before)
+
+    def test_opencode_uses_installed_copy_not_the_clone(self):
+        (self.root / "dist/opencode/scripts/__pycache__").mkdir(parents=True)
+        (self.root / "dist/opencode/scripts/__pycache__/x.pyc").write_bytes(b"x")
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        inst = self.home / ".config/opencode/starcode"
+        self.assertEqual((inst / "skills/engajar/SKILL.md").read_text(encoding="utf-8"), "x")
+        self.assertFalse((inst / "scripts/__pycache__").exists())
+        (self.root / "dist/opencode/skills/engajar/SKILL.md").write_text("mudou no clone", encoding="utf-8")
+        self.assertEqual((inst / "skills/engajar/SKILL.md").read_text(encoding="utf-8"), "x")
+        root = str(self.root.resolve()).casefold()
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertFalse(any(p.casefold().startswith(root) for p in paths))
+
+    def test_opencode_reinstall_replaces_stale_installed_copy(self):
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        stale = self.home / ".config/opencode/starcode/skills/velha"
+        stale.mkdir()
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertFalse(stale.exists())
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertEqual(len(paths), 2)
 
     def test_install_is_idempotent(self):  # C12
         self.run_cli("--cli", "opencode", "--home", str(self.home))

@@ -150,9 +150,12 @@ def _orca(binary, root, dry, runner):
 
 def _opencode(root, home, dry):
     dist = root / "dist" / "opencode"
-    skills = sorted(str(p.resolve()) for p in (dist / "skills").iterdir() if p.is_dir())
-    commands = sorted((dist / "commands").glob("*.md"))
     conf_dir = home / ".config" / "opencode"
+    # Cópia instalada: o OpenCode não lê o dist/ do clone (trocar de ramo ou um build pela metade não o afeta).
+    installed = conf_dir / PLUGIN
+    names = sorted(p.name for p in (dist / "skills").iterdir() if p.is_dir())
+    skills = [str((installed / "skills" / n).resolve()) for n in names]
+    commands = sorted((dist / "commands").glob("*.md"))
     conf = conf_dir / "opencode.json"
     data = {}
     if conf.exists():
@@ -170,13 +173,15 @@ def _opencode(root, home, dry):
         if not isinstance(cur, dict):
             cur = data["skills"] = {}
         have = cur.setdefault("paths", [])
-    suffixes = {("dist", "opencode", "skills", Path(s).name.casefold()) for s in skills}
+    folded = {n.casefold() for n in names}
+    owners = {("dist", "opencode"), ("opencode", PLUGIN)}  # clones antigos e a cópia instalada
 
     def is_starcode(entry):
         if not isinstance(entry, str):
             return False
         parts = [x.casefold() for x in re.split(r"[\\/]+", entry) if x]
-        return tuple(parts[-4:]) in suffixes
+        return (len(parts) >= 4 and parts[-2] == "skills" and parts[-1] in folded
+                and tuple(parts[-4:-2]) in owners)
 
     kept = [e for e in have if not is_starcode(e)]
     removed = len(have) - len(kept)
@@ -184,12 +189,17 @@ def _opencode(root, home, dry):
     plugin_src = dist / "plugins" / "starcode.js"
     plugin_dst = conf_dir / "plugins" / "starcode.js"
     if dry:
-        print(f"[dry-run] gravar plugin {plugin_dst} (com {PLACEHOLDER} = {dist.resolve().as_posix()})")
+        print(f"[dry-run] copiar {dist} para {installed}")
+        print(f"[dry-run] gravar plugin {plugin_dst} (com {PLACEHOLDER} = {installed.resolve().as_posix()})")
         print(f"[dry-run] remover {removed} e gravar {len(skills)} caminhos de skill do StarCode em {conf}")
         for c in commands:
             print(f"[dry-run] copiar {c.name} para {conf_dir / 'commands'}")
         return 0
     conf_dir.mkdir(parents=True, exist_ok=True)
+    if installed.exists():
+        shutil.rmtree(installed)
+    shutil.copytree(dist, installed, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    print(f"copiado {dist} para {installed}")
     conf.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"gravado {conf}")
     (conf_dir / "commands").mkdir(exist_ok=True)
@@ -200,7 +210,7 @@ def _opencode(root, home, dry):
         print(f"opencode: {plugin_src} não encontrado", file=sys.stderr)
         return 2
     plugin_dst.parent.mkdir(parents=True, exist_ok=True)
-    text = plugin_src.read_text(encoding="utf-8").replace(PLACEHOLDER, dist.resolve().as_posix())
+    text = plugin_src.read_text(encoding="utf-8").replace(PLACEHOLDER, installed.resolve().as_posix())
     plugin_dst.write_text(text, encoding="utf-8")
     print(f"gravado {plugin_dst}")
     return 0
