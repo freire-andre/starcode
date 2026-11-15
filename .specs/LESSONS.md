@@ -8,16 +8,22 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 3
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6)
-- updated: 2026-11-15T13:53:17Z
+- signal: `weak_test` · features: 9
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7)
+- updated: 2026-11-15T16:31:41Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
 - features: fase-10-ponte, guardas-add-commit-powershell
 - sources: verification.md: achado R8 (scripts/ponte.py handoff_of), verification.md achado 2 (secret_scan.py:196)
 - updated: 2026-11-14T23:53:01Z
+
+### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
+- signal: `weak_test` · features: 3
+- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor
+- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164))
+- updated: 2026-11-15T16:31:41Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
 - signal: `weak_test` · features: 4
@@ -30,6 +36,12 @@ Vistas em features distintas. Entram nos briefs.
 - features: ajustes-review-pr39, despacho-media-escopo
 - sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9
 - updated: 2026-11-13T23:41:40Z
+
+### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
+- signal: `weak_test` · features: 3
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8)
+- updated: 2026-11-15T16:31:41Z
 
 ## Candidates
 
@@ -75,12 +87,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - signal: `weak_test` · features: 1
 - features: fase-11-telas
 - sources: .specs/features/fase-11-telas/verification.md:achado 2
-- updated: 2026-11-12T12:18:57Z
-
-### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
-- signal: `weak_test` · features: 1
-- features: fase-11-telas
-- sources: .specs/features/fase-11-telas/verification.md:achado 3
 - updated: 2026-11-12T12:18:57Z
 
 ### L11 - Separe em dois checks o caminho de erro e o de sucesso de um comando, porque um único teste de erro não prova que o comando produz a saída.
@@ -195,12 +201,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - signal: `weak_test` · features: 1
 - features: q-familia-revendedor
 - sources: verification.md achado C7 (test_model_info.py:164)
-- updated: 2026-11-14T17:43:47Z
-
-### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 1
-- features: q-familia-revendedor
-- sources: verification.md achado C9 (test_model_info.py:178)
 - updated: 2026-11-14T17:43:47Z
 
 ### L33 - Quando o teste extrai um valor de um título ou texto por regex, exija exatamente uma ocorrência e falhe com mensagem que nomeie o que faltou, porque a busca devolvia None (AttributeError) e aceitava duplicata.

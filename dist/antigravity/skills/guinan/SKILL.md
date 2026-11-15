@@ -34,12 +34,19 @@ If `.specs/features/<slug>/` has none of `verification.md`, `proofs.md`, `review
    `weak_test`, `spec_precision_gap`, `ac_gap`, `spec_deviation`, `gate_fail`, `review_finding`.
    `review_finding` is for a Worf finding in `review.md` that is `confirmed` and `blocker` or `should-fix`;
    questions, nits and findings not confirmed give no lesson.
-3. For each finding, write one lesson (one actionable sentence, general to the code, at most 300 characters) and run
+3. Before writing, list what is already recorded:
+   `python "<plugin-root>/scripts/lessons.py" list --status all`.
+4. For each finding, compare it with that list. When a `candidate` or `confirmed` lesson already describes the
+   same finding (same cause and same fix, even in other words), record the recurrence by its ID instead of writing
+   a new sentence (recorrência):
+   `python "<plugin-root>/scripts/lessons.py" add --id L<n> --feature <slug> --signal <signal> --source "<file:line or id>"`.
+   Never reuse the ID of a `quarantined` lesson, and never reuse one when the cause or the fix differs.
+5. Otherwise write one lesson (one actionable sentence, general to the code, at most 300 characters) and run
    `python "<plugin-root>/scripts/lessons.py" add --feature <slug> --signal <signal> --source "<file:line or id>" --text "<sentence>"`.
    Add `--scope` when the lesson holds for one area only.
-4. A feature with no finding gets **no lesson**. Never invent one to fill the list. Never record methodology
+6. A feature with no finding gets **no lesson**. Never invent one to fill the list. Never record methodology
    lessons (how to run the process): only lessons about the code and the specs.
-5. Keep the IDs the script prints (`L<n>`). A script exit 2 is reported as is; never edit `.specs/lessons.json`
+7. Keep the IDs the script prints (`L<n>`). A script exit 2 is reported as is; never edit `.specs/lessons.json`
    or `.specs/LESSONS.md` by hand.
 
 ## 1b. Autopilot log
