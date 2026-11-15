@@ -222,6 +222,58 @@ class AddAntesDoCommitTests(TempRepoCase):
             f"grande.txt: arquivo grande demais para verificar ({tamanho} caracteres; limite 10000). "
             "Divida o commit ou aprove o arquivo em .starcode/secret-allowlist (path:<glob>)."])
 
+    def test_add_force_inclui_ignorados(self):
+        self.write(".gitignore", ".env\nsegredo.py\n")
+        self.commit_all(".gitignore")
+        self.write(".env", "DEBUG=1\n")
+        self.write("segredo.py", self.segredo())
+        findings = ss.evaluate("git add -f .env segredo.py && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [".env: arquivo .env no commit (variáveis de ambiente não vão para o Git)",
+                                    self.achado("segredo.py")])
+        findings = ss.evaluate("git add --force .env segredo.py && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [".env: arquivo .env no commit (variáveis de ambiente não vão para o Git)",
+                                    self.achado("segredo.py")])
+        self.assertEqual(ss.evaluate("git add .env segredo.py && git commit -m x", str(self.repo)), [])
+
+    def test_nome_nao_ascii_e_escaneado(self):
+        self.write("café.py", "a = 1\n")
+        self.commit_all("café.py")
+        self.write("café.py", self.segredo())
+        self.assertEqual(ss.evaluate("git add -A && git commit -m x", str(self.repo)), [self.achado("café.py")])
+        self.assertEqual(ss.evaluate("git add café.py && git commit -m x", str(self.repo)), [self.achado("café.py")])
+        run_git(self.repo, "add", "café.py")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [self.achado("café.py")])
+
+    def test_add_pathspec_raiz(self):
+        self.write("sub/ok.py", "a = 1\n")
+        self.commit_all("sub/ok.py")
+        self.write("raiz.py", self.segredo())
+        sub = str(self.repo / "sub")
+        self.assertEqual(ss.evaluate("git add -A :/ && git commit -m x", sub), [self.achado("raiz.py")])
+        self.assertEqual(ss.evaluate("git add ':(top)' && git commit -m x", sub), [self.achado("raiz.py")])
+
+    def test_git_stage_conta_como_add(self):
+        self.write("novo.py", self.segredo())
+        self.assertEqual(ss.evaluate("git stage -A && git commit -m x", str(self.repo)), [self.achado("novo.py")])
+
+    def test_add_pathspec_from_file_escaneia_tudo(self):
+        self.write("novo.py", self.segredo())
+        self.write("lista.txt", "ok.py\n")
+        findings = ss.evaluate("git add --pathspec-from-file=lista.txt && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("novo.py")])
+        findings = ss.evaluate("git add --pathspec-from-file lista.txt && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("novo.py")])
+
+    def test_add_binario_novo_grande_passa(self):
+        (self.repo / "dados.bin").write_bytes(bytes(5_000))
+        old = ss.MAX_DIFF_BYTES
+        ss.MAX_DIFF_BYTES = 1_000
+        try:
+            findings = ss.evaluate("git add -A && git commit -m x", str(self.repo))
+        finally:
+            ss.MAX_DIFF_BYTES = old
+        self.assertEqual(findings, [])
+
     def test_secret_scan_nega_commit_pelo_powershell(self):
         self.write("app/novo.py", self.segredo())
         outs = {}
