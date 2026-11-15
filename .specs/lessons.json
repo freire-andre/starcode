@@ -32,7 +32,8 @@
         "ajustes-review-pr39",
         "snapshot-restauracao-segura",
         "impacto-seleciona-real",
-        "licoes-recorrencia-por-id"
+        "licoes-recorrencia-por-id",
+        "opencode-copia-instalada"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -44,11 +45,12 @@
         "L26 (verification.md:C8 (tests/test_skills_exec.py:18))",
         "L37 (verification.md:achado 3)",
         "L38 (verification.md:C7)",
-        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)"
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)",
+        ".specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-15T17:19:51Z"
+      "updated": "2026-11-15T19:42:34Z"
     },
     {
       "id": "L3",
@@ -165,16 +167,18 @@
       "features": [
         "fase-11-telas",
         "despacho-media-escopo",
-        "q-familia-revendedor"
+        "q-familia-revendedor",
+        "opencode-copia-instalada"
       ],
       "sources": [
         ".specs/features/fase-11-telas/verification.md:achado 3",
         "L29 (verification.md: achado ID em minúscula; spec.md Edge Cases)",
-        "L31 (verification.md achado C7 (test_model_info.py:164))"
+        "L31 (verification.md achado C7 (test_model_info.py:164))",
+        ".specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-15T16:31:41Z"
+      "updated": "2026-11-15T19:42:34Z"
     },
     {
       "id": "L11",
@@ -210,16 +214,18 @@
       "id": "L13",
       "text": "Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "fase-11-telas"
+        "fase-11-telas",
+        "opencode-copia-instalada"
       ],
       "sources": [
-        ".specs/features/fase-11-telas/verification.md:achado 6"
+        ".specs/features/fase-11-telas/verification.md:achado 6",
+        ".specs/features/opencode-copia-instalada/verification.md: achado 3 (.pyc fora de __pycache__)"
       ],
       "scope": "",
       "created": "2026-11-12T13:24:05Z",
-      "updated": "2026-11-12T13:24:05Z"
+      "updated": "2026-11-15T19:42:34Z"
     },
     {
       "id": "L14",
