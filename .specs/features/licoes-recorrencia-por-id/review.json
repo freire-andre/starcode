@@ -1,40 +1,36 @@
 {
-  "round": 1,
-  "verdict": "COMMENT",
-  "summary": "TL;DR: COMMENT. O add --id cobre R1 a R8 como a spec pede: ausente (None) e vazio são tratados separadamente, a caixa não importa, a quarentena e o ID inexistente saem com 2 sem tocar nos bytes (sondado em pasta temporária, inclusive a candidata podada no próprio comando), e a promoção e a idempotência estão certas. As cópias de dist/ estão em dia (build --check OK). O reprocessamento de L2, L10 e L32 bate com o Scope e as repetidas ficaram intactas. Um should-fix: test_licoes_reprocessadas_n1 exige que as repetidas existam para sempre, mas a poda de 45 dias vai removê-las no primeiro add depois de 2026-12-27, e a suíte quebra com KeyError. Dois nits nos testes. Arquivos mecânicos fora do review: dist/ (5 CLIs), .specs/LESSONS.md (gerado). Bypass scan: 1 candidato (time.sleep(1.1) em tests/test_lessons.py:93), aceito: espera a resolução de 1 s do carimbo, não esconde corrida.",
-  "findings": [
-    {
-      "id": "W1",
-      "severity": "should-fix",
-      "path": "tests/test_lessons.py",
-      "line": 282,
-      "body": "🟠 test_licoes_reprocessadas_n1 lê by_id[rid] para L18, L21, L24, L26, L29, L31, L34, L37, L38 e L39 do .specs/lessons.json real (tests/test_lessons.py:282-284). Essas lições são candidate com 1 feature, e _prune (scripts/lessons.py:121-125) as remove depois de 45 dias sem update, em qualquer add. L18 e L21 têm updated 2026-11-12: o primeiro retro da Guinan depois de 2026-12-27 apaga as duas e a suíte quebra com KeyError, sem nenhuma mudança de código. A sonda numa cópia em pasta temporária com L18 envelhecida confirmou que um add a remove. Correção: na parte das repetidas, pular o ID que não está mais em by_id (a decisão aprovada é que elas ficam até a poda), e manter as asserções das canônicas.",
-      "evidence": ["tests/test_lessons.py:282", "scripts/lessons.py:125"]
-    },
-    {
-      "id": "W2",
-      "severity": "nit",
-      "path": "tests/test_guinan_skill.py",
-      "line": 60,
-      "body": "🟡 self.assertLess(lst[0], wr[0], root) aparece duas vezes (tests/test_guinan_skill.py:55 e :60). A segunda não acrescenta nada; pode sair.",
-      "evidence": ["tests/test_guinan_skill.py:60"]
-    },
-    {
-      "id": "W3",
-      "severity": "nit",
-      "path": "scripts/lessons.py",
-      "line": 202,
-      "body": "🟡 O ramo da lição podada no próprio comando (scripts/lessons.py:202-203) não tem teste. A sonda mostrou que ele sai com 2 sem tocar nos bytes. Um teste com uma candidata de updated antigo fixaria isso, para que ela não volte em silêncio.",
-      "evidence": ["scripts/lessons.py:202"]
-    }
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Os três achados da rodada 1 fecharam. W1: test_licoes_reprocessadas_n1 agora pula a repetida que a poda já removeu (tests/test_lessons.py:295-296) e mantém todas as asserções das canônicas, que conferem as fontes pelo snapshot orig, não por by_id (tests/test_lessons.py:289-294). W2: o assertLess duplicado saiu (tests/test_guinan_skill.py:55 ficou sozinho). W3: test_lessons_add_id_de_licao_podada_sai_2 (tests/test_lessons.py:156-167) envelhece L1 em 60 dias, passa pela primeira busca e cai no ramo da poda (scripts/lessons.py:202-203), conferindo saída exata e bytes intactos de lessons.json e LESSONS.md. As correções mexem só em testes e na Handoff da spec; nenhum blocker novo. Arquivos mecânicos fora do review: dist/ (5 CLIs), .specs/LESSONS.md (gerado). Bypass scan: 3 candidatos; o único de código é o mesmo da rodada 1 (tests/test_lessons.py:93, espera de 1 s do carimbo), aceito; os outros 2 são o review.json e o review.md da rodada 1 citando esse trecho.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido em a8324a0: pula a repetida ausente de by_id (tests/test_lessons.py:295)",
+    "W2": "resolvido em 7dca367: assertLess duplicado removido (tests/test_guinan_skill.py:55)",
+    "W3": "resolvido em a8324a0: test_lessons_add_id_de_licao_podada_sai_2 (tests/test_lessons.py:156)"
+  },
+  "research": [
+    "nenhuma superfície externa: só stdlib (argparse, json, datetime) e arquivos do repo"
   ],
-  "carryover": [],
-  "research": ["nenhuma superfície externa: só stdlib (argparse, json) e arquivos do repo"],
   "ladder": [
-    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
-    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
-    {"command": "python scripts/check_decisions.py", "result": "OK"},
-    {"command": "python -m unittest discover -s tests", "result": "921 testes, OK (skipped=1)"},
-    {"command": "git diff main...HEAD | scan_bypasses.py", "result": "1 candidato (sync-hack, tests/test_lessons.py:93), aceito"}
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK"
+    },
+    {
+      "command": "python -m unittest test_lessons test_guinan_skill (em tests/)",
+      "result": "15 testes, OK"
+    },
+    {
+      "command": "python -m unittest discover -s tests",
+      "result": "OK (skipped=1)"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "3 candidatos (sync-hack): tests/test_lessons.py:93, aceito; review.json:4 e review.md:19 da rodada 1, só citam o mesmo trecho"
+    }
   ]
 }
