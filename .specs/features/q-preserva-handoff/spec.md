@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-181
-**May change**: scripts/dispatch.py, src/briefs/q-verify.md, skills/engajar/references/execute.md, tests/test_dispatch.py, tests/test_dispatch_qcheck.py, tests/test_skills_exec.py, DECISIONS.md, dist/
+**May change**: scripts/dispatch.py, src/briefs/q-verify.md, skills/engajar/references/execute.md, tests/test_dispatch.py, tests/test_dispatch_qcheck.py, tests/test_skills_exec.py, tests/test_q_skill.py, DECISIONS.md, dist/
 
 ## Context
 Item 1.1 ampliado de `starcode-triagem-v2-2026-11-13.md` (seção 4, fora do Git). Discovery em `context.md`. Na fase 12, o Q restaurou o `tasks.md` e apagou o Handoff não commitado (retro `fase-12-robustez`, item 2). Hoje o brief do Q (`src/briefs/q-verify.md:22-24`) não cita o Handoff, o `execute.md` (seção 4) grava o Handoff depois do commit das provas e o Picard desfaz à mão as mudanças extras do Q. Sucesso: o Handoff está commitado quando o Q começa, o brief proíbe tocar nele e restaurar arquivos, e um comando diz se o Q mexeu em algo fora da lista.
@@ -82,7 +82,7 @@ Proof: run unit | test_decisions_q_preserva_handoff ... ok
 **Linear:** SC-181
 **Integration branch:** feature/q-preserva-handoff
 **Last integrated:** e485a75
-**Dispatched:** none
+**Dispatched:** T1-fix provas · claude:claude-sonnet-5-5
 **Settled:** 2026-11-15: aprovação da spec e issue: "sim"
 **Attempts:** gate-proofs=1
 **Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever
