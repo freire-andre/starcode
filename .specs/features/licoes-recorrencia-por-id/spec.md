@@ -94,7 +94,7 @@ Proof: run unit | test_decisions_licoes_recorrencia_por_id ... ok
 **Linear:** SC-183
 **Integration branch:** feature/licoes-recorrencia-por-id
 **Last integrated:** 15aaf96
-**Dispatched:** none
+**Dispatched:** T1-fix · SC-183 · base f915b3f · claude:claude-sonnet-5-5 · 2026-11-15T17:01:10Z
 **Settled:** 2026-11-15: 2026-11-15: aprovação da spec e issue: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-15: T1: add --id, Guinan lista e reusa ID, reprocessamento L2/L10/L32, SC-183 em DECISIONS; 921 OK; ticket gate verde; 8fcdf56, dcfab00; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 5 achados (--id vazio cria lição; C1 updated; C4 LESSONS.md; C5 ordem/critério; C6 fonte completa e repetidas intactas); 921 OK; q-check: só spec.md (Dispatched, do Picard)
