@@ -162,8 +162,8 @@ before any new `batch`.
    picked for the Q and **never in the LaForge's family**. Fill `**Verifier**:` in `screens.md` as for the Q
    (step 5). Round 1 writes `screens.md`; its `differs` rows go into the single post-Q fix (section 5).
 7. Right after the Q's `worker_done`, run
-   `python "P/scripts/dispatch.py" q-check <slug>` (it only reports; the Q writes only `verification.md`): exit 0 means only the allowed files
-   changed; exit 1 lists the extra files. Discard those extra changes (`git restore --source=HEAD -- <file>` for
+   `python "P/scripts/dispatch.py" q-check <slug>` (it only reports): exit 0 means only the allowed files
+   changed; exit 1 lists the extra files. **The Q writes only `verification.md`.** Discard those extra changes (`git restore --source=HEAD -- <file>` for
    tracked files; delete new untracked ones) before committing `verification.md`, and cite the files in the review comment.
 
 ## 5. Post-Q cycle (4.6) and the end
