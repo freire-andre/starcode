@@ -491,9 +491,12 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
 
 def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
     """What the Q left changed outside its allowed files (SC-181); reads `git status`, touches nothing."""
-    res = subprocess.run(["git", "-c", "core.quotepath=off", "status", "--porcelain", "--untracked-files=all"],
-                         cwd=str(root), capture_output=True, text=True, encoding="utf-8", errors="replace",
-                         stdin=subprocess.DEVNULL)
+    try:
+        res = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                             cwd=str(root), capture_output=True, encoding="utf-8", errors="replace",
+                             stdin=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise ValueError(f"git status falhou em {root}: git não encontrado") from None
     if res.returncode != 0:
         why = _first_line(res.stderr, res.stdout) if (res.stderr or res.stdout).strip() else f"código {res.returncode}"
         raise ValueError(f"git status falhou em {root}: {why}")
@@ -501,13 +504,20 @@ def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
     allowed = {base + "verification.md", base + "screens.md"}
     capture = re.compile(re.escape(base) + r"captures/[^/]+\.running\.png")
     out = []
-    for line in res.stdout.splitlines():
-        if len(line) < 4:
+    records = res.stdout.split("\0")
+    i = 0
+    while i < len(records):
+        rec = records[i]
+        i += 1
+        if len(rec) < 4:
             continue
-        paths = line[3:].split(" -> ") if line[0] in "RC" or line[1] in "RC" else [line[3:]]  # renomeação/cópia: dois caminhos
+        xy, paths = rec[:2], [rec[3:]]
+        if "R" in xy or "C" in xy:  # renomeação/cópia: o caminho antigo vem no registro seguinte
+            paths.insert(0, records[i] if i < len(records) else "")
+            i += 1
         if all(p in allowed or capture.fullmatch(p) for p in paths):
             continue
-        out.append(f"fora da lista: {line}")
+        out.append(f"fora da lista: {xy} {' -> '.join(paths)}")
     if not out:
         return 0, ["q-check: só arquivos permitidos alterados"]
     out.append(f"q-check: {len(out)} arquivo(s) fora da lista; desfaça com git restore (rastreados) ou apague (novos)")

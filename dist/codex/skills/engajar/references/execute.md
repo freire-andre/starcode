@@ -134,14 +134,14 @@ before any new `batch`.
 1. After the last ticket: `python "P/scripts/gates/run_gates.py" proofs <slug>` in the worktree of `I`
    (it writes `proofs.md`). Red → one LaForge dispatch with the failing rows, as in step 2.
 2. Green → commit `proofs.md` (`docs(specs): provas (<slug>)` + `Refs`), then
-   `python "P/scripts/handoff.py" set <slug> --phase review` and **commit the Handoff** (`docs(specs): handoff antes do Q (<slug>)` + `Refs`)
-   before any `worker-start` of the Q: the Q must find a clean tree and never has the Handoff as an uncommitted change (SC-181).
+   `python "P/scripts/handoff.py" set <slug> --phase review --dispatched "Q · <sha of I>"` and **commit the Handoff** (`docs(specs): handoff antes do Q (<slug>)` + `Refs`)
+   before any `worker-start` of the Q, with every other `handoff.py set` of this step in the same commit: the Q must find a clean tree, and no `handoff.py set` runs between this commit and the Q's `worker_done` (SC-181, W2).
    Then dispatch the Q.
 3. Q brief: `python "P/scripts/dispatch.py" q-brief <slug> --base <B> --head <sha of I> --out <temp>/<slug>-q.md`.
 4. Pick the Q CLI by family: `python "P/scripts/dispatch.py" q-cli --laforge <laforge cli:model> [--configured <q cli:model>]`
    (order: configured Q, codex, antigravity, opencode; first of another family with `orca_worker` ok; never hard-code
    the CLI). Output `self-verified` (exit 1) → no worker: run the `q` skill as a clean-context subagent and mark
-   `**Verification:** self-verified`. Record `--dispatched "Q · <sha of I>"` and start the Q **in the existing worktree of `I`**; the default order is:
+   `**Verification:** self-verified`. The Q's `Dispatched` entry is already in the Handoff commit of step 2 (no worker: `--dispatch-remove Q` after the subagent ends). Start the Q **in the existing worktree of `I`**; the default order is:
 
        orca orchestration worker-start --agent codex --worktree <worktree of I> --spec-file <temp>/<slug>-q.md --json
        orca orchestration worker-start --agent antigravity --model <gemini model> --worktree <worktree of I> --spec-file <temp>/<slug>-q.md --json
