@@ -93,9 +93,9 @@ Proof: run unit | test_decisions_licoes_recorrencia_por_id ... ok
 **Next:** Q verifica
 **Linear:** SC-183
 **Integration branch:** feature/licoes-recorrencia-por-id
-**Last integrated:** 15aaf96
-**Dispatched:** T1-fix · SC-183 · base 4a6c2a6 · claude:claude-sonnet-5-5 · 2026-11-15T17:01:27Z · ctx_e09dc3534dec
+**Last integrated:** 8181a7d
+**Dispatched:** none
 **Settled:** 2026-11-15: 2026-11-15: aprovação da spec e issue: "Sim"
 **Attempts:** none
-**Reports:** 2026-11-15: T1: add --id, Guinan lista e reusa ID, reprocessamento L2/L10/L32, SC-183 em DECISIONS; 921 OK; ticket gate verde; 8fcdf56, dcfab00; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 5 achados (--id vazio cria lição; C1 updated; C4 LESSONS.md; C5 ordem/critério; C6 fonte completa e repetidas intactas); 921 OK; q-check: só spec.md (Dispatched, do Picard)
+**Reports:** 2026-11-15: T1: add --id, Guinan lista e reusa ID, reprocessamento L2/L10/L32, SC-183 em DECISIONS; 921 OK; ticket gate verde; 8fcdf56, dcfab00; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 5 achados (--id vazio cria lição; C1 updated; C4 LESSONS.md; C5 ordem/critério; C6 fonte completa e repetidas intactas); 921 OK; q-check: só spec.md (Dispatched, do Picard); 2026-11-15: T1-fix: 6c09aec (--id vazio), ee2e48d (C1, C4, C5, C6 estritos); 921 OK; ticket gate verde
 **Breaker:** closed
