@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_q_preserva_handoff ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** aguardar verificação do Q
 **Linear:** SC-181
 **Integration branch:** feature/q-preserva-handoff
-**Last integrated:** none
-**Dispatched:** none
+**Last integrated:** e485a75
+**Dispatched:** Q · codex
 **Settled:** 2026-11-15: aprovação da spec e issue: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75
 **Breaker:** closed
