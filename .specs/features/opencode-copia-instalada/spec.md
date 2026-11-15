@@ -51,12 +51,12 @@ Proof: run unit | test_opencode_dry_run_reports_removed_and_written ... ok
 **Phase:** review
 **Size:** PEQUENA
 **Git mode:** 3
-**Next:** push + PR (confirmação)
+**Next:** LaForge corrige W1-W2; Worf r2
 **Linear:** SC-184
 **Integration branch:** feature/opencode-copia-instalada
 **Last integrated:** 4194e77
-**Dispatched:** none
-**Settled:** 2026-11-15: 2026-11-15: opção (a), fix do OpenCode agora: "A"; issue: "Sim"; 2026-11-15: 2026-11-15: push + PR: "Sim"
+**Dispatched:** W-fix · SC-184 · base pendente · claude:claude-sonnet-5-5 · 2026-11-15T19:53:46Z
+**Settled:** 2026-11-15: 2026-11-15: opção (a), fix do OpenCode agora: "A"; issue: "Sim"; 2026-11-15: 2026-11-15: push + PR: "Sim"; 2026-11-15: 2026-11-15: PR aberto: https://github.com/freire-andre/starcode/pull/57
 **Attempts:** none
-**Reports:** 2026-11-15: T1: cherry-pick de 5d8450a como 932a4c2; CHANGELOG em [Unreleased]; 924 OK; ticket gate verde; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 3 achados (C1 sem caminhos exatos; dry-run sem check: C5 acrescentado pelo Picard; .pyc fora de __pycache__ sem teste); 924 OK; q-check 0; 2026-11-15: T1-fix: d157d4a (C1, C5 estritos; .pyc solto); 924 OK; ticket gate verde; 2026-11-15: provas e done verdes (924 OK); C5 na verificação marcado como não julgado pelo Q; 2026-11-15: Guinan: L2, L10, L13 (promovida) por --id; retro com 3 sugestões
+**Reports:** 2026-11-15: T1: cherry-pick de 5d8450a como 932a4c2; CHANGELOG em [Unreleased]; 924 OK; ticket gate verde; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 3 achados (C1 sem caminhos exatos; dry-run sem check: C5 acrescentado pelo Picard; .pyc fora de __pycache__ sem teste); 924 OK; q-check 0; 2026-11-15: T1-fix: d157d4a (C1, C5 estritos; .pyc solto); 924 OK; ticket gate verde; 2026-11-15: provas e done verdes (924 OK); C5 na verificação marcado como não julgado pelo Q; 2026-11-15: Guinan: L2, L10, L13 (promovida) por --id; retro com 3 sugestões; 2026-11-15: Worf r1: COMMENT; W1 should-fix (rmtree antes do copytree deixa cópia incompleta se a cópia falhar); W2 nit (skill removida deixa caminho morto)
 **Breaker:** closed

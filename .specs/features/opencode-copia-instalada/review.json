@@ -1,0 +1,38 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT. A cópia instalada cumpre R1 a R3: caminhos antigos do clone e da cópia são reconhecidos sem diferença de caixa, os alheios ficam em ordem, o dry-run não escreve nada e as exclusões de __pycache__ e *.pyc funcionam. Um defeito real: a cópia antiga é apagada antes de a nova existir, e uma falha no meio deixa o OpenCode apontando para uma pasta incompleta, sem os guardas. Um nit sobre caminho de skill removida que sobra no opencode.json. O install da Orca, do Codex e do Antigravity não toca ~/.config/opencode.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "should-fix",
+      "path": "tools/install_local.py",
+      "line": 199,
+      "body": "🟠 A cópia antiga é apagada antes de a nova ficar pronta (tools/install_local.py:199-201). Se o `rmtree` ou o `copytree` falha no meio (arquivo em uso no Windows, disco cheio), `~/.config/opencode/starcode` fica incompleta, o `opencode.json` continua apontando para ela e o script sai com traceback (exit 1 fora dos códigos do docstring). Sem `hooks/scripts/git_guard.py`, o plugin avisa e deixa o comando passar (dist/opencode/plugins/starcode.js:30). Sonda em home temporário: `copytree` falhando deixou a pasta sem `skills/` e o JSON intacto; rodar de novo recupera.\nCorreção:\n1. `copytree` para `installed.with_name(PLUGIN + \".novo\")`;\n2. só então `rmtree(installed)` e `os.replace` da nova para o lugar;\n3. `OSError` vira mensagem e exit 2.",
+      "evidence": "tools/install_local.py:199"
+    },
+    {
+      "id": "W2",
+      "severity": "nit",
+      "path": "tools/install_local.py",
+      "line": 183,
+      "body": "🟡 `is_starcode` só reconhece skills cujo nome existe no pacote atual (tools/install_local.py:183). Uma skill removida ou renomeada deixa `.../opencode/starcode/skills/<antiga>` no `opencode.json`, apontando para uma pasta que o `rmtree` já apagou. Para o dono `(\"opencode\", PLUGIN)` o teste do nome pode sair.",
+      "evidence": "tools/install_local.py:183"
+    }
+  ],
+  "carryover": [],
+  "research": [
+    "/websites/opencode_ai (Context7): descoberta de skills em ~/.config/opencode/skills, sem varrer subpastas como ~/.config/opencode/starcode",
+    "https://opencode.ai/docs/skills.md",
+    "https://opencode.ai/docs/commands.md",
+    "https://opencode.ai/docs/cli/plugins.md"
+  ],
+  "ladder": [
+    "python tools/build.py --check: OK, dist/ em dia",
+    "claude plugin validate dist/claude --strict: Validation passed",
+    "python scripts/check_decisions.py: OK",
+    "python -m unittest discover -s tests -p test_install_local.py: 31 testes, OK",
+    "python -m unittest discover -s tests: 924 testes, OK (1 ignorado)",
+    "scan_bypasses.py: 0 candidatos"
+  ]
+}
