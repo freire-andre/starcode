@@ -98,7 +98,7 @@ Proof: run unit | test_decisions_guardas_add_commit_powershell ... ok
 **Integration branch:** feature/guardas-add-commit-powershell
 **Last integrated:** 613d5a9
 **Dispatched:** none
-**Settled:** 2026-11-14: aprovação da spec e issue: "sim"
+**Settled:** 2026-11-14: aprovação da spec e issue: "sim"; 2026-11-14: push + PR: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-14: T1: scan do add antes do commit (R1-R6), matcher Bash|PowerShell no Claude (R7), C1-C10; ticket gate verde; a5090b9, 613d5a9; 2026-11-14: Q: codex · FAIL, 2 achados em testes (formato integral do achado de arquivo novo; sem check de arquivo novo grande); 893 OK; 2026-11-14: T1-fix: 49fab08 (formato integral; arquivo novo grande); 2026-11-14: Guinan: L2 e L4 recorrentes (confirmed); retro com 3 sugestões; provas e done verdes
 **Breaker:** closed
