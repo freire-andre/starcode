@@ -126,12 +126,15 @@ def _env_finding(path: str, name: str) -> str | None:
     return None
 
 
-def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: list[str] | None = None) -> list[str]:
+def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: list[str] | None = None,
+                    list_cwd: str | None = None) -> list[str]:
     diff_args = ["diff", "HEAD"] if all_tracked else ["diff", "--cached"]
     spec = ["--", *pathspecs] if pathspecs else []
-    names = sc.git([*diff_args, "--name-only", "--diff-filter=ACMR", *spec], cwd)
+    where = list_cwd or cwd
+    quote = ["-c", "core.quotepath=off"]  # W2: nome não ASCII sem aspas
+    names = sc.git([*quote, *diff_args, "--name-only", "--diff-filter=ACMR", *spec], where)
     if names is None and all_tracked:  # no HEAD yet
-        names = sc.git(["diff", "--cached", "--name-only", "--diff-filter=ACMR", *spec], cwd)
+        names = sc.git([*quote, "diff", "--cached", "--name-only", "--diff-filter=ACMR", *spec], where)
         diff_args = ["diff", "--cached"]
     out: list[str] = []
     for path in (names or "").splitlines():
@@ -172,10 +175,12 @@ def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: li
     return out
 
 
-def untracked_findings(root: Path, pathspecs: list[str], allow: Allowlist) -> list[str]:
-    """Arquivos novos (não rastreados, não ignorados) dentro dos pathspecs: o conteúdo inteiro é linha nova."""
-    listing = sc.git(["-c", "core.quotepath=off", "ls-files", "--others", "--exclude-standard", "--full-name",
-                      *(["--", *pathspecs] if pathspecs else [])], str(root))
+def untracked_findings(root: Path, pathspecs: list[str], allow: Allowlist, force: bool = False,
+                       list_cwd: str | None = None) -> list[str]:
+    """Arquivos novos (não rastreados, não ignorados; com `add -f`, também os ignorados) dentro dos pathspecs:
+    o conteúdo inteiro é linha nova."""
+    listing = sc.git(["-c", "core.quotepath=off", "ls-files", "--others", *([] if force else ["--exclude-standard"]),
+                      "--full-name", *(["--", *pathspecs] if pathspecs else [])], list_cwd or str(root))
     out: list[str] = []
     for path in (listing or "").splitlines():
         path = path.strip()
@@ -192,12 +197,12 @@ def untracked_findings(root: Path, pathspecs: list[str], allow: Allowlist) -> li
             text = (root / path).read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
+        if _is_binary(text):
+            continue
         if len(text) > MAX_DIFF_BYTES:
             out.append(f"{path}: arquivo grande demais para verificar ({len(text)} caracteres; limite "
                        f"{MAX_DIFF_BYTES}). Divida o commit ou aprove o arquivo em .starcode/secret-allowlist "
                        "(path:<glob>).")
-            continue
-        if _is_binary(text):
             continue
         for n, kind, masked in scan_text(text, allow):
             out.append(f"{path}:{n}: {kind} ({masked})")
@@ -217,7 +222,7 @@ def _git_call(args: list[str], cwd: str) -> tuple[str, list[str], str] | None:
 
 
 def parse_add(rest: list[str], git_cwd: str) -> dict:
-    mode, paths, only_paths = "paths", [], False
+    mode, paths, only_paths, force, from_file = "paths", [], False, False, False
     for a in rest:
         short = a.startswith("-") and not a.startswith("--")
         if only_paths:
@@ -228,9 +233,17 @@ def parse_add(rest: list[str], git_cwd: str) -> dict:
             mode = "all"
         elif a == "--update" or (short and "u" in a[1:]):
             mode = "update"
+        elif a == "--force" or (short and "f" in a[1:]):
+            force = True
+        elif a == "--pathspec-from-file" or a.startswith("--pathspec-from-file="):
+            from_file = True
         elif not a.startswith("-"):
             paths.append(a)
-    return {"cwd": git_cwd, "mode": mode, "paths": paths}
+    if from_file:  # a lista de caminhos vem de um arquivo: trata como o repositório inteiro (mais rígido)
+        paths = []
+        if mode == "paths":
+            mode = "all"
+    return {"cwd": git_cwd, "mode": mode, "paths": paths, "force": force}
 
 
 def add_findings(add: dict, allow_for: dict[str, Allowlist]) -> list[str]:
@@ -243,17 +256,21 @@ def add_findings(add: dict, allow_for: dict[str, Allowlist]) -> list[str]:
     base = Path(add["cwd"]).resolve()
     pathspecs: list[str] = []
     for p in add["paths"]:
+        if p.startswith(":"):  # pathspec mágico (`:/`, `:(top)`...): o git resolve a partir do cwd do comando
+            pathspecs.append(p)
+            continue
         try:
-            pathspecs.append((base / p).resolve().relative_to(root).as_posix())
+            rel = (base / p).resolve().relative_to(root).as_posix()
+            pathspecs.append(":(top)" + ("" if rel == "." else rel))
         except ValueError:
             continue
     if add["paths"] and not pathspecs:
         return []
     if not add["paths"] and add["mode"] == "paths":
         return []
-    out = staged_findings(str(root), True, allow, pathspecs or None)
+    out = staged_findings(str(root), True, allow, pathspecs or None, add["cwd"])
     if add["mode"] != "update":
-        out += untracked_findings(root, pathspecs, allow)
+        out += untracked_findings(root, pathspecs, allow, add.get("force", False), add["cwd"])
     return out
 
 
@@ -279,7 +296,7 @@ def evaluate(command: str, cwd: str | None) -> list[str]:
             if call is None:
                 continue
             sub, rest, git_cwd = call
-            if sub == "add":
+            if sub in ("add", "stage"):  # `git stage` é sinônimo de `git add`
                 adds.append(parse_add(rest, git_cwd))
             elif sub == "commit":
                 all_tracked = "--all" in rest or any(
