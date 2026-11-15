@@ -504,8 +504,8 @@ def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
     for line in res.stdout.splitlines():
         if len(line) < 4:
             continue
-        path = line[3:]
-        if path in allowed or capture.fullmatch(path):
+        paths = line[3:].split(" -> ") if line[0] in "RC" or line[1] in "RC" else [line[3:]]  # renomeação/cópia: dois caminhos
+        if all(p in allowed or capture.fullmatch(p) for p in paths):
             continue
         out.append(f"fora da lista: {line}")
     if not out:
