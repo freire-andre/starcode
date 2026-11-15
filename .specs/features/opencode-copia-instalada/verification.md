@@ -18,9 +18,9 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C1 não verifica que cada caminho em `opencode.json` e o plugin apontam exatamente para a cópia instalada; uma configuração errada fora do clone ainda passa. | `tests/test_install_local.py:279-291` | Asserir igualdade dos caminhos de skills esperados e do conteúdo integral do plugin com a raiz instalada. | |
-| R3 inclui o relatório de dry-run, mas nenhum check citado o verifica; C3 só testa a ordem dos caminhos alheios. | `tests/test_install_local.py:230-241` | Incluir `test_opencode_dry_run_reports_removed_and_written` como prova e verificar todos os valores exigidos no relatório sem escrita. | |
-| A cópia ignora todos os arquivos `*.pyc`, mas o teste só verifica a remoção de `__pycache__`; a regra para `.pyc` fora dessa pasta pode regredir silenciosamente. | `tools/install_local.py:201`; `tests/test_install_local.py:280-286` | Acrescentar um `.pyc` fora de `__pycache__` na fixture e verificar que não foi copiado. | |
+| C1 não verifica que cada caminho em `opencode.json` e o plugin apontam exatamente para a cópia instalada; uma configuração errada fora do clone ainda passa. | `tests/test_install_local.py:279-291` | Asserir igualdade dos caminhos de skills esperados e do conteúdo integral do plugin com a raiz instalada. | d157d4a |
+| R3 inclui o relatório de dry-run, mas nenhum check citado o verifica; C3 só testa a ordem dos caminhos alheios. | `tests/test_install_local.py:230-241` | Incluir `test_opencode_dry_run_reports_removed_and_written` como prova e verificar todos os valores exigidos no relatório sem escrita. | d157d4a |
+| A cópia ignora todos os arquivos `*.pyc`, mas o teste só verifica a remoção de `__pycache__`; a regra para `.pyc` fora dessa pasta pode regredir silenciosamente. | `tools/install_local.py:201`; `tests/test_install_local.py:280-286` | Acrescentar um `.pyc` fora de `__pycache__` na fixture e verificar que não foi copiado. | d157d4a |
 
 ## Limits
 
