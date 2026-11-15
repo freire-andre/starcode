@@ -112,7 +112,7 @@ class WiringCase(unittest.TestCase):
         self.assertEqual(sec.count(check), 1)
         step = next(i for i, l in enumerate(lines) if l.startswith("7. Right after the Q's `worker_done`, run"))
         self.assertLess(start, step)
-        self.assertEqual(lines[step + 1].strip(), f"`{check}` (it only reports; the Q writes only `verification.md`): exit 0 means only the allowed files")
+        self.assertEqual(lines[step + 1].strip(), f"`{check}` (it only reports): exit 0 means only the allowed files")
         self.assertEqual([i for i, l in enumerate(lines) if check in l], [step + 1])
 
     def test_decisions_q_preserva_handoff(self):
