@@ -1,0 +1,40 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT. O add --id cobre R1 a R8 como a spec pede: ausente (None) e vazio são tratados separadamente, a caixa não importa, a quarentena e o ID inexistente saem com 2 sem tocar nos bytes (sondado em pasta temporária, inclusive a candidata podada no próprio comando), e a promoção e a idempotência estão certas. As cópias de dist/ estão em dia (build --check OK). O reprocessamento de L2, L10 e L32 bate com o Scope e as repetidas ficaram intactas. Um should-fix: test_licoes_reprocessadas_n1 exige que as repetidas existam para sempre, mas a poda de 45 dias vai removê-las no primeiro add depois de 2026-12-27, e a suíte quebra com KeyError. Dois nits nos testes. Arquivos mecânicos fora do review: dist/ (5 CLIs), .specs/LESSONS.md (gerado). Bypass scan: 1 candidato (time.sleep(1.1) em tests/test_lessons.py:93), aceito: espera a resolução de 1 s do carimbo, não esconde corrida.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "should-fix",
+      "path": "tests/test_lessons.py",
+      "line": 282,
+      "body": "🟠 test_licoes_reprocessadas_n1 lê by_id[rid] para L18, L21, L24, L26, L29, L31, L34, L37, L38 e L39 do .specs/lessons.json real (tests/test_lessons.py:282-284). Essas lições são candidate com 1 feature, e _prune (scripts/lessons.py:121-125) as remove depois de 45 dias sem update, em qualquer add. L18 e L21 têm updated 2026-11-12: o primeiro retro da Guinan depois de 2026-12-27 apaga as duas e a suíte quebra com KeyError, sem nenhuma mudança de código. A sonda numa cópia em pasta temporária com L18 envelhecida confirmou que um add a remove. Correção: na parte das repetidas, pular o ID que não está mais em by_id (a decisão aprovada é que elas ficam até a poda), e manter as asserções das canônicas.",
+      "evidence": ["tests/test_lessons.py:282", "scripts/lessons.py:125"]
+    },
+    {
+      "id": "W2",
+      "severity": "nit",
+      "path": "tests/test_guinan_skill.py",
+      "line": 60,
+      "body": "🟡 self.assertLess(lst[0], wr[0], root) aparece duas vezes (tests/test_guinan_skill.py:55 e :60). A segunda não acrescenta nada; pode sair.",
+      "evidence": ["tests/test_guinan_skill.py:60"]
+    },
+    {
+      "id": "W3",
+      "severity": "nit",
+      "path": "scripts/lessons.py",
+      "line": 202,
+      "body": "🟡 O ramo da lição podada no próprio comando (scripts/lessons.py:202-203) não tem teste. A sonda mostrou que ele sai com 2 sem tocar nos bytes. Um teste com uma candidata de updated antigo fixaria isso, para que ela não volte em silêncio.",
+      "evidence": ["scripts/lessons.py:202"]
+    }
+  ],
+  "carryover": [],
+  "research": ["nenhuma superfície externa: só stdlib (argparse, json) e arquivos do repo"],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
+    {"command": "python scripts/check_decisions.py", "result": "OK"},
+    {"command": "python -m unittest discover -s tests", "result": "921 testes, OK (skipped=1)"},
+    {"command": "git diff main...HEAD | scan_bypasses.py", "result": "1 candidato (sync-hack, tests/test_lessons.py:93), aceito"}
+  ]
+}
