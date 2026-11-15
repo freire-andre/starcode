@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_q_preserva_handoff ... ok
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** push + merge após CI (confirmação)
+**Next:** passo 10 da triagem (N.1)
 **Linear:** SC-181
 **Integration branch:** feature/q-preserva-handoff
 **Last integrated:** e485a75
 **Dispatched:** none
-**Settled:** 2026-11-15: aprovação da spec e issue: "sim"; 2026-11-15: push + PR, sem segundo Q, Worf com foco no q-check: "sim"; 2026-11-15: PR aberto: https://github.com/freire-andre/starcode/pull/55; 2026-11-15: push + merge após CI: "Push + merge após CI"; resíduos: "Issue de acompanhamento"
+**Settled:** 2026-11-15: aprovação da spec e issue: "sim"; 2026-11-15: push + PR, sem segundo Q, Worf com foco no q-check: "sim"; 2026-11-15: PR aberto: https://github.com/freire-andre/starcode/pull/55; 2026-11-15: push + merge após CI: "Push + merge após CI"; resíduos: "Issue de acompanhamento"; 2026-11-15: merge do PR #55: 9ba6124; 2026-11-15: SC-181 Done: "SIM"
 **Attempts:** none
 **Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever; 2026-11-15: T1-fix provas: 8061c88 (test_skills_exec), 62a1af9 (test_q_skill); 910 OK; ticket gate verde nos commits do LaForge; 2026-11-15: Q: codex · FAIL, 4 achados (renomeação entre permitidos dá fora da lista; C4 sem stderr integral; C5 ordem frouxa; C6 vínculos de R8); 910 OK; q-check após o Q: 0 (só verification.md); 2026-11-15: T1-fix: 2328e05, f5af811 (renomeação; C4-C6 estritos), e320c0e, c81bbba (dist); 2026-11-15: provas vermelhas: check_decisions (f5af811 mexeu em skills/ sem DECISIONS.md); Closed corrigido pelo Picard; 2026-11-15: decisions-fix: 81e1bb2; check_decisions OK; 2026-11-15: provas e done verdes (911 OK); plugin validate OK; 2026-11-15: Worf r1: COMMENT; W1 caminho com espaço entre aspas vira fora da lista; W2 --dispatched depois do commit suja o Handoff (should-fix); W3 git ausente sem formato R6; W4 C6 por trecho; W5 renomeação para fora sem teste (nits); 2026-11-15: W-fix: 8759cd9 (W1-W5), 289f468 (dist); 914 OK; 2026-11-15: Worf r2: APPROVE; W1,W2,W3,W5 fechados; W4 parcial (nit); provas e done verdes (914 OK); 2026-11-15: acompanhamento: SC-182
 **Breaker:** closed
