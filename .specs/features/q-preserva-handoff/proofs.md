@@ -1,6 +1,6 @@
 # q-preserva-handoff proofs
 
-**HEAD**: 81e1bb2
+**HEAD**: 289f468
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 9 pass, 0 fail
@@ -33,7 +33,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 911 tests in 1533.123s
+Ran 914 tests in 457.080s
 
 OK (skipped=1)
 inativo

@@ -1,66 +1,27 @@
 {
-  "round": 1,
-  "verdict": "COMMENT",
-  "summary": "TL;DR: COMMENT. O q-check relata certo renomeação entre permitidos e de/para fora, acento (core.quotepath=off), diretório novo (lista cada arquivo), --root em subdiretório, slug com ponto e mais, outra feature, captures/x.png contra x.running.png e apagado no índice; nunca altera a árvore. Dois defeitos reais: caminho permitido com espaço sai entre aspas no porcelain e vira falso 'fora da lista' (W1), e o passo 4 do execute.md grava --dispatched no Handoff depois do commit e antes do worker-start, o que suja a árvore do Q e faz o passo 7 mandar restaurar o próprio Handoff (W2). C1, C4 e C5 comparam a linha inteira; C6 ainda usa trechos (W4). Escada verde, 0 candidatos de bypass, dist/ em dia. Arquivos mecânicos fora do review: dist/ (5 alvos), .specs/lessons.json.",
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. A rodada 2 refez as sondas em repositórios Git temporários com o dispatch.py do ramo (8759cd9). W1, W2, W3 e W5 resolvidos: captura com espaço sai 0 (antes 1); o passo 2 do execute.md seguido à risca (handoff.py set --phase review --dispatched, commit, Q escreve verification.md, Verifier anotado, crew_live set q 1/0) deixa o q-check em 0; sem git no PATH sai 2 com 'git status falhou em <pasta>: git não encontrado'; test_q_check_renomeacao_para_fora cobre o destino fora. W4 fica parcial (nit, não impede): Problema e Motivo comparam a linha inteira, Decisão segue com trechos e Por que não é bug com startswith. A troca para -z não regrediu: renomeação (permitido, de/para fora, com espaço, seguida de outros registros), cópia, acento, aspas, tab, quebra de linha e ' -> ' no nome, diretório novo, apagado no índice e na árvore, captura em subpasta, --root em subdiretório com .specs na raiz e repositório sem commits saem como esperado. Nenhum blocker novo. Escada verde, 68 testes, 0 candidatos de bypass, dist/ em dia.",
   "findings": [
-    {
-      "id": "W1",
-      "severity": "should-fix",
-      "path": "scripts/dispatch.py",
-      "line": 494,
-      "body": "🟠 O q-check lê o porcelain v1 sem -z (scripts/dispatch.py:494) e compara line[3:] cru (:507). O git põe entre aspas todo caminho com espaço, então uma captura permitida como `captures/tela inicial.running.png` sai `?? \".specs/features/demo/captures/tela inicial.running.png\"` e vira 'fora da lista' com saída 1; o passo 7 do execute.md manda então apagar o arquivo novo, que é saída legítima do juiz de telas. O nome da captura não tem restrição de espaço (scripts/gates/images.py:124). Correção: `git status --porcelain -z --untracked-files=all`, separar por NUL e, em R/C, ler o caminho seguinte como origem (sem aspas nem ' -> '); um teste com espaço no nome. Sonda: repositório temporário com `captures/tela inicial.running.png` novo deu exit=1.",
-      "evidence": [
-        "scripts/dispatch.py:494",
-        "scripts/dispatch.py:507",
-        "https://git-scm.com/docs/git-status"
-      ]
-    },
-    {
-      "id": "W2",
-      "severity": "should-fix",
-      "path": "skills/engajar/references/execute.md",
-      "line": 144,
-      "body": "🟠 O passo 2 commita o Handoff antes do Q (skills/engajar/references/execute.md:137), mas o passo 4 manda gravar `--dispatched \"Q · <sha of I>\"` (:144) antes do worker-start, e o Handoff mora no worktree de I, o mesmo do Q (:22-24). A árvore do Q volta a ter o Handoff sem commit, contra a frase de :138 e o Motivo do DECISIONS.md:1062; depois do worker_done o q-check lista o spec.md/tasks.md e o passo 7 (:164-167) manda restaurá-lo. Correção: mover o `--dispatched` para antes do `handoff.py set --phase review` e incluí-lo no mesmo commit, ou dizer no passo 7 que o artefato do Handoff com só a mudança do Picard não se restaura. Sonda: `--phase review` + commit, depois `--dispatched`, Q escreve verification.md: q-check lista ` M spec.md`, exit=1.",
-      "evidence": [
-        "skills/engajar/references/execute.md:137",
-        "skills/engajar/references/execute.md:144",
-        "skills/engajar/references/execute.md:164"
-      ]
-    },
-    {
-      "id": "W3",
-      "severity": "nit",
-      "path": "scripts/dispatch.py",
-      "line": 1001,
-      "body": "🟡 Sem git no PATH, o q-check sai com 2, mas a mensagem é `dispatch: arquivo não encontrado: [WinError 2] ...` (scripts/dispatch.py:1001-1002), sem nomear o git e fora do formato `ERRO: git status falhou em <pasta>: <motivo>`. Correção: capturar FileNotFoundError em q_check e levantar o ValueError de R6 com 'git não encontrado'. Sonda: PATH sem git, exit=2.",
-      "evidence": [
-        "scripts/dispatch.py:1001"
-      ]
-    },
     {
       "id": "W4",
       "severity": "nit",
       "path": "tests/test_dispatch_qcheck.py",
-      "line": 118,
-      "body": "🟡 C6 ainda segue o padrão que a L2 desaconselha: Decisão e Motivo são assertIn de trechos (tests/test_dispatch_qcheck.py:130-133) e Problema e Por que não é bug só têm a presença conferida (:127). C1, C4 e C5 já comparam a linha inteira. Correção: assertEqual da linha de cada campo.",
+      "line": 160,
+      "body": "🟡 Parcial. Problema e Motivo agora são assertEqual da linha inteira (tests/test_dispatch_qcheck.py:152-158) e cada campo aparece uma vez só (:150). Decisão segue com três assertIn de trechos (:160-162) e Por que não é bug só confere o começo da linha (:163). Não impede a aprovação; fica para a Guinan registrar ou para um ajuste fora deste PR.",
       "evidence": [
-        "tests/test_dispatch_qcheck.py:127",
-        "tests/test_dispatch_qcheck.py:133"
-      ]
-    },
-    {
-      "id": "W5",
-      "severity": "nit",
-      "path": "tests/test_dispatch_qcheck.py",
-      "line": 80,
-      "body": "🟡 O DECISIONS.md:1063 diz que test_q_check_renomeacao falha se uma renomeação 'com origem ou destino fora da lista passar', mas o teste (tests/test_dispatch_qcheck.py:80-87) só cobre origem fora (tasks.md -> verification.md). O código está certo (sonda abaixo); falta o caso. Correção: um `git mv verification.md fora.md` no mesmo teste. Sonda: `git mv verification.md fora.md` deu exit=1.",
-      "evidence": [
-        "tests/test_dispatch_qcheck.py:80",
-        "DECISIONS.md:1063"
+        "tests/test_dispatch_qcheck.py:160",
+        "tests/test_dispatch_qcheck.py:163"
       ]
     }
   ],
-  "carryover": {},
+  "carryover": {
+    "W1": "resolvido em 8759cd9: scripts/dispatch.py:495 usa --porcelain=v1 -z e separa por NUL (:507). Sonda: captures/tela inicial.running.png novo (com e sem verification.md alterado) sai 0; --root em subdiretório com a mesma captura sai 0. Teste test_q_check_caminho_com_espaco.",
+    "W2": "resolvido em 8759cd9: skills/engajar/references/execute.md:137 grava --dispatched \"Q · <sha of I>\" no mesmo handoff.py set do --phase review, antes do commit do Handoff; :144 não grava mais nada antes do worker-start. Sonda: repositório temporário seguindo os passos 2 a 7 (provas commitadas, handoff set --phase review --dispatched, commit, q-brief, crew_live set q 1, Q escreve verification.md, crew_live set q 0, linha Verifier) deixa a árvore só com ?? verification.md e o q-check sai 0.",
+    "W3": "resolvido em 8759cd9: scripts/dispatch.py:498-499 captura FileNotFoundError e levanta o ValueError de R6. Sonda: PATH só com o Python sai 2 com 'ERRO: git status falhou em <pasta>: git não encontrado'. Teste test_q_check_sem_git_sai_2.",
+    "W4": "parcial (nit aberto): ver o achado W4.",
+    "W5": "resolvido em 8759cd9: test_q_check_renomeacao_para_fora (tests/test_dispatch_qcheck.py:91). Sonda: git mv verification.md fora.md sai 1 com 'fora da lista: R  .../verification.md -> .../fora.md'."
+  },
   "research": [
     "https://git-scm.com/docs/git-status"
   ],
@@ -71,15 +32,11 @@
     },
     {
       "command": "python scripts/check_decisions.py",
-      "result": "OK (DECISIONS.md em 81e1bb24, depois de f5af8113)"
-    },
-    {
-      "command": "claude plugin validate dist/claude --strict",
-      "result": "Validation passed"
+      "result": "OK (DECISIONS.md atualizado no mesmo commit 8759cd95)"
     },
     {
       "command": "python -m unittest test_dispatch test_dispatch_qcheck test_q_skill test_skills_exec (em tests/)",
-      "result": "Ran 65 tests, OK"
+      "result": "Ran 68 tests, OK"
     },
     {
       "command": "git diff main...HEAD | python scripts/review/scan_bypasses.py",
