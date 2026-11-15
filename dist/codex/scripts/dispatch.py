@@ -31,6 +31,9 @@
         merge conflict (merge aborted): exit 1, entry kept.
     python dispatch.py q-brief <slug> --base <ref> --head <sha> --out <file>
         Fills the Q brief (briefs/q-verify.md) with the feature paths and the range; no session history.
+    python dispatch.py q-check <slug> [--root DIR]
+        Reports (never restores or deletes) what the Q left changed: only `verification.md`, `screens.md` and
+        `captures/<name>.running.png` of the feature are allowed. Exit 0 clean, 1 files outside the list, 2 git failed.
     python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
         The Q CLI: first of Q_CLI_ORDER whose family differs from ALL the given LaForge families and whose
         Orca worker is available. None qualifies: `self-verified` (exit 1).
@@ -486,6 +489,41 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     return f"Repositório: {proj.as_posix()}\n\n" + text + lessons_section(root)
 
 
+def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
+    """What the Q left changed outside its allowed files (SC-181); reads `git status`, touches nothing."""
+    try:
+        res = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                             cwd=str(root), capture_output=True, encoding="utf-8", errors="replace",
+                             stdin=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise ValueError(f"git status falhou em {root}: git não encontrado") from None
+    if res.returncode != 0:
+        why = _first_line(res.stderr, res.stdout) if (res.stderr or res.stdout).strip() else f"código {res.returncode}"
+        raise ValueError(f"git status falhou em {root}: {why}")
+    base = f".specs/features/{slug}/"
+    allowed = {base + "verification.md", base + "screens.md"}
+    capture = re.compile(re.escape(base) + r"captures/[^/]+\.running\.png")
+    out = []
+    records = res.stdout.split("\0")
+    i = 0
+    while i < len(records):
+        rec = records[i]
+        i += 1
+        if len(rec) < 4:
+            continue
+        xy, paths = rec[:2], [rec[3:]]
+        if "R" in xy or "C" in xy:  # renomeação/cópia: o caminho antigo vem no registro seguinte
+            paths.insert(0, records[i] if i < len(records) else "")
+            i += 1
+        if all(p in allowed or capture.fullmatch(p) for p in paths):
+            continue
+        out.append(f"fora da lista: {xy} {' -> '.join(paths)}")
+    if not out:
+        return 0, ["q-check: só arquivos permitidos alterados"]
+    out.append(f"q-check: {len(out)} arquivo(s) fora da lista; desfaça com git restore (rastreados) ou apague (novos)")
+    return 1, out
+
+
 def screens_brief(slug: str, root: Path, url: str, serve: str = "", rnd: int = 1) -> str:
     """Brief of the screen judge: spec, pictures (`screens.py list`), URL, serve command, output, round (R21-R22)."""
     pictures = screens.list_screens(slug, root)
@@ -892,6 +930,9 @@ def main(argv: list[str] | None = None) -> int:
     pq.add_argument("--head", required=True)
     pq.add_argument("--out", required=True)
     pq.add_argument("--root", default=".")
+    pk = sub.add_parser("q-check")
+    pk.add_argument("slug")
+    pk.add_argument("--root", default=".")
     ps = sub.add_parser("screens-brief")
     ps.add_argument("slug")
     ps.add_argument("--url", required=True)
@@ -946,6 +987,10 @@ def main(argv: list[str] | None = None) -> int:
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")
             return 0
+        if a.cmd == "q-check":
+            code, lines = q_check(a.slug, Path(a.root).resolve())
+            print("\n".join(lines))
+            return code
         if a.cmd == "screens-brief":
             text = screens_brief(a.slug, Path(a.root).resolve(), a.url, a.serve, a.round)
             Path(a.out).write_text(text, encoding="utf-8", newline="\n")

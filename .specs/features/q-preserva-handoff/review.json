@@ -1,0 +1,46 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. A rodada 2 refez as sondas em repositórios Git temporários com o dispatch.py do ramo (8759cd9). W1, W2, W3 e W5 resolvidos: captura com espaço sai 0 (antes 1); o passo 2 do execute.md seguido à risca (handoff.py set --phase review --dispatched, commit, Q escreve verification.md, Verifier anotado, crew_live set q 1/0) deixa o q-check em 0; sem git no PATH sai 2 com 'git status falhou em <pasta>: git não encontrado'; test_q_check_renomeacao_para_fora cobre o destino fora. W4 fica parcial (nit, não impede): Problema e Motivo comparam a linha inteira, Decisão segue com trechos e Por que não é bug com startswith. A troca para -z não regrediu: renomeação (permitido, de/para fora, com espaço, seguida de outros registros), cópia, acento, aspas, tab, quebra de linha e ' -> ' no nome, diretório novo, apagado no índice e na árvore, captura em subpasta, --root em subdiretório com .specs na raiz e repositório sem commits saem como esperado. Nenhum blocker novo. Escada verde, 68 testes, 0 candidatos de bypass, dist/ em dia.",
+  "findings": [
+    {
+      "id": "W4",
+      "severity": "nit",
+      "path": "tests/test_dispatch_qcheck.py",
+      "line": 160,
+      "body": "🟡 Parcial. Problema e Motivo agora são assertEqual da linha inteira (tests/test_dispatch_qcheck.py:152-158) e cada campo aparece uma vez só (:150). Decisão segue com três assertIn de trechos (:160-162) e Por que não é bug só confere o começo da linha (:163). Não impede a aprovação; fica para a Guinan registrar ou para um ajuste fora deste PR.",
+      "evidence": [
+        "tests/test_dispatch_qcheck.py:160",
+        "tests/test_dispatch_qcheck.py:163"
+      ]
+    }
+  ],
+  "carryover": {
+    "W1": "resolvido em 8759cd9: scripts/dispatch.py:495 usa --porcelain=v1 -z e separa por NUL (:507). Sonda: captures/tela inicial.running.png novo (com e sem verification.md alterado) sai 0; --root em subdiretório com a mesma captura sai 0. Teste test_q_check_caminho_com_espaco.",
+    "W2": "resolvido em 8759cd9: skills/engajar/references/execute.md:137 grava --dispatched \"Q · <sha of I>\" no mesmo handoff.py set do --phase review, antes do commit do Handoff; :144 não grava mais nada antes do worker-start. Sonda: repositório temporário seguindo os passos 2 a 7 (provas commitadas, handoff set --phase review --dispatched, commit, q-brief, crew_live set q 1, Q escreve verification.md, crew_live set q 0, linha Verifier) deixa a árvore só com ?? verification.md e o q-check sai 0.",
+    "W3": "resolvido em 8759cd9: scripts/dispatch.py:498-499 captura FileNotFoundError e levanta o ValueError de R6. Sonda: PATH só com o Python sai 2 com 'ERRO: git status falhou em <pasta>: git não encontrado'. Teste test_q_check_sem_git_sai_2.",
+    "W4": "parcial (nit aberto): ver o achado W4.",
+    "W5": "resolvido em 8759cd9: test_q_check_renomeacao_para_fora (tests/test_dispatch_qcheck.py:91). Sonda: git mv verification.md fora.md sai 1 com 'fora da lista: R  .../verification.md -> .../fora.md'."
+  },
+  "research": [
+    "https://git-scm.com/docs/git-status"
+  ],
+  "ladder": [
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK (DECISIONS.md atualizado no mesmo commit 8759cd95)"
+    },
+    {
+      "command": "python -m unittest test_dispatch test_dispatch_qcheck test_q_skill test_skills_exec (em tests/)",
+      "result": "Ran 68 tests, OK"
+    },
+    {
+      "command": "git diff main...HEAD | python scripts/review/scan_bypasses.py",
+      "result": "0 candidatos"
+    }
+  ]
+}

@@ -15,6 +15,9 @@ from helpers import FIXTURES, TempRepoCase, run_git
 
 import dispatch
 import handoff
+Q_HANDOFF_RULE = (
+    "Never touch the `## Handoff` section of any artifact, and never restore, revert, stash, check out or "
+    "delete files: uncommitted changes you did not make are not yours.")
 FIXTURES_DIR = FIXTURES / "config" / "valid"
 
 TASKS = """# Demo: Tasks
@@ -228,12 +231,18 @@ class DispatchTests(TempRepoCase):
         self.assertIn("`.specs/features/demo/proofs.md`", text)
         self.assertIn("`main..abc1234`", text)
         self.assertIn("Write only `.specs/features/demo/verification.md`", text)
-        self.assertNotIn("Handoff", text)
+        self.assertIn(Q_HANDOFF_RULE, text.splitlines())
         out = self.tmp / "q.md"
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(dispatch.main(["q-brief", "demo", "--base", "main", "--head", "abc1234",
                                             "--out", str(out), "--root", str(self.repo)]), 0)
         self.assertTrue(out.read_text(encoding="utf-8").startswith("Repositório:"))
+
+    def test_q_brief_proibe_tocar_no_handoff(self):
+        lines = dispatch.q_brief("demo", self.repo, "main", "abc1234").splitlines()
+        start = lines.index("## Rules")
+        end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("## "))
+        self.assertIn(Q_HANDOFF_RULE, lines[start:end])
 
     def test_family_compare(self):
         self.assertEqual(dispatch.family("claude-sonnet-5-5"), "anthropic")

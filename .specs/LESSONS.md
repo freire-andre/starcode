@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 2
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6)
-- updated: 2026-11-14T23:53:01Z
+- signal: `weak_test` · features: 3
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6)
+- updated: 2026-11-15T13:53:17Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -244,6 +244,12 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: impacto-seleciona-real
 - sources: verification.md:C8
 - updated: 2026-11-14T22:46:09Z
+
+### L40 - Ao ler git status --porcelain, trate as linhas R e C como dois caminhos (antigo e novo) e decida sobre os dois, porque a renomeação entre arquivos permitidos virava um caminho único e era recusada.
+- signal: `ac_gap` · features: 1
+- features: q-preserva-handoff
+- sources: verification.md achado 1 (scripts/dispatch.py:507)
+- updated: 2026-11-15T13:53:17Z
 
 ## Quarantined
 

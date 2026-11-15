@@ -32,6 +32,8 @@ Answer in Brazilian Portuguese inside the report; keep the headings and markers 
    PowerShell, `Set-Content` and `Out-File` without `-Encoding utf8` garble accents, and a literal
    `` `n `` is not a line break: never build the file from an escaped string.
 
+Never touch the `## Handoff` section of any artifact, and never restore, revert, stash, check out or delete files: uncommitted changes you did not make are not yours.
+
 ## What you do
 
 1. **Each check's test would fail if the claim were false.** For every check C<n>, open the test its

@@ -28,7 +28,9 @@ class QBriefTests(unittest.TestCase):
         self.assertIn("Set-Content", BRIEF)
         self.assertIn("Out-File", BRIEF)
         self.assertIn("-Encoding utf8", BRIEF)
-        self.assertNotIn("Handoff", BRIEF)  # the author's reasoning never reaches the verifier
+        rules = BRIEF.split("## Rules\n", 1)[1].split("\n## ", 1)[0].splitlines()
+        self.assertIn("Never touch the `## Handoff` section of any artifact, and never restore, revert, stash, "
+                      "check out or delete files: uncommitted changes you did not make are not yours.", rules)
 
     def test_q_skill_records_model_and_head(self):
         self.assertTrue(SKILL.startswith("---\nname: q\n"))

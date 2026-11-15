@@ -43,8 +43,8 @@ class ExecuteReferenceTests(unittest.TestCase):
     def test_execute_ref_q_dispatch(self):  # R18, R20, R23
         self.assertAll(REF, "run_gates.py\" proofs <slug>", "--phase review",
                        "**codex** first", "**antigravity**", "`**Verification:** self-verified`",
-                       "**The Q writes only `verification.md`.**", "discard those extra\n   changes",
-                       "dispatch.py\" q-brief <slug>")
+                       "**The Q writes only `verification.md`.**", "Discard those extra changes",
+                       "dispatch.py\" q-brief <slug>", "dispatch.py\" q-check <slug>")
 
     def test_execute_ref_post_q_cycle(self):  # R24-R27
         self.assertAll(REF, "**all findings in one brief**", "`Refs: <ID>` citing the finding",
