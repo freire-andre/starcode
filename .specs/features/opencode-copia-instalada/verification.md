@@ -13,6 +13,7 @@
 | C2 | `tests/test_install_local.py` `test_opencode_reinstall_replaces_stale_installed_copy` | yes |
 | C3 | `tests/test_install_local.py` `test_opencode_install_keeps_foreign_skill_paths_in_order` | yes |
 | C4 | `tests/test_install_local.py` `test_opencode_install_twice_from_two_clones_no_duplicates` | yes |
+| C5 | `tests/test_install_local.py` `test_opencode_dry_run_reports_removed_and_written` | yes - check acrescentado após o Q (achado 2) e reforçado em d157d4a; prova verde no proofs.md; não julgado pelo Q |
 
 ## Findings
 

@@ -1,9 +1,9 @@
 # opencode-copia-instalada proofs
 
-**HEAD**: 9865108
+**HEAD**: fea271c
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 7 pass, 0 fail
+**Result**: 8 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -11,6 +11,7 @@
 | C2 | `run unit / test_opencode_reinstall_replaces_stale_installed_copy ... ok` | pass |
 | C3 | `run unit / test_opencode_install_keeps_foreign_skill_paths_in_order ... ok` | pass |
 | C4 | `run unit / test_opencode_install_twice_from_two_clones_no_duplicates ... ok` | pass |
+| C5 | `run unit / test_opencode_dry_run_reports_removed_and_written ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
 | Build | `python scripts/check_decisions.py` | pass |
@@ -31,7 +32,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 924 tests in 488.419s
+Ran 924 tests in 439.402s
 
 OK (skipped=1)
 inativo
