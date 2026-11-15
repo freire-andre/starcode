@@ -83,7 +83,7 @@ Proof: run unit | test_decisions_q_preserva_handoff ... ok
 **Integration branch:** feature/q-preserva-handoff
 **Last integrated:** e485a75
 **Dispatched:** none
-**Settled:** 2026-11-15: aprovação da spec e issue: "sim"
+**Settled:** 2026-11-15: aprovação da spec e issue: "sim"; 2026-11-15: push + PR, sem segundo Q, Worf com foco no q-check: "sim"
 **Attempts:** none
 **Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever; 2026-11-15: T1-fix provas: 8061c88 (test_skills_exec), 62a1af9 (test_q_skill); 910 OK; ticket gate verde nos commits do LaForge; 2026-11-15: Q: codex · FAIL, 4 achados (renomeação entre permitidos dá fora da lista; C4 sem stderr integral; C5 ordem frouxa; C6 vínculos de R8); 910 OK; q-check após o Q: 0 (só verification.md); 2026-11-15: T1-fix: 2328e05, f5af811 (renomeação; C4-C6 estritos), e320c0e, c81bbba (dist); 2026-11-15: provas vermelhas: check_decisions (f5af811 mexeu em skills/ sem DECISIONS.md); Closed corrigido pelo Picard; 2026-11-15: decisions-fix: 81e1bb2; check_decisions OK; 2026-11-15: provas e done verdes (911 OK); plugin validate OK
 **Breaker:** closed
