@@ -131,6 +131,7 @@ def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: li
     diff_args = ["diff", "HEAD"] if all_tracked else ["diff", "--cached"]
     spec = ["--", *pathspecs] if pathspecs else []
     where = list_cwd or cwd
+    top = sc.repo_root(cwd) or cwd  # W3: os nomes vêm relativos à raiz; o diff por arquivo roda nela
     quote = ["-c", "core.quotepath=off"]  # W2: nome não ASCII sem aspas
     names = sc.git([*quote, *diff_args, "--name-only", "--diff-filter=ACMR", *spec], where)
     if names is None and all_tracked:  # no HEAD yet
@@ -149,7 +150,7 @@ def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: li
             out.append(env)
             continue
         try:
-            res = subprocess.run(["git", *diff_args, "--unified=0", "--no-color", "--", path], cwd=cwd,
+            res = subprocess.run(["git", *diff_args, "--unified=0", "--no-color", "--", path], cwd=top,
                                  capture_output=True, text=True, encoding="utf-8", errors="replace",
                                  timeout=sc.GIT_TIMEOUT)
         except (OSError, subprocess.SubprocessError):
@@ -229,12 +230,14 @@ def parse_add(rest: list[str], git_cwd: str) -> dict:
             paths.append(a)
         elif a == "--":
             only_paths = True
-        elif a == "--all" or (short and "A" in a[1:]):
-            mode = "all"
-        elif a == "--update" or (short and "u" in a[1:]):
-            mode = "update"
-        elif a == "--force" or (short and "f" in a[1:]):
-            force = True
+        elif a in ("--all", "--update", "--force") or short:
+            letters = a[1:] if short else ""  # W1: cada letra do grupo curto conta (`-Af`, `-fu`...)
+            if a == "--all" or "A" in letters:
+                mode = "all"
+            if a == "--update" or "u" in letters:
+                mode = "update"
+            if a == "--force" or "f" in letters:
+                force = True
         elif a == "--pathspec-from-file" or a.startswith("--pathspec-from-file="):
             from_file = True
         elif not a.startswith("-"):
@@ -268,9 +271,11 @@ def add_findings(add: dict, allow_for: dict[str, Allowlist]) -> list[str]:
         return []
     if not add["paths"] and add["mode"] == "paths":
         return []
-    out = staged_findings(str(root), True, allow, pathspecs or None, add["cwd"])
+    # W3: sem caminho (`-A`, `--all`, `-u`) o add cobre o repositório inteiro, qualquer que seja o cwd
+    where = add["cwd"] if pathspecs else str(root)
+    out = staged_findings(str(root), True, allow, pathspecs or None, where)
     if add["mode"] != "update":
-        out += untracked_findings(root, pathspecs, allow, add.get("force", False), add["cwd"])
+        out += untracked_findings(root, pathspecs, allow, add.get("force", False), where)
     return out
 
 

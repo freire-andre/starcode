@@ -252,6 +252,41 @@ class AddAntesDoCommitTests(TempRepoCase):
         self.assertEqual(ss.evaluate("git add -A :/ && git commit -m x", sub), [self.achado("raiz.py")])
         self.assertEqual(ss.evaluate("git add ':(top)' && git commit -m x", sub), [self.achado("raiz.py")])
 
+    def test_add_flags_combinadas_com_force(self):
+        self.write(".gitignore", "segredo.py\n")
+        self.commit_all(".gitignore")
+        self.write("segredo.py", self.segredo())
+        for flags in ("-Af", "-fA"):
+            with self.subTest(flags=flags):
+                findings = ss.evaluate(f"git add {flags} && git commit -m x", str(self.repo))
+                self.assertEqual(findings, [self.achado("segredo.py")])
+        self.write("README.md", self.segredo())
+        for flags in ("-uf", "-fu"):
+            with self.subTest(flags=flags):
+                findings = ss.evaluate(f"git add {flags} && git commit -m x", str(self.repo))
+                self.assertEqual(findings, [self.achado("README.md")])
+
+    def test_add_all_em_subdiretorio_ve_raiz(self):
+        self.write("sub/ok.py", "a = 1\n")
+        self.commit_all("sub/ok.py")
+        self.write("raiz.py", self.segredo())
+        sub = str(self.repo / "sub")
+        for cmd in ("git add -A && git commit -m x", "git add --all && git commit -m x"):
+            with self.subTest(cmd=cmd):
+                self.assertEqual(ss.evaluate(cmd, sub), [self.achado("raiz.py")])
+        self.write("README.md", self.segredo())
+        findings = ss.evaluate("git add -u && git commit -m x", sub)
+        self.assertEqual(findings, [self.achado("README.md")])
+        findings = ss.evaluate("git -C sub add -A; git -C sub commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("README.md"), self.achado("raiz.py")])
+
+    def test_commit_do_indice_em_subdiretorio(self):
+        self.write("sub/ok.py", "a = 1\n")
+        self.write("x.py", self.segredo())
+        run_git(self.repo, "add", "x.py")
+        findings = ss.evaluate("git commit -m x", str(self.repo / "sub"))
+        self.assertEqual(findings, [self.achado("x.py")])
+
     def test_git_stage_conta_como_add(self):
         self.write("novo.py", self.segredo())
         self.assertEqual(ss.evaluate("git stage -A && git commit -m x", str(self.repo)), [self.achado("novo.py")])
