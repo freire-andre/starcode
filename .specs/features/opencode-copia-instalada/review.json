@@ -1,0 +1,21 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. W1 e W2 fecharam no commit bb69c60. A cópia nova vai para starcode.novo, a antiga sai via starcode.velho, uma falha na cópia ou nos renames preserva a antiga, sai com 1 e mensagem e não grava o opencode.json; sobras de execução interrompida são limpas na execução seguinte. Os caminhos de skill da cópia instalada saem do opencode.json com qualquer nome. Duas observações sem bloqueio, fora dos achados por ser rodada 2: uma falha só no rmtree de starcode.velho, depois da troca, relata falha de cópia com a nova já no lugar e não grava o opencode.json; e o exit 1 não bate com o docstring, que reserva o 1 para comando do CLI que falhou.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido: tools/install_local.py:201-218 copia para starcode.novo, troca via starcode.velho e restaura a antiga no except; teste test_opencode_copy_failure_keeps_old_copy_and_config; sondas em home temporário com o copytree, o primeiro rename e o segundo rename falhando deixaram a cópia antiga intacta, o JSON intacto e exit 1 com mensagem",
+    "W2": "resolvido: tools/install_local.py:178-186 remove qualquer skill sob opencode/starcode/skills; teste test_opencode_drops_removed_installed_skill_path"
+  },
+  "research": [
+    "nenhuma superfície externa nova na correção (só shutil e pathlib da biblioteca padrão); rodada 1: Context7 /websites/opencode_ai e https://opencode.ai/docs/skills.md"
+  ],
+  "ladder": [
+    "python tools/build.py --check: OK, dist/ em dia",
+    "python scripts/check_decisions.py: OK",
+    "python -m unittest discover -s tests -p test_install_local.py: 34 testes, OK",
+    "python -m unittest discover -s tests: OK (1 ignorado)",
+    "claude plugin validate dist/claude --strict: Validation passed",
+    "scan_bypasses.py: 0 candidatos"
+  ]
+}

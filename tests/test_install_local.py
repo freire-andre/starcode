@@ -7,6 +7,7 @@ import json
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -141,7 +142,7 @@ class InstallLocalTests(unittest.TestCase):
         rc, out, _, _ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         js = self.home / ".config/opencode/plugins/starcode.js"
-        dist = (self.root / "dist/opencode").resolve().as_posix()
+        dist = (self.home / ".config/opencode/starcode").resolve().as_posix()
         self.assertEqual(js.read_text(encoding="utf-8"), f'const R = "{dist}"\n')
         self.assertIn(str(js), out)
 
@@ -224,7 +225,7 @@ class InstallLocalTests(unittest.TestCase):
         rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
-        mine = sorted(str((self.root / "dist/opencode/skills" / s).resolve()) for s in ("engajar", "spock"))
+        mine = sorted(str((self.home / ".config/opencode/starcode/skills" / s).resolve()) for s in ("engajar", "spock"))
         self.assertEqual(paths, ["/opt/alheio"] + mine)
 
     def test_opencode_install_keeps_foreign_skill_paths_in_order(self):  # C2
@@ -252,7 +253,7 @@ class InstallLocalTests(unittest.TestCase):
         rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
         self.assertEqual(rc, 0)
         paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
-        mine = sorted(str((self.root / "dist/opencode/skills" / s).resolve()) for s in ("engajar", "spock"))
+        mine = sorted(str((self.home / ".config/opencode/starcode/skills" / s).resolve()) for s in ("engajar", "spock"))
         self.assertEqual(paths, foreign + mine)
 
     def test_opencode_install_twice_from_two_clones_no_duplicates(self):  # C3
@@ -264,17 +265,95 @@ class InstallLocalTests(unittest.TestCase):
                                     runner=Fake(), which=lambda n: "/bin/" + n, root=other)
         self.assertEqual(rc, 0)
         paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
-        self.assertEqual(sorted(paths), sorted(str((other / "dist/opencode/skills" / s).resolve())
+        self.assertEqual(sorted(paths), sorted(str((self.home / ".config/opencode/starcode/skills" / s).resolve())
                                                for s in ("engajar", "spock")))
 
     def test_opencode_dry_run_reports_removed_and_written(self):
         self._seed_paths(["/o/dist/opencode/skills/engajar", "/alheio"])
-        before = self.conf.read_text(encoding="utf-8")
+        def snapshot():
+            return {str(p.relative_to(self.home)): p.read_bytes()
+                    for p in sorted(self.home.rglob("*")) if p.is_file()}
+        before = snapshot()
         rc, out, *_ = self.run_cli("--cli", "opencode", "--dry-run", "--home", str(self.home))
         self.assertEqual(rc, 0)
-        self.assertIn("remover 1", out)
-        self.assertIn("gravar 2", out)
-        self.assertEqual(self.conf.read_text(encoding="utf-8"), before)
+        conf_dir = self.home / ".config/opencode"
+        installed = conf_dir / "starcode"
+        dist = self.root / "dist" / "opencode"
+        self.assertEqual(out.splitlines(), [
+            f"[dry-run] copiar {dist} para {installed}",
+            f"[dry-run] gravar plugin {conf_dir / 'plugins/starcode.js'} "
+            f"(com {{{{STARCODE_ROOT}}}} = {installed.resolve().as_posix()})",
+            f"[dry-run] remover 1 e gravar 2 caminhos de skill do StarCode em {self.conf}",
+            f"[dry-run] copiar sc-q.md para {conf_dir / 'commands'}",
+        ])
+        self.assertEqual(snapshot(), before)
+        self.assertFalse(installed.exists())
+
+    def test_opencode_copy_failure_keeps_old_copy_and_config(self):
+        self.assertEqual(self.run_cli("--cli", "opencode", "--home", str(self.home))[0], 0)
+        conf_dir = self.home / ".config/opencode"
+        inst = conf_dir / "starcode"
+        (inst / "extra.txt").write_bytes(b"velho")
+        before = {str(p.relative_to(inst)): p.read_bytes() for p in sorted(inst.rglob("*")) if p.is_file()}
+        self._seed_paths(["/o/dist/opencode/skills/engajar"])
+        conf_before = self.conf.read_bytes()
+        with mock.patch("install_local.shutil.copytree", side_effect=OSError("disco cheio")):
+            rc, _, err, _ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 1)
+        dist = self.root / "dist" / "opencode"
+        self.assertEqual(err, f"opencode: falha ao copiar {dist} para {inst}: disco cheio\n")
+        after = {str(p.relative_to(inst)): p.read_bytes() for p in sorted(inst.rglob("*")) if p.is_file()}
+        self.assertEqual(after, before)
+        self.assertEqual(self.conf.read_bytes(), conf_before)
+        self.assertFalse((conf_dir / "starcode.novo").exists())
+        self.assertFalse((conf_dir / "starcode.velho").exists())
+
+    def test_opencode_reinstall_leaves_no_leftovers(self):
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        (self.home / ".config/opencode/starcode/velho.txt").write_text("x", encoding="utf-8")
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        conf_dir = self.home / ".config/opencode"
+        self.assertEqual(rc, 0)
+        self.assertFalse((conf_dir / "starcode.novo").exists())
+        self.assertFalse((conf_dir / "starcode.velho").exists())
+        self.assertFalse((conf_dir / "starcode/velho.txt").exists())
+        self.assertTrue((conf_dir / "starcode/skills/engajar/SKILL.md").is_file())
+
+    def test_opencode_drops_removed_installed_skill_path(self):
+        gone = str(self.home / ".config/opencode/starcode/skills/skill-removida")
+        self._seed_paths(["/alheio", gone])
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertNotIn(gone, paths)
+        self.assertEqual(paths[0], "/alheio")
+        self.assertEqual(len(paths), 3)
+
+    def test_opencode_uses_installed_copy_not_the_clone(self):
+        (self.root / "dist/opencode/scripts/__pycache__").mkdir(parents=True)
+        (self.root / "dist/opencode/scripts/__pycache__/x.pyc").write_bytes(b"x")
+        (self.root / "dist/opencode/scripts/solto.pyc").write_bytes(b"x")
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        inst = self.home / ".config/opencode/starcode"
+        self.assertEqual((inst / "skills/engajar/SKILL.md").read_text(encoding="utf-8"), "x")
+        self.assertFalse((inst / "scripts/__pycache__").exists())
+        self.assertFalse((inst / "scripts/solto.pyc").exists())
+        (self.root / "dist/opencode/skills/engajar/SKILL.md").write_text("mudou no clone", encoding="utf-8")
+        self.assertEqual((inst / "skills/engajar/SKILL.md").read_text(encoding="utf-8"), "x")
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertEqual(paths, [str((inst / "skills" / n).resolve()) for n in ("engajar", "spock")])
+        js = self.home / ".config/opencode/plugins/starcode.js"
+        self.assertEqual(js.read_text(encoding="utf-8"), f'const R = "{inst.resolve().as_posix()}"\n')
+
+    def test_opencode_reinstall_replaces_stale_installed_copy(self):
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        stale = self.home / ".config/opencode/starcode/skills/velha"
+        stale.mkdir()
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertFalse(stale.exists())
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertEqual(len(paths), 2)
 
     def test_install_is_idempotent(self):  # C12
         self.run_cli("--cli", "opencode", "--home", str(self.home))

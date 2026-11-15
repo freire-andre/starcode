@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 10
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)
-- updated: 2026-11-15T17:19:51Z
+- signal: `weak_test` · features: 11
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)
+- updated: 2026-11-15T19:42:34Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -20,10 +20,16 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-14T23:53:01Z
 
 ### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
-- signal: `weak_test` · features: 3
-- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor
-- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164))
-- updated: 2026-11-15T16:31:41Z
+- signal: `weak_test` · features: 4
+- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada
+- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)
+- updated: 2026-11-15T19:42:34Z
+
+### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
+- signal: `weak_test` · features: 2
+- features: fase-11-telas, opencode-copia-instalada
+- sources: .specs/features/fase-11-telas/verification.md:achado 6, .specs/features/opencode-copia-instalada/verification.md: achado 3 (.pyc fora de __pycache__)
+- updated: 2026-11-15T19:42:34Z
 
 ### L15 - Teste de 'nada foi escrito' compara bytes e a lista de arquivos antes e depois; mtime e tamanho não detectam uma escrita que os preserve.
 - signal: `weak_test` · features: 2
@@ -106,12 +112,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: fase-11-telas
 - sources: .specs/features/fase-11-telas/verification.md:achado 5
 - updated: 2026-11-12T12:18:58Z
-
-### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
-- signal: `weak_test` · features: 1
-- features: fase-11-telas
-- sources: .specs/features/fase-11-telas/verification.md:achado 6
-- updated: 2026-11-12T13:24:05Z
 
 ### L14 - Antes de exigir uma chamada de host da Orca num requisito, confirme no host-api a capacidade que ela pede e se o manifesto a tem; requisito que depende de capacidade ausente contradiz um Non-Goal de não pedir capacidades.
 - signal: `spec_precision_gap` · features: 1 · scope: `src/orca`
