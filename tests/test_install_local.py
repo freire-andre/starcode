@@ -7,6 +7,7 @@ import json
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -287,6 +288,46 @@ class InstallLocalTests(unittest.TestCase):
         ])
         self.assertEqual(snapshot(), before)
         self.assertFalse(installed.exists())
+
+    def test_opencode_copy_failure_keeps_old_copy_and_config(self):
+        self.assertEqual(self.run_cli("--cli", "opencode", "--home", str(self.home))[0], 0)
+        conf_dir = self.home / ".config/opencode"
+        inst = conf_dir / "starcode"
+        (inst / "extra.txt").write_bytes(b"velho")
+        before = {str(p.relative_to(inst)): p.read_bytes() for p in sorted(inst.rglob("*")) if p.is_file()}
+        self._seed_paths(["/o/dist/opencode/skills/engajar"])
+        conf_before = self.conf.read_bytes()
+        with mock.patch("install_local.shutil.copytree", side_effect=OSError("disco cheio")):
+            rc, _, err, _ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 1)
+        dist = self.root / "dist" / "opencode"
+        self.assertEqual(err, f"opencode: falha ao copiar {dist} para {inst}: disco cheio\n")
+        after = {str(p.relative_to(inst)): p.read_bytes() for p in sorted(inst.rglob("*")) if p.is_file()}
+        self.assertEqual(after, before)
+        self.assertEqual(self.conf.read_bytes(), conf_before)
+        self.assertFalse((conf_dir / "starcode.novo").exists())
+        self.assertFalse((conf_dir / "starcode.velho").exists())
+
+    def test_opencode_reinstall_leaves_no_leftovers(self):
+        self.run_cli("--cli", "opencode", "--home", str(self.home))
+        (self.home / ".config/opencode/starcode/velho.txt").write_text("x", encoding="utf-8")
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        conf_dir = self.home / ".config/opencode"
+        self.assertEqual(rc, 0)
+        self.assertFalse((conf_dir / "starcode.novo").exists())
+        self.assertFalse((conf_dir / "starcode.velho").exists())
+        self.assertFalse((conf_dir / "starcode/velho.txt").exists())
+        self.assertTrue((conf_dir / "starcode/skills/engajar/SKILL.md").is_file())
+
+    def test_opencode_drops_removed_installed_skill_path(self):
+        gone = str(self.home / ".config/opencode/starcode/skills/skill-removida")
+        self._seed_paths(["/alheio", gone])
+        rc, *_ = self.run_cli("--cli", "opencode", "--home", str(self.home))
+        self.assertEqual(rc, 0)
+        paths = json.loads(self.conf.read_text(encoding="utf-8"))["skills"]["paths"]
+        self.assertNotIn(gone, paths)
+        self.assertEqual(paths[0], "/alheio")
+        self.assertEqual(len(paths), 3)
 
     def test_opencode_uses_installed_copy_not_the_clone(self):
         (self.root / "dist/opencode/scripts/__pycache__").mkdir(parents=True)

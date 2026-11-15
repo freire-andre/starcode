@@ -174,14 +174,16 @@ def _opencode(root, home, dry):
             cur = data["skills"] = {}
         have = cur.setdefault("paths", [])
     folded = {n.casefold() for n in names}
-    owners = {("dist", "opencode"), ("opencode", PLUGIN)}  # clones antigos e a cópia instalada
 
     def is_starcode(entry):
         if not isinstance(entry, str):
             return False
         parts = [x.casefold() for x in re.split(r"[\\/]+", entry) if x]
-        return (len(parts) >= 4 and parts[-2] == "skills" and parts[-1] in folded
-                and tuple(parts[-4:-2]) in owners)
+        if len(parts) < 4 or parts[-2] != "skills":
+            return False
+        owner = tuple(parts[-4:-2])
+        # na cópia instalada qualquer nome sai (skill removida ou renomeada); no clone, só os do pacote
+        return owner == ("opencode", PLUGIN) or (owner == ("dist", "opencode") and parts[-1] in folded)
 
     kept = [e for e in have if not is_starcode(e)]
     removed = len(have) - len(kept)
@@ -196,9 +198,24 @@ def _opencode(root, home, dry):
             print(f"[dry-run] copiar {c.name} para {conf_dir / 'commands'}")
         return 0
     conf_dir.mkdir(parents=True, exist_ok=True)
-    if installed.exists():
-        shutil.rmtree(installed)
-    shutil.copytree(dist, installed, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    novo = installed.with_name(installed.name + ".novo")
+    velho = installed.with_name(installed.name + ".velho")
+    try:
+        for sobra in (novo, velho):
+            if sobra.exists():
+                shutil.rmtree(sobra)
+        shutil.copytree(dist, novo, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        if installed.exists():
+            installed.rename(velho)
+        novo.rename(installed)
+        if velho.exists():
+            shutil.rmtree(velho)
+    except OSError as exc:
+        shutil.rmtree(novo, ignore_errors=True)
+        if velho.exists() and not installed.exists():
+            velho.rename(installed)
+        print(f"opencode: falha ao copiar {dist} para {installed}: {exc}", file=sys.stderr)
+        return 1
     print(f"copiado {dist} para {installed}")
     conf.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"gravado {conf}")
