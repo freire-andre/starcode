@@ -93,12 +93,12 @@ Proof: run unit | test_decisions_guardas_add_commit_powershell ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** PR (confirmação)
+**Next:** LaForge corrige W1-W6; Worf rodada 2
 **Linear:** SC-178
 **Integration branch:** feature/guardas-add-commit-powershell
 **Last integrated:** 613d5a9
 **Dispatched:** none
-**Settled:** 2026-11-14: aprovação da spec e issue: "sim"; 2026-11-14: push + PR: "Sim"
+**Settled:** 2026-11-14: aprovação da spec e issue: "sim"; 2026-11-14: push + PR: "Sim"; 2026-11-14: PR aberto: https://github.com/freire-andre/starcode/pull/54
 **Attempts:** none
-**Reports:** 2026-11-14: T1: scan do add antes do commit (R1-R6), matcher Bash|PowerShell no Claude (R7), C1-C10; ticket gate verde; a5090b9, 613d5a9; 2026-11-14: Q: codex · FAIL, 2 achados em testes (formato integral do achado de arquivo novo; sem check de arquivo novo grande); 893 OK; 2026-11-14: T1-fix: 49fab08 (formato integral; arquivo novo grande); 2026-11-14: Guinan: L2 e L4 recorrentes (confirmed); retro com 3 sugestões; provas e done verdes
+**Reports:** 2026-11-14: T1: scan do add antes do commit (R1-R6), matcher Bash|PowerShell no Claude (R7), C1-C10; ticket gate verde; a5090b9, 613d5a9; 2026-11-14: Q: codex · FAIL, 2 achados em testes (formato integral do achado de arquivo novo; sem check de arquivo novo grande); 893 OK; 2026-11-14: T1-fix: 49fab08 (formato integral; arquivo novo grande); 2026-11-14: Guinan: L2 e L4 recorrentes (confirmed); retro com 3 sugestões; provas e done verdes; 2026-11-14: Worf r1: COMMENT; W1 add -f ignorado, W2 quotepath não ASCII, W3 pathspec :/ (should-fix); W4 stage, W5 pathspec-from-file, W6 binário grande (nit); W7 falha do git libera; W8 commit <caminho> pré-existente
 **Breaker:** closed

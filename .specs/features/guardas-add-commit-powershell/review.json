@@ -1,0 +1,110 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT. O PR fecha o caso principal (git add -A/./caminhos com espaço, --, glob, -C diferente do commit, repositório sem HEAD e payload PowerShell negam como o Bash; comandos normais seguem liberados), mas três caminhos de add+commit ainda deixam um segredo passar, todos confirmados em repositório temporário: git add -f de arquivo ignorado (W1), arquivo rastreado com nome não ASCII (W2) e pathspec :/ ou :(top) a partir de subdiretório (W3). Nits: git stage (W4), --pathspec-from-file (W5), binário novo acima de 64 MB negado só no caminho do add (W6) e uma pergunta sobre falha do git (W7). Pré-existentes, fora da contagem: git commit <caminho> lê só o índice (W8); blocos { } do PowerShell/Bash não são lidos pelo tokenize (não-objetivo da spec). Binário com NUL é ignorado como no índice (consistente). dist/ é mecânico e ficou fora (build --check em dia). Escada verde, 0 candidatos de bypass.",
+  "findings": [
+    {
+      "id": "W1",
+      "severity": "should-fix",
+      "category": "security",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 177,
+      "body": "🟠 `git add -f <arquivo ignorado> && git commit` passa sem achado (hooks/scripts/secret_scan.py:177). `untracked_findings` lista com `--exclude-standard` e `parse_add` descarta `-f`/`--force`, mas o `-f` inclui o arquivo ignorado no commit. O caso mais comum de vazamento, `.env` no `.gitignore`, é justamente o que exige `-f`. Correção: em `parse_add`, marcar `force` com `-f`/`--force` (ou `f` num grupo curto) e, nesse caso, chamar `ls-files --others` sem `--exclude-standard` restrito aos caminhos do add.",
+      "evidence": ["hooks/scripts/secret_scan.py:177", "hooks/scripts/secret_scan.py:219"],
+      "attacker": "o próprio agente (ou usuário) que força a inclusão de um arquivo ignorado com segredo",
+      "entry": "comando `git add -f .env && git commit -m x` (Bash ou PowerShell)",
+      "control": "secret_scan.py deveria escanear o que o add vai incluir; hoje lista só não rastreados não ignorados",
+      "boundary": "árvore de trabalho local para o histórico do Git (e o remoto após push)",
+      "impact": ".env e arquivo ignorado com token do GitHub entram no commit sem negação",
+      "proof": "repositório temporário com .gitignore cobrindo .env e segredo.py: evaluate('git add -f .env && git commit -m x') e evaluate('git add -f segredo.py && git commit -m x') retornam []; o hook com tool_name PowerShell sai vazio (libera)",
+      "state": "confirmed"
+    },
+    {
+      "id": "W2",
+      "severity": "should-fix",
+      "category": "security",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 132,
+      "body": "🟠 Arquivo rastreado com nome não ASCII escapa do scan (hooks/scripts/secret_scan.py:132). `git diff --name-only` sem `core.quotepath=off` devolve `\"caf\\303\\251.py\"` entre aspas e com octal; o `git diff -- <esse texto>` seguinte não casa com nada. O caminho novo do add herda isso (`git add -A` e `git add café.py` liberam), enquanto `untracked_findings` já usa `-c core.quotepath=off` (:177). A mesma causa afeta o commit do índice antes do PR. Correção: `sc.git([\"-c\", \"core.quotepath=off\", *diff_args, ...])` na :132 e na :134, ou `-z` com split em `\\0`.",
+      "evidence": ["hooks/scripts/secret_scan.py:132", "hooks/scripts/secret_scan.py:177"],
+      "attacker": "o próprio agente ao commitar um arquivo rastreado de nome acentuado que recebeu um segredo",
+      "entry": "comando `git add -A && git commit -m x` com `café.py` rastreado e modificado",
+      "control": "staged_findings deveria ler o diff do arquivo; hoje recebe o nome entre aspas e não acha o arquivo",
+      "boundary": "árvore de trabalho local para o histórico do Git",
+      "impact": "token do GitHub em café.py entra no commit sem negação, pelo Bash e pelo PowerShell",
+      "proof": "repositório temporário com core.quotepath=true (padrão do Git): evaluate retorna [] para 'git add -A && git commit -m x' e 'git add café.py && git commit -m x'; payload PowerShell nega só ação.py (novo) e omite café.py; git diff HEAD --name-only imprime \"caf\\303\\251.py\"",
+      "state": "confirmed"
+    },
+    {
+      "id": "W3",
+      "severity": "should-fix",
+      "category": "security",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 247,
+      "body": "🟠 Pathspec mágico `:/` ou `:(top)` a partir de subdiretório não escaneia nada (hooks/scripts/secret_scan.py:247). `(base / \":/\").resolve()` vira `sub/:`, que não casa com arquivo algum, e o add de `:/` inclui a árvore inteira. Correção: repassar sem resolver todo caminho que começa com `:` (o Git resolve a mágica) e resolver só os demais.",
+      "evidence": ["hooks/scripts/secret_scan.py:247", "hooks/scripts/secret_scan.py:250"],
+      "attacker": "o próprio agente rodando add+commit a partir de um subdiretório do repositório",
+      "entry": "comando `git add -A :/ && git commit -m x` com cwd em `sub/`",
+      "control": "add_findings deveria escanear a árvore inteira; hoje passa um pathspec inválido e não acha arquivo",
+      "boundary": "árvore de trabalho local para o histórico do Git",
+      "impact": "novo.py na raiz com token do GitHub entra no commit sem negação",
+      "proof": "repositório temporário, cwd em sub/: evaluate('git add -A :/ && git commit -m x'), evaluate('git add :/ && git commit -m x') e evaluate(\"git add -A ':(top)' && git commit -m x\") retornam []; na raiz, ':!outro.py' e ':(glob)**/*.py' acham o segredo",
+      "state": "confirmed"
+    },
+    {
+      "id": "W4",
+      "severity": "nit",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 282,
+      "body": "🟡 `git stage` é sinônimo de `git add` e não é reconhecido (hooks/scripts/secret_scan.py:282). Sonda: `git stage -A && git commit -m x` com segredo em arquivo novo retorna []. Correção: `if sub in (\"add\", \"stage\"):`.",
+      "evidence": "hooks/scripts/secret_scan.py:282"
+    },
+    {
+      "id": "W5",
+      "severity": "nit",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 252,
+      "body": "🟡 `git add --pathspec-from-file=lista.txt && git commit` não escaneia nada (hooks/scripts/secret_scan.py:252): a opção é descartada, o add fica sem caminho e cai no `return []`. Correção: ler o arquivo de `--pathspec-from-file` como caminhos, ou escanear a árvore inteira quando a opção aparece.",
+      "evidence": "hooks/scripts/secret_scan.py:252"
+    },
+    {
+      "id": "W6",
+      "severity": "nit",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 195,
+      "body": "🟡 Binário novo acima de 64 MB nega o `git add -A && git commit` (hooks/scripts/secret_scan.py:195): o limite de tamanho vem antes de `_is_binary` (:200) e o arquivo é lido inteiro na memória. O mesmo arquivo já no índice passa (`Binary files` no diff). Sonda: `video.bin` de 65 MB de zeros, add+commit nega e `git commit` após o add libera. Correção: ler os primeiros 8000 bytes e checar binário antes do tamanho.",
+      "evidence": "hooks/scripts/secret_scan.py:195"
+    },
+    {
+      "id": "W7",
+      "severity": "nit",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 177,
+      "body": "🟡 Pergunta, não confirmada: `sc.git` devolve `None` em erro ou no timeout de 5 s (scripts/starcode_common.py:43), e `ls-files --others` num repositório grande sem `.gitignore` adequado vira lista vazia, liberando em silêncio. O cabeçalho do MAX_DIFF_BYTES diz \"never skips silently\". O add+commit deveria negar quando o `ls-files` ou o `diff HEAD` do add falham?",
+      "evidence": "scripts/starcode_common.py:43"
+    },
+    {
+      "id": "W8",
+      "severity": "pre-existing",
+      "path": "hooks/scripts/secret_scan.py",
+      "line": 287,
+      "body": "🟣 `git commit -m x <caminho>` commita a árvore de trabalho do caminho, mas o scan lê só `diff --cached` (hooks/scripts/secret_scan.py:287). Sonda: base.txt rastreado com token, `git commit -m x base.txt` e `git commit -m x -- base.txt` retornam []. Já existia antes do PR.",
+      "evidence": "hooks/scripts/secret_scan.py:287"
+    }
+  ],
+  "carryover": {},
+  "research": [
+    "/anthropics/claude-code",
+    "/pjbrito/claude-code-docs",
+    "https://github.com/pjbrito/claude-code-docs/blob/main/content/en/docs/claude-code/hooks.md"
+  ],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "python scripts/check_decisions.py", "result": "OK (DECISIONS.md atualizado em a5090b94)"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
+    {"command": "python -m unittest discover -s tests -p test_secret_scan.py", "result": "Ran 32 tests, OK"},
+    {"command": "python -m unittest discover -s tests -p test_git_guard.py", "result": "Ran 27 tests, OK"},
+    {"command": "python -m unittest discover -s tests -p test_build.py", "result": "Ran 36 tests, OK"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"}
+  ]
+}
