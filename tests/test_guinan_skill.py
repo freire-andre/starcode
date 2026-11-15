@@ -56,9 +56,11 @@ class GuinanSkillTests(unittest.TestCase):
             rec = [i for i, l in enumerate(lines) if 'scripts/lessons.py" add --id L<n> --feature <slug> '
                    '--signal <signal> --source "<file:line or id>"' in l]
             self.assertEqual(len(rec), 1, root)
+            self.assertLess(lst[0], rec[0], root)
+            self.assertLess(lst[0], wr[0], root)
             start = max(i for i, l in enumerate(lines[:rec[0] + 1]) if l[:2].strip().rstrip(".").isdigit())
             step = "\n".join(lines[start:rec[0] + 3])
-            for needle in ("candidate", "confirmed", "recorrência"):
+            for needle in ("candidate", "confirmed", "recorrência", "same cause and same fix"):
                 self.assertIn(needle, step, f"{root}: {needle}")
 
     def test_guinan_skill_retro_contract(self):

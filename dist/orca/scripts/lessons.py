@@ -180,7 +180,7 @@ def cmd_add(root: Path, args) -> int:
         return _invalid("feature", "vazio")
     if not source:
         return _invalid("source", "vazio; cite arquivo:linha, id do critério ou da checagem")
-    by_id = bool((args.id or "").strip())
+    by_id = args.id is not None
     if not by_id:
         if not text:
             return _invalid("text", "vazio")
@@ -288,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--signal", required=True)  # validado em cmd_add: sai com 2 e `signal inválido`
     sp.add_argument("--source", required=True)
     sp.add_argument("--text", default="")  # obrigatório sem --id (cmd_add: `text inválido: vazio`)
-    sp.add_argument("--id", default="")
+    sp.add_argument("--id", default=None)
     sp.add_argument("--scope", default="")
     sp.set_defaults(fn=cmd_add)
     sp = sub.add_parser("penalize")
