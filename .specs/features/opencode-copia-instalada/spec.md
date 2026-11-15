@@ -55,7 +55,7 @@ Proof: run unit | test_opencode_dry_run_reports_removed_and_written ... ok
 **Linear:** SC-184
 **Integration branch:** feature/opencode-copia-instalada
 **Last integrated:** 9865108
-**Dispatched:** T1-fix · SC-184 · base pendente · claude:claude-sonnet-5-5 · 2026-11-15T19:23:23Z
+**Dispatched:** T1-fix · SC-184 · base 35629cd · claude:claude-sonnet-5-5 · 2026-11-15T19:23:34Z · ctx_299ea0324cf6
 **Settled:** 2026-11-15: 2026-11-15: opção (a), fix do OpenCode agora: "A"; issue: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-15: T1: cherry-pick de 5d8450a como 932a4c2; CHANGELOG em [Unreleased]; 924 OK; ticket gate verde; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 3 achados (C1 sem caminhos exatos; dry-run sem check: C5 acrescentado pelo Picard; .pyc fora de __pycache__ sem teste); 924 OK; q-check 0
