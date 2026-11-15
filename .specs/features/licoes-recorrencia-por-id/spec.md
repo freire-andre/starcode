@@ -95,7 +95,7 @@ Proof: run unit | test_decisions_licoes_recorrencia_por_id ... ok
 **Integration branch:** feature/licoes-recorrencia-por-id
 **Last integrated:** 8181a7d
 **Dispatched:** none
-**Settled:** 2026-11-15: 2026-11-15: aprovação da spec e issue: "Sim"
+**Settled:** 2026-11-15: 2026-11-15: aprovação da spec e issue: "Sim"; 2026-11-15: 2026-11-15: push + PR: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-15: T1: add --id, Guinan lista e reusa ID, reprocessamento L2/L10/L32, SC-183 em DECISIONS; 921 OK; ticket gate verde; 8fcdf56, dcfab00; 2026-11-15: Q: codex · effective unconfirmed · FAIL, 5 achados (--id vazio cria lição; C1 updated; C4 LESSONS.md; C5 ordem/critério; C6 fonte completa e repetidas intactas); 921 OK; q-check: só spec.md (Dispatched, do Picard); 2026-11-15: T1-fix: 6c09aec (--id vazio), ee2e48d (C1, C4, C5, C6 estritos); 921 OK; ticket gate verde; 2026-11-15: provas e done verdes após o pós-Q (921 OK); 2026-11-15: Guinan: L41, L42 novas; L15 (promovida), L20, L2 por --id; retro com 5 sugestões
 **Breaker:** closed
