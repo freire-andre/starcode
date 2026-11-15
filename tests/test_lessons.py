@@ -153,6 +153,19 @@ class LessonsTests(unittest.TestCase):
         self.assertTrue(err.startswith("signal inválido:"), err)
         self.assertEqual(self._bytes(), before)
 
+    def test_lessons_add_id_de_licao_podada_sai_2(self) -> None:
+        self._seed_l1()
+        p = self.root / ".specs" / "lessons.json"
+        data = json.loads(p.read_text(encoding="utf-8"))
+        old = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        data["lessons"][0]["created"] = data["lessons"][0]["updated"] = old
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        before = self._bytes()
+        code, out, err = run(self.root, "add", "--id", "L1", "--feature", "f2", "--signal", "weak_test",
+                             "--source", "b:2")
+        self.assertEqual((code, out, err), (2, "", "id inválido: nenhuma lição L1\n"))
+        self.assertEqual(self._bytes(), before)
+
     def test_lessons_add_sem_id_exige_text(self) -> None:
         code, out, err = run(self.root, "add", "--feature", "f1", "--signal", "weak_test", "--source", "a:1")
         self.assertEqual((code, out, err), (2, "", "text inválido: vazio\n"))
@@ -279,7 +292,9 @@ class LessonsTests(unittest.TestCase):
                 self.assertIn(f, les["features"], (canon, f))
             for rid in repeated:
                 self.assertIn(f"{rid} ({orig[rid]['sources'][0]})", les["sources"], (canon, rid))
-        for rid, want in orig.items():  # as repetidas continuam como estavam
+        for rid, want in orig.items():  # as repetidas continuam como estavam, ou já foram podadas
+            if rid not in by_id:
+                continue
             for k, v in want.items():
                 self.assertEqual(by_id[rid][k], v, (rid, k))
 
