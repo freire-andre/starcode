@@ -10,6 +10,7 @@ feature distinta, promoção candidate -> confirmed, quarentena, poda e a render
 
   lessons.py [--root <repo>] init
   lessons.py [--root <repo>] add --feature <slug> --signal <s> --source <ref> --text "<frase>" [--scope <s>]
+  lessons.py [--root <repo>] add --id L<n> --feature <slug> --signal <s> --source <ref>   (recorrência pelo ID; --text é ignorado)
   lessons.py [--root <repo>] penalize --id L<n>
   lessons.py [--root <repo>] list [--status confirmed|candidate|quarantined|all] [--limit N] [--json]
   lessons.py [--root <repo>] prune
@@ -179,16 +180,30 @@ def cmd_add(root: Path, args) -> int:
         return _invalid("feature", "vazio")
     if not source:
         return _invalid("source", "vazio; cite arquivo:linha, id do critério ou da checagem")
-    if not text:
-        return _invalid("text", "vazio")
-    if len(text) > MAX_TEXT:
-        return _invalid("text", f"{len(text)} caracteres, o limite é {MAX_TEXT}")
+    by_id = bool((args.id or "").strip())
+    if not by_id:
+        if not text:
+            return _invalid("text", "vazio")
+        if len(text) > MAX_TEXT:
+            return _invalid("text", f"{len(text)} caracteres, o limite é {MAX_TEXT}")
 
     data = _load(root)
+    if by_id:
+        want = args.id.strip().lower()
+        target = next((x for x in data["lessons"] if x["id"].lower() == want), None)
+        if target is None:
+            return _invalid("id", f"nenhuma lição {args.id.strip()}")
+        if target["status"] == "quarantined":
+            return _invalid("id", f"{target['id']} está quarantined; recorrência não tira da quarentena")
     _prune(data)
     now = _now()
-    key = _norm(text)
-    found = next((x for x in data["lessons"] if _norm(x["text"]) == key), None)
+    if by_id:
+        found = next((x for x in data["lessons"] if x["id"].lower() == want), None)
+        if found is None:  # podada agora (candidata vencida): não ressuscita em silêncio
+            return _invalid("id", f"nenhuma lição {args.id.strip()}")
+    else:
+        key = _norm(text)
+        found = next((x for x in data["lessons"] if _norm(x["text"]) == key), None)
     if found:
         if feature not in found["features"]:
             found["features"].append(feature)
@@ -272,7 +287,8 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--feature", required=True)
     sp.add_argument("--signal", required=True)  # validado em cmd_add: sai com 2 e `signal inválido`
     sp.add_argument("--source", required=True)
-    sp.add_argument("--text", required=True)
+    sp.add_argument("--text", default="")  # obrigatório sem --id (cmd_add: `text inválido: vazio`)
+    sp.add_argument("--id", default="")
     sp.add_argument("--scope", default="")
     sp.set_defaults(fn=cmd_add)
     sp = sub.add_parser("penalize")

@@ -16,7 +16,8 @@ SCRIPT = ROOT / "scripts" / "lessons.py"
 def run(root: Path, *args: str):
     res = subprocess.run([sys.executable, "-I", str(SCRIPT), "--root", str(root), *args],
                          capture_output=True, stdin=subprocess.DEVNULL)
-    return res.returncode, res.stdout.decode("utf-8"), res.stderr.decode("utf-8")
+    return (res.returncode, res.stdout.decode("utf-8").replace("\r\n", "\n"),
+            res.stderr.decode("utf-8").replace("\r\n", "\n"))
 
 
 def add(root: Path, feature="f1", signal="weak_test", source="spec.md:10",
@@ -76,6 +77,105 @@ class LessonsTests(unittest.TestCase):
         self.assertEqual(les["features"], ["f1", "f2"])
         self.assertEqual(data["schemaVersion"], 1)
         self.assertEqual(data["promote_threshold"], 2)
+
+    def _seed_l1(self) -> None:
+        self.assertEqual(add(self.root, "f1", "weak_test", "a:1")[0], 0)
+
+    def _bytes(self):
+        return ((self.root / ".specs" / "lessons.json").read_bytes(),
+                (self.root / ".specs" / "LESSONS.md").read_bytes())
+
+    def test_lessons_add_id_registra_recorrencia_e_promove(self) -> None:
+        self._seed_l1()
+        before = store(self.root)["lessons"][0]
+        code, out, err = run(self.root, "add", "--id", "L1", "--feature", "f1", "--signal", "weak_test",
+                             "--source", "b:2")
+        self.assertEqual((code, out, err), (0, "atualizada L1 (features=1, status=candidate)\n", ""))
+        les = store(self.root)["lessons"][0]
+        self.assertEqual(les["features"], ["f1"])
+        self.assertEqual(les["sources"], ["a:1", "b:2"])
+        for k in ("text", "signal", "scope", "created"):
+            self.assertEqual(les[k], before[k], k)
+        self.assertGreaterEqual(les["updated"], before["updated"])
+        code, out, _ = run(self.root, "add", "--id", "L1", "--feature", "f2", "--signal", "weak_test",
+                           "--source", "c:3")
+        self.assertEqual((code, out), (0, "atualizada L1 (features=2, status=confirmed) - promovida a confirmed\n"))
+        for _ in range(2):
+            code, out, _ = run(self.root, "add", "--id", "L1", "--feature", "f2", "--signal", "weak_test",
+                               "--source", "c:3")
+            self.assertEqual((code, out), (0, "atualizada L1 (features=2, status=confirmed)\n"))
+        les = store(self.root)["lessons"][0]
+        self.assertEqual(les["features"], ["f1", "f2"])
+        self.assertEqual(les["sources"], ["a:1", "b:2", "c:3"])
+        self.assertEqual(les["status"], "confirmed")
+        self.assertEqual(len(store(self.root)["lessons"]), 1)
+
+    def test_lessons_add_id_sem_caixa_e_text_ignorado(self) -> None:
+        self._seed_l1()
+        text = store(self.root)["lessons"][0]["text"]
+        code, _, err = run(self.root, "add", "--id", "l1", "--feature", "f2", "--signal", "weak_test",
+                           "--source", "b:2", "--text", "x" * 301)
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(store(self.root)["lessons"][0]["text"], text)
+        code, _, _ = run(self.root, "add", "--id", "L1", "--feature", "f3", "--signal", "weak_test",
+                         "--source", "b:3")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(store(self.root)["lessons"]), 1)
+
+    def test_lessons_add_id_invalido_ou_quarentena_sai_2(self) -> None:
+        self._seed_l1()
+        before = self._bytes()
+        base = ("--feature", "f2", "--signal", "weak_test", "--source", "b:2")
+        code, out, err = run(self.root, "add", "--id", "L99", *base)
+        self.assertEqual((code, out, err), (2, "", "id inválido: nenhuma lição L99\n"))
+        self.assertEqual(self._bytes(), before)
+        run(self.root, "add", "--id", "L1", "--feature", "f2", "--signal", "weak_test", "--source", "c:3")
+        self.assertEqual(run(self.root, "penalize", "--id", "L1")[0], 0)
+        before = self._bytes()
+        code, out, err = run(self.root, "add", "--id", "L1", *base)
+        self.assertEqual((code, out, err),
+                         (2, "", "id inválido: L1 está quarantined; recorrência não tira da quarentena\n"))
+        self.assertEqual(self._bytes(), before)
+        code, _, err = run(self.root, "add", "--id", "L1", "--feature", "f2", "--signal", "inventado",
+                           "--source", "b:2")
+        self.assertEqual(code, 2)
+        self.assertTrue(err.startswith("signal inválido:"), err)
+        self.assertEqual(self._bytes(), before)
+
+    def test_lessons_add_sem_id_exige_text(self) -> None:
+        code, out, err = run(self.root, "add", "--feature", "f1", "--signal", "weak_test", "--source", "a:1")
+        self.assertEqual((code, out, err), (2, "", "text inválido: vazio\n"))
+        self.assertFalse((self.root / ".specs" / "lessons.json").exists())
+
+    def test_licoes_reprocessadas_n1(self) -> None:
+        data = json.loads((ROOT / ".specs" / "lessons.json").read_text(encoding="utf-8"))
+        by_id = {x["id"]: x for x in data["lessons"]}
+        groups = {
+            "L2": (["ponte-missao-ativa", "fase-12-robustez", "manutencao-retros-f11", "ajustes-review-pr39",
+                    "snapshot-restauracao-segura", "impacto-seleciona-real",
+                    "fase-9-worf-guinan-diagnostico", "guardas-add-commit-powershell", "q-preserva-handoff"],
+                   ["L18", "L21", "L24", "L26", "L37", "L38"]),
+            "L10": (["fase-11-telas", "despacho-media-escopo", "q-familia-revendedor"], ["L29", "L31"]),
+            "L32": (["q-familia-revendedor", "setup-grava-config", "impacto-seleciona-real"], ["L34", "L39"]),
+        }
+        for canon, (features, repeated) in groups.items():
+            les = by_id[canon]
+            self.assertEqual(les["status"], "confirmed", canon)
+            for f in features:
+                self.assertIn(f, les["features"], (canon, f))
+            for rid in repeated:
+                self.assertTrue(any(src.startswith(f"{rid} (") for src in les["sources"]), (canon, rid))
+                self.assertIn(rid, by_id, rid)  # a repetida continua como está
+
+    def test_decisions_licoes_recorrencia_por_id(self) -> None:
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text[text.index("### SC-183:"):]
+        nxt = entry.find("### SC-", 4)
+        entry = entry if nxt == -1 else entry[:nxt]
+        for name in ("Problema", "Decisão", "Motivo", "Por que não é bug"):
+            self.assertEqual(sum(1 for l in entry.splitlines() if l.startswith(f"- **{name}**: ")), 1, name)
+        for needle in ("--id", "recorrência", "D-i"):
+            self.assertIn(needle, entry, needle)
 
     def test_lessons_penalize_render_and_corrupt_store(self) -> None:
         add(self.root, feature="f1", text="Lição para quarentena")
