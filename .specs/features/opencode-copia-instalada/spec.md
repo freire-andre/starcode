@@ -45,15 +45,15 @@ Proof: run unit | test_opencode_install_twice_from_two_clones_no_duplicates ... 
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** PEQUENA
 **Git mode:** 3
-**Next:** LaForge reaplica 5d8450a
+**Next:** Q verifica
 **Linear:** SC-184
 **Integration branch:** feature/opencode-copia-instalada
-**Last integrated:** none
-**Dispatched:** T1 · SC-184 · base 41db2a7 · claude:claude-sonnet-5-5 · 2026-11-15T18:52:06Z · ctx_dea6cac3d7b9
+**Last integrated:** 9865108
+**Dispatched:** Q · pendente
 **Settled:** 2026-11-15: 2026-11-15: opção (a), fix do OpenCode agora: "A"; issue: "Sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-15: T1: cherry-pick de 5d8450a como 932a4c2; CHANGELOG em [Unreleased]; 924 OK; ticket gate verde
 **Breaker:** closed
