@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_q_preserva_handoff ... ok
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge corrige as provas
+**Next:** aguardar verificação do Q
 **Linear:** SC-181
 **Integration branch:** feature/q-preserva-handoff
 **Last integrated:** e485a75
-**Dispatched:** T1-fix provas · claude:claude-sonnet-5-5
+**Dispatched:** Q · codex
 **Settled:** 2026-11-15: aprovação da spec e issue: "sim"
-**Attempts:** gate-proofs=1
-**Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever
+**Attempts:** none
+**Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever; 2026-11-15: T1-fix provas: 8061c88 (test_skills_exec), 62a1af9 (test_q_skill); 910 OK; ticket gate verde nos commits do LaForge
 **Breaker:** closed
