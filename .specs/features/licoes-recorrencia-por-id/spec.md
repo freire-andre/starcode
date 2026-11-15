@@ -87,15 +87,15 @@ Proof: run unit | test_decisions_licoes_recorrencia_por_id ... ok
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa (T1)
+**Next:** Q verifica
 **Linear:** SC-183
-**Integration branch:** not created
-**Last integrated:** none
+**Integration branch:** feature/licoes-recorrencia-por-id
+**Last integrated:** 15aaf96
 **Dispatched:** none
 **Settled:** 2026-11-15: 2026-11-15: aprovação da spec e issue: "Sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-15: T1: add --id, Guinan lista e reusa ID, reprocessamento L2/L10/L32, SC-183 em DECISIONS; 921 OK; ticket gate verde; 8fcdf56, dcfab00
 **Breaker:** closed
