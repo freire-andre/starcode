@@ -1,8 +1,46 @@
+**Round**: 3
+**Verdict**: APPROVE
+**Reviewer**: claude · claude-opus-5-5
+
+## TL;DR
+APPROVE. A correção 9a19794 (`dist/` em cddaba4) fecha os dois achados abertos da rodada 2, pelo `evaluate` e pelo payload `PowerShell`, em repositórios Git temporários. W1: `git add -Af` e `-fA` com `segredo.py` ignorado negam; `-uf` e `-fu` liberam, como o git (o `-u` não inclui arquivo não rastreado, ignorado ou não). W3: `git add -A` a partir de `sub/` e `git -C sub add -A; git -C sub commit -m x` voltam a negar com segredo em arquivo novo na raiz, e o commit do índice feito de `sub/` também nega. Sem regressão nos casos fechados nem nos comandos limpos. W7 e W8 seguem na issue SC-179, por decisão do usuário. Nenhum achado aberto.
+
+| ID | Severity | Where | Finding | Evidence | State |
+|---|---|---|---|---|---|
+| W1 | 🟠 should-fix | hooks/scripts/secret_scan.py:234 | grupo curto `-Af` engolia o `f` | hooks/scripts/secret_scan.py:234; sonda `git add -Af; git commit -m x` e `-fA` com `segredo.py` ignorado negam (PowerShell e `&&`); `-uf`/`-fu` com ignorado liberam (correto); `-uf` com `base.py` rastreado modificado nega | resolvido (confirmed) |
+| W2 | 🟠 should-fix | hooks/scripts/secret_scan.py:135 | nome não ASCII rastreado | sonda `café.py` com `core.quotepath=true`: `add -A`, `add café.py`, `commit -a` de `sub/` e commit do índice de `sub/` negam; `ação.py` limpo libera | resolvido, sem regressão |
+| W3 | 🟠 should-fix | hooks/scripts/secret_scan.py:275 | add sem caminho a partir de subdiretório não via arquivo novo na raiz | hooks/scripts/secret_scan.py:134, :275; sonda em `sub/` com `novo.py` (token) na raiz: `add -A && commit`, `add --all; commit`, `add -u` (rastreado da raiz), `git -C sub add -A; git -C sub commit -m x`, `add :/`, `add ':(top)'`, `add ..`, commit do índice e `commit -am` negam; `add .` em `sub/` libera (só `sub/`) e nega com segredo em `sub/n.py` | resolvido (confirmed) |
+| W4 | 🟡 nit | hooks/scripts/secret_scan.py:304 | `git stage` | sonda `git stage -A` e `git stage novo.py` negam | resolvido, sem regressão |
+| W5 | 🟡 nit | hooks/scripts/secret_scan.py:241 | `--pathspec-from-file` | sonda `=lista.txt`, argumento separado e a partir de `sub/` (`=../lista.txt`) negam; `-u` com só não rastreado libera | resolvido, sem regressão |
+| W6 | 🟡 nit | hooks/scripts/secret_scan.py:201 | binário novo grande | sonda binário de 65 MB libera no `add -A` | resolvido, sem regressão |
+| W7 | 🟡 nit | scripts/starcode_common.py:43 | falha do git libera | — | issue SC-179 |
+| W8 | 🟣 pre-existing | hooks/scripts/secret_scan.py:301 | `git commit <caminho>` lê só o índice | — | issue SC-179 |
+
+Sondas sem achado (comportamento esperado, `evaluate` e PowerShell iguais, 57 casos no total): `git add -A ':!novo.py'` e `git add . ':(exclude)novo.py'` liberam; `git add . ':!sub'` e só exclusão `':!sub/a.txt'` negam; `"meu arquivo.py"` nega por caminho e por `-A`; `-u` com só arquivo novo libera; `add a.py` não lê `b.py` (na raiz e em `sub/`); `'*.py'` em `sub/` libera e na raiz nega; `-N a.py` e `-p` sem caminho liberam; `-vf` sem caminho libera (o git não adiciona nada). Comandos limpos liberam: `git add -A && git commit -m 'feat: x'` na raiz e em `sub/`, `git -C sub add -A; git -C sub commit -m x`, `add -Af` sem ignorado, commit do índice limpo em `sub/`, `add -f limpo.py`, `git status; git log`.
+
+Observação residual, fora da contagem: o ramo de flags curtas de `parse_add` agora absorve toda flag curta (`-n`, `-v`, `-N`, `-p`...), o que está certo para o `git add`, que não tem flag curta com argumento.
+
+## Escada determinística
+- `python tools/build.py --check`: OK, dist/ em dia.
+- `python scripts/check_decisions.py`: OK (DECISIONS.md atualizado no mesmo commit 9a19794a).
+- `claude plugin validate dist/claude --strict`: Validation passed.
+- `python -m unittest discover -s tests -p test_secret_scan.py`: 41 testes, OK.
+- `python -m unittest discover -s tests -p test_git_guard.py`: 27 testes, OK.
+- `python -m unittest discover -s tests -p test_build.py`: 36 testes, OK.
+- `git diff main...HEAD | python scripts/review/scan_bypasses.py`: 0 candidatos.
+
+## Pesquisa
+Nenhuma superfície externa nova nesta rodada (a correção toca só `hooks/scripts/secret_scan.py` e testes). Referência da rodada 1 mantida: Context7 `/pjbrito/claude-code-docs`.
+
+---
+
+# Rodada 2
+
 **Round**: 2
 **Verdict**: COMMENT
 **Reviewer**: claude · claude-opus-5-5
 
-## TL;DR
+### TL;DR
 COMMENT. A correção (abbedcd, `dist/` em c2250c5) fecha W2, W4, W5 e W6 nas sondas da rodada 1, pelo `evaluate` e pelo payload `PowerShell`. W1 fecha em parte: `git add -f`, `--force` e `-f <arquivo>` negam, mas o grupo curto `git add -Af` libera. W3 fecha para `:/`, `:(top)` e `git -C sub add :/`, mas a mesma correção abriu uma regressão: `git add -A` sem caminho, a partir de subdiretório (ou `git -C sub add -A`), não escaneia mais arquivo novo fora do subdiretório; antes de abbedcd o caso negava. W7 e W8 seguem na issue SC-179, fora desta rodada. Nenhuma outra regressão nos comandos do fluxo.
 
 | ID | Severity | Where | Finding | Evidence | State |
@@ -20,7 +58,7 @@ Correções sugeridas: W1, checar `f` num `if` próprio fora da cadeia de `elif`
 
 Sondas sem achado novo (comportamento esperado, `evaluate` e PowerShell iguais): `git add -A && git commit -m 'feat: x'` limpo na raiz e em `sub/` libera; `add -A` não lê ignorado sem `-f`; `add -f limpo.py` sem ignorado libera; acentuado limpo (`café.py`, `ação.py`) libera; `git add -A ':!novo.py'` e `git add . ':(exclude)novo.py'` liberam; `git add . ':!sub'` e só exclusão `':!sub/a.txt'` negam; `':(glob)**/*.py'` nega; `'*.py'` em `sub/` libera e na raiz nega; `add .` em `sub/` libera e `add ..` nega; `add -u` em `sub/` libera; `"meu arquivo.py"` e `it's.py` (novos e rastreados modificados) negam com o nome certo.
 
-## Escada determinística
+### Escada determinística
 - `python tools/build.py --check`: OK, dist/ em dia.
 - `python scripts/check_decisions.py`: OK (DECISIONS.md atualizado no mesmo commit abbedcd3).
 - `claude plugin validate dist/claude --strict`: Validation passed.
@@ -29,7 +67,7 @@ Sondas sem achado novo (comportamento esperado, `evaluate` e PowerShell iguais):
 - `python -m unittest discover -s tests -p test_build.py`: 36 testes, OK.
 - `git diff main...HEAD | python scripts/review/scan_bypasses.py`: 0 candidatos.
 
-## Pesquisa
+### Pesquisa
 Nenhuma superfície externa nova nesta rodada (a correção toca só `hooks/scripts/secret_scan.py` e testes). Referência da rodada 1 mantida: Context7 `/pjbrito/claude-code-docs`.
 
 ---
