@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 9
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7)
-- updated: 2026-11-15T16:31:41Z
+- signal: `weak_test` · features: 10
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)
+- updated: 2026-11-15T17:19:51Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -25,11 +25,17 @@ Vistas em features distintas. Entram nos briefs.
 - sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164))
 - updated: 2026-11-15T16:31:41Z
 
+### L15 - Teste de 'nada foi escrito' compara bytes e a lista de arquivos antes e depois; mtime e tamanho não detectam uma escrita que os preserve.
+- signal: `weak_test` · features: 2
+- features: ponte-missao-ativa, licoes-recorrencia-por-id
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, C4), .specs/features/licoes-recorrencia-por-id/verification.md: achado 3 (C4, LESSONS.md)
+- updated: 2026-11-15T17:19:51Z
+
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 4
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231)
-- updated: 2026-11-14T14:18:22Z
+- signal: `weak_test` · features: 5
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)
+- updated: 2026-11-15T17:19:51Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 2
@@ -111,12 +117,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - signal: `spec_precision_gap` · features: 1 · scope: `src/orca`
 - features: ponte-missao-ativa
 - sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, R7)
-- updated: 2026-11-12T16:46:42Z
-
-### L15 - Teste de 'nada foi escrito' compara bytes e a lista de arquivos antes e depois; mtime e tamanho não detectam uma escrita que os preserve.
-- signal: `weak_test` · features: 1
-- features: ponte-missao-ativa
-- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, C4)
 - updated: 2026-11-12T16:46:42Z
 
 ### L16 - Critério 'o mais recente' precisa dizer o desempate quando a chave empata (ex.: mesmo mtime), com um caso de teste que o fixe.
@@ -250,6 +250,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: q-preserva-handoff
 - sources: verification.md achado 1 (scripts/dispatch.py:507)
 - updated: 2026-11-15T13:53:17Z
+
+### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
+- signal: `weak_test` · features: 1
+- features: licoes-recorrencia-por-id
+- sources: .specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio)
+- updated: 2026-11-15T17:19:51Z
+
+### L42 - Quando o requisito manda gravar a hora atual, asserte o carimbo dentro da janela entre antes e depois da chamada, porque updated >= anterior também passava com o valor antigo.
+- signal: `weak_test` · features: 1
+- features: licoes-recorrencia-por-id
+- sources: .specs/features/licoes-recorrencia-por-id/verification.md: achado 2 (C1, updated)
+- updated: 2026-11-15T17:19:52Z
 
 ## Quarantined
 
