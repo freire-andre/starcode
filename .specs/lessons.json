@@ -24,15 +24,17 @@
       "status": "confirmed",
       "features": [
         "fase-9-worf-guinan-diagnostico",
-        "guardas-add-commit-powershell"
+        "guardas-add-commit-powershell",
+        "q-preserva-handoff"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
-        "verification.md achado 1 (C1, C3, C4, C6)"
+        "verification.md achado 1 (C1, C3, C4, C6)",
+        "verification.md achados 2-4 (C4, C5, C6)"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-14T23:53:01Z"
+      "updated": "2026-11-15T13:53:17Z"
     },
     {
       "id": "L3",
@@ -598,6 +600,21 @@
       "scope": "",
       "created": "2026-11-14T22:46:09Z",
       "updated": "2026-11-14T22:46:09Z"
+    },
+    {
+      "id": "L40",
+      "text": "Ao ler git status --porcelain, trate as linhas R e C como dois caminhos (antigo e novo) e decida sobre os dois, porque a renomeação entre arquivos permitidos virava um caminho único e era recusada.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "q-preserva-handoff"
+      ],
+      "sources": [
+        "verification.md achado 1 (scripts/dispatch.py:507)"
+      ],
+      "scope": "",
+      "created": "2026-11-15T13:53:17Z",
+      "updated": "2026-11-15T13:53:17Z"
     }
   ]
 }

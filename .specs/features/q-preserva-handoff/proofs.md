@@ -1,9 +1,9 @@
 # q-preserva-handoff proofs
 
-**HEAD**: 62a1af9
+**HEAD**: 04bc1bd
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 9 pass, 0 fail
+**Result**: 8 pass, 1 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -15,7 +15,7 @@
 | C6 | `run unit / test_decisions_q_preserva_handoff ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
-| Build | `python scripts/check_decisions.py` | pass |
+| Build | `python scripts/check_decisions.py` | fail - check_decisions: FALHOU. skills/, scripts/ ou hooks/ mudaram em f5af811 fix(execute): mantém a frase |
 
 ## Output
 
@@ -33,7 +33,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 910 tests in 874.935s
+Ran 911 tests in 550.146s
 
 OK (skipped=1)
 inativo
