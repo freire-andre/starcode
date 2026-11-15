@@ -78,12 +78,12 @@ Proof: run unit | test_decisions_q_preserva_handoff ... ok
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** aguardar verificação do Q
+**Next:** LaForge corrige os achados do Q
 **Linear:** SC-181
 **Integration branch:** feature/q-preserva-handoff
 **Last integrated:** e485a75
-**Dispatched:** Q · codex
+**Dispatched:** none
 **Settled:** 2026-11-15: aprovação da spec e issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever; 2026-11-15: T1-fix provas: 8061c88 (test_skills_exec), 62a1af9 (test_q_skill); 910 OK; ticket gate verde nos commits do LaForge
+**Reports:** 2026-11-15: T1: q-check, regra do Handoff no brief, execute.md, C1-C6; ticket gate verde; 6330af4, e485a75; 2026-11-15: Q parado: provas vermelhas (test_skills_exec.test_execute_ref_q_dispatch e outra falha); Q despachado por engano e interrompido antes de escrever; 2026-11-15: T1-fix provas: 8061c88 (test_skills_exec), 62a1af9 (test_q_skill); 910 OK; ticket gate verde nos commits do LaForge; 2026-11-15: Q: codex · FAIL, 4 achados (renomeação entre permitidos dá fora da lista; C4 sem stderr integral; C5 ordem frouxa; C6 vínculos de R8); 910 OK; q-check após o Q: 0 (só verification.md)
 **Breaker:** closed
