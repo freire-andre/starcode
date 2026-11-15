@@ -134,7 +134,9 @@ before any new `batch`.
 1. After the last ticket: `python "P/scripts/gates/run_gates.py" proofs <slug>` in the worktree of `I`
    (it writes `proofs.md`). Red → one LaForge dispatch with the failing rows, as in step 2.
 2. Green → commit `proofs.md` (`docs(specs): provas (<slug>)` + `Refs`), then
-   `python "P/scripts/handoff.py" set <slug> --phase review` and dispatch the Q.
+   `python "P/scripts/handoff.py" set <slug> --phase review` and **commit the Handoff** (`docs(specs): handoff antes do Q (<slug>)` + `Refs`)
+   before any `worker-start` of the Q: the Q must find a clean tree and never has the Handoff as an uncommitted change (SC-181).
+   Then dispatch the Q.
 3. Q brief: `python "P/scripts/dispatch.py" q-brief <slug> --base <B> --head <sha of I> --out <temp>/<slug>-q.md`.
 4. Pick the Q CLI by family: `python "P/scripts/dispatch.py" q-cli --laforge <laforge cli:model> [--configured <q cli:model>]`
    (order: configured Q, codex, antigravity, opencode; first of another family with `orca_worker` ok; never hard-code
@@ -159,9 +161,10 @@ before any new `batch`.
    and dispatch the screens judge as an Orca worker **in the worktree of `I`**, in the same CLI/family the `q-cli`
    picked for the Q and **never in the LaForge's family**. Fill `**Verifier**:` in `screens.md` as for the Q
    (step 5). Round 1 writes `screens.md`; its `differs` rows go into the single post-Q fix (section 5).
-7. **The Q writes only `verification.md`.** If its diff touches any other file, discard those extra
-   changes (`git restore --source=HEAD -- <file>` for tracked files; delete new untracked ones) before
-   committing `verification.md`, and cite the files in the review comment.
+7. **The Q writes only `verification.md`.** Right after the Q's `worker_done`, run
+   `python "P/scripts/dispatch.py" q-check <slug>` (it only reports): exit 0 means only the allowed files
+   changed; exit 1 lists the extra files. Discard those extra changes (`git restore --source=HEAD -- <file>` for
+   tracked files; delete new untracked ones) before committing `verification.md`, and cite the files in the review comment.
 
 ## 5. Post-Q cycle (4.6) and the end
 - Open findings → **one** LaForge dispatch in the worktree of `I` with **all findings in one brief**;
