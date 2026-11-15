@@ -1,38 +1,21 @@
 {
-  "round": 1,
-  "verdict": "COMMENT",
-  "summary": "TL;DR: COMMENT. A cópia instalada cumpre R1 a R3: caminhos antigos do clone e da cópia são reconhecidos sem diferença de caixa, os alheios ficam em ordem, o dry-run não escreve nada e as exclusões de __pycache__ e *.pyc funcionam. Um defeito real: a cópia antiga é apagada antes de a nova existir, e uma falha no meio deixa o OpenCode apontando para uma pasta incompleta, sem os guardas. Um nit sobre caminho de skill removida que sobra no opencode.json. O install da Orca, do Codex e do Antigravity não toca ~/.config/opencode.",
-  "findings": [
-    {
-      "id": "W1",
-      "severity": "should-fix",
-      "path": "tools/install_local.py",
-      "line": 199,
-      "body": "🟠 A cópia antiga é apagada antes de a nova ficar pronta (tools/install_local.py:199-201). Se o `rmtree` ou o `copytree` falha no meio (arquivo em uso no Windows, disco cheio), `~/.config/opencode/starcode` fica incompleta, o `opencode.json` continua apontando para ela e o script sai com traceback (exit 1 fora dos códigos do docstring). Sem `hooks/scripts/git_guard.py`, o plugin avisa e deixa o comando passar (dist/opencode/plugins/starcode.js:30). Sonda em home temporário: `copytree` falhando deixou a pasta sem `skills/` e o JSON intacto; rodar de novo recupera.\nCorreção:\n1. `copytree` para `installed.with_name(PLUGIN + \".novo\")`;\n2. só então `rmtree(installed)` e `os.replace` da nova para o lugar;\n3. `OSError` vira mensagem e exit 2.",
-      "evidence": "tools/install_local.py:199"
-    },
-    {
-      "id": "W2",
-      "severity": "nit",
-      "path": "tools/install_local.py",
-      "line": 183,
-      "body": "🟡 `is_starcode` só reconhece skills cujo nome existe no pacote atual (tools/install_local.py:183). Uma skill removida ou renomeada deixa `.../opencode/starcode/skills/<antiga>` no `opencode.json`, apontando para uma pasta que o `rmtree` já apagou. Para o dono `(\"opencode\", PLUGIN)` o teste do nome pode sair.",
-      "evidence": "tools/install_local.py:183"
-    }
-  ],
-  "carryover": [],
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. W1 e W2 fecharam no commit bb69c60. A cópia nova vai para starcode.novo, a antiga sai via starcode.velho, uma falha na cópia ou nos renames preserva a antiga, sai com 1 e mensagem e não grava o opencode.json; sobras de execução interrompida são limpas na execução seguinte. Os caminhos de skill da cópia instalada saem do opencode.json com qualquer nome. Duas observações sem bloqueio, fora dos achados por ser rodada 2: uma falha só no rmtree de starcode.velho, depois da troca, relata falha de cópia com a nova já no lugar e não grava o opencode.json; e o exit 1 não bate com o docstring, que reserva o 1 para comando do CLI que falhou.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido: tools/install_local.py:201-218 copia para starcode.novo, troca via starcode.velho e restaura a antiga no except; teste test_opencode_copy_failure_keeps_old_copy_and_config; sondas em home temporário com o copytree, o primeiro rename e o segundo rename falhando deixaram a cópia antiga intacta, o JSON intacto e exit 1 com mensagem",
+    "W2": "resolvido: tools/install_local.py:178-186 remove qualquer skill sob opencode/starcode/skills; teste test_opencode_drops_removed_installed_skill_path"
+  },
   "research": [
-    "/websites/opencode_ai (Context7): descoberta de skills em ~/.config/opencode/skills, sem varrer subpastas como ~/.config/opencode/starcode",
-    "https://opencode.ai/docs/skills.md",
-    "https://opencode.ai/docs/commands.md",
-    "https://opencode.ai/docs/cli/plugins.md"
+    "nenhuma superfície externa nova na correção (só shutil e pathlib da biblioteca padrão); rodada 1: Context7 /websites/opencode_ai e https://opencode.ai/docs/skills.md"
   ],
   "ladder": [
     "python tools/build.py --check: OK, dist/ em dia",
-    "claude plugin validate dist/claude --strict: Validation passed",
     "python scripts/check_decisions.py: OK",
-    "python -m unittest discover -s tests -p test_install_local.py: 31 testes, OK",
-    "python -m unittest discover -s tests: 924 testes, OK (1 ignorado)",
+    "python -m unittest discover -s tests -p test_install_local.py: 34 testes, OK",
+    "python -m unittest discover -s tests: OK (1 ignorado)",
+    "claude plugin validate dist/claude --strict: Validation passed",
     "scan_bypasses.py: 0 candidatos"
   ]
 }
