@@ -25,16 +25,30 @@
       "features": [
         "fase-9-worf-guinan-diagnostico",
         "guardas-add-commit-powershell",
-        "q-preserva-handoff"
+        "q-preserva-handoff",
+        "ponte-missao-ativa",
+        "fase-12-robustez",
+        "manutencao-retros-f11",
+        "ajustes-review-pr39",
+        "snapshot-restauracao-segura",
+        "impacto-seleciona-real",
+        "licoes-recorrencia-por-id"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
         "verification.md achado 1 (C1, C3, C4, C6)",
-        "verification.md achados 2-4 (C4, C5, C6)"
+        "verification.md achados 2-4 (C4, C5, C6)",
+        "L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5))",
+        "L21 (verification.md:C33)",
+        "L24 (verification.md:C32)",
+        "L26 (verification.md:C8 (tests/test_skills_exec.py:18))",
+        "L37 (verification.md:achado 3)",
+        "L38 (verification.md:C7)",
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-15T13:53:17Z"
+      "updated": "2026-11-15T17:19:51Z"
     },
     {
       "id": "L3",
@@ -147,16 +161,20 @@
       "id": "L10",
       "text": "Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "fase-11-telas"
+        "fase-11-telas",
+        "despacho-media-escopo",
+        "q-familia-revendedor"
       ],
       "sources": [
-        ".specs/features/fase-11-telas/verification.md:achado 3"
+        ".specs/features/fase-11-telas/verification.md:achado 3",
+        "L29 (verification.md: achado ID em minúscula; spec.md Edge Cases)",
+        "L31 (verification.md achado C7 (test_model_info.py:164))"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-12T12:18:57Z"
+      "updated": "2026-11-15T16:31:41Z"
     },
     {
       "id": "L11",
@@ -222,16 +240,18 @@
       "id": "L15",
       "text": "Teste de 'nada foi escrito' compara bytes e a lista de arquivos antes e depois; mtime e tamanho não detectam uma escrita que os preserve.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "ponte-missao-ativa"
+        "ponte-missao-ativa",
+        "licoes-recorrencia-por-id"
       ],
       "sources": [
-        ".specs/features/ponte-missao-ativa/verification.md (rodada 1, C4)"
+        ".specs/features/ponte-missao-ativa/verification.md (rodada 1, C4)",
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 3 (C4, LESSONS.md)"
       ],
       "scope": "",
       "created": "2026-11-12T16:46:42Z",
-      "updated": "2026-11-12T16:46:42Z"
+      "updated": "2026-11-15T17:19:51Z"
     },
     {
       "id": "L16",
@@ -302,17 +322,19 @@
         "fase-12-robustez",
         "gate-d30-ci",
         "despacho-media-escopo",
-        "piloto-decisao-citada"
+        "piloto-decisao-citada",
+        "licoes-recorrencia-por-id"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
         "verification.md: achados 2 a 8 (C4-C10)",
         "verification.md: achados C5 e C13",
-        "verification.md achados 2 e 3 (test_piloto.py:204, :231)"
+        "verification.md achados 2 e 3 (test_piloto.py:204, :231)",
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-14T14:18:22Z"
+      "updated": "2026-11-15T17:19:51Z"
     },
     {
       "id": "L21",
@@ -485,16 +507,20 @@
       "id": "L32",
       "text": "No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "q-familia-revendedor"
+        "q-familia-revendedor",
+        "setup-grava-config",
+        "impacto-seleciona-real"
       ],
       "sources": [
-        "verification.md achado C9 (test_model_info.py:178)"
+        "verification.md achado C9 (test_model_info.py:178)",
+        "L34 (verification.md:C4)",
+        "L39 (verification.md:C8)"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-14T17:43:47Z"
+      "updated": "2026-11-15T16:31:41Z"
     },
     {
       "id": "L33",
@@ -615,6 +641,36 @@
       "scope": "",
       "created": "2026-11-15T13:53:17Z",
       "updated": "2026-11-15T13:53:17Z"
+    },
+    {
+      "id": "L41",
+      "text": "Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id \"\" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "licoes-recorrencia-por-id"
+      ],
+      "sources": [
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio)"
+      ],
+      "scope": "",
+      "created": "2026-11-15T17:19:51Z",
+      "updated": "2026-11-15T17:19:51Z"
+    },
+    {
+      "id": "L42",
+      "text": "Quando o requisito manda gravar a hora atual, asserte o carimbo dentro da janela entre antes e depois da chamada, porque updated >= anterior também passava com o valor antigo.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "licoes-recorrencia-por-id"
+      ],
+      "sources": [
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 2 (C1, updated)"
+      ],
+      "scope": "",
+      "created": "2026-11-15T17:19:52Z",
+      "updated": "2026-11-15T17:19:52Z"
     }
   ]
 }

@@ -43,6 +43,25 @@ class GuinanSkillTests(unittest.TestCase):
             if root != ROOT:
                 self.assertNotIn("{{", text)
 
+    def test_guinan_lista_licoes_e_reusa_id(self):
+        # R9
+        for root in _roots():
+            text = _read(root, "skills/guinan/SKILL.md")
+            sec = text.split("## 1. Lessons", 1)[1].split("\n## ", 1)[0]
+            lines = sec.splitlines()
+            lst = [i for i, l in enumerate(lines) if 'scripts/lessons.py" list --status all' in l]
+            wr = [i for i, l in enumerate(lines) if 'scripts/lessons.py" add --feature' in l]
+            self.assertEqual((len(lst), len(wr)), (1, 1), root)
+            self.assertLess(lst[0], wr[0], root)
+            rec = [i for i, l in enumerate(lines) if 'scripts/lessons.py" add --id L<n> --feature <slug> '
+                   '--signal <signal> --source "<file:line or id>"' in l]
+            self.assertEqual(len(rec), 1, root)
+            self.assertLess(lst[0], rec[0], root)
+            start = max(i for i, l in enumerate(lines[:rec[0] + 1]) if l[:2].strip().rstrip(".").isdigit())
+            step = "\n".join(lines[start:rec[0] + 3])
+            for needle in ("candidate", "confirmed", "recorrência", "same cause and same fix"):
+                self.assertIn(needle, step, f"{root}: {needle}")
+
     def test_guinan_skill_retro_contract(self):
         # R24
         for root in _roots():

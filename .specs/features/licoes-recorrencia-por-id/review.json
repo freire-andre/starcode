@@ -1,0 +1,36 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. Os três achados da rodada 1 fecharam. W1: test_licoes_reprocessadas_n1 agora pula a repetida que a poda já removeu (tests/test_lessons.py:295-296) e mantém todas as asserções das canônicas, que conferem as fontes pelo snapshot orig, não por by_id (tests/test_lessons.py:289-294). W2: o assertLess duplicado saiu (tests/test_guinan_skill.py:55 ficou sozinho). W3: test_lessons_add_id_de_licao_podada_sai_2 (tests/test_lessons.py:156-167) envelhece L1 em 60 dias, passa pela primeira busca e cai no ramo da poda (scripts/lessons.py:202-203), conferindo saída exata e bytes intactos de lessons.json e LESSONS.md. As correções mexem só em testes e na Handoff da spec; nenhum blocker novo. Arquivos mecânicos fora do review: dist/ (5 CLIs), .specs/LESSONS.md (gerado). Bypass scan: 3 candidatos; o único de código é o mesmo da rodada 1 (tests/test_lessons.py:93, espera de 1 s do carimbo), aceito; os outros 2 são o review.json e o review.md da rodada 1 citando esse trecho.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido em a8324a0: pula a repetida ausente de by_id (tests/test_lessons.py:295)",
+    "W2": "resolvido em 7dca367: assertLess duplicado removido (tests/test_guinan_skill.py:55)",
+    "W3": "resolvido em a8324a0: test_lessons_add_id_de_licao_podada_sai_2 (tests/test_lessons.py:156)"
+  },
+  "research": [
+    "nenhuma superfície externa: só stdlib (argparse, json, datetime) e arquivos do repo"
+  ],
+  "ladder": [
+    {
+      "command": "python tools/build.py --check",
+      "result": "OK, dist/ em dia"
+    },
+    {
+      "command": "python scripts/check_decisions.py",
+      "result": "OK"
+    },
+    {
+      "command": "python -m unittest test_lessons test_guinan_skill (em tests/)",
+      "result": "15 testes, OK"
+    },
+    {
+      "command": "python -m unittest discover -s tests",
+      "result": "OK (skipped=1)"
+    },
+    {
+      "command": "git diff main...HEAD | scan_bypasses.py",
+      "result": "3 candidatos (sync-hack): tests/test_lessons.py:93, aceito; review.json:4 e review.md:19 da rodada 1, só citam o mesmo trecho"
+    }
+  ]
+}
