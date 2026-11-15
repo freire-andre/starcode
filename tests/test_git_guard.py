@@ -184,6 +184,17 @@ class HookProtocolTests(TempRepoCase):
         self.assertEqual(out["permissionDecision"], "deny")
         self.assertIn("StarCode bloqueou", out["permissionDecisionReason"])
 
+    def test_git_guard_nega_push_force_pelo_powershell(self):
+        outs = {}
+        for tool in ("Bash", "PowerShell"):
+            payload = {"tool_name": tool, "tool_input": {"command": "git push --force origin main"},
+                       "cwd": str(self.repo)}
+            res = self.run_hook(json.dumps(payload))
+            self.assertEqual(res.returncode, 0)
+            outs[tool] = json.loads(res.stdout)["hookSpecificOutput"]
+        self.assertEqual(outs["PowerShell"]["permissionDecision"], "deny")
+        self.assertEqual(outs["PowerShell"]["permissionDecisionReason"], outs["Bash"]["permissionDecisionReason"])
+
     def test_allow_prints_nothing(self):
         res = self.run_hook(json.dumps({"tool_input": {"command": "git status"}, "cwd": str(self.repo)}))
         self.assertEqual((res.returncode, res.stdout), (0, ""))

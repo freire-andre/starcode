@@ -133,6 +133,205 @@ class CommitTests(TempRepoCase):
         self.assertTrue(ss.evaluate(f"git commit -m 'oops {FAKE['linear']}'", str(self.repo)))
 
 
+class AddAntesDoCommitTests(TempRepoCase):
+    def write(self, name, text, base=None):
+        path = (base or self.repo) / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def commit_all(self, *names):
+        run_git(self.repo, "add", *names)
+        run_git(self.repo, "commit", "-q", "-m", "base")
+
+    def segredo(self):
+        return f"TOKEN = '{FAKE['github']}'\n"
+
+    def achado(self, caminho):
+        return f"{caminho}:1: token do GitHub ({ss.mask(FAKE['github'])})"
+
+    def test_add_antes_do_commit_escaneia_novo_e_modificado(self):
+        self.write("README.md", self.segredo())
+        self.write("app/novo.py", self.segredo())
+        for cmd in ("git add -A && git commit -m x", "git add . ; git commit -m x",
+                    "git add --all || git commit -m x", "git add . | git commit -m x",
+                    "git add .\ngit commit -m x"):
+            with self.subTest(cmd=cmd):
+                findings = ss.evaluate(cmd, str(self.repo))
+                self.assertEqual(findings, [self.achado("README.md"), self.achado("app/novo.py")])
+        semhead = self.tmp / "semhead"
+        semhead.mkdir()
+        run_git(semhead, "init", "-q", "-b", "main")
+        self.write("README.md", self.segredo(), semhead)
+        self.write("app/novo.py", self.segredo(), semhead)
+        findings = ss.evaluate("git add -A && git commit -m x", str(semhead))
+        self.assertEqual(findings, [self.achado("README.md"), self.achado("app/novo.py")])
+
+    def test_add_antes_do_commit_sem_segredo_passa(self):
+        self.write("README.md", "hello mudado\n")
+        self.write("app/novo.py", "print('ok')\n")
+        self.assertEqual(ss.evaluate("git add -A && git commit -m x", str(self.repo)), [])
+
+    def test_add_update_ignora_nao_rastreados(self):
+        self.write("novo.py", self.segredo())
+        self.assertEqual(ss.evaluate("git add -u && git commit -m x", str(self.repo)), [])
+        self.assertEqual(ss.evaluate("git add --update && git commit -m x", str(self.repo)), [])
+        self.write("README.md", self.segredo())
+        findings = ss.evaluate("git add -u && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("README.md")])
+
+    def test_add_so_escaneia_caminhos_passados(self):
+        self.write("a.py", "a = 1\n")
+        self.write("b.py", "b = 1\n")
+        self.commit_all("a.py", "b.py")
+        self.write("a.py", "a = 2\n")
+        self.write("b.py", self.segredo())
+        self.write("c.py", self.segredo())
+        self.assertEqual(ss.evaluate("git add a.py && git commit -m x", str(self.repo)), [])
+        findings = ss.evaluate("git add a.py c.py && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("c.py")])
+
+    def test_add_arquivo_novo_env_e_allowlist(self):
+        self.write(".env", "DEBUG=1\n")
+        self.assertEqual(ss.evaluate("git add -A && git commit -m x", str(self.repo)),
+                         [".env: arquivo .env no commit (variáveis de ambiente não vão para o Git)"])
+        (self.repo / ".env").unlink()
+        self.write("docs/chave.txt", self.segredo())
+        self.write("package-lock.json", f'{{"i": "{FAKE["aws"]}"}}\n')
+        self.assertEqual(len(ss.evaluate("git add -A && git commit -m x", str(self.repo))), 1)
+        self.write(".starcode/secret-allowlist", "path:docs/*\n")
+        self.assertEqual(ss.evaluate("git add docs && git commit -m x", str(self.repo)), [])
+
+    def test_add_com_dash_c(self):
+        sub = self.tmp / "pai" / "sub"
+        sub.mkdir(parents=True)
+        run_git(sub, "init", "-q", "-b", "main")
+        self.write("novo.py", self.segredo(), sub)
+        findings = ss.evaluate("git -C sub add -A; git -C sub commit -m x", str(self.tmp / "pai"))
+        self.assertEqual(findings, [self.achado("novo.py")])
+
+    def test_add_arquivo_novo_grande_nega(self):
+        self.write("grande.txt", ("x" * 99 + "\n") * 2_000)
+        tamanho = len((self.repo / "grande.txt").read_text(encoding="utf-8"))
+        old = ss.MAX_DIFF_BYTES
+        ss.MAX_DIFF_BYTES = 10_000
+        try:
+            findings = ss.evaluate("git add -A && git commit -m x", str(self.repo))
+        finally:
+            ss.MAX_DIFF_BYTES = old
+        self.assertEqual(findings, [
+            f"grande.txt: arquivo grande demais para verificar ({tamanho} caracteres; limite 10000). "
+            "Divida o commit ou aprove o arquivo em .starcode/secret-allowlist (path:<glob>)."])
+
+    def test_add_force_inclui_ignorados(self):
+        self.write(".gitignore", ".env\nsegredo.py\n")
+        self.commit_all(".gitignore")
+        self.write(".env", "DEBUG=1\n")
+        self.write("segredo.py", self.segredo())
+        findings = ss.evaluate("git add -f .env segredo.py && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [".env: arquivo .env no commit (variáveis de ambiente não vão para o Git)",
+                                    self.achado("segredo.py")])
+        findings = ss.evaluate("git add --force .env segredo.py && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [".env: arquivo .env no commit (variáveis de ambiente não vão para o Git)",
+                                    self.achado("segredo.py")])
+        self.assertEqual(ss.evaluate("git add .env segredo.py && git commit -m x", str(self.repo)), [])
+
+    def test_nome_nao_ascii_e_escaneado(self):
+        self.write("café.py", "a = 1\n")
+        self.commit_all("café.py")
+        self.write("café.py", self.segredo())
+        self.assertEqual(ss.evaluate("git add -A && git commit -m x", str(self.repo)), [self.achado("café.py")])
+        self.assertEqual(ss.evaluate("git add café.py && git commit -m x", str(self.repo)), [self.achado("café.py")])
+        run_git(self.repo, "add", "café.py")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [self.achado("café.py")])
+
+    def test_add_pathspec_raiz(self):
+        self.write("sub/ok.py", "a = 1\n")
+        self.commit_all("sub/ok.py")
+        self.write("raiz.py", self.segredo())
+        sub = str(self.repo / "sub")
+        self.assertEqual(ss.evaluate("git add -A :/ && git commit -m x", sub), [self.achado("raiz.py")])
+        self.assertEqual(ss.evaluate("git add ':(top)' && git commit -m x", sub), [self.achado("raiz.py")])
+
+    def test_add_flags_combinadas_com_force(self):
+        self.write(".gitignore", "segredo.py\n")
+        self.commit_all(".gitignore")
+        self.write("segredo.py", self.segredo())
+        for flags in ("-Af", "-fA"):
+            with self.subTest(flags=flags):
+                findings = ss.evaluate(f"git add {flags} && git commit -m x", str(self.repo))
+                self.assertEqual(findings, [self.achado("segredo.py")])
+        self.write("README.md", self.segredo())
+        for flags in ("-uf", "-fu"):
+            with self.subTest(flags=flags):
+                findings = ss.evaluate(f"git add {flags} && git commit -m x", str(self.repo))
+                self.assertEqual(findings, [self.achado("README.md")])
+
+    def test_add_all_em_subdiretorio_ve_raiz(self):
+        self.write("sub/ok.py", "a = 1\n")
+        self.commit_all("sub/ok.py")
+        self.write("raiz.py", self.segredo())
+        sub = str(self.repo / "sub")
+        for cmd in ("git add -A && git commit -m x", "git add --all && git commit -m x"):
+            with self.subTest(cmd=cmd):
+                self.assertEqual(ss.evaluate(cmd, sub), [self.achado("raiz.py")])
+        self.write("README.md", self.segredo())
+        findings = ss.evaluate("git add -u && git commit -m x", sub)
+        self.assertEqual(findings, [self.achado("README.md")])
+        findings = ss.evaluate("git -C sub add -A; git -C sub commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("README.md"), self.achado("raiz.py")])
+
+    def test_commit_do_indice_em_subdiretorio(self):
+        self.write("sub/ok.py", "a = 1\n")
+        self.write("x.py", self.segredo())
+        run_git(self.repo, "add", "x.py")
+        findings = ss.evaluate("git commit -m x", str(self.repo / "sub"))
+        self.assertEqual(findings, [self.achado("x.py")])
+
+    def test_git_stage_conta_como_add(self):
+        self.write("novo.py", self.segredo())
+        self.assertEqual(ss.evaluate("git stage -A && git commit -m x", str(self.repo)), [self.achado("novo.py")])
+
+    def test_add_pathspec_from_file_escaneia_tudo(self):
+        self.write("novo.py", self.segredo())
+        self.write("lista.txt", "ok.py\n")
+        findings = ss.evaluate("git add --pathspec-from-file=lista.txt && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("novo.py")])
+        findings = ss.evaluate("git add --pathspec-from-file lista.txt && git commit -m x", str(self.repo))
+        self.assertEqual(findings, [self.achado("novo.py")])
+
+    def test_add_binario_novo_grande_passa(self):
+        (self.repo / "dados.bin").write_bytes(bytes(5_000))
+        old = ss.MAX_DIFF_BYTES
+        ss.MAX_DIFF_BYTES = 1_000
+        try:
+            findings = ss.evaluate("git add -A && git commit -m x", str(self.repo))
+        finally:
+            ss.MAX_DIFF_BYTES = old
+        self.assertEqual(findings, [])
+
+    def test_secret_scan_nega_commit_pelo_powershell(self):
+        self.write("app/novo.py", self.segredo())
+        outs = {}
+        for tool in ("Bash", "PowerShell"):
+            payload = {"tool_name": tool, "tool_input": {"command": "git add -A; git commit -m x"},
+                       "cwd": str(self.repo)}
+            res = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True,
+                                 text=True, encoding="utf-8")
+            self.assertEqual(res.returncode, 0)
+            outs[tool] = json.loads(res.stdout)["hookSpecificOutput"]
+        self.assertEqual(outs["PowerShell"]["permissionDecision"], "deny")
+        self.assertEqual(outs["PowerShell"]["permissionDecisionReason"], outs["Bash"]["permissionDecisionReason"])
+        self.assertIn("app/novo.py:1:", outs["PowerShell"]["permissionDecisionReason"])
+
+    def test_decisions_guardas_add_commit_powershell(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text.split("### SC-178:", 1)[1].split("\n### ", 1)[0]
+        for campo in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
+            self.assertIn(campo, entry)
+        for nome in ("git add", "PowerShell", "Bash|PowerShell"):
+            self.assertIn(nome, entry)
+
+
 class TextTargetsTests(TempRepoCase):
     def test_orca_linear_comment(self):
         cmd = f"orca linear comment add SC-8 --body 'deploy key {FAKE['anthropic']}'"

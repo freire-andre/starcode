@@ -21,16 +21,18 @@
       "id": "L2",
       "text": "Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "fase-9-worf-guinan-diagnostico"
+        "fase-9-worf-guinan-diagnostico",
+        "guardas-add-commit-powershell"
       ],
       "sources": [
-        "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py"
+        "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
+        "verification.md achado 1 (C1, C3, C4, C6)"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-09T18:54:53Z"
+      "updated": "2026-11-14T23:53:01Z"
     },
     {
       "id": "L3",
@@ -51,16 +53,18 @@
       "id": "L4",
       "text": "Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "fase-10-ponte"
+        "fase-10-ponte",
+        "guardas-add-commit-powershell"
       ],
       "sources": [
-        "verification.md: achado R8 (scripts/ponte.py handoff_of)"
+        "verification.md: achado R8 (scripts/ponte.py handoff_of)",
+        "verification.md achado 2 (secret_scan.py:196)"
       ],
       "scope": "",
       "created": "2026-11-10T14:38:54Z",
-      "updated": "2026-11-10T14:38:54Z"
+      "updated": "2026-11-14T23:53:01Z"
     },
     {
       "id": "L5",

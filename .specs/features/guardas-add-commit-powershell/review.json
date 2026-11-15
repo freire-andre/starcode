@@ -1,0 +1,29 @@
+{
+  "round": 3,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE. A correção 9a19794 (dist em cddaba4) fecha os dois achados abertos da rodada 2, pelo evaluate e pelo payload PowerShell, em repositórios Git temporários. W1: `git add -Af` e `-fA` com segredo.py ignorado agora negam (parse_add lê cada letra do grupo curto, hooks/scripts/secret_scan.py:234); `-uf` e `-fu` liberam, como o git (o -u não inclui arquivo não rastreado, ignorado ou não), e `-uf` com rastreado modificado nega. W3: sem caminho, o add lista a partir da raiz (hooks/scripts/secret_scan.py:275) e o diff por arquivo roda na raiz (:134); `git add -A`/`--all`/`-u` em sub/, `git -C sub add -A; git -C sub commit -m x`, `:/`, `:(top)`, `add ..` e o commit do índice (e o commit -a) feitos de sub/ negam com segredo na raiz; `git add .` em sub/ segue cobrindo só sub/. Sem regressão nos casos fechados (W2 não ASCII, W4 stage, W5 pathspec-from-file, W6 binário de 65 MB, `:!exclusão`, `:(exclude)`, espaço, -u só rastreados, add a.py não lê b.py, glob) nem nos comandos limpos. W7 e W8 seguem na issue SC-179, por decisão do usuário. Escada verde, 0 candidatos de bypass, dist em dia.",
+  "findings": [],
+  "carryover": {
+    "W1": "resolvido: add -Af e -fA com ignorado negam (Bash e PowerShell); -uf e -fu liberam como o git; -uf com rastreado modificado, -f segredo.py negam; -A sem -f não lê ignorado",
+    "W2": "resolvido, sem regressão: café.py rastreado nega em add -A, add café.py, commit -a de sub/ e commit do índice de sub/; acentuado limpo libera",
+    "W3": "resolvido, regressão da rodada 2 fechada: add -A, --all e -u em sub/, -C sub add -A (com ; e &&), :/, :(top), commit do índice e commit -a de sub/ negam com segredo na raiz; add . em sub/ cobre só sub/",
+    "W4": "resolvido, sem regressão: git stage -A e git stage novo.py negam",
+    "W5": "resolvido, sem regressão: --pathspec-from-file=lista.txt, separado e a partir de sub/ negam; -u com só não rastreado libera",
+    "W6": "resolvido, sem regressão: binário de 65 MB libera no add -A",
+    "W7": "issue de acompanhamento SC-179 (decisão do usuário)",
+    "W8": "issue de acompanhamento SC-179 (decisão do usuário)"
+  },
+  "research": [
+    "nenhuma superfície externa nova nesta rodada (correção só em hooks/scripts/secret_scan.py e testes)",
+    "/pjbrito/claude-code-docs"
+  ],
+  "ladder": [
+    {"command": "python tools/build.py --check", "result": "OK, dist/ em dia"},
+    {"command": "python scripts/check_decisions.py", "result": "OK (DECISIONS.md atualizado no mesmo commit 9a19794a)"},
+    {"command": "claude plugin validate dist/claude --strict", "result": "Validation passed"},
+    {"command": "python -m unittest discover -s tests -p test_secret_scan.py", "result": "Ran 41 tests, OK"},
+    {"command": "python -m unittest discover -s tests -p test_git_guard.py", "result": "Ran 27 tests, OK"},
+    {"command": "python -m unittest discover -s tests -p test_build.py", "result": "Ran 36 tests, OK"},
+    {"command": "git diff main...HEAD | python scripts/review/scan_bypasses.py", "result": "0 candidatos"}
+  ]
+}
