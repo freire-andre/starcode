@@ -76,9 +76,26 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertEqual(len(checkouts), 1)
         self.assertEqual(str(checkouts[0]["with"]["fetch-depth"]), "0")
 
-    def test_ci_matrix_ubuntu_windows_python_312(self):
+    def test_ci_pr_ignora_so_specs_menos_lessons(self):
+        doc = _doc()
+        on = doc.get("on", doc.get(True))
+        self.assertEqual(on["pull_request"]["paths"], ["**", "!.specs/**", ".specs/lessons.json"])
+        self.assertNotIn("paths-ignore", on["pull_request"])
+        self.assertNotIn("paths", on["push"])
+        self.assertNotIn("paths-ignore", on["push"])
+
+    def test_ci_checks_fora_das_tags_e_com_timeout(self):
         job = _jobs()["checks"]
-        self.assertEqual(job["strategy"]["matrix"]["os"], ["ubuntu-latest", "windows-latest"])
+        self.assertEqual(job["if"], "!startsWith(github.ref, 'refs/tags/')")
+        self.assertEqual(job["timeout-minutes"], 20)
+
+    def test_ci_matrix_windows_so_fora_do_push_python_312(self):
+        job = _jobs()["checks"]
+        self.assertEqual(
+            job["strategy"]["matrix"]["os"],
+            "${{ github.event_name == 'push' && fromJSON('[\"ubuntu-latest\"]')"
+            " || fromJSON('[\"ubuntu-latest\",\"windows-latest\"]') }}",
+        )
         self.assertEqual(job["runs-on"], "${{ matrix.os }}")
         setups = [s for s in job["steps"] if str(s.get("uses", "")).startswith("actions/setup-python")]
         self.assertEqual(len(setups), 1)

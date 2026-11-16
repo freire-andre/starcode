@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    paths:
+      - '**'
+      - '!.specs/**'
+      - '.specs/lessons.json'
   push:
     branches: [main]
     tags: ['v*']
@@ -17,11 +21,13 @@ permissions:
 
 jobs:
   checks:
+    if: "!startsWith(github.ref, 'refs/tags/')"
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ github.event_name == 'push' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-latest"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
