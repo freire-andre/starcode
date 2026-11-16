@@ -82,7 +82,7 @@ Proof: run unit | test_decisions_lote1_correcoes (test_build.BuildTests.test_dec
 **Linear:** SC-188
 **Integration branch:** feature/lote1-correcoes
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-188 · base 7d1900c · claude:claude-sonnet-5-5 · 2026-11-16T19:36:17Z · ctx_a829eca31ac7
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
 **Reports:** none
