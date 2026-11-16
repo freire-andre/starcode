@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 5
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31
-- updated: 2026-11-16T18:32:50Z
+- signal: `weak_test` · features: 6
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26
+- updated: 2026-11-16T20:40:03Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -310,6 +310,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: piloto-freios
 - sources: .specs/features/piloto-freios/verification.md:29, .specs/features/piloto-freios/verification.md:30
 - updated: 2026-11-16T18:32:50Z
+
+### L51 - Ao detectar binário ou marcador num conteúdo, examine o conteúdo inteiro ou documente o recorte no requisito, porque olhar só os primeiros 8000 caracteres deixava passar um byte nulo mais adiante.
+- signal: `spec_deviation` · features: 1
+- features: lote1-correcoes
+- sources: .specs/features/lote1-correcoes/verification.md:24
+- updated: 2026-11-16T20:40:03Z
+
+### L52 - Num teste de tempo limite, confira que o processo expirado deixou de existir (PID gravado pela prova), não só a mensagem de falha escrita, porque o resultado podia ser registrado com o processo ainda vivo.
+- signal: `weak_test` · features: 1
+- features: lote1-correcoes
+- sources: .specs/features/lote1-correcoes/verification.md:25
+- updated: 2026-11-16T20:40:03Z
+
+### L53 - Quando o requisito cobre falha e tempo limite de uma chamada externa, teste os dois caminhos e a continuação para o próximo item, porque só o retorno não zero tinha teste.
+- signal: `ac_gap` · features: 1
+- features: lote1-correcoes
+- sources: .specs/features/lote1-correcoes/verification.md:27
+- updated: 2026-11-16T20:40:03Z
 
 ## Quarantined
 
