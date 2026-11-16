@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-185
-**May change**: scripts/dispatch.py, tests/test_dispatch.py, skills/engajar/references/execute.md, skills/config/SKILL.md, schemas/config.md, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/dispatch.py, tests/test_dispatch.py, skills/engajar/references/execute.md, skills/engajar/SKILL.md, skills/config/SKILL.md, schemas/config.md, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Item 3.6 da triagem v2 (decisão D-b: ligar o `qStrategy` ao `dispatch.py q-cli`). O campo é validado (`scripts/config/validate_config.py:33,57`) e oferecido pela skill `config` (`skills/config/SKILL.md:69`), mas nenhum script o lê. `q_cli` (`scripts/dispatch.py:623`) percorre o Q configurado e depois `Q_CLI_ORDER = ("codex", "antigravity", "opencode")`, e devolve `None` quando nenhum CLI de outra família está disponível. O comando imprime então `self-verified` e sai com 1. Nenhum código implementa `opencode-subagent`. Discovery: `.specs/features/q-strategy/context.md`.
@@ -87,7 +87,7 @@ Proof: run unit | test_q_strategy_decisions_entry_and_changelog (test_dispatch.F
 **Integration branch:** feature/q-strategy
 **Last integrated:** 664c22a
 **Dispatched:** W-fix · SC-185 · base f7d8974 · claude:claude-sonnet-5-5 · 2026-11-16T13:26:38Z · ctx_882c65b6a59e
-**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: push + PR: "sim"; 2026-11-16: PR aberto: https://github.com/freire-andre/starcode/pull/58; 2026-11-16: publicar review: "Sim"; nits: "Corrigir agora"; review publicado como comentário (422 em APPROVE do próprio PR)
+**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: push + PR: "sim"; 2026-11-16: PR aberto: https://github.com/freire-andre/starcode/pull/58; 2026-11-16: publicar review: "Sim"; nits: "Corrigir agora"; review publicado como comentário (422 em APPROVE do próprio PR); 2026-11-16: May change ganha skills/engajar/SKILL.md: exigido pelo W1, cuja correção o usuário pediu ("Corrigir agora")
 **Attempts:** none
 **Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (C4 stderr com strip; C5 sem o comando; C8 sem conteúdo do DECISIONS/CHANGELOG; ordem orca-worker antes de opencode-subagent sem teste); 935 OK; q-check 0; prova de C8 trocada pelo Picard por teste de conteúdo; 2026-11-16: T1-fix: 4752121 (C4, C5, C8, ordem); 936 OK; ticket gate verde; 2026-11-16: provas e done verdes (936 OK); 2026-11-16: Guinan: L20, L32 (recorrência por --id), L43, L44 novas; retro com 5 sugestões; 2026-11-16: Worf r1: APPROVE; W1 nit (SKILL.md:118 ordem fixa no resumo); W2 nit (C6 com strip)
 **Breaker:** closed
