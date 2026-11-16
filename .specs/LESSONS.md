@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 11
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)
-- updated: 2026-11-15T19:42:34Z
+- signal: `weak_test` · features: 12
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43
+- updated: 2026-11-16T17:20:29Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -20,10 +20,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-14T23:53:01Z
 
 ### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
-- signal: `weak_test` · features: 4
-- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada
-- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)
-- updated: 2026-11-15T19:42:34Z
+- signal: `weak_test` · features: 5
+- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0
+- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40
+- updated: 2026-11-16T17:20:28Z
 
 ### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
 - signal: `weak_test` · features: 2
@@ -32,28 +32,34 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-15T19:42:34Z
 
 ### L15 - Teste de 'nada foi escrito' compara bytes e a lista de arquivos antes e depois; mtime e tamanho não detectam uma escrita que os preserve.
-- signal: `weak_test` · features: 2
-- features: ponte-missao-ativa, licoes-recorrencia-por-id
-- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, C4), .specs/features/licoes-recorrencia-por-id/verification.md: achado 3 (C4, LESSONS.md)
-- updated: 2026-11-15T17:19:51Z
+- signal: `weak_test` · features: 3
+- features: ponte-missao-ativa, licoes-recorrencia-por-id, verificacao-1-8-0
+- sources: .specs/features/ponte-missao-ativa/verification.md (rodada 1, C4), .specs/features/licoes-recorrencia-por-id/verification.md: achado 3 (C4, LESSONS.md), .specs/features/verificacao-1-8-0/verification.md:34, .specs/features/verificacao-1-8-0/verification.md:35
+- updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 6
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25
-- updated: 2026-11-16T12:25:30Z
+- signal: `weak_test` · features: 7
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36
+- updated: 2026-11-16T17:20:28Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
-- signal: `weak_test` · features: 2
-- features: ajustes-review-pr39, despacho-media-escopo
-- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9
-- updated: 2026-11-13T23:41:40Z
+- signal: `weak_test` · features: 3
+- features: ajustes-review-pr39, despacho-media-escopo, verificacao-1-8-0
+- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9, .specs/features/verificacao-1-8-0/verification.md:38
+- updated: 2026-11-16T17:20:28Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
 - signal: `weak_test` · features: 4
 - features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy
 - sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27
 - updated: 2026-11-16T12:25:30Z
+
+### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
+- signal: `weak_test` · features: 2
+- features: licoes-recorrencia-por-id, verificacao-1-8-0
+- sources: .specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio), .specs/features/verificacao-1-8-0/verification.md:32
+- updated: 2026-11-16T17:20:27Z
 
 ## Candidates
 
@@ -251,12 +257,6 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md achado 1 (scripts/dispatch.py:507)
 - updated: 2026-11-15T13:53:17Z
 
-### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
-- signal: `weak_test` · features: 1
-- features: licoes-recorrencia-por-id
-- sources: .specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio)
-- updated: 2026-11-15T17:19:51Z
-
 ### L42 - Quando o requisito manda gravar a hora atual, asserte o carimbo dentro da janela entre antes e depois da chamada, porque updated >= anterior também passava com o valor antigo.
 - signal: `weak_test` · features: 1
 - features: licoes-recorrencia-por-id
@@ -274,6 +274,30 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: q-strategy
 - sources: .specs/features/q-strategy/verification.md:28
 - updated: 2026-11-16T12:25:30Z
+
+### L45 - Faça a listagem e a checagem unitária de um estado usarem a mesma função de regra, porque a listagem do banner incluía piloto com mandato pendente que a checagem unitária recusava.
+- signal: `ac_gap` · features: 1
+- features: verificacao-1-8-0
+- sources: .specs/features/verificacao-1-8-0/verification.md:33
+- updated: 2026-11-16T17:20:27Z
+
+### L46 - Teste cada código de saída documentado de um comando (uso inválido, recurso ausente, regra recusada, sucesso) via CLI, porque o teste cobria só parte dos códigos e um exit trocado passava.
+- signal: `weak_test` · features: 1
+- features: verificacao-1-8-0
+- sources: .specs/features/verificacao-1-8-0/verification.md:37, .specs/features/verificacao-1-8-0/verification.md:41
+- updated: 2026-11-16T17:20:28Z
+
+### L47 - Teste os valores exatos de cada limiar fixado no requisito e um logo abaixo dele (ex.: 0, 2, 12; 7 dias), porque o teste usava valores folgados e um < trocado por <= passava.
+- signal: `weak_test` · features: 1
+- features: verificacao-1-8-0
+- sources: .specs/features/verificacao-1-8-0/verification.md:39
+- updated: 2026-11-16T17:20:28Z
+
+### L48 - Quando o requisito fixa uma precedência entre fontes, asserte o valor efetivo resultante (CLI e modelo) em cada origem, não só o rótulo da origem, porque o rótulo certo passava com o valor herdado errado.
+- signal: `weak_test` · features: 1
+- features: verificacao-1-8-0
+- sources: .specs/features/verificacao-1-8-0/verification.md:42
+- updated: 2026-11-16T17:20:28Z
 
 ## Quarantined
 

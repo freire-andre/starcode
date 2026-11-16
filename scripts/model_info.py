@@ -182,13 +182,14 @@ def fit(entry: dict, model_tier: str) -> dict[str, str]:
     out: dict[str, str] = {}
     tools = entry.get("tool_call") is True
     reasoning = entry.get("reasoning") is True
-    context = (entry.get("limit") or {}).get("context") or 0
+    context = (entry.get("limit") or {}).get("context")
+    known_context = isinstance(context, (int, float)) and not isinstance(context, bool)  # 0 is known and small
     for group in ROLE_GROUPS:
         if not tools:
             out[group] = "vetado: não chama ferramentas (a tripulação lê e edita arquivos e roda comandos)"
             continue
         notes = []
-        if group in ("pesado", "execucao") and context and context < MIN_CONTEXT:
+        if group in ("pesado", "execucao") and known_context and context < MIN_CONTEXT:
             notes.append(f"contexto de {context // 1000}k, abaixo de {MIN_CONTEXT // 1000}k")
         if group in ("pesado", "q") and not reasoning:
             notes.append("sem modo de raciocínio")

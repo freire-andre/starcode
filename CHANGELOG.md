@@ -14,6 +14,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Corrigido
 
+- Piloto e `model_info` (verificação retroativa da 1.8.0, SC-186): `piloto.py status` marca toda decisão `baixa` com `⚠️ revisar`, `model_info` avisa contexto `0` (menor que 200k) em `pesado` e `execucao` sem avisar quando o contexto não existe, e o banner lista só piloto ativo com mandato confirmado, a mesma regra do `ativo`.
 - OpenCode: `install_local.py` copia o pacote para `~/.config/opencode/starcode` e aponta as skills e o plugin para essa cópia, em vez do `dist/` do clone. A troca da cópia é atômica o bastante para não deixar pasta incompleta: se a cópia falhar, a antiga fica intacta, o `opencode.json` não é gravado e o comando sai com 1 e `opencode: falha ao copiar <origem> para <destino>: <motivo>`. Caminhos de skill do StarCode que não existem mais saem do `opencode.json`.
 
 ## [1.8.0] - 2026-11-13

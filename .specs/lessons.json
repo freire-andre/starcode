@@ -33,7 +33,8 @@
         "snapshot-restauracao-segura",
         "impacto-seleciona-real",
         "licoes-recorrencia-por-id",
-        "opencode-copia-instalada"
+        "opencode-copia-instalada",
+        "verificacao-1-8-0"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -46,11 +47,12 @@
         "L37 (verification.md:achado 3)",
         "L38 (verification.md:C7)",
         ".specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)",
-        ".specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)"
+        ".specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)",
+        ".specs/features/verificacao-1-8-0/verification.md:43"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-15T19:42:34Z"
+      "updated": "2026-11-16T17:20:29Z"
     },
     {
       "id": "L3",
@@ -168,17 +170,19 @@
         "fase-11-telas",
         "despacho-media-escopo",
         "q-familia-revendedor",
-        "opencode-copia-instalada"
+        "opencode-copia-instalada",
+        "verificacao-1-8-0"
       ],
       "sources": [
         ".specs/features/fase-11-telas/verification.md:achado 3",
         "L29 (verification.md: achado ID em minúscula; spec.md Edge Cases)",
         "L31 (verification.md achado C7 (test_model_info.py:164))",
-        ".specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)"
+        ".specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)",
+        ".specs/features/verificacao-1-8-0/verification.md:40"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-15T19:42:34Z"
+      "updated": "2026-11-16T17:20:28Z"
     },
     {
       "id": "L11",
@@ -249,15 +253,18 @@
       "status": "confirmed",
       "features": [
         "ponte-missao-ativa",
-        "licoes-recorrencia-por-id"
+        "licoes-recorrencia-por-id",
+        "verificacao-1-8-0"
       ],
       "sources": [
         ".specs/features/ponte-missao-ativa/verification.md (rodada 1, C4)",
-        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 3 (C4, LESSONS.md)"
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 3 (C4, LESSONS.md)",
+        ".specs/features/verificacao-1-8-0/verification.md:34",
+        ".specs/features/verificacao-1-8-0/verification.md:35"
       ],
       "scope": "",
       "created": "2026-11-12T16:46:42Z",
-      "updated": "2026-11-15T17:19:51Z"
+      "updated": "2026-11-16T17:20:28Z"
     },
     {
       "id": "L16",
@@ -330,7 +337,8 @@
         "despacho-media-escopo",
         "piloto-decisao-citada",
         "licoes-recorrencia-por-id",
-        "q-strategy"
+        "q-strategy",
+        "verificacao-1-8-0"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -338,11 +346,13 @@
         "verification.md: achados C5 e C13",
         "verification.md achados 2 e 3 (test_piloto.py:204, :231)",
         ".specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)",
-        ".specs/features/q-strategy/verification.md:25"
+        ".specs/features/q-strategy/verification.md:25",
+        ".specs/features/verificacao-1-8-0/verification.md:31",
+        ".specs/features/verificacao-1-8-0/verification.md:36"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-16T12:25:30Z"
+      "updated": "2026-11-16T17:20:28Z"
     },
     {
       "id": "L21",
@@ -411,15 +421,17 @@
       "status": "confirmed",
       "features": [
         "ajustes-review-pr39",
-        "despacho-media-escopo"
+        "despacho-media-escopo",
+        "verificacao-1-8-0"
       ],
       "sources": [
         "verification.md:C2 (tests/test_coverage_rule.py:22)",
-        "verification.md: achado C9"
+        "verification.md: achado C9",
+        ".specs/features/verificacao-1-8-0/verification.md:38"
       ],
       "scope": "",
       "created": "2026-11-13T16:43:22Z",
-      "updated": "2026-11-13T23:41:40Z"
+      "updated": "2026-11-16T17:20:28Z"
     },
     {
       "id": "L26",
@@ -656,16 +668,18 @@
       "id": "L41",
       "text": "Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id \"\" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "licoes-recorrencia-por-id"
+        "licoes-recorrencia-por-id",
+        "verificacao-1-8-0"
       ],
       "sources": [
-        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio)"
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio)",
+        ".specs/features/verificacao-1-8-0/verification.md:32"
       ],
       "scope": "",
       "created": "2026-11-15T17:19:51Z",
-      "updated": "2026-11-15T17:19:51Z"
+      "updated": "2026-11-16T17:20:27Z"
     },
     {
       "id": "L42",
@@ -711,6 +725,67 @@
       "scope": "",
       "created": "2026-11-16T12:25:30Z",
       "updated": "2026-11-16T12:25:30Z"
+    },
+    {
+      "id": "L45",
+      "text": "Faça a listagem e a checagem unitária de um estado usarem a mesma função de regra, porque a listagem do banner incluía piloto com mandato pendente que a checagem unitária recusava.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "verificacao-1-8-0"
+      ],
+      "sources": [
+        ".specs/features/verificacao-1-8-0/verification.md:33"
+      ],
+      "scope": "",
+      "created": "2026-11-16T17:20:27Z",
+      "updated": "2026-11-16T17:20:27Z"
+    },
+    {
+      "id": "L46",
+      "text": "Teste cada código de saída documentado de um comando (uso inválido, recurso ausente, regra recusada, sucesso) via CLI, porque o teste cobria só parte dos códigos e um exit trocado passava.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "verificacao-1-8-0"
+      ],
+      "sources": [
+        ".specs/features/verificacao-1-8-0/verification.md:37",
+        ".specs/features/verificacao-1-8-0/verification.md:41"
+      ],
+      "scope": "",
+      "created": "2026-11-16T17:20:28Z",
+      "updated": "2026-11-16T17:20:28Z"
+    },
+    {
+      "id": "L47",
+      "text": "Teste os valores exatos de cada limiar fixado no requisito e um logo abaixo dele (ex.: 0, 2, 12; 7 dias), porque o teste usava valores folgados e um < trocado por <= passava.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "verificacao-1-8-0"
+      ],
+      "sources": [
+        ".specs/features/verificacao-1-8-0/verification.md:39"
+      ],
+      "scope": "",
+      "created": "2026-11-16T17:20:28Z",
+      "updated": "2026-11-16T17:20:28Z"
+    },
+    {
+      "id": "L48",
+      "text": "Quando o requisito fixa uma precedência entre fontes, asserte o valor efetivo resultante (CLI e modelo) em cada origem, não só o rótulo da origem, porque o rótulo certo passava com o valor herdado errado.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "verificacao-1-8-0"
+      ],
+      "sources": [
+        ".specs/features/verificacao-1-8-0/verification.md:42"
+      ],
+      "scope": "",
+      "created": "2026-11-16T17:20:28Z",
+      "updated": "2026-11-16T17:20:28Z"
     }
   ]
 }
