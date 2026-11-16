@@ -7,7 +7,8 @@ decisions stay readable later (and by the Guinan in the retro).
     python piloto.py mandato <slug> --kind principio|limite|preferencia --text "..." --source Q3
     python piloto.py confirmar <slug> --words "<palavras exatas do usuário>"   # locks the mandate
     python piloto.py registrar <slug> --by data --question "..." --options "a | b" --decision "..." \
-        --reason "..." [--basis M2,Q5] [--confidence alta|media|baixa]
+        --reason "..." [--basis M2,Q5] [--confidence alta|media|baixa] \
+        [--categoria dependencia|esquema|arquitetura]
     python piloto.py status <slug>                            # one line per field + the decisions to review
     python piloto.py ativo <slug>                             # exit 0 when active with a confirmed mandate
     python piloto.py encerrar <slug> [--reason "..."]
@@ -15,8 +16,11 @@ decisions stay readable later (and by the Guinan in the retro).
 
 Rules enforced here: the mandate changes only before `confirmar`; a decision is recorded only with a
 confirmed mandate and an active autopilot; a decision without `--basis` is always `baixa` confidence, and
-every `baixa` decision is marked `⚠️ revisar`. Exit codes: 0 ok, 1 feature/piloto not found or rule
-refused, 2 usage error. Python stdlib only.
+every `baixa` decision is marked `⚠️ revisar`. The 3rd `⚠️ revisar` decision of a feature (and every one after
+it) is refused with exit 3 (brake: the question goes back to the user); `--decision "devolvido ao usuário"` is
+the way back, recorded without the mark and never counted. `--categoria dependencia|esquema|arquitetura` needs
+an `M<n>` in `--basis`, else exit 3. Exit codes: 0 ok, 1 feature/piloto not found or rule refused, 2 usage
+error, 3 brake or category without a mandate item. Python stdlib only.
 """
 from __future__ import annotations
 
@@ -34,6 +38,9 @@ import starcode_common as sc  # noqa: E402
 FILE = "piloto.md"
 KINDS = ("principio", "limite", "preferencia")
 KIND_LABEL = {"principio": "princípio", "limite": "limite", "preferencia": "preferência"}
+CATEGORIAS = ("dependencia", "esquema", "arquitetura")
+BRAKE_AT = 2  # `⚠️ revisar` decisions already recorded when the next one is refused
+RETURNED = "devolvido ao usuário"
 CONFIDENCE = ("alta", "media", "baixa")
 CONF_LABEL = {"alta": "alta", "media": "média", "baixa": "baixa"}
 STATUS_RE = re.compile(r"^\*\*Status:\*\*\s*(\S+)", re.M)
@@ -41,12 +48,18 @@ CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*(\d{4}-\d{2}-\d{2})",
 USER_CONFIRMED_RE = re.compile(r"^\*\*Mandato confirmado:\*\*\s*\d{4}-\d{2}-\d{2}\s*-\s*user:", re.M)
 MANDATE_RE = re.compile(r"^- \*\*M(\d+)\*\*", re.M)
 DECISION_RE = re.compile(r"^### D(\d{1,6}) · ", re.M)
+ENDED_RE = re.compile(r"^\*\*Encerrado:\*\*\s*(\S+)", re.M)
+DECISION_STAMP_RE = re.compile(r"^### D(\d{1,6}) · (\S+) · ", re.M)
 REVIEW_RE = re.compile(r"^### (D\d+) · .*⚠️ revisar", re.M)
 QREF_RE = re.compile(r"^[MQD]\d+$")
 
 
 class PilotoError(Exception):
     pass
+
+
+class BrakeError(PilotoError):
+    """The brake or a category without a mandate item: the question goes back to the user (exit 3)."""
 
 
 def _now() -> str:
@@ -161,6 +174,31 @@ def active_confirmed_in(fdir: Path | None) -> bool:
     return _active_confirmed(_read(path))
 
 
+def approval_valid_in(fdir: Path | None, cited: list[int]) -> bool:
+    """A `piloto:` approval citing one of `cited` is valid when the mandate was confirmed by the user, the autopilot
+    is active or finished, and a cited decision is registered (with a stamp not after `**Encerrado:**` once finished)."""
+    path = (fdir / FILE) if fdir else None
+    if not cited or not path or not path.exists():
+        return False
+    doc = _read(path)
+    st = STATUS_RE.search(doc)
+    if not st or st.group(1) not in ("ativo", "encerrado") or not USER_CONFIRMED_RE.search(doc):
+        return False
+    stamps = {int(n): stamp for n, stamp in DECISION_STAMP_RE.findall(doc)}
+    if st.group(1) == "ativo":
+        return any(n in stamps for n in cited)
+    ended = ENDED_RE.search(doc)
+    return bool(ended) and any(n in stamps and stamps[n] <= ended.group(1) for n in cited)
+
+
+def mandate_confirmed_in(fdir: Path | None) -> bool:
+    """The feature's piloto.md has a mandate confirmed by the user (a `- user:` quote), active or finished."""
+    path = (fdir / FILE) if fdir else None
+    if not path or not path.exists():
+        return False
+    return bool(USER_CONFIRMED_RE.search(_read(path)))
+
+
 def registered_decisions_in(fdir: Path | None) -> set[int]:
     """Numbers of the `### D<n> · ` decisions registered in the feature folder's piloto.md."""
     path = (fdir / FILE) if fdir else None
@@ -170,7 +208,7 @@ def registered_decisions_in(fdir: Path | None) -> set[int]:
 
 
 def record(slug: str, root: Path, by: str, question: str, options: str, decision: str, reason: str,
-           basis: str = "", confidence: str = "") -> str:
+           basis: str = "", confidence: str = "", categoria: str | None = None) -> str:
     path = _path(slug, root)
     doc = _read(path)
     st = STATUS_RE.search(doc)
@@ -186,14 +224,23 @@ def record(slug: str, root: Path, by: str, question: str, options: str, decision
     missing = [r for r in refs if r.startswith("M") and r not in known_m]
     if missing:
         raise PilotoError(f"item de mandato inexistente: {', '.join(missing)}")
+    returned = " ".join((decision or "").split()).casefold() == RETURNED.casefold()
+    if categoria is not None and categoria not in CATEGORIAS:
+        raise PilotoError(f"--categoria deve ser um de {', '.join(CATEGORIAS)}")
+    if categoria and not any(r.startswith("M") for r in refs):
+        raise BrakeError(f"categoria {categoria} exige item de mandato (--basis M<n>); "
+                         "devolva a pergunta ao usuário")
     conf = (confidence or ("alta" if refs else "baixa")).lower().replace("é", "e")
     if conf not in CONFIDENCE:
         raise PilotoError(f"--confidence deve ser um de {', '.join(CONFIDENCE)}")
     if not refs:
         conf = "baixa"  # no basis in the interview: never more than low confidence
     n = max([int(x) for x in DECISION_RE.findall(doc)] or [0]) + 1
-    flag = " · ⚠️ revisar" if conf == "baixa" else ""
-    entry = (f"\n### D{n} · {_now()} · {_one_line(by, '--by')} · confiança {CONF_LABEL[conf]}{flag}\n"
+    flag = " · ⚠️ revisar" if conf == "baixa" and not returned else ""
+    if flag and len(REVIEW_RE.findall(doc)) >= BRAKE_AT:
+        raise BrakeError("freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário")
+    cat = f" · categoria {categoria}" if categoria else ""
+    entry = (f"\n### D{n} · {_now()} · {_one_line(by, '--by')} · confiança {CONF_LABEL[conf]}{cat}{flag}\n"
              f"- **Pergunta:** {_one_line(question, '--question')}\n"
              f"- **Opções:** {_one_line(options, '--options')}\n"
              f"- **Decisão:** {_one_line(decision, '--decision')}\n"
@@ -258,6 +305,7 @@ def main(argv: list[str] | None = None) -> int:
         r.add_argument(opt, required=True)
     r.add_argument("--basis", default="")
     r.add_argument("--confidence", default="")
+    r.add_argument("--categoria", default=None, choices=CATEGORIAS)
     e = sub.add_parser("encerrar")
     e.add_argument("slug")
     e.add_argument("--reason", default="")
@@ -274,7 +322,8 @@ def main(argv: list[str] | None = None) -> int:
         elif a.cmd == "confirmar":
             print(confirm(a.slug, root, a.words))
         elif a.cmd == "registrar":
-            print(record(a.slug, root, a.by, a.question, a.options, a.decision, a.reason, a.basis, a.confidence))
+            print(record(a.slug, root, a.by, a.question, a.options, a.decision, a.reason, a.basis, a.confidence,
+                         a.categoria))
         elif a.cmd == "status":
             print("\n".join(status(a.slug, root)))
         elif a.cmd == "ativo":
@@ -289,6 +338,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{slug}: {n} decisão(ões), {rev} para revisar")
             if not found:
                 print("nenhum piloto ativo")
+    except BrakeError as exc:
+        print(exc, file=sys.stderr)
+        return 3
     except PilotoError as exc:
         print(f"ERRO: {exc}")
         return 1

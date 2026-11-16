@@ -1,0 +1,19 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O gate passa a validar a aprovação piloto: por approval_valid_in (scripts/piloto.py:177-190): mandato com citação do usuário, status ativo ou encerrado, e, encerrado, carimbo da decisão menor ou igual ao do **Encerrado:**; a comparação de carimbos ISO em UTC com sufixo Z e precisão de segundo é lexicográfica e correta. O freio conta as entradas ⚠️ revisar já gravadas e recusa a próxima com BrakeError (exit 3, stderr), depois da checagem de categoria; o devolvido ao usuário sai sem a marca e não conta, e a categoria sem M<n> é recusada também para ele (scripts/piloto.py:227-241). Os únicos chamadores são os gates em scripts/gates/gates_common.py:208-238. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: só código, testes e skill do repo (biblioteca padrão)"
+ ],
+ "ladder": [
+  "python tools/build.py --check: OK, dist/ em dia",
+  "python scripts/check_decisions.py: OK",
+  "python -m unittest discover -s tests -p test_piloto.py: 37 testes, OK",
+  "python -m unittest discover -s tests -p test_validate_*.py: 36 testes, OK",
+  "claude plugin validate dist/claude --strict: Validation passed",
+  "suíte inteira nas provas: 949 OK (1 ignorado)",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}

@@ -532,17 +532,19 @@
         "q-familia-revendedor",
         "setup-grava-config",
         "impacto-seleciona-real",
-        "q-strategy"
+        "q-strategy",
+        "piloto-freios"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
         "L34 (verification.md:C4)",
         "L39 (verification.md:C8)",
-        ".specs/features/q-strategy/verification.md:27"
+        ".specs/features/q-strategy/verification.md:27",
+        ".specs/features/piloto-freios/verification.md:31"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-16T12:25:30Z"
+      "updated": "2026-11-16T18:32:50Z"
     },
     {
       "id": "L33",
@@ -786,6 +788,37 @@
       "scope": "",
       "created": "2026-11-16T17:20:28Z",
       "updated": "2026-11-16T17:20:28Z"
+    },
+    {
+      "id": "L49",
+      "text": "Ao isentar um caso de uma regra, limite a isenção à regra que o requisito nomeia e teste o caso isento contra as outras regras, porque a isenção do freio para 'devolvido ao usuário' vazou para a exigência de mandato da categoria.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "piloto-freios"
+      ],
+      "sources": [
+        ".specs/features/piloto-freios/verification.md:28"
+      ],
+      "scope": "",
+      "created": "2026-11-16T18:32:50Z",
+      "updated": "2026-11-16T18:32:50Z"
+    },
+    {
+      "id": "L50",
+      "text": "Depois de um comando que grava, asserte a entrada persistida no arquivo (título, campos, marcas), não só a mensagem de sucesso impressa, porque o teste passava com o comando anunciando a gravação sem gravar.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "piloto-freios"
+      ],
+      "sources": [
+        ".specs/features/piloto-freios/verification.md:29",
+        ".specs/features/piloto-freios/verification.md:30"
+      ],
+      "scope": "",
+      "created": "2026-11-16T18:32:50Z",
+      "updated": "2026-11-16T18:32:50Z"
     }
   ]
 }

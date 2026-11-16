@@ -10,6 +10,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Alterado
 
+- Freios do piloto automático (SC-187): a aprovação `piloto:` vale com o piloto ativo ou encerrado (mandato confirmado pelo usuário e decisão citada registrada até o `**Encerrado:**`); `piloto.py registrar` recusa com exit 3 a 3ª decisão `⚠️ revisar` da feature (o freio fica) e grava "devolvido ao usuário" fora dele; `--categoria dependencia|esquema|arquitetura` exige um `M<n>` em `--basis`. A skill `piloto-automatico` descreve os três.
 - `dispatch.py q-cli` segue o `qStrategy` do config do usuário quando o campo existe: `orca-worker` é o percurso atual, `self-verified` para e devolve `self-verified`, `opencode-subagent` é pulado com aviso no stderr (ainda não implementado). Sem o campo, nada muda. A skill `config` deixa de oferecer `opencode-subagent`.
 
 ### Corrigido

@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 4
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27
-- updated: 2026-11-16T12:25:30Z
+- signal: `weak_test` · features: 5
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31
+- updated: 2026-11-16T18:32:50Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -298,6 +298,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: verificacao-1-8-0
 - sources: .specs/features/verificacao-1-8-0/verification.md:42
 - updated: 2026-11-16T17:20:28Z
+
+### L49 - Ao isentar um caso de uma regra, limite a isenção à regra que o requisito nomeia e teste o caso isento contra as outras regras, porque a isenção do freio para 'devolvido ao usuário' vazou para a exigência de mandato da categoria.
+- signal: `ac_gap` · features: 1
+- features: piloto-freios
+- sources: .specs/features/piloto-freios/verification.md:28
+- updated: 2026-11-16T18:32:50Z
+
+### L50 - Depois de um comando que grava, asserte a entrada persistida no arquivo (título, campos, marcas), não só a mensagem de sucesso impressa, porque o teste passava com o comando anunciando a gravação sem gravar.
+- signal: `weak_test` · features: 1
+- features: piloto-freios
+- sources: .specs/features/piloto-freios/verification.md:29, .specs/features/piloto-freios/verification.md:30
+- updated: 2026-11-16T18:32:50Z
 
 ## Quarantined
 
