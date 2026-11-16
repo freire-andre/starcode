@@ -21,10 +21,10 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| R5: byte nulo após os primeiros 8.000 caracteres do diff não é reconhecido como binário. | `$env:PYTHONDONTWRITEBYTECODE='1'; python -c "import sys; sys.path.insert(0,'hooks/scripts'); import secret_scan as s; print(s._is_binary('a'*8000 + chr(0)))"` → `False` | Examinar todo o diff pelo byte nulo e testar uma posição além de 8.000. | |
-| C4 não comprova que o comando expirado foi encerrado; apenas verifica o resultado escrito e o veredito. | `tests/test_check_proofs.py:141` | Verificar que o processo iniciado deixou de existir após o limite. | |
-| C7 aceita uma Decisão que contenha palavras isoladas mas omita condições essenciais de R1 a R6. | `tests/test_build.py:401` | Afirmar cada condição e valor exigidos dentro da seção Decisão. | |
-| R6: o teste cobre retorno não zero, mas nenhum check exercita timeout do git diff, sua mensagem e a continuação para outro arquivo. | `tests/test_secret_scan.py:109` | Simular timeout e verificar a mensagem completa e o processamento dos demais arquivos. | |
+| R5: byte nulo após os primeiros 8.000 caracteres do diff não é reconhecido como binário. | `$env:PYTHONDONTWRITEBYTECODE='1'; python -c "import sys; sys.path.insert(0,'hooks/scripts'); import secret_scan as s; print(s._is_binary('a'*8000 + chr(0)))"` → `False` | Examinar todo o diff pelo byte nulo e testar uma posição além de 8.000. | 5c33211, 2d5c921, 8183cfe |
+| C4 não comprova que o comando expirado foi encerrado; apenas verifica o resultado escrito e o veredito. | `tests/test_check_proofs.py:141` | Verificar que o processo iniciado deixou de existir após o limite. | 5c33211, 2d5c921, 8183cfe |
+| C7 aceita uma Decisão que contenha palavras isoladas mas omita condições essenciais de R1 a R6. | `tests/test_build.py:401` | Afirmar cada condição e valor exigidos dentro da seção Decisão. | 5c33211, 2d5c921, 8183cfe |
+| R6: o teste cobre retorno não zero, mas nenhum check exercita timeout do git diff, sua mensagem e a continuação para outro arquivo. | `tests/test_secret_scan.py:109` | Simular timeout e verificar a mensagem completa e o processamento dos demais arquivos. | 5c33211, 2d5c921, 8183cfe |
 
 ## Limits
 

@@ -1,6 +1,6 @@
 # lote1-correcoes proofs
 
-**HEAD**: a5931d3
+**HEAD**: 9d9be01
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 10 pass, 0 fail
@@ -34,7 +34,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 956 tests in 463.481s
+Ran 958 tests in 459.034s
 
 OK (skipped=1)
 inativo
