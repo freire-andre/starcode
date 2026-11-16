@@ -86,7 +86,7 @@ Proof: `python scripts/check_decisions.py` | check_decisions: OK
 **Linear:** SC-185
 **Integration branch:** feature/q-strategy
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-185 · base 9f16c68 · claude:claude-sonnet-5-5 · 2026-11-16T11:32:00Z · ctx_c3d0b715f49e
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
 **Reports:** none
