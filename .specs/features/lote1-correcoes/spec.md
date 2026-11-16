@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_lote1_correcoes (test_build.BuildTests.test_dec
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** LaForge implementa T1 (SC-188)
 **Linear:** SC-188
 **Integration branch:** feature/lote1-correcoes
 **Last integrated:** a5931d3328ce88e819f47889bb32d74b251438a1
-**Dispatched:** none
+**Dispatched:** Q · 93ef941
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: R1–R7 em 31fa777; 956 OK; ticket gate verde; SC-188 ficou antes da SC-187 no DECISIONS porque test_decisions_piloto_freios lê a SC-187 até o fim do arquivo
+**Reports:** 2026-11-16: T1: R1–R7 em 31fa777; 956 OK; ticket gate verde; SC-188 ficou antes da SC-187 no DECISIONS porque test_decisions_piloto_freios lê a SC-187 até o fim do arquivo; 2026-11-16: provas verdes
 **Breaker:** closed
