@@ -121,5 +121,47 @@ class CheckProofsTests(TempRepoCase):
             self.assertEqual(check_proofs.main(["nada", "--root", str(self.repo)]), 2)
 
 
+    def test_sees_palavra_inteira(self):  # R2
+        s = check_proofs.sees
+        self.assertFalse(s("test_login_extra PASSED", "test_login PASSED"))
+        self.assertTrue(s("test_login PASSED", "test_login PASSED"))
+        self.assertFalse(s("xtest_login PASSED", "test_login PASSED"))
+        self.assertTrue(s("a test_login (m.C.test_login) ... ok", "test_login (m.C.test_login) ... ok"))
+        self.assertFalse(s("test_login_extra (m.C.test_login_extra) ... ok", "test_login (m.C.test_login) ... ok"))
+        self.assertTrue(s("test_x ...ok", "test_x ..."))  # `...` sem borda de palavra
+        self.assertFalse(s("test_x okay", "test_x ok"))
+
+    def test_sees_docstring_do_unittest(self):  # R3
+        s = check_proofs.sees
+        self.assertTrue(s("test_x (m.C.test_x)\nDocstring ... ok", "test_x (m.C.test_x) ... ok"))
+        self.assertFalse(s("test_x\n... ok", "test_x ... ok"))
+        self.assertFalse(s("outra linha\ntest_x (m.C.test_x)", "test_x (m.C.test_x) ... ok"))
+        self.assertFalse(s("x test_x (m.C.test_x)\n... ok", "test_x (m.C.test_x) ... ok"))
+
+    def test_prova_com_tempo_limite(self):  # R4
+        sleeper = f"\"{PY}\" -c \"__import__('time').sleep(60)\""
+        checks = ("**C1** - lenta (R4)\nProof: run slow | test_alpha ... ok\n\n"
+                  f"**C2** - avulsa (R4)\nProof: `{sleeper}`\n")
+        fdir = self.repo / ".specs" / "features" / "demo"
+        fdir.mkdir(parents=True)
+        (fdir / "spec.md").write_text(SPEC, encoding="utf-8")
+        (fdir / "tasks.md").write_text(
+            f"# Demo: Tasks\n\n## Checks\n\n**Build**: `{sleeper}`\n**Run slow**: `{sleeper}`\n\n{checks}\n",
+            encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "feature")
+        old = check_proofs.PROOF_TIMEOUT
+        check_proofs.PROOF_TIMEOUT = 1
+        try:
+            res = check_proofs.evaluate("demo", self.repo)
+        finally:
+            check_proofs.PROOF_TIMEOUT = old
+        self.assertFalse(res.ok)
+        text = (fdir / "proofs.md").read_text(encoding="utf-8")
+        for cid in ("C1", "C2", "Run slow", "Build"):
+            self.assertRegex(text, rf"\| {cid} \| .* \| fail - tempo limite \(1800 s\) \|")
+        self.assertEqual(check_proofs.PROOF_TIMEOUT, 1800)
+
+
 if __name__ == "__main__":
     unittest.main()

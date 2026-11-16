@@ -93,6 +93,40 @@ class CommitTests(TempRepoCase):
         self.assertIn("grande demais para verificar", findings[0])
         self.assertIn("big.txt", findings[0])
 
+    def test_frase_binary_files_em_texto_e_escaneada(self):  # R5
+        self.stage("notas.md", f"Binary files a and b differ\nTOKEN = '{FAKE['github']}'\n")
+        findings = ss.evaluate("git commit -m x", str(self.repo))
+        self.assertEqual(len(findings), 1, findings)
+        self.assertIn("notas.md:2", findings[0])
+        self.assertIn("token do GitHub", findings[0])
+        # binário de verdade: o git diz `Binary files ... differ` e o arquivo é pulado
+        run_git(self.repo, "reset", "-q")
+        path = self.repo / "blob.bin"
+        path.write_bytes(b"\x00\x01" + f"TOKEN = '{FAKE['github']}'".encode() + b"\x00")
+        run_git(self.repo, "add", "blob.bin")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [])
+
+    def test_arquivo_pulado_avisa(self):  # R6
+        import contextlib
+        import io
+        from unittest import mock
+
+        self.stage("ruim.txt", "x\n")
+        self.stage("bom.py", f"TOKEN = '{FAKE['github']}'\n")
+        real = subprocess.run
+
+        def fake(args, *a, **kw):
+            if "--unified=0" in args and args[-1] == "ruim.txt":
+                return subprocess.CompletedProcess(args, 128, "", "fatal")
+            return real(args, *a, **kw)
+
+        err = io.StringIO()
+        with mock.patch.object(ss.subprocess, "run", fake), contextlib.redirect_stderr(err):
+            findings = ss.evaluate("git commit -m x", str(self.repo))
+        self.assertEqual(err.getvalue(), "StarCode hook: secret_scan pulou ruim.txt (git diff saiu com 128)\n")
+        self.assertEqual(len(findings), 1, findings)  # o outro arquivo seguiu e foi escaneado
+        self.assertIn("bom.py:1", findings[0])
+
     def test_clean_commit_passes(self):
         self.stage("app/main.py", "print('hello')\nAPI_KEY = os.environ['API_KEY']\n")
         self.assertEqual(ss.evaluate("git commit -m 'feat: hello'", str(self.repo)), [])

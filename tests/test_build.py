@@ -388,6 +388,34 @@ class BuildTests(unittest.TestCase):
         self.assertTrue((claude / "scripts" / "dispatch.py").is_file())
         self.assertTrue((claude / "skills" / "engajar" / "references" / "execute.md").is_file())
 
+    def test_nenhuma_skill_do_dist_tem_header_first(self):  # R1
+        self.assertIn("**Header first (F6-6):**", (ROOT / "skills" / "guinan" / "SKILL.md").read_text(encoding="utf-8"))
+        skills = sorted((ROOT / "dist").glob("*/skills/*/SKILL.md"))
+        self.assertGreaterEqual(len({p.parts[-4] for p in skills}), 4)
+        for path in skills:
+            self.assertNotIn("Header first", path.read_text(encoding="utf-8"), str(path))
+        build.build(self.src, self.out)  # a mesma regra vale para o build recém-feito
+        for path in (self.out / "dist").glob("*/skills/*/SKILL.md"):
+            self.assertNotIn("Header first", path.read_text(encoding="utf-8"), str(path))
+
+    def test_decisions_lote1_correcoes(self):  # R7
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text[text.index("### SC-188:"):]
+        entry = re.split(r"\n### ", entry, maxsplit=1)[0]
+        for field in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
+            self.assertIn(field, entry)
+        decision = entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0]
+        for term in ("R1", "R6", "F6-6", "palavra inteira", "docstring", "1800 s", "check_proofs",
+                     "Binary files", "differ", "byte nulo", "stderr", "secret_scan pulou"):
+            self.assertIn(term, decision)
+        for name in ("test_nenhuma_skill_do_dist_tem_header_first", "test_sees_palavra_inteira",
+                     "test_sees_docstring_do_unittest", "test_prova_com_tempo_limite",
+                     "test_frase_binary_files_em_texto_e_escaneada", "test_arquivo_pulado_avisa"):
+            self.assertIn(name, entry.split("**Por que não é bug**", 1)[1])
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = re.split(r"\n## \[", changelog.split("## [Unreleased]", 1)[1], maxsplit=1)[0]
+        self.assertIn("SC-188", unreleased)
+
     def test_routing_and_decisions_cover_phase3(self):
         routing = ROOT / "evals" / "routing"
         for skill, case in (("laforge", "pos-laforge-ticket"), ("mccoy", "pos-mccoy-bug"), ("q", "pos-q-verify")):

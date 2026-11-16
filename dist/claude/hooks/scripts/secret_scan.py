@@ -116,6 +116,13 @@ def scan_text(text: str, allow: Allowlist) -> list[tuple[int, str, str]]:
     return findings
 
 
+BINARY_DIFF = re.compile(r"^Binary files .* differ$", re.M)  # R5: só o cabeçalho do git, não a frase em texto
+
+
+def _skipped(path: str, reason: str) -> None:
+    sys.stderr.write(f"StarCode hook: secret_scan pulou {path} ({reason})\n")
+
+
 def _is_binary(data: str) -> bool:
     return "\x00" in data[:8000]
 
@@ -153,7 +160,11 @@ def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: li
             res = subprocess.run(["git", *diff_args, "--unified=0", "--no-color", "--", path], cwd=top,
                                  capture_output=True, text=True, encoding="utf-8", errors="replace",
                                  timeout=sc.GIT_TIMEOUT)
-        except (OSError, subprocess.SubprocessError):
+        except (OSError, subprocess.SubprocessError) as exc:
+            _skipped(path, type(exc).__name__)
+            continue
+        if res.returncode != 0:
+            _skipped(path, f"git diff saiu com {res.returncode}")
             continue
         diff = res.stdout
         if len(diff) > MAX_DIFF_BYTES:
@@ -161,7 +172,7 @@ def staged_findings(cwd: str, all_tracked: bool, allow: Allowlist, pathspecs: li
                        f"{MAX_DIFF_BYTES}). Divida o commit ou aprove o arquivo em .starcode/secret-allowlist "
                        "(path:<glob>).")
             continue
-        if "Binary files" in diff or _is_binary(diff):
+        if BINARY_DIFF.search(diff) or _is_binary(diff):
             continue
         new_line = 0
         for raw in diff.splitlines():
