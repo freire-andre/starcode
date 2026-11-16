@@ -38,10 +38,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-15T17:19:51Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 5
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)
-- updated: 2026-11-15T17:19:51Z
+- signal: `weak_test` · features: 6
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25
+- updated: 2026-11-16T12:25:30Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 2
@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-13T23:41:40Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 3
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8)
-- updated: 2026-11-15T16:31:41Z
+- signal: `weak_test` · features: 4
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27
+- updated: 2026-11-16T12:25:30Z
 
 ## Candidates
 
@@ -262,6 +262,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: licoes-recorrencia-por-id
 - sources: .specs/features/licoes-recorrencia-por-id/verification.md: achado 2 (C1, updated)
 - updated: 2026-11-15T17:19:52Z
+
+### L43 - Quando o critério cita a saída e o exit code de um comando, exercite o próprio comando (main com o ambiente controlado), não só a função interna, porque o teste da função passava sem provar o que o comando imprime nem o código de saída.
+- signal: `weak_test` · features: 1
+- features: q-strategy
+- sources: .specs/features/q-strategy/verification.md:26
+- updated: 2026-11-16T12:25:30Z
+
+### L44 - Em percurso ordenado com efeito colateral por item (aviso, log), teste um item com efeito depois de um que já resolve e asserte que o efeito não acontece, porque uma avaliação antecipada avisaria fora da ordem sem nenhum teste falhar.
+- signal: `ac_gap` · features: 1
+- features: q-strategy
+- sources: .specs/features/q-strategy/verification.md:28
+- updated: 2026-11-16T12:25:30Z
 
 ## Quarantined
 
