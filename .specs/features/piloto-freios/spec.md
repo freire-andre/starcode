@@ -99,8 +99,8 @@ Proof: run unit | test_decisions_piloto_freios (test_piloto.PilotFreiosTests.tes
 **Linear:** SC-187
 **Integration branch:** feature/piloto-freios
 **Last integrated:** b6cc2083d0a67faf4570989be362799d5e941163
-**Dispatched:** Q · db8c4ae
+**Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes
+**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes; 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (devolvido + --categoria sem M<n> gravado, contra R8; C6, C7 sem conferir o arquivo; C11 sem os termos de R10); 949 OK; q-check 0. Decisão do Picard: segue a spec aprovada (R8 recusa também o devolvido; o devolvido é gravado sem --categoria)
 **Breaker:** closed
