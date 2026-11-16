@@ -127,6 +127,35 @@ class CommitTests(TempRepoCase):
         self.assertEqual(len(findings), 1, findings)  # o outro arquivo seguiu e foi escaneado
         self.assertIn("bom.py:1", findings[0])
 
+    def test_byte_nulo_depois_de_8000_e_binario(self):  # R5: o byte nulo conta em qualquer posição do diff
+        self.assertTrue(ss._is_binary("a" * 8000 + "\x00"))
+        self.assertTrue(ss._is_binary("a" * 20000 + "\x00" + "b"))
+        self.assertFalse(ss._is_binary("a" * 20000))
+        self.stage("tarde.dat", "x" * 9000 + "\x00" + f"TOKEN = '{FAKE['github']}'\n")
+        self.assertEqual(ss.evaluate("git commit -m x", str(self.repo)), [])
+
+    def test_timeout_do_git_diff_avisa_e_segue(self):  # R6
+        import contextlib
+        import io
+        from unittest import mock
+
+        self.stage("lento.txt", "x\n")
+        self.stage("bom.py", f"TOKEN = '{FAKE['github']}'\n")
+        real = subprocess.run
+
+        def fake(args, *a, **kw):
+            if "--unified=0" in args and args[-1] == "lento.txt":
+                raise subprocess.TimeoutExpired(args, kw.get("timeout", 0))
+            return real(args, *a, **kw)
+
+        err = io.StringIO()
+        with mock.patch.object(ss.subprocess, "run", fake), contextlib.redirect_stderr(err):
+            findings = ss.evaluate("git commit -m x", str(self.repo))
+        self.assertEqual(err.getvalue(), "StarCode hook: secret_scan pulou lento.txt (TimeoutExpired)\n")
+        self.assertEqual(len(findings), 1, findings)  # o segredo do outro arquivo ainda bloqueia
+        self.assertIn("bom.py:1", findings[0])
+        self.assertIn("token do GitHub", findings[0])
+
     def test_clean_commit_passes(self):
         self.stage("app/main.py", "print('hello')\nAPI_KEY = os.environ['API_KEY']\n")
         self.assertEqual(ss.evaluate("git commit -m 'feat: hello'", str(self.repo)), [])
