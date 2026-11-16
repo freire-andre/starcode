@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
+import shutil
+import subprocess
+import tempfile
 import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -30,6 +35,19 @@ def tasks_md(checks: str, build: str = "none - sem build") -> str:
 
 {checks}
 """
+
+
+def _pid_vivo(pid: int) -> bool:
+    if os.name == "nt":
+        out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True).stdout
+        return str(pid) in out.split()
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 class CheckProofsTests(TempRepoCase):
@@ -139,19 +157,28 @@ class CheckProofsTests(TempRepoCase):
         self.assertFalse(s("x test_x (m.C.test_x)\n... ok", "test_x (m.C.test_x) ... ok"))
 
     def test_prova_com_tempo_limite(self):  # R4
-        sleeper = f"\"{PY}\" -c \"__import__('time').sleep(60)\""
+        tmp = Path(tempfile.mkdtemp(prefix="starcode-pid-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        script = tmp / "dorme.py"  # grava o próprio PID e dorme: o teste confere que o processo foi encerrado
+        script.write_text("import os, sys, time\nopen(sys.argv[1], 'w').write(str(os.getpid()))\ntime.sleep(60)\n",
+                          encoding="utf-8")
+        pidfiles = {n: (tmp / f"{n}.pid").as_posix() for n in ("build", "run", "solo")}
+
+        def sleeper(n):
+            return f'"{PY}" {script.as_posix()} {pidfiles[n]}'
+
         checks = ("**C1** - lenta (R4)\nProof: run slow | test_alpha ... ok\n\n"
-                  f"**C2** - avulsa (R4)\nProof: `{sleeper}`\n")
+                  f"**C2** - avulsa (R4)\nProof: `{sleeper('solo')}`\n")
         fdir = self.repo / ".specs" / "features" / "demo"
         fdir.mkdir(parents=True)
         (fdir / "spec.md").write_text(SPEC, encoding="utf-8")
         (fdir / "tasks.md").write_text(
-            f"# Demo: Tasks\n\n## Checks\n\n**Build**: `{sleeper}`\n**Run slow**: `{sleeper}`\n\n{checks}\n",
+            f"# Demo: Tasks\n\n## Checks\n\n**Build**: `{sleeper('build')}`\n**Run slow**: `{sleeper('run')}`\n\n{checks}\n",
             encoding="utf-8")
         run_git(self.repo, "add", ".")
         run_git(self.repo, "commit", "-q", "-m", "feature")
         old = check_proofs.PROOF_TIMEOUT
-        check_proofs.PROOF_TIMEOUT = 1
+        check_proofs.PROOF_TIMEOUT = 5
         try:
             res = check_proofs.evaluate("demo", self.repo)
         finally:
@@ -161,6 +188,13 @@ class CheckProofsTests(TempRepoCase):
         for cid in ("C1", "C2", "Run slow", "Build"):
             self.assertRegex(text, rf"\| {cid} \| .* \| fail - tempo limite \(1800 s\) \|")
         self.assertEqual(check_proofs.PROOF_TIMEOUT, 1800)
+        for n, f in pidfiles.items():  # o processo que passou do limite foi encerrado (árvore inclusive)
+            pid = int(Path(f).read_text())
+            for _ in range(50):
+                if not _pid_vivo(pid):
+                    break
+                time.sleep(0.1)
+            self.assertFalse(_pid_vivo(pid), f"processo da prova {n} (PID {pid}) continua vivo")
 
 
 if __name__ == "__main__":
