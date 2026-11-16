@@ -113,12 +113,12 @@ Proof: run unit | test_troi_grill_mode (test_piloto.PilotSkillTests.test_troi_gr
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** provas, depois Q (D-j: sem T1 de código)
+**Next:** Guinan: lições (D-j: sem retro)
 **Linear:** SC-186
 **Integration branch:** feature/verificacao-1-8-0
-**Last integrated:** none
-**Dispatched:** T1-fix · SC-186 · base 0463cf6 · claude:claude-sonnet-5-5 · 2026-11-16T16:19:16Z · ctx_2c27bc9c0175
+**Last integrated:** 1f1fb4e
+**Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: May change ganha banner.py e as skills piloto-automatico e troi: achados do Q sobre o banner (R6) e o texto de R14
 **Attempts:** none
-**Reports:** 2026-11-16: provas verdes nos testes existentes (14 checks); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 13 achados (3 de comportamento: status sem ⚠️ revisar, contexto 0 sem aviso, ativos lista piloto pendente; 10 de testes fracos em C1-C6, C8-C11, C13, C14); 936 OK; q-check 0
+**Reports:** 2026-11-16: provas verdes nos testes existentes (14 checks); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 13 achados (3 de comportamento: status sem ⚠️ revisar, contexto 0 sem aviso, ativos lista piloto pendente; 10 de testes fracos em C1-C6, C8-C11, C13, C14); 936 OK; q-check 0; 2026-11-16: T1-fix: fc89a47, 9dcadb1, e9224cf (13 achados); 938 OK; ticket gate verde; 2026-11-16: provas e done verdes (938 OK)
 **Breaker:** closed

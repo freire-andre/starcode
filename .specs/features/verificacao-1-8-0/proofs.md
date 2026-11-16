@@ -1,6 +1,6 @@
 # verificacao-1-8-0 proofs
 
-**HEAD**: 222a2cb
+**HEAD**: 1f1fb4e
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 30 pass, 0 fail
@@ -54,7 +54,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 936 tests in 449.181s
+Ran 938 tests in 456.620s
 
 OK (skipped=1)
 inativo
