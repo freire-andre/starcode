@@ -92,15 +92,15 @@ Proof: run unit | test_decisions_piloto_freios (test_piloto.PilotFreiosTests.tes
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** publicar review; merge após CI (autorização)
+**Next:** lote 1 da triagem v2
 **Linear:** SC-187
 **Integration branch:** feature/piloto-freios
 **Last integrated:** 03ce114
 **Dispatched:** none
-**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: push + PR: "sim"; 2026-11-16: PR aberto: https://github.com/freire-andre/starcode/pull/60
+**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: push + PR: "sim"; 2026-11-16: PR aberto: https://github.com/freire-andre/starcode/pull/60; 2026-11-16: review publicado; merge + Done: "Sim, merge e Done"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes; 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (devolvido + --categoria sem M<n> gravado, contra R8; C6, C7 sem conferir o arquivo; C11 sem os termos de R10); 949 OK; q-check 0. Decisão do Picard: segue a spec aprovada (R8 recusa também o devolvido; o devolvido é gravado sem --categoria); 2026-11-16: T1-fix: 7896313, 927791f (4 achados); 949 OK; ticket gate verde; 2026-11-16: provas e done verdes (949 OK); 2026-11-16: Guinan: L49, L50 novas, L32 (--id); retro com 4 sugestões; test_lessons OK; 2026-11-16: Worf r1: APPROVE, sem achados
+**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes; 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (devolvido + --categoria sem M<n> gravado, contra R8; C6, C7 sem conferir o arquivo; C11 sem os termos de R10); 949 OK; q-check 0. Decisão do Picard: segue a spec aprovada (R8 recusa também o devolvido; o devolvido é gravado sem --categoria); 2026-11-16: T1-fix: 7896313, 927791f (4 achados); 949 OK; ticket gate verde; 2026-11-16: provas e done verdes (949 OK); 2026-11-16: Guinan: L49, L50 novas, L32 (--id); retro com 4 sugestões; test_lessons OK; 2026-11-16: Worf r1: APPROVE, sem achados; 2026-11-16: PR #60 merge 16fe53e; SC-187 Done
 **Breaker:** closed
