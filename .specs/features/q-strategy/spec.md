@@ -75,7 +75,7 @@ Proof: run unit | test_q_cli_command_reads_user_qstrategy (test_dispatch.FamilyA
 Proof: run unit | test_q_strategy_docs_match_implementation (test_dispatch.FamilyAndQCliTests.test_q_strategy_docs_match_implementation) ... ok
 
 **C8** - `DECISIONS.md` atualizado depois da mudança em `scripts/` (R8)
-Proof: `python scripts/check_decisions.py` | check_decisions: OK
+Proof: `python scripts/check_decisions.py`
 
 ## Handoff
 
@@ -85,9 +85,9 @@ Proof: `python scripts/check_decisions.py` | check_decisions: OK
 **Next:** LaForge implementa T1 (SC-185)
 **Linear:** SC-185
 **Integration branch:** feature/q-strategy
-**Last integrated:** none
-**Dispatched:** T1 · SC-185 · base 9f16c68 · claude:claude-sonnet-5-5 · 2026-11-16T11:32:00Z · ctx_c3d0b715f49e
+**Last integrated:** 169e619ebb90ac6103a2388a8eeef1b356cc3cee
+**Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839
 **Breaker:** closed
