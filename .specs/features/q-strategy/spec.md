@@ -79,15 +79,15 @@ Proof: `python scripts/check_decisions.py`
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** LaForge implementa T1 (SC-185)
 **Linear:** SC-185
 **Integration branch:** feature/q-strategy
 **Last integrated:** 169e619ebb90ac6103a2388a8eeef1b356cc3cee
-**Dispatched:** none
+**Dispatched:** Q · 57030af
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839
+**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador)
 **Breaker:** closed
