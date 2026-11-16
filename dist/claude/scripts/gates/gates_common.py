@@ -201,21 +201,22 @@ def pilot_cited(lines: list[str]) -> list[int]:
 
 
 def pilot_approved(lines: list[str], fdir: Path | None) -> bool:
-    """Some `piloto:` line cites a decision registered in piloto.md, with the autopilot active and the mandate
-    confirmed by the user. piloto.py is the only reader of piloto.md."""
+    """Some `piloto:` line cites a decision registered in piloto.md, with the mandate confirmed by the user and the
+    autopilot active or finished (then the decision is stamped no later than `**Encerrado:**`). piloto.py is the
+    only reader of piloto.md."""
     cited = pilot_cited(lines)
-    if not cited:
-        return False
-    pil = _piloto()
-    return pil.active_confirmed_in(fdir) and any(n in pil.registered_decisions_in(fdir) for n in cited)
+    return bool(cited) and _piloto().approval_valid_in(fdir, cited)
 
 
 def pilot_unregistered(lines: list[str], fdir: Path | None) -> int | None:
-    """First decision number cited by a `piloto:` line when the autopilot is active and confirmed but no cited
-    decision is registered; None otherwise."""
+    """First decision number cited by a `piloto:` line when the mandate is confirmed but no cited decision is
+    registered; None otherwise."""
     cited = pilot_cited(lines)
-    if not cited or pilot_approved(lines, fdir) or not _piloto().active_confirmed_in(fdir):
+    pil = _piloto()
+    if not cited or pilot_approved(lines, fdir) or not pil.mandate_confirmed_in(fdir):
         return None
+    if any(n in pil.registered_decisions_in(fdir) for n in cited):
+        return None  # registered, but after the end of the autopilot
     return cited[0]
 
 
