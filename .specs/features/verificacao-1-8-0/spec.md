@@ -117,8 +117,8 @@ Proof: run unit | test_troi_grill_mode (test_piloto.PilotSkillTests.test_troi_gr
 **Linear:** SC-186
 **Integration branch:** feature/verificacao-1-8-0
 **Last integrated:** none
-**Dispatched:** Q · c2393bd
+**Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: provas verdes nos testes existentes (14 checks)
+**Reports:** 2026-11-16: provas verdes nos testes existentes (14 checks); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 13 achados (3 de comportamento: status sem ⚠️ revisar, contexto 0 sem aviso, ativos lista piloto pendente; 10 de testes fracos em C1-C6, C8-C11, C13, C14); 936 OK; q-check 0
 **Breaker:** closed
