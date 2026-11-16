@@ -115,7 +115,7 @@ workers when two or more tickets are independent); integration branch `feature/<
 `orca orchestration worker-start` (brief from `scripts/dispatch.py brief`), `orca worktree set
 --linear-issue`, wait for `worker_done`, `run_gates.py ticket` then `git merge --no-ff` into the
 integration branch, next ticket without asking; after the last one `run_gates.py proofs`, the Q worker in
-another model family (codex → antigravity → self-verified), the single post-Q fix pass, `run_gates.py
+another model family (codex → antigravity → self-verified; the order follows the user config's `qStrategy` when the field exists, see `references/execute.md`), the single post-Q fix pass, `run_gates.py
 done`, Linear states and comments. Git mode 1 and the circuit breaker: same reference, sections 6–7.
 
 ### 6. Records

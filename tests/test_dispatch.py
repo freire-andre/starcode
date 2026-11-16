@@ -443,16 +443,20 @@ class FamilyAndQCliTests(TempRepoCase):
             out = io.StringIO()
             with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
                 code = dispatch.main(["q-cli", "--laforge", self.LF, "--caps-dir", str(d)])
-            return code, out.getvalue().strip()
+            return code, out.getvalue()
 
         self.write_user_config('{"schemaVersion": 1, "qStrategy": ["self-verified"]}')
-        self.assertEqual(run(), (1, "self-verified"))
+        self.assertEqual(run(), (1, "self-verified
+"))
         self.write_user_config('{"schemaVersion": 1, "qStrategy": ["self-verified", "self-verified"]}')  # invalid
-        self.assertEqual(run(), (0, "codex"))
+        self.assertEqual(run(), (0, "codex
+"))
         self.write_user_config('{"schemaVersion": 1}')
-        self.assertEqual(run(), (0, "codex"))
+        self.assertEqual(run(), (0, "codex
+"))
         self.write_user_config("not json")
-        self.assertEqual(run(), (0, "codex"))
+        self.assertEqual(run(), (0, "codex
+"))
 
     def test_q_strategy_docs_match_implementation(self):  # C7
         root = Path(dispatch.__file__).resolve().parent.parent
