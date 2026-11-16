@@ -1,6 +1,6 @@
 # q-strategy proofs
 
-**HEAD**: 664c22a
+**HEAD**: e7cb53f
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 11 pass, 0 fail
@@ -35,7 +35,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 936 tests in 423.781s
+Ran 936 tests in 429.759s
 
 OK (skipped=1)
 inativo
