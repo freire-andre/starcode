@@ -14,7 +14,7 @@ in either file.
 | `crew` | object | no | keys: `picard`, `spock`, `troi`, `data`, `laforge`, `mccoy`, `q`, `uhura`, `scotty`, `kirk`, `worf`, `guinan`. Keep only what differs from `src/crew.yaml` |
 | `crew.<member>.cli` | text | no | `claude`, `codex`, `antigravity`, `opencode` |
 | `crew.<member>.model` | text | no | model ID accepted by that CLI (never invented) |
-| `qStrategy` | list | no | ordered, unique, ≥1: `opencode-subagent`, `orca-worker`, `self-verified` |
+| `qStrategy` | list | no | ordered, unique, ≥1: `opencode-subagent`, `orca-worker`, `self-verified`. `opencode-subagent` is accepted but skipped by `q-cli` (not implemented yet) |
 | `fleet.maxBatch` | integer | no | 1–10 (default 3, v1.1) |
 | `fleet.timeoutMinutes` | integer | no | 1–1440 (default 30, v1.1) |
 | `fleet.workers` | list of text | no | 1–10 unique `<cli>:<model>` items; `<cli>` is `claude`, `codex`, `antigravity` or `opencode`; the model may contain `/` and `:` (split at the first `:`), e.g. `opencode:openrouter/nvidia/x:free` |
