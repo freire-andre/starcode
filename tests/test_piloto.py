@@ -2,6 +2,7 @@
 tasks.md with a confirmed mandate, the banner line and the skill contents (Troi grill mode, piloto-automatico)."""
 from __future__ import annotations
 
+import datetime as dt
 import re
 import subprocess
 import sys
@@ -27,6 +28,20 @@ class PilotoCase(TempRepoCase):
         piloto.start(SLUG, self.repo)
         self.path = self.fdir / "piloto.md"
 
+    def cli(self, *args, slug=SLUG):
+        """Run piloto.py as a process; `slug=None` omits the slug (commands without one)."""
+        cmd = [sys.executable, str(ROOT / "scripts" / "piloto.py"), args[0]] + ([slug] if slug else []) + list(args[1:])
+        return subprocess.run(cmd + ["--root", str(self.repo)], capture_output=True, text=True, encoding="utf-8")
+
+    def snapshot(self):
+        """Bytes of every file under the repo's .specs plus the file list: a refusal must change neither."""
+        base = self.repo / ".specs"
+        return {str(f.relative_to(base)): f.read_bytes() for f in sorted(base.rglob("*")) if f.is_file()}
+
+    def register_args(self):
+        return ("registrar", "--by", "data", "--question", "q", "--options", "a | b", "--decision", "a",
+                "--reason", "r", "--basis", "M1")
+
     def confirmed(self):
         piloto.add_mandate(SLUG, self.repo, "principio", "simplicidade antes de completude", "Q3")
         piloto.add_mandate(SLUG, self.repo, "limite", "nunca adicionar dependência nova", "Q7")
@@ -35,18 +50,40 @@ class PilotoCase(TempRepoCase):
 
 class PilotoScriptTests(PilotoCase):
     def test_start_is_idempotent_and_fixed_format(self):
+        before = self.snapshot()
+        first = self.path.read_bytes()
         self.assertIn("já existe (ativo)", piloto.start(SLUG, self.repo))
+        self.assertEqual(self.path.read_bytes(), first)
+        res = self.cli("start")
+        self.assertEqual((res.returncode, res.stdout.strip()), (0, f"piloto.md já existe (ativo): {self.path}"))
+        self.assertEqual(self.snapshot(), before)
         text = self.path.read_text(encoding="utf-8")
+        self.assertRegex(text, r"\*\*Status:\*\* ativo\n\*\*Iniciado:\*\* \S+Z\n"
+                               r"\*\*Mandato confirmado:\*\* pendente\n")
         for needle in ("# Piloto automático: export-csv", "**Status:** ativo", "**Mandato confirmado:** pendente",
                        "## Mandato", "## Decisões"):
             self.assertIn(needle, text)
 
     def test_no_decision_before_confirmed_mandate(self):
+        refused = (1, "ERRO: mandato não confirmado: o piloto ainda não decide nada")
+        before = self.snapshot()
         with self.assertRaisesRegex(piloto.PilotoError, "mandato não confirmado"):
             piloto.record(SLUG, self.repo, "data", "q", "a | b", "a", "r", "Q1")
         with self.assertRaisesRegex(piloto.PilotoError, "mandato vazio"):
             piloto.confirm(SLUG, self.repo, "ok")
         self.assertFalse(piloto.is_active(SLUG, self.repo))
+        self.assertEqual(self.snapshot(), before)
+        res = self.cli("registrar", "--by", "data", "--question", "q", "--options", "a | b", "--decision", "a",
+                       "--reason", "r")
+        self.assertEqual((res.returncode, res.stdout.strip()), refused)
+        self.assertEqual(self.snapshot(), before)
+        # a pending mandate (items, no confirmation) still decides nothing
+        piloto.add_mandate(SLUG, self.repo, "limite", "x", "Q1")
+        before = self.snapshot()
+        res = self.cli(*self.register_args())
+        self.assertEqual((res.returncode, res.stdout.strip()), refused)
+        self.assertEqual(self.snapshot(), before)
+        self.assertNotIn("### D1", self.path.read_text(encoding="utf-8"))
 
     def test_mandate_numbered_and_locked_after_confirm(self):
         self.confirmed()
@@ -55,8 +92,16 @@ class PilotoScriptTests(PilotoCase):
         self.assertIn("- **M2** · limite · nunca adicionar dependência nova · origem: Q7", text)
         self.assertLess(text.index("**M2**"), text.index("## Decisões"))
         self.assertRegex(text, r"\*\*Mandato confirmado:\*\* \d{4}-\d{2}-\d{2} - user: \"sim, é isso 'fechado'\"")
+        before = self.snapshot()
         with self.assertRaisesRegex(piloto.PilotoError, "já confirmado"):
             piloto.add_mandate(SLUG, self.repo, "preferencia", "x", "Q9")
+        self.assertEqual(self.snapshot(), before)
+        res = self.cli("mandato", "--kind", "preferencia", "--text", "x", "--source", "Q9")
+        self.assertEqual(res.returncode, 1)
+        self.assertEqual(res.stdout.strip(), "ERRO: mandato já confirmado: mudanças só com uma nova entrevista "
+                                             "(encerre e reinicie o piloto)")
+        self.assertEqual(self.snapshot(), before)
+        self.assertNotIn("M3", self.path.read_text(encoding="utf-8"))
         self.assertTrue(piloto.is_active(SLUG, self.repo))
 
     def test_record_decisions_confidence_and_review(self):
@@ -66,12 +111,21 @@ class PilotoScriptTests(PilotoCase):
         out = piloto.record(SLUG, self.repo, "laforge", "Usar lib X?", "lib X | código próprio", "código próprio",
                             "opção mais segura", "", "alta")
         self.assertEqual(out, "D2 registrada (confiança baixa, revisar)")  # no basis: never above baixa
+        out = piloto.record(SLUG, self.repo, "data", "Pagina?", "sim | não", "não", "sem pedido", "M1", "baixa")
+        self.assertEqual(out, "D3 registrada (confiança baixa, revisar)")  # baixa with a basis is flagged too
         text = self.path.read_text(encoding="utf-8")
         self.assertRegex(text, r"### D1 · \S+Z · data · confiança alta\n- \*\*Pergunta:\*\* Aprova as tasks\?")
         self.assertIn("- **Base:** M1, Q3", text)
-        self.assertRegex(text, r"### D2 · .* · confiança baixa · ⚠️ revisar")
-        self.assertIn("- **Base:** nenhuma na entrevista", text)
-        self.assertEqual(piloto.status(SLUG, self.repo)[-1], "Revisar: D2")
+        self.assertRegex(text, r"### D2 · \S+Z · laforge · confiança baixa · ⚠️ revisar\n")
+        self.assertRegex(text, r"### D3 · \S+Z · data · confiança baixa · ⚠️ revisar\n")
+        self.assertIn("- **Base:** nenhuma na entrevista (opção mais segura e reversível)", text)
+        self.assertEqual(text.count("⚠️ revisar"), 2)  # D1 (alta) is not flagged
+        today = dt.date.today().isoformat()
+        expected = ["Status: ativo", f"Mandato: 2 item(ns), confirmado em {today}", "Decisões: 3",
+                    "Revisar: D2 ⚠️ revisar, D3 ⚠️ revisar"]
+        self.assertEqual(piloto.status(SLUG, self.repo), expected)
+        res = self.cli("status")
+        self.assertEqual((res.returncode, res.stdout.splitlines()), (0, expected))
         with self.assertRaisesRegex(piloto.PilotoError, "inexistente: M9"):
             piloto.record(SLUG, self.repo, "data", "q", "a", "a", "r", "M9")
         with self.assertRaisesRegex(piloto.PilotoError, "--basis aceita"):
@@ -82,24 +136,60 @@ class PilotoScriptTests(PilotoCase):
         piloto.finish(SLUG, self.repo, "assumo daqui")
         self.assertFalse(piloto.is_active(SLUG, self.repo))
         self.assertIn("**Encerrado:**", self.path.read_text(encoding="utf-8"))
+        before = self.snapshot()
         with self.assertRaisesRegex(piloto.PilotoError, "encerrado"):
             piloto.record(SLUG, self.repo, "data", "q", "a", "a", "r", "M1")
+        res = self.cli(*self.register_args())
+        self.assertEqual((res.returncode, res.stdout.strip()),
+                         (1, "ERRO: piloto encerrado: a decisão é do usuário"))
+        self.assertEqual(self.snapshot(), before)
+        self.assertNotIn("### D1", self.path.read_text(encoding="utf-8"))
         self.assertEqual(piloto.actives(self.repo), [])
 
     def test_cli_exit_codes(self):
-        script = str(ROOT / "scripts" / "piloto.py")
-
-        def run(*args):
-            return subprocess.run([sys.executable, script, *args, "--root", str(self.repo)], capture_output=True,
-                                  text=True, encoding="utf-8")
-        self.assertEqual(run("ativo", SLUG).returncode, 1)
-        self.assertEqual(run("registrar", SLUG, "--by", "data", "--question", "q", "--options", "a",
-                             "--decision", "a", "--reason", "r").returncode, 1)
-        self.assertEqual(run("start", "Nao_Valido").returncode, 1)
+        run = self.cli
+        other = self.repo / ".specs" / "features" / "sem-piloto"  # a feature without piloto.md
+        other.mkdir(parents=True)
+        # 0: success
+        self.assertEqual(run("status").returncode, 0)
+        self.assertEqual(run("start").returncode, 0)  # already exists: idempotent
+        self.assertEqual(run("ativos", slug=None).returncode, 0)
+        # 1: feature or piloto missing, invalid slug, rule refused
+        sem = ("status", "mandato --kind limite --text x --source Q1", "confirmar --words ok",
+               "registrar --by a --question q --options a --decision a --reason r", "encerrar", "ativo")
+        for slug in ("nao-existe", "sem-piloto"):
+            for cmd in sem:
+                res = run(*cmd.split(), slug=slug)
+                self.assertEqual(res.returncode, 1, (slug, cmd, res.stdout))
+        self.assertEqual(run("start", slug="nao-existe").returncode, 1)
+        self.assertEqual(run("start", slug="Nao_Valido").returncode, 1)
+        self.assertEqual(run("ativo").returncode, 1)  # pending mandate
+        self.assertEqual(run(*self.register_args()).returncode, 1)
+        # 2: usage error
+        for args, slug in ((("mandato", "--kind", "limite", "--text", "x"), SLUG),  # --source missing
+                           (("mandato", "--kind", "invalido", "--text", "x", "--source", "Q1"), SLUG),
+                           (("confirmar",), SLUG), (("registrar", "--by", "data"), SLUG),
+                           (("status",), None), (("inexistente",), SLUG)):
+            res = run(*args, slug=slug)
+            self.assertEqual(res.returncode, 2, (args, res.stdout, res.stderr))
+        res = subprocess.run([sys.executable, str(ROOT / "scripts" / "piloto.py")], capture_output=True, text=True)
+        self.assertEqual(res.returncode, 2)
         self.confirmed()
-        self.assertEqual(run("ativo", SLUG).returncode, 0)
-        res = run("ativos")
+        self.assertEqual(run("ativo").returncode, 0)
+        res = run("ativos", slug=None)
         self.assertIn("export-csv: 0 decisão(ões), 0 para revisar", res.stdout)
+
+    def test_ativo_exit_before_and_after_confirm_and_finish(self):
+        def ativo():
+            res = self.cli("ativo")
+            return res.returncode, res.stdout.strip()
+        self.assertEqual(ativo(), (1, "inativo"))  # started, mandate empty
+        piloto.add_mandate(SLUG, self.repo, "limite", "x", "Q1")
+        self.assertEqual(ativo(), (1, "inativo"))  # items but not confirmed
+        piloto.confirm(SLUG, self.repo, "sim")
+        self.assertEqual(ativo(), (0, "ativo"))
+        piloto.finish(SLUG, self.repo)
+        self.assertEqual(ativo(), (1, "inativo"))  # finished: no longer active
 
 
 class PilotApprovalGateTests(PilotoCase):
@@ -224,6 +314,16 @@ class PilotDecisaoCitadaTests(PilotoCase):
     def test_mandato_sem_user_nao_vale(self):
         self.confirmed()
         self.register(1)
+        # finished pilot with the decision registered: both gates refuse the line
+        piloto.finish(SLUG, self.repo)
+        self.assertFalse(gc.approved([self.pil("D1 ok")], self.fdir, allow_pilot=True))
+        self.set_approval(self.pil("D1 ok"))
+        for errors in self.gate_errors():
+            self.assertEqual(len([e for e in errors if e.startswith(SEM_APPROVED)]), 1, errors)
+            self.assertEqual([e for e in errors if "não está registrada" in e], [], errors)
+        reopened = self.path.read_text(encoding="utf-8").replace("**Status:** encerrado", "**Status:** ativo")
+        self.path.write_text(reopened, encoding="utf-8")
+        self.assert_tasks_ok()  # active again, same file: the line is accepted
         text = self.path.read_text(encoding="utf-8")
         self.path.write_text(MANDATE_DATE_RE.sub(r"\1", text), encoding="utf-8")
         self.assertEqual(piloto.main(["ativo", SLUG, "--root", str(self.repo)]), 1)
@@ -291,14 +391,26 @@ class PilotDecisaoCitadaTests(PilotoCase):
 
 
 class PilotBannerTests(PilotoCase):
-    def test_banner_shows_active_autopilot(self):
-        self.write_repo_config()
-        self.confirmed()
-        piloto.record(SLUG, self.repo, "data", "q", "a | b", "a", "r", "")
+    def banner_text(self):
         with mock.patch.object(banner, "check_orca", return_value="Orca: ✅ disponível"), \
              mock.patch.object(banner.conflicts, "scan", return_value=[]):
-            text = banner.build_banner(str(self.repo), False)[0]
-        self.assertIn("🛸 Piloto automático: ativo em export-csv (1 decisão(ões), 1 para revisar;", text)
+            return banner.build_banner(str(self.repo), False)[0]
+
+    def test_banner_shows_active_autopilot(self):
+        self.write_repo_config()
+        # started, mandate pending: not active, so not in the banner (same rule as `ativo`)
+        self.assertEqual(piloto.actives(self.repo), [])
+        self.assertNotIn("Piloto automático", self.banner_text())
+        piloto.add_mandate(SLUG, self.repo, "principio", "simplicidade", "Q3")
+        self.assertEqual(piloto.actives(self.repo), [])
+        self.assertNotIn("Piloto automático", self.banner_text())
+        piloto.confirm(SLUG, self.repo, "sim")
+        self.assertEqual(piloto.actives(self.repo), [(SLUG, 0, 0)])
+        piloto.record(SLUG, self.repo, "data", "q", "a | b", "a", "r", "")
+        self.assertEqual(piloto.actives(self.repo), [(SLUG, 1, 1)])
+        self.assertIn("🛸 Piloto automático: ativo em export-csv (1 decisão(ões), 1 para revisar;", self.banner_text())
+        piloto.finish(SLUG, self.repo)
+        self.assertNotIn("Piloto automático", self.banner_text())
 
 
 class PilotSkillTests(unittest.TestCase):
@@ -306,15 +418,26 @@ class PilotSkillTests(unittest.TestCase):
         return [ROOT] + [ROOT / "dist" / cli for cli in CLIS]
 
     def test_piloto_skill_rules(self):
+        reserved = ("- The Git mode, the spec approval, **push**, **opening the PR**, publishing Worf's review to the PR,\n"
+                    "  **merge into the base branch**, **deploy** (the merge authorization is the user's: never run\n"
+                    "  `git_mode.py authorize-merge` on their behalf).")
         for root in self.roots():
             text = (root / "skills" / "piloto-automatico" / "SKILL.md").read_text(encoding="utf-8")
             self.assertTrue(text.startswith("---\nname: piloto-automatico\n"), root)
             for needle in ("mode: grill", 'piloto.py" confirmar', 'piloto.py" registrar', "Record before acting",
-                           "approve the spec yourself", "never write a `user:` line the user did not say",'piloto: "D<n> <resumo>"', "Never widen the spec",
-                           "**push**", "**opening the PR**", "**merge into the base branch**", "**deploy**",
-                           "never run\n  `git_mode.py authorize-merge`", "the Git mode is still asked",
-                           "safest and most reversible"):
+                           "approve the spec yourself", "never write a `user:` line the user did not say",
+                           'piloto: "D<n> <resumo>"', "Never widen the spec",
+                           "the Git mode is still asked", "safest and most reversible"):
                 self.assertIn(needle, text, f"{root}: {needle}")
+            # push, PR, merge and deploy are one bullet of "never decides" (the user's), with the full rule
+            section = text.split("## 5. What the autopilot never decides", 1)[1].split("\n## 6.", 1)[0]
+            self.assertIn("These still stop and ask the user", section, root)
+            self.assertIn(reserved, section, root)
+            # a decision without a basis is forced to low confidence and marked for review
+            self.assertIn("No basis → leave `--basis` empty: the script forces `baixa` and marks `⚠️ revisar`.",
+                          text, root)
+            self.assertIn("each `⚠️ revisar` decision (ID and one line)", text, root)
+            self.assertIn("Push, PR, merge and deploy still need the user.", text, root)
         claude = (ROOT / "dist" / "claude" / "skills" / "piloto-automatico" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("disable-model-invocation: true", claude)
 

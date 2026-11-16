@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import unittest
+import urllib.error
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
@@ -48,6 +49,24 @@ class ModelInfoTests(CatalogCase):
         for mid, want in cases.items():
             self.assertEqual(mi.info(self.catalog, mid)["tier"], want, mid)
 
+        def price(out, mid="acme/m"):
+            return mi.tier({"cost": {"input": 1, "output": out}}, mid)
+        # exact boundaries: 0 | <2 | <12 | >=12
+        for out, want in ((0, "grátis"), (0.0, "grátis"), (0.01, "$"), (1.99, "$"), (2, "$$"), (11.99, "$$"),
+                          (12, "$$$"), (12.01, "$$$"), (1000, "$$$")):
+            self.assertEqual(price(out), want, out)
+        # no price at all: "?"
+        for entry in ({}, {"cost": None}, {"cost": {}}, {"cost": {"input": 1}}, {"cost": {"output": None}},
+                      {"cost": {"output": "2"}}):
+            self.assertEqual(mi.tier(entry, "acme/m"), "?", entry)
+            self.assertEqual(mi.tier(entry), "?", entry)
+        # `:free` and `-free` ids are free whatever the listed price; other "free" spellings are not
+        for mid in ("acme/m:free", "acme/m-free", "m-free", "m:free"):
+            self.assertEqual(price(5, mid), "grátis", mid)
+            self.assertEqual(mi.tier({}, mid), "grátis", mid)
+        for mid in ("acme/free-m", "acme/m-freedom", "acme/m:freebie", "acme/mfree"):
+            self.assertEqual(price(5, mid), "$$", mid)
+
     def test_family_from_canonical_or_openrouter_vendor(self):
         self.assertEqual(mi.info(self.catalog, "opencode/muse-spark-1.2")["family"], "meta")
         self.assertEqual(mi.info(self.catalog, "zai/glm-5.3")["family"], "zhipu")
@@ -55,46 +74,131 @@ class ModelInfoTests(CatalogCase):
         self.assertEqual(mi.info(self.catalog, "gpt-6-luna", "codex")["family"], "openai")
 
     def test_fit_vetoes_and_warnings(self):
-        no_tools = mi.info(self.catalog, "zai/glm-notools")["fit"]
-        self.assertTrue(all(v.startswith("vetado") for v in no_tools.values()))
-        tiny = mi.info(self.catalog, "zai/glm-tiny")["fit"]
-        self.assertIn("contexto de 128k", tiny["pesado"])
-        self.assertIn("sem modo de raciocínio", tiny["q"])
-        self.assertIn("modelo barato", tiny["pesado"])
-        self.assertEqual(tiny["repetitivo"], "ok")
-        self.assertIn("caro para tarefa repetitiva", mi.info(self.catalog, "moonshotai/kimi-k3")["fit"]["repetitivo"])
-        self.assertEqual(set(mi.info(self.catalog, "opencode/muse-spark-1.2")["fit"].values()), {"ok"})
+        roles = ("pesado", "execucao", "repetitivo", "q")
+        veto = "vetado: não chama ferramentas (a tripulação lê e edita arquivos e roda comandos)"
+        ctx = "aviso: contexto de 128k, abaixo de 200k"
+        cheap = "modelo barato: pode faltar profundidade para spec, bug e review"
+        nor = "sem modo de raciocínio"
+
+        def entry(tools=True, reasoning=True, context=1_000_000):
+            e = {"tool_call": tools, "reasoning": reasoning}
+            if context is not None:
+                e["limit"] = {"context": context}
+            return e
+
+        def verdicts(e, t="$$"):
+            return mi.fit(e, t)
+
+        def want(pesado="ok", execucao="ok", repetitivo="ok", q="ok"):
+            return {"pesado": pesado, "execucao": execucao, "repetitivo": repetitivo, "q": q}
+        # no tool calling vetoes every role, whatever else is true (tier, context, reasoning)
+        for t in ("grátis", "$", "$$", "$$$", "?"):
+            self.assertEqual(verdicts(entry(tools=False), t), want(*[veto] * 4), t)
+        self.assertEqual(verdicts(entry(tools=False, reasoning=False, context=10)), want(*[veto] * 4))
+        self.assertEqual(verdicts({}), want(*[veto] * 4))
+        self.assertEqual(verdicts({"tool_call": "true"}), want(*[veto] * 4))  # only a real True counts
+        # context below 200k warns in pesado and execucao only
+        self.assertEqual(verdicts(entry(context=128_000)), want(pesado=ctx, execucao=ctx))
+        self.assertEqual(verdicts(entry(context=199_999)),
+                         want(*(["aviso: contexto de 199k, abaixo de 200k"] * 2)))
+        self.assertEqual(verdicts(entry(context=200_000)), want())  # exactly 200k is enough
+        zero = "aviso: contexto de 0k, abaixo de 200k"
+        self.assertEqual(verdicts(entry(context=0)), want(pesado=zero, execucao=zero))  # known and zero
+        self.assertEqual(verdicts(entry(context=None)), want())  # unknown context: no warning
+        self.assertEqual(verdicts({"tool_call": True, "reasoning": True, "limit": {}}), want())
+        self.assertEqual(verdicts({"tool_call": True, "reasoning": True, "limit": {"context": None}}), want())
+        # missing reasoning warns in pesado and q only
+        self.assertEqual(verdicts(entry(reasoning=False)), want(pesado="aviso: " + nor, q="aviso: " + nor))
+        # cheap ($ and grátis) warns in pesado only; $$ and ? do not
+        for t in ("$", "grátis"):
+            self.assertEqual(verdicts(entry(), t), want(pesado="aviso: " + cheap), t)
+        for t in ("$$", "?"):
+            self.assertEqual(verdicts(entry(), t), want(), t)
+        # $$$ warns in repetitivo only
+        self.assertEqual(verdicts(entry(), "$$$"), want(repetitivo="aviso: caro para tarefa repetitiva"))
+        # several warnings join with "; " in the fixed order: context, reasoning, cheap
+        self.assertEqual(verdicts(entry(reasoning=False, context=128_000), "$"),
+                         want(pesado=f"aviso: contexto de 128k, abaixo de 200k; {nor}; {cheap}",
+                              execucao=ctx, q="aviso: " + nor))
+        # the catalog fixtures, full verdicts
+        self.assertEqual(mi.info(self.catalog, "zai/glm-notools")["fit"], want(*[veto] * 4))
+        self.assertEqual(mi.info(self.catalog, "zai/glm-tiny")["fit"],
+                         want(pesado=f"aviso: contexto de 128k, abaixo de 200k; {nor}; {cheap}", execucao=ctx,
+                              q="aviso: " + nor))
+        self.assertEqual(mi.info(self.catalog, "moonshotai/kimi-k3")["fit"],
+                         want(repetitivo="aviso: caro para tarefa repetitiva"))
+        self.assertEqual(mi.info(self.catalog, "opencode/muse-spark-1.2")["fit"], want())
 
     def test_cli_exit_codes(self):
         script = str(ROOT / "scripts" / "model_info.py")
         env = {**os.environ}
-        ok = subprocess.run([sys.executable, script, "zai/glm-5.3"], capture_output=True, text=True,
-                            encoding="utf-8", env=env)
+
+        def run(*args, env=env):
+            return subprocess.run([sys.executable, script, *args], capture_output=True, text=True,
+                                  encoding="utf-8", env=env)
+        ok = run("zai/glm-5.3")
         self.assertEqual(ok.returncode, 0, ok.stderr)
         self.assertIn("Família: zhipu · faixa $$", ok.stdout)
-        missing = subprocess.run([sys.executable, script, "zai/glm-5.3", "nao/existe"], capture_output=True,
-                                 text=True, encoding="utf-8", env=env)
+        missing = run("zai/glm-5.3", "nao/existe")
         self.assertEqual(missing.returncode, 1)
         self.assertIn("não está no catálogo", missing.stdout)
-        env["STARCODE_MODELS_DEV_FILE"] = str(self.tmp / "sem-catalogo.json")
-        none = subprocess.run([sys.executable, script, "zai/glm-5.3"], capture_output=True, text=True,
-                              encoding="utf-8", env=env)
+        # 2: usage error (no id, bad --cli, unknown option)
+        for args in ((), ("--cli", "nao-existe", "zai/glm-5.3"), ("--nao-existe", "zai/glm-5.3")):
+            res = run(*args)
+            self.assertEqual(res.returncode, 2, (args, res.stdout, res.stderr))
+        # 3: no catalog (override points to a missing file)
+        env3 = {**env, "STARCODE_MODELS_DEV_FILE": str(self.tmp / "sem-catalogo.json")}
+        none = run("zai/glm-5.3", env=env3)
         self.assertEqual(none.returncode, 3)
+        self.assertIn("catálogo do models.dev indisponível (sem rede e sem cache)", none.stdout)
+        self.assertNotIn("Família", none.stdout)
+
+    def test_cli_exit_3_with_real_network_failure_and_no_cache(self):
+        env = {k: v for k, v in os.environ.items() if k.lower() not in ("no_proxy", "https_proxy", "http_proxy",
+                                                                       "all_proxy", "starcode_models_dev_file")}
+        env["STARCODE_HOME"] = str(self.tmp / "home-vazio")
+        env["HTTPS_PROXY"] = env["HTTP_PROXY"] = "http://127.0.0.1:9"  # nothing listens: a real refused connection
+        res = subprocess.run([sys.executable, str(ROOT / "scripts" / "model_info.py"), "zai/glm-5.3"],
+                             capture_output=True, text=True, encoding="utf-8", env=env, timeout=60)
+        self.assertEqual(res.returncode, 3, (res.stdout, res.stderr))
+        self.assertIn("catálogo do models.dev indisponível", res.stdout)
+        self.assertFalse((self.tmp / "home-vazio" / "cache" / "models-dev.json").exists())  # nothing invented
 
     def test_cache_fresh_stale_and_no_fetch(self):
         os.environ.pop("STARCODE_MODELS_DEV_FILE")
+        self.assertEqual(mi.MAX_AGE_S, 7 * 24 * 3600)
         self.assertIsNone(mi.load_catalog(fetch=False))
         cache = mi.cache_path()
         cache.parent.mkdir(parents=True)
         cache.write_text(json.dumps(self.catalog), encoding="utf-8")
         with mock.patch.object(mi, "download", side_effect=AssertionError("não deve baixar")):
             self.assertIn("zai", mi.load_catalog())
-        old = time.time() - mi.MAX_AGE_S - 60
-        os.utime(cache, (old, old))
+        # both margins of the 7 days: just inside is fresh (no download), just outside tries the network
+        inside = time.time() - mi.MAX_AGE_S + 120
+        os.utime(cache, (inside, inside))
+        with mock.patch.object(mi, "download", side_effect=AssertionError("não deve baixar")):
+            self.assertIn("zai", mi.load_catalog())
+        outside = time.time() - mi.MAX_AGE_S - 120
+        os.utime(cache, (outside, outside))
         with mock.patch.object(mi, "download", return_value=None) as dl:
             self.assertIn("zai", mi.load_catalog())  # offline: the stale cache still serves
             dl.assert_called_once()
+        # the same with a real failing network call (urlopen), not a mocked download
+        with mock.patch.object(mi.urllib.request, "urlopen", side_effect=urllib.error.URLError("sem rede")) as op:
+            self.assertIn("zai", mi.load_catalog())
+            op.assert_called_once()
         self.assertEqual(mi.cached_family("zai/glm-5.3"), "zhipu")
+        # no cache and a real network failure: nothing is invented and nothing is written
+        cache.unlink()
+        with mock.patch.object(mi.urllib.request, "urlopen", side_effect=urllib.error.URLError("sem rede")) as op:
+            self.assertIsNone(mi.load_catalog())
+            op.assert_called_once()
+        self.assertFalse(cache.exists())
+        # the env override wins over a fresh cache
+        cache.write_text(json.dumps({"so-cache": {"models": {}}}), encoding="utf-8")
+        os.environ["STARCODE_MODELS_DEV_FILE"] = str(FIXTURE)
+        self.assertIn("zai", mi.load_catalog(fetch=False))
+        self.assertNotIn("so-cache", mi.load_catalog(fetch=False))
 
 
 class DispatchFamilyTests(CatalogCase):
@@ -274,8 +378,23 @@ class LocalConfigTests(TempRepoCase):
         crew = sc.effective_crew(doc, user, local)
         self.assertEqual((crew["laforge"]["cli"], crew["laforge"]["model"], crew["laforge"]["source"]),
                          ("opencode", "zai/glm-5.3", "local"))
-        self.assertEqual(crew["uhura"]["source"], "user")
-        self.assertEqual((crew["picard"]["source"], crew["picard"]["overridden"]), ("default", False))
+        # user origin: the user's effective cli and model, not the crew.yaml ones
+        self.assertEqual((crew["uhura"]["cli"], crew["uhura"]["model"], crew["uhura"]["source"],
+                          crew["uhura"]["overridden"]), ("codex", "gpt-6-luna", "user", True))
+        self.assertNotEqual(doc["crew"]["uhura"]["default"], {"cli": "codex", "model": "gpt-6-luna"})
+        # default origin: exactly the crew.yaml default
+        for key in ("picard", "q"):
+            default = doc["crew"][key]["default"]
+            self.assertEqual((crew[key]["cli"], crew[key]["model"], crew[key]["source"], crew[key]["overridden"]),
+                             (default.get("cli"), default.get("model"), "default", False), key)
+        # a member in both: local wins per field, the user fills the rest
+        both = sc.effective_crew(doc, {"crew": {"laforge": {"cli": "codex", "model": "gpt-6-luna"}}},
+                                 {"crew": {"laforge": {"model": "zai/glm-5.3"}}})
+        self.assertEqual((both["laforge"]["cli"], both["laforge"]["model"], both["laforge"]["source"]),
+                         ("codex", "zai/glm-5.3", "local"))
+        # no config at all: every member is the default
+        plain = sc.effective_crew(doc, None, None)
+        self.assertEqual({v["source"] for v in plain.values()}, {"default"})
 
     def test_banner_and_crew_table_show_local(self):
         self.write_repo_config()
