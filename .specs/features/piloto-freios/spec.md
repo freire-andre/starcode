@@ -99,7 +99,7 @@ Proof: run unit | test_decisions_piloto_freios (test_piloto.PilotFreiosTests.tes
 **Linear:** SC-187
 **Integration branch:** feature/piloto-freios
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-187 · base 020b796 · claude:claude-sonnet-5-5 · 2026-11-16T17:44:34Z · ctx_bd56ae4adf08
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
 **Reports:** none
