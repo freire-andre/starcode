@@ -22,10 +22,10 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C4 aceita espaços e linhas extras no stderr apesar do aviso exato exigido. | `tests/test_dispatch.py:408` | Comparar stderr integral com o aviso e sua quebra de linha esperada. || 4752121 |
-| C5 não prova que o comando imprime `self-verified` e sai com 1 quando `orca-worker` não encontra CLI de outra família. | `tests/test_dispatch.py:413` | Invocar o comando nesse cenário e conferir saída e código exatos. || 4752121 |
-| A prova de C8 passa sem entrada SC-185, seus quatro campos, referências aos testes ou linha no changelog; o teste adicional de decisão também procura fragmentos sem verificar cada requisito na seção Decisão nem o changelog. | `scripts/check_decisions.py:55`, `tests/test_dispatch.py:455` | Testar a entrada SC-185 por seção e requisitos, as referências aos testes e a linha sob Unreleased. || 4752121 |
-| A parada ao obter um worker antes de `opencode-subagent` não tem teste que garanta ausência de aviso; uma avaliação antecipada poderia avisar silenciosamente fora da ordem. | `scripts/dispatch.py:654`, `tests/test_dispatch.py:397` | Testar `['orca-worker', 'opencode-subagent']` com worker disponível e conferir resultado e stderr vazio. || 4752121 |
+| C4 aceita espaços e linhas extras no stderr apesar do aviso exato exigido. | `tests/test_dispatch.py:408` | Comparar stderr integral com o aviso e sua quebra de linha esperada. | 4752121 |
+| C5 não prova que o comando imprime `self-verified` e sai com 1 quando `orca-worker` não encontra CLI de outra família. | `tests/test_dispatch.py:413` | Invocar o comando nesse cenário e conferir saída e código exatos. | 4752121 |
+| A prova de C8 passa sem entrada SC-185, seus quatro campos, referências aos testes ou linha no changelog; o teste adicional de decisão também procura fragmentos sem verificar cada requisito na seção Decisão nem o changelog. | `scripts/check_decisions.py:55`, `tests/test_dispatch.py:455` | Testar a entrada SC-185 por seção e requisitos, as referências aos testes e a linha sob Unreleased. | 4752121 |
+| A parada ao obter um worker antes de `opencode-subagent` não tem teste que garanta ausência de aviso; uma avaliação antecipada poderia avisar silenciosamente fora da ordem. | `scripts/dispatch.py:654`, `tests/test_dispatch.py:397` | Testar `['orca-worker', 'opencode-subagent']` com worker disponível e conferir resultado e stderr vazio. | 4752121 |
 
 ## Limits
 
