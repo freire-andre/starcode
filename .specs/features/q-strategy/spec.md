@@ -87,7 +87,7 @@ Proof: run unit | test_q_strategy_decisions_entry_and_changelog (test_dispatch.F
 **Integration branch:** feature/q-strategy
 **Last integrated:** 664c22a
 **Dispatched:** none
-**Settled:** 2026-11-16: spec + issue: "sim"
+**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: push + PR: "sim"
 **Attempts:** none
 **Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (C4 stderr com strip; C5 sem o comando; C8 sem conteúdo do DECISIONS/CHANGELOG; ordem orca-worker antes de opencode-subagent sem teste); 935 OK; q-check 0; prova de C8 trocada pelo Picard por teste de conteúdo; 2026-11-16: T1-fix: 4752121 (C4, C5, C8, ordem); 936 OK; ticket gate verde; 2026-11-16: provas e done verdes (936 OK); 2026-11-16: Guinan: L20, L32 (recorrência por --id), L43, L44 novas; retro com 5 sugestões
 **Breaker:** closed
