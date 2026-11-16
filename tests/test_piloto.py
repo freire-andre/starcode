@@ -530,6 +530,15 @@ class PilotFreiosTests(PilotoCase):
         self.assertEqual((alta.returncode, alta.stdout.strip()), (0, "D3 registrada (confiança alta)"))
         media = self.reg("a", "M2", "--confidence", "media")
         self.assertEqual((media.returncode, media.stdout.strip()), (0, "D4 registrada (confiança média)"))
+        text = self.path.read_text(encoding="utf-8")
+        self.assertRegex(text, r"### D3 · \S+Z · data · confiança alta\n- \*\*Pergunta:\*\* q\n"
+                               r"- \*\*Opções:\*\* a \| b\n- \*\*Decisão:\*\* a\n- \*\*Motivo:\*\* r\n"
+                               r"- \*\*Base:\*\* M1\n")
+        self.assertRegex(text, r"### D4 · \S+Z · data · confiança média\n- \*\*Pergunta:\*\* q\n"
+                               r"- \*\*Opções:\*\* a \| b\n- \*\*Decisão:\*\* a\n- \*\*Motivo:\*\* r\n"
+                               r"- \*\*Base:\*\* M2\n")
+        for head in ("### D3 · ", "### D4 · "):
+            self.assertNotIn("⚠️ revisar", text.split(head, 1)[1].split("\n", 1)[0])
         before = self.snapshot()
         self.assert_refused_cli(self.reg(), 3, FREIO_MSG, before)  # the brake stays
         self.assertEqual(self.path.read_text(encoding="utf-8").count("⚠️ revisar"), 2)
@@ -547,7 +556,13 @@ class PilotFreiosTests(PilotoCase):
         self.assertEqual(self.path.read_text(encoding="utf-8").count("⚠️ revisar"), 2)
         again = self.reg("devolvido ao usuário")  # brake on: still recorded
         self.assertEqual((again.returncode, again.stdout.strip()), (0, "D4 registrada (confiança baixa)"))
-        self.assertEqual(self.path.read_text(encoding="utf-8").count("⚠️ revisar"), 2)
+        text = self.path.read_text(encoding="utf-8")
+        self.assertEqual(text.count("⚠️ revisar"), 2)
+        self.assertRegex(text, r"### D4 · \S+Z · data · confiança baixa\n- \*\*Pergunta:\*\* q\n"
+                               r"- \*\*Opções:\*\* a \| b\n- \*\*Decisão:\*\* devolvido ao usuário\n"
+                               r"- \*\*Motivo:\*\* r\n- \*\*Base:\*\* nenhuma na entrevista "
+                               r"\(opção mais segura e reversível\)\n$")
+        self.assertNotIn("⚠️ revisar", text.split("### D4 · ", 1)[1])
         before = self.snapshot()
         self.assert_refused_cli(self.reg(), 3, FREIO_MSG, before)
 
@@ -557,6 +572,11 @@ class PilotFreiosTests(PilotoCase):
             for basis in ("", "Q5"):
                 before = self.snapshot()
                 res = self.reg("a", basis, "--categoria", cat)
+                self.assert_refused_cli(res, 3, categoria_msg(cat), before)
+        for cat in CATEGORIAS:  # the returned-to-user entry is not exempt: the exemption is only for the brake
+            for basis in ("", "Q5"):
+                before = self.snapshot()
+                res = self.reg("devolvido ao usuário", basis, "--categoria", cat)
                 self.assert_refused_cli(res, 3, categoria_msg(cat), before)
         for n, cat in enumerate(CATEGORIAS, 1):
             res = self.reg("a", "M1", "--categoria", cat)
@@ -588,7 +608,9 @@ class PilotFreiosTests(PilotoCase):
                  "   (`freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário`), and so is every "
                  "one after it;",
                  "   the user (section 5), then record it with `--decision \"devolvido ao usuário\"` "
-                 "(never marked, never counted by the brake).")
+                 "(never marked, never counted by the brake).\n"
+                 "   Record the return **without** `--categoria`: with it and no `M<n>` the script refuses again "
+                 "(exit 3).")
         gate = ("   only on tasks.md, with the mandate confirmed by the user and piloto.md active or finished "
                 "(`encerrar` does not\n   void it), as long as the cited decision was recorded up to the "
                 "`**Encerrado:**` stamp; a decision recorded\n   after it does not count.")
@@ -616,7 +638,12 @@ class PilotFreiosTests(PilotoCase):
         for field in ("**Problema**:", "**Decisão**:", "**Motivo**:", "**Por que não é bug**:"):
             self.assertEqual(body.count(field), 1, field)
         decisao = body.split("**Decisão**:", 1)[1].split("- **Motivo**:", 1)[0]
-        for term in ("`ativo` ou `encerrado`", "`- user:`", "carimbo", "`**Encerrado:**`", "(R1)", "(R2)", "(R3)",
+        for term in ("o uso de `--categoria` com `--basis M<n>` na seção 4",
+                     "descreve o freio (exit 3, devolver a pergunta e registrar \"devolvido ao usuário\")",
+                     "o novo critério do gate (ativo ou encerrado, decisão registrada até o encerramento) no passo 5 "
+                     "da seção 4",
+                     "devolvido ao usuário\"` com `--categoria` sem `M<n>`",
+                     "`ativo` ou `encerrado`", "`- user:`", "carimbo", "`**Encerrado:**`", "(R1)", "(R2)", "(R3)",
                      "inclusive `baixa` com `--basis`", FREIO_MSG, "exit 3", "(R4)", "2ª é gravada com exit 0", "(R5)",
                      "o freio fica", "`alta` e `media` com base continuam gravadas", "(R6)",
                      "`--decision \"devolvido ao usuário\"` é gravada sem `⚠️ revisar`, não conta no freio", "(R7)",
