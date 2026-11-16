@@ -95,12 +95,12 @@ Proof: run unit | test_decisions_piloto_freios (test_piloto.PilotFreiosTests.tes
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-187)
+**Next:** Guinan: retro
 **Linear:** SC-187
 **Integration branch:** feature/piloto-freios
-**Last integrated:** b6cc2083d0a67faf4570989be362799d5e941163
-**Dispatched:** T1-fix · SC-187 · base 6e07efc · claude:claude-sonnet-5-5 · 2026-11-16T18:14:51Z · ctx_695b115a11e8
+**Last integrated:** 03ce114
+**Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes; 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (devolvido + --categoria sem M<n> gravado, contra R8; C6, C7 sem conferir o arquivo; C11 sem os termos de R10); 949 OK; q-check 0. Decisão do Picard: segue a spec aprovada (R8 recusa também o devolvido; o devolvido é gravado sem --categoria)
+**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes; 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (devolvido + --categoria sem M<n> gravado, contra R8; C6, C7 sem conferir o arquivo; C11 sem os termos de R10); 949 OK; q-check 0. Decisão do Picard: segue a spec aprovada (R8 recusa também o devolvido; o devolvido é gravado sem --categoria); 2026-11-16: T1-fix: 7896313, 927791f (4 achados); 949 OK; ticket gate verde; 2026-11-16: provas e done verdes (949 OK)
 **Breaker:** closed

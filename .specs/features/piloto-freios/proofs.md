@@ -1,6 +1,6 @@
 # piloto-freios proofs
 
-**HEAD**: b6cc208
+**HEAD**: 03ce114
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 14 pass, 0 fail
@@ -38,7 +38,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 949 tests in 440.532s
+Ran 949 tests in 439.784s
 
 OK (skipped=1)
 inativo
