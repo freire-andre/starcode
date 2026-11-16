@@ -110,15 +110,15 @@ Proof: run unit | test_troi_grill_mode (test_piloto.PilotSkillTests.test_troi_gr
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** provas, depois Q (D-j: sem T1 de código)
 **Linear:** SC-186
 **Integration branch:** feature/verificacao-1-8-0
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** Q · c2393bd
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-16: provas verdes nos testes existentes (14 checks)
 **Breaker:** closed
