@@ -6,7 +6,7 @@
 **Risk triggers**: Segurança (o scanner de segredos decide o que é escaneado)
 **Status**: Approved
 **Linear**: SC-188
-**May change**: skills/guinan/SKILL.md, tools/build.py, scripts/gates/check_proofs.py, hooks/scripts/secret_scan.py, tests/test_build.py, tests/test_check_proofs.py, tests/test_secret_scan.py, tests/test_crew_hook.py, tests/test_crew_hook_agy_opencode.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: skills/guinan/SKILL.md, tools/build.py, scripts/gates/check_proofs.py, hooks/scripts/secret_scan.py, tests/test_build.py, tests/test_check_proofs.py, tests/test_secret_scan.py, tests/test_crew_hook.py, tests/test_crew_hook_agy_opencode.py, tests/test_piloto.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Itens 1.2, 1.3 e 1.4 da triagem v2. Discovery: `.specs/features/lote1-correcoes/context.md`.
@@ -82,8 +82,8 @@ Proof: run unit | test_decisions_lote1_correcoes (test_build.BuildTests.test_dec
 **Linear:** SC-188
 **Integration branch:** feature/lote1-correcoes
 **Last integrated:** a5931d3328ce88e819f47889bb32d74b251438a1
-**Dispatched:** Q · 93ef941
-**Settled:** 2026-11-16: spec + issue: "sim"
+**Dispatched:** none
+**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: May change ampliado com tests/test_piloto.py (Picard: test_decisions_piloto_freios depende da SC-187 ser a última entrada)
 **Attempts:** none
-**Reports:** 2026-11-16: T1: R1–R7 em 31fa777; 956 OK; ticket gate verde; SC-188 ficou antes da SC-187 no DECISIONS porque test_decisions_piloto_freios lê a SC-187 até o fim do arquivo; 2026-11-16: provas verdes
+**Reports:** 2026-11-16: T1: R1–R7 em 31fa777; 956 OK; ticket gate verde; SC-188 ficou antes da SC-187 no DECISIONS porque test_decisions_piloto_freios lê a SC-187 até o fim do arquivo; 2026-11-16: provas verdes; 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (byte nulo depois de 8000 caracteres; C4 sem conferir o encerramento; C7 com termos soltos; R6 sem o caso de tempo limite); 956 OK; q-check 0
 **Breaker:** closed
