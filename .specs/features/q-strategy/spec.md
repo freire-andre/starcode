@@ -74,8 +74,8 @@ Proof: run unit | test_q_cli_command_reads_user_qstrategy (test_dispatch.FamilyA
 **C7** - Skill `config`, schema e execute.md com os textos de R7 (R7)
 Proof: run unit | test_q_strategy_docs_match_implementation (test_dispatch.FamilyAndQCliTests.test_q_strategy_docs_match_implementation) ... ok
 
-**C8** - `DECISIONS.md` atualizado depois da mudança em `scripts/` (R8)
-Proof: `python scripts/check_decisions.py`
+**C8** - `DECISIONS.md` tem a entrada `### SC-185:` com **Problema**, **Decisão** (R1 a R7), **Motivo** e **Por que não é bug** citando os testes, e `CHANGELOG.md` tem a linha em `[Unreleased]` (R8)
+Proof: run unit | test_q_strategy_decisions_entry_and_changelog (test_dispatch.FamilyAndQCliTests.test_q_strategy_decisions_entry_and_changelog) ... ok
 
 ## Handoff
 
@@ -89,5 +89,5 @@ Proof: `python scripts/check_decisions.py`
 **Dispatched:** Q · 57030af
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador)
+**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (C4 stderr com strip; C5 sem o comando; C8 sem conteúdo do DECISIONS/CHANGELOG; ordem orca-worker antes de opencode-subagent sem teste); 935 OK; q-check 0; prova de C8 trocada pelo Picard por teste de conteúdo
 **Breaker:** closed
