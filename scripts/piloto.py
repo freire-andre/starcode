@@ -223,7 +223,7 @@ def status(slug: str, root: Path) -> list[str]:
     return [f"Status: {st.group(1) if st else '?'}",
             f"Mandato: {len(MANDATE_RE.findall(doc))} item(ns), " + (f"confirmado em {conf.group(1)}" if conf else "pendente"),
             f"Decisões: {len(DECISION_RE.findall(doc))}",
-            "Revisar: " + (", ".join(review) if review else "nenhuma")]
+            "Revisar: " + (", ".join(f"{d} ⚠️ revisar" for d in review) if review else "nenhuma")]
 
 
 def actives(root: Path) -> list[tuple[str, int, int]]:
@@ -232,8 +232,7 @@ def actives(root: Path) -> list[tuple[str, int, int]]:
     base = root / ".specs" / "features"
     for path in sorted(base.glob(f"*/{FILE}")) if base.is_dir() else []:
         doc = _read(path)
-        st = STATUS_RE.search(doc)
-        if st and st.group(1) == "ativo":
+        if _active_confirmed(doc):
             out.append((path.parent.name, len(DECISION_RE.findall(doc)), len(REVIEW_RE.findall(doc))))
     return out
 
