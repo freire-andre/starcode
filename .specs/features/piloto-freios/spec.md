@@ -98,9 +98,9 @@ Proof: run unit | test_decisions_piloto_freios (test_piloto.PilotFreiosTests.tes
 **Next:** LaForge implementa T1 (SC-187)
 **Linear:** SC-187
 **Integration branch:** feature/piloto-freios
-**Last integrated:** none
-**Dispatched:** T1 · SC-187 · base 020b796 · claude:claude-sonnet-5-5 · 2026-11-16T17:44:34Z · ctx_bd56ae4adf08
+**Last integrated:** b6cc2083d0a67faf4570989be362799d5e941163
+**Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9
 **Breaker:** closed
