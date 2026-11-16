@@ -1,6 +1,6 @@
 # q-strategy proofs
 
-**HEAD**: 169e619
+**HEAD**: 664c22a
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 11 pass, 0 fail
@@ -14,7 +14,7 @@
 | C5 | `run unit / test_q_strategy_nothing_available_is_self_verified (test_dispatch.FamilyAndQCliTests.test_q_strateg` | pass |
 | C6 | `run unit / test_q_cli_command_reads_user_qstrategy (test_dispatch.FamilyAndQCliTests.test_q_cli_command_reads_` | pass |
 | C7 | `run unit / test_q_strategy_docs_match_implementation (test_dispatch.FamilyAndQCliTests.test_q_strategy_docs_ma` | pass |
-| C8 | `python scripts/check_decisions.py` | pass |
+| C8 | `run unit / test_q_strategy_decisions_entry_and_changelog (test_dispatch.FamilyAndQCliTests.test_q_strategy_dec` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
 | Build | `python scripts/check_decisions.py` | pass |
@@ -35,14 +35,8 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 935 tests in 418.866s
+Ran 936 tests in 423.781s
 
 OK (skipped=1)
 inativo
-```
-
-`python scripts/check_decisions.py` - exit 0
-
-```
-check_decisions: OK (DECISIONS.md atualizado no mesmo commit 0dfa8393)
 ```
