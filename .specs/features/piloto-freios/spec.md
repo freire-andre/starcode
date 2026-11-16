@@ -92,15 +92,15 @@ Proof: run unit | test_decisions_piloto_freios (test_piloto.PilotFreiosTests.tes
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** LaForge implementa T1 (SC-187)
 **Linear:** SC-187
 **Integration branch:** feature/piloto-freios
 **Last integrated:** b6cc2083d0a67faf4570989be362799d5e941163
-**Dispatched:** none
+**Dispatched:** Q · db8c4ae
 **Settled:** 2026-11-16: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9
+**Reports:** 2026-11-16: T1: gate ativo/encerrado, freio exit 3, devolvido fora do freio, --categoria, skill, DECISIONS, CHANGELOG, dist; 949 OK; ticket gate verde em 0ba1ba9; 2026-11-16: provas verdes
 **Breaker:** closed
