@@ -10,6 +10,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Alterado
 
+- Correções do lote 1 (SC-188): cabeçalho da Guinan na forma `(F6-6)` das outras skills (nenhuma do `dist/` tem `Header first`); `sees()` das provas exige palavra inteira e aceita a docstring do `unittest` verboso; comando de prova passa de 1800 s é encerrado e vira `fail - tempo limite (1800 s)`; o scanner de segredos só pula como binário o diff `Binary files ... differ` ou com byte nulo e avisa no stderr quando pula um arquivo.
 - Freios do piloto automático (SC-187): a aprovação `piloto:` vale com o piloto ativo ou encerrado (mandato confirmado pelo usuário e decisão citada registrada até o `**Encerrado:**`); `piloto.py registrar` recusa com exit 3 a 3ª decisão `⚠️ revisar` da feature (o freio fica) e grava "devolvido ao usuário" fora dele; `--categoria dependencia|esquema|arquitetura` exige um `M<n>` em `--basis`. A skill `piloto-automatico` descreve os três.
 - `dispatch.py q-cli` segue o `qStrategy` do config do usuário quando o campo existe: `orca-worker` é o percurso atual, `self-verified` para e devolve `self-verified`, `opencode-subagent` é pulado com aviso no stderr (ainda não implementado). Sem o campo, nada muda. A skill `config` deixa de oferecer `opencode-subagent`.
 

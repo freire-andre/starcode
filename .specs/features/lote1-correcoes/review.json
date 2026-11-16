@@ -1,0 +1,29 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. run() do check_proofs passa a usar Popen com communicate(timeout=1800) e, ao estourar, encerra a árvore (taskkill /T no Windows, killpg com start_new_session no POSIX) e devolve um código sentinela que vira 'fail - tempo limite (1800 s)' em Run, prova avulsa e Build. sees() usa borda de palavra só nas pontas com caractere de palavra e tenta a linha 'nome (a.b.c)' unida à seguinte. O scanner reconhece binário pela linha 'Binary files ... differ' ou byte nulo no diff inteiro e avisa no stderr quando o git diff falha ou estoura o tempo, como antes sem bloquear. Um nit: a mensagem do tempo limite é literal e não deriva de PROOF_TIMEOUT. O único candidato do scan é uma espera limitada de teste (50 × 0,1 s), não um bypass. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "scripts/gates/check_proofs.py",
+   "line": 41,
+   "body": "TIMEOUT_RESULT é literal ('1800 s') e não deriva de PROOF_TIMEOUT; se a constante mudar, a mensagem mente. Sugestão: montar a string a partir de PROOF_TIMEOUT.",
+   "evidence": "scripts/gates/check_proofs.py:41"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (subprocess, re) e git"
+ ],
+ "ladder": [
+  "python tools/build.py --check: OK, dist/ em dia",
+  "python scripts/check_decisions.py: OK",
+  "test_check_proofs.py: 10 testes, OK",
+  "test_secret_scan.py: 45 testes, OK",
+  "test_build.py: 38 testes, OK",
+  "claude plugin validate dist/claude --strict: Validation passed",
+  "suíte inteira nas provas: 958 OK",
+  "scan_bypasses.py: 1 candidato (tests/test_check_proofs.py:196, espera limitada de teste), descartado"
+ ]
+}

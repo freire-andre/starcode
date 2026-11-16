@@ -533,18 +533,20 @@
         "setup-grava-config",
         "impacto-seleciona-real",
         "q-strategy",
-        "piloto-freios"
+        "piloto-freios",
+        "lote1-correcoes"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
         "L34 (verification.md:C4)",
         "L39 (verification.md:C8)",
         ".specs/features/q-strategy/verification.md:27",
-        ".specs/features/piloto-freios/verification.md:31"
+        ".specs/features/piloto-freios/verification.md:31",
+        ".specs/features/lote1-correcoes/verification.md:26"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-16T18:32:50Z"
+      "updated": "2026-11-16T20:40:03Z"
     },
     {
       "id": "L33",
@@ -819,6 +821,51 @@
       "scope": "",
       "created": "2026-11-16T18:32:50Z",
       "updated": "2026-11-16T18:32:50Z"
+    },
+    {
+      "id": "L51",
+      "text": "Ao detectar binário ou marcador num conteúdo, examine o conteúdo inteiro ou documente o recorte no requisito, porque olhar só os primeiros 8000 caracteres deixava passar um byte nulo mais adiante.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "lote1-correcoes"
+      ],
+      "sources": [
+        ".specs/features/lote1-correcoes/verification.md:24"
+      ],
+      "scope": "",
+      "created": "2026-11-16T20:40:03Z",
+      "updated": "2026-11-16T20:40:03Z"
+    },
+    {
+      "id": "L52",
+      "text": "Num teste de tempo limite, confira que o processo expirado deixou de existir (PID gravado pela prova), não só a mensagem de falha escrita, porque o resultado podia ser registrado com o processo ainda vivo.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "lote1-correcoes"
+      ],
+      "sources": [
+        ".specs/features/lote1-correcoes/verification.md:25"
+      ],
+      "scope": "",
+      "created": "2026-11-16T20:40:03Z",
+      "updated": "2026-11-16T20:40:03Z"
+    },
+    {
+      "id": "L53",
+      "text": "Quando o requisito cobre falha e tempo limite de uma chamada externa, teste os dois caminhos e a continuação para o próximo item, porque só o retorno não zero tinha teste.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "lote1-correcoes"
+      ],
+      "sources": [
+        ".specs/features/lote1-correcoes/verification.md:27"
+      ],
+      "scope": "",
+      "created": "2026-11-16T20:40:03Z",
+      "updated": "2026-11-16T20:40:03Z"
     }
   ]
 }

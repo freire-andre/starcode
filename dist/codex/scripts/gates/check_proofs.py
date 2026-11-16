@@ -36,6 +36,9 @@ import gates_common as gc  # noqa: E402
 ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 TAIL = 15
 DIRTY_MARK = "dirty (modo 1)"
+PROOF_TIMEOUT = 1800  # segundos por comando de prova (R4)
+TIMEOUT_CODE = -1000
+TIMEOUT_RESULT = "fail - tempo limite (1800 s)"
 
 
 def checks_path(fdir: Path) -> Path:
@@ -68,20 +71,62 @@ def shell_of() -> tuple[str | None, str]:
     return (bash, bash) if bash else (None, "cmd.exe (Git Bash não encontrado)")
 
 
+def _kill_tree(p: subprocess.Popen) -> None:
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)], capture_output=True,
+                           stdin=subprocess.DEVNULL, timeout=30)
+        else:
+            os.killpg(p.pid, 9)
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        p.kill()
+    except OSError:
+        pass
+
+
 def run(root: Path, cmd: str, bash: str | None) -> tuple[int, str]:
     argv = [bash, "-c", cmd] if bash else cmd
-    p = subprocess.run(argv, shell=bash is None, cwd=root, capture_output=True, encoding="utf-8",
-                       errors="replace", stdin=subprocess.DEVNULL)
-    return p.returncode, ANSI_RE.sub("", (p.stdout or "") + (p.stderr or ""))
+    extra = {} if os.name == "nt" else {"start_new_session": True}
+    p = subprocess.Popen(argv, shell=bash is None, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         stdin=subprocess.DEVNULL, **extra)
+    try:
+        out, err = p.communicate(timeout=PROOF_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        _kill_tree(p)
+        try:
+            p.communicate(timeout=5)
+        except (subprocess.SubprocessError, OSError):
+            pass
+        return TIMEOUT_CODE, ""
+    text = (out or b"").decode("utf-8", errors="replace") + (err or b"").decode("utf-8", errors="replace")
+    return p.returncode, ANSI_RE.sub("", text)
+
+
+DOC_HEAD = re.compile(r"^\s*\w+ \([\w.]*\.[\w.]*\)\s*$")  # `test_x (m.C.test_x)`: unittest verboso com docstring
+
+
+def _word_rx(w: str) -> str:
+    return ((r"(?<!\w)" if re.match(r"\w", w[0]) else "") + re.escape(w)
+            + (r"(?!\w)" if re.match(r"\w", w[-1]) else ""))
 
 
 def sees(output: str, expected: str) -> bool:
-    """Every word of `expected` on one line of `output`, in order, anything between them."""
+    """Every word of `expected` on one line of `output`, in order, anything between them.
+    A word that starts/ends with a word character has no word character glued on that side (R2);
+    a `name (a.b.c)` line is also tried joined to the next one (R3)."""
     words = expected.split()
     if not words:
         return False
-    rx = re.compile(".*?".join(re.escape(w) for w in words))
-    return any(rx.search(line) for line in output.splitlines())
+    rx = re.compile(".*?".join(_word_rx(w) for w in words))
+    lines = output.splitlines()
+    for i, line in enumerate(lines):
+        if rx.search(line):
+            return True
+        if i + 1 < len(lines) and DOC_HEAD.match(line) and rx.search(line.rstrip() + " " + lines[i + 1]):
+            return True
+    return False
 
 
 def git(root: Path, *args: str) -> tuple[int, str]:
@@ -165,21 +210,26 @@ def evaluate(feature: str | None, root: Path, write: bool = True) -> gc.Result:
                     result = f"fail - não há linha `Run {name}:`"
                 else:
                     code, output = results[runs[name]]
-                    if not sees(output, (m.group(2) or "").strip().strip("`")):
+                    if code == TIMEOUT_CODE:
+                        result = TIMEOUT_RESULT
+                    elif not sees(output, (m.group(2) or "").strip().strip("`")):
                         result = "fail" if code else "fail - nenhum teste rodou (linha esperada ausente)"
+            elif results[proof][0] == TIMEOUT_CODE:
+                result = TIMEOUT_RESULT
             elif results[proof][0]:
                 result = f"fail - exit {results[proof][0]}"
             rows.append((c.cid, proof, result))
     for name in used_runs:
         code, _ = results[runs[name]]
         if code:
-            rows.append((f"Run {name}", runs[name], f"fail - exit {code}"))
+            rows.append((f"Run {name}", runs[name], TIMEOUT_RESULT if code == TIMEOUT_CODE else f"fail - exit {code}"))
     for cmd in build:
         code, output = run(proj, cmd, bash)
         out_lines = output.strip().splitlines()
         err = next((ln for ln in out_lines if "error" in ln.lower() or "erro" in ln.lower()),
                    out_lines[-1] if out_lines else "")
-        rows.append(("Build", cmd, "pass" if code == 0 else f"fail - {_cell(err.strip(), 100)}"))
+        rows.append(("Build", cmd, "pass" if code == 0 else TIMEOUT_RESULT if code == TIMEOUT_CODE
+                     else f"fail - {_cell(err.strip(), 100)}"))
     failed = [r for r in rows if r[2] != "pass"]
 
     dirty = dirty_paths(proj)
