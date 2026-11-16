@@ -1,34 +1,20 @@
 {
- "round": 1,
+ "round": 2,
  "verdict": "APPROVE",
- "summary": "TL;DR: APPROVE. O q-cli passa a ler o qStrategy do config do usuário válido e percorre a lista na ordem: orca-worker reaproveita o percurso antigo sem mudança (extraído para _q_cli_orca_worker), self-verified para, opencode-subagent avisa no stderr só quando o percurso chega nele. Sem o campo, a lista vira [\"orca-worker\"] e o comportamento é o de antes. O q-cli é o único chamador de q_cli, e os testes isolam o STARCODE_HOME (tests/helpers.py:41). Duas observações nit: o resumo do fluxo em skills/engajar/SKILL.md ainda descreve a ordem fixa, e o teste do C6 normaliza a saída com strip(). Arquivos mecânicos fora do review: dist/.",
- "findings": [
-  {
-   "id": "W1",
-   "severity": "nit",
-   "path": "skills/engajar/SKILL.md",
-   "line": 118,
-   "body": "🟡 O resumo da etapa 5b ainda diz \"codex → antigravity → self-verified\" como ordem fixa (skills/engajar/SKILL.md:118). Com qStrategy, a ordem vem do config do usuário. Correção: acrescentar \"(ou a ordem do qStrategy, ver execute.md)\".",
-   "evidence": "skills/engajar/SKILL.md:118"
-  },
-  {
-   "id": "W2",
-   "severity": "nit",
-   "path": "tests/test_dispatch.py",
-   "line": 446,
-   "body": "🟡 test_q_cli_command_reads_user_qstrategy compara out.getvalue().strip() (tests/test_dispatch.py:446), e os testes de C4 e C5 já comparam a saída integral. Correção: comparar com \"self-verified\n\" e \"codex\n\".",
-   "evidence": "tests/test_dispatch.py:446"
-  }
- ],
- "carryover": {},
+ "summary": "TL;DR: APPROVE. W1 e W2 fecharam: skills/engajar/SKILL.md:118 diz que a ordem do Q segue o qStrategy do config do usuário quando o campo existe (commit ba1223d), e test_q_cli_command_reads_user_qstrategy compara a saída integral (commits ba1223d e 0cef0c5). Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolvido: skills/engajar/SKILL.md:118 cita a ordem do qStrategy e references/execute.md; dist/ em dia (build --check OK)",
+  "W2": "resolvido: tests/test_dispatch.py:446 devolve out.getvalue() e as asserções comparam \"self-verified\n\" e \"codex\n\""
+ },
  "research": [
-  "nenhuma superfície externa: só código e docs do repo (config, dispatch, biblioteca padrão)"
+  "nenhuma superfície externa na correção"
  ],
  "ladder": [
   "python tools/build.py --check: OK, dist/ em dia",
-  "claude plugin validate dist/claude --strict: Validation passed",
   "python scripts/check_decisions.py: OK",
-  "python -m unittest discover -s tests: OK (1 ignorado)",
-  "scan_bypasses.py: 0 candidatos"
+  "python -m unittest discover -s tests -p test_dispatch.py: OK",
+  "run_gates.py proofs e done: verdes no HEAD (suíte inteira nas provas)",
+  "scan_bypasses.py: 0 candidatos na rodada 1; a correção não traz supressão"
  ]
 }

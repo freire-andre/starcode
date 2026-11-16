@@ -82,12 +82,12 @@ Proof: run unit | test_q_strategy_decisions_entry_and_changelog (test_dispatch.F
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** publicar review + decidir nits; merge após CI (autorização)
+**Next:** push; merge após CI (autorização)
 **Linear:** SC-185
 **Integration branch:** feature/q-strategy
 **Last integrated:** e7cb53f
 **Dispatched:** none
 **Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: push + PR: "sim"; 2026-11-16: PR aberto: https://github.com/freire-andre/starcode/pull/58; 2026-11-16: publicar review: "Sim"; nits: "Corrigir agora"; review publicado como comentário (422 em APPROVE do próprio PR); 2026-11-16: May change ganha skills/engajar/SKILL.md: exigido pelo W1, cuja correção o usuário pediu ("Corrigir agora")
 **Attempts:** none
-**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (C4 stderr com strip; C5 sem o comando; C8 sem conteúdo do DECISIONS/CHANGELOG; ordem orca-worker antes de opencode-subagent sem teste); 935 OK; q-check 0; prova de C8 trocada pelo Picard por teste de conteúdo; 2026-11-16: T1-fix: 4752121 (C4, C5, C8, ordem); 936 OK; ticket gate verde; 2026-11-16: provas e done verdes (936 OK); 2026-11-16: Guinan: L20, L32 (recorrência por --id), L43, L44 novas; retro com 5 sugestões; 2026-11-16: Worf r1: APPROVE; W1 nit (SKILL.md:118 ordem fixa no resumo); W2 nit (C6 com strip); 2026-11-16: W-fix: ba1223d, 0cef0c5 (W1, W2); suíte OK; ticket gate verde após May change incluir skills/engajar/SKILL.md
+**Reports:** 2026-11-16: T1: q_cli com strategies/warn, q-cli lê o config do usuário, docs, DECISIONS SC-185, CHANGELOG, dist; 7 testes; 935 OK; ticket gate verde em 0dfa839; 2026-11-16: provas verdes; C8 com prova no formato avulso (sem | marcador); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 4 achados (C4 stderr com strip; C5 sem o comando; C8 sem conteúdo do DECISIONS/CHANGELOG; ordem orca-worker antes de opencode-subagent sem teste); 935 OK; q-check 0; prova de C8 trocada pelo Picard por teste de conteúdo; 2026-11-16: T1-fix: 4752121 (C4, C5, C8, ordem); 936 OK; ticket gate verde; 2026-11-16: provas e done verdes (936 OK); 2026-11-16: Guinan: L20, L32 (recorrência por --id), L43, L44 novas; retro com 5 sugestões; 2026-11-16: Worf r1: APPROVE; W1 nit (SKILL.md:118 ordem fixa no resumo); W2 nit (C6 com strip); 2026-11-16: W-fix: ba1223d, 0cef0c5 (W1, W2); suíte OK; ticket gate verde após May change incluir skills/engajar/SKILL.md; 2026-11-16: Worf r2: APPROVE; W1, W2 fechados
 **Breaker:** closed
