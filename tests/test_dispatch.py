@@ -446,17 +446,13 @@ class FamilyAndQCliTests(TempRepoCase):
             return code, out.getvalue()
 
         self.write_user_config('{"schemaVersion": 1, "qStrategy": ["self-verified"]}')
-        self.assertEqual(run(), (1, "self-verified
-"))
+        self.assertEqual(run(), (1, "self-verified\n"))
         self.write_user_config('{"schemaVersion": 1, "qStrategy": ["self-verified", "self-verified"]}')  # invalid
-        self.assertEqual(run(), (0, "codex
-"))
+        self.assertEqual(run(), (0, "codex\n"))
         self.write_user_config('{"schemaVersion": 1}')
-        self.assertEqual(run(), (0, "codex
-"))
+        self.assertEqual(run(), (0, "codex\n"))
         self.write_user_config("not json")
-        self.assertEqual(run(), (0, "codex
-"))
+        self.assertEqual(run(), (0, "codex\n"))
 
     def test_q_strategy_docs_match_implementation(self):  # C7
         root = Path(dispatch.__file__).resolve().parent.parent
