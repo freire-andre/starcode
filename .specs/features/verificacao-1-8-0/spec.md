@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-186
-**May change**: scripts/piloto.py, scripts/model_info.py, scripts/gates/gates_common.py, scripts/gates/validate_tasks.py, scripts/gates/validate_verification.py, scripts/starcode_common.py, scripts/setup_helpers.py, tests/test_piloto.py, tests/test_model_info.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/piloto.py, hooks/scripts/banner.py, skills/piloto-automatico/SKILL.md, skills/troi/SKILL.md, scripts/model_info.py, scripts/gates/gates_common.py, scripts/gates/validate_tasks.py, scripts/gates/validate_verification.py, scripts/starcode_common.py, scripts/setup_helpers.py, tests/test_piloto.py, tests/test_model_info.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Item 0.3 da triagem v2 (`starcode-triagem-v2-2026-11-13.md`, fora do Git) e decisão D-j: a 1.8.0 saiu sem `.specs/features/`, sem `verification.md` e sem aceite. A regularização é uma lista curta de requisitos tirada do `CHANGELOG.md` `[1.8.0]`, das docstrings de `scripts/piloto.py` e `scripts/model_info.py` e do texto das skills. Em seguida, o Q é despachado sobre `piloto.py`, `model_info.py` e a mudança nos gates, e os achados são fechados. O Q julga o estado atual na `main` (514734a), porque os itens 0.4, C.1 e C.2 do primeiro corte já mudaram esses arquivos. Sucesso: cada promessa da 1.8.0 abaixo tem um teste que falharia se ela fosse falsa, ou um achado fechado.
@@ -117,8 +117,8 @@ Proof: run unit | test_troi_grill_mode (test_piloto.PilotSkillTests.test_troi_gr
 **Linear:** SC-186
 **Integration branch:** feature/verificacao-1-8-0
 **Last integrated:** none
-**Dispatched:** none
-**Settled:** 2026-11-16: spec + issue: "sim"
+**Dispatched:** T1-fix · SC-186 · base 0463cf6 · claude:claude-sonnet-5-5 · 2026-11-16T16:19:16Z
+**Settled:** 2026-11-16: spec + issue: "sim"; 2026-11-16: May change ganha banner.py e as skills piloto-automatico e troi: achados do Q sobre o banner (R6) e o texto de R14
 **Attempts:** none
 **Reports:** 2026-11-16: provas verdes nos testes existentes (14 checks); 2026-11-16: Q: codex · effective unconfirmed · FAIL, 13 achados (3 de comportamento: status sem ⚠️ revisar, contexto 0 sem aviso, ativos lista piloto pendente; 10 de testes fracos em C1-C6, C8-C11, C13, C14); 936 OK; q-check 0
 **Breaker:** closed
