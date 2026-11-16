@@ -227,7 +227,7 @@ def record(slug: str, root: Path, by: str, question: str, options: str, decision
     returned = " ".join((decision or "").split()).casefold() == RETURNED.casefold()
     if categoria is not None and categoria not in CATEGORIAS:
         raise PilotoError(f"--categoria deve ser um de {', '.join(CATEGORIAS)}")
-    if categoria and not returned and not any(r.startswith("M") for r in refs):
+    if categoria and not any(r.startswith("M") for r in refs):
         raise BrakeError(f"categoria {categoria} exige item de mandato (--basis M<n>); "
                          "devolva a pergunta ao usuário")
     conf = (confidence or ("alta" if refs else "baixa")).lower().replace("é", "e")

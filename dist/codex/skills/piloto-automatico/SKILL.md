@@ -59,6 +59,7 @@ that is delegable (section 5), you answer it instead:
    (`freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário`), and so is every one after it;
    `alta` and `media` decisions still go on. On exit 3 (brake or category) do not decide: hand the question back to
    the user (section 5), then record it with `--decision "devolvido ao usuário"` (never marked, never counted by the brake).
+   Record the return **without** `--categoria`: with it and no `M<n>` the script refuses again (exit 3).
 4. **Show one line** in the chat and go on without waiting: `🛸 Piloto D<n>: <decisão> (base <refs>)`.
 5. Where the flow writes an approval in an artifact (tasks approval, Data's single question), write
    `**Approved**: <YYYY-MM-DD> - piloto: "D<n> <resumo>"` (never `user:`). The gates accept a `piloto:` line

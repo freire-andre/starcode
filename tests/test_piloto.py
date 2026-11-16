@@ -558,6 +558,11 @@ class PilotFreiosTests(PilotoCase):
                 before = self.snapshot()
                 res = self.reg("a", basis, "--categoria", cat)
                 self.assert_refused_cli(res, 3, categoria_msg(cat), before)
+        for cat in CATEGORIAS:  # the returned-to-user entry is not exempt: the exemption is only for the brake
+            for basis in ("", "Q5"):
+                before = self.snapshot()
+                res = self.reg("devolvido ao usuário", basis, "--categoria", cat)
+                self.assert_refused_cli(res, 3, categoria_msg(cat), before)
         for n, cat in enumerate(CATEGORIAS, 1):
             res = self.reg("a", "M1", "--categoria", cat)
             self.assertEqual((res.returncode, res.stdout.strip()), (0, f"D{n} registrada (confiança alta)"))
@@ -588,7 +593,9 @@ class PilotFreiosTests(PilotoCase):
                  "   (`freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário`), and so is every "
                  "one after it;",
                  "   the user (section 5), then record it with `--decision \"devolvido ao usuário\"` "
-                 "(never marked, never counted by the brake).")
+                 "(never marked, never counted by the brake).\n"
+                 "   Record the return **without** `--categoria`: with it and no `M<n>` the script refuses again "
+                 "(exit 3).")
         gate = ("   only on tasks.md, with the mandate confirmed by the user and piloto.md active or finished "
                 "(`encerrar` does not\n   void it), as long as the cited decision was recorded up to the "
                 "`**Encerrado:**` stamp; a decision recorded\n   after it does not count.")
