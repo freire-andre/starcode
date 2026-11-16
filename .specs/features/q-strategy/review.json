@@ -1,0 +1,20 @@
+{
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. W1 e W2 fecharam: skills/engajar/SKILL.md:118 diz que a ordem do Q segue o qStrategy do config do usuário quando o campo existe (commit ba1223d), e test_q_cli_command_reads_user_qstrategy compara a saída integral (commits ba1223d e 0cef0c5). Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolvido: skills/engajar/SKILL.md:118 cita a ordem do qStrategy e references/execute.md; dist/ em dia (build --check OK)",
+  "W2": "resolvido: tests/test_dispatch.py:446 devolve out.getvalue() e as asserções comparam \"self-verified\n\" e \"codex\n\""
+ },
+ "research": [
+  "nenhuma superfície externa na correção"
+ ],
+ "ladder": [
+  "python tools/build.py --check: OK, dist/ em dia",
+  "python scripts/check_decisions.py: OK",
+  "python -m unittest discover -s tests -p test_dispatch.py: OK",
+  "run_gates.py proofs e done: verdes no HEAD (suíte inteira nas provas)",
+  "scan_bypasses.py: 0 candidatos na rodada 1; a correção não traz supressão"
+ ]
+}

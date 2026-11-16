@@ -329,18 +329,20 @@
         "gate-d30-ci",
         "despacho-media-escopo",
         "piloto-decisao-citada",
-        "licoes-recorrencia-por-id"
+        "licoes-recorrencia-por-id",
+        "q-strategy"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
         "verification.md: achados 2 a 8 (C4-C10)",
         "verification.md: achados C5 e C13",
         "verification.md achados 2 e 3 (test_piloto.py:204, :231)",
-        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)"
+        ".specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)",
+        ".specs/features/q-strategy/verification.md:25"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-15T17:19:51Z"
+      "updated": "2026-11-16T12:25:30Z"
     },
     {
       "id": "L21",
@@ -517,16 +519,18 @@
       "features": [
         "q-familia-revendedor",
         "setup-grava-config",
-        "impacto-seleciona-real"
+        "impacto-seleciona-real",
+        "q-strategy"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
         "L34 (verification.md:C4)",
-        "L39 (verification.md:C8)"
+        "L39 (verification.md:C8)",
+        ".specs/features/q-strategy/verification.md:27"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-15T16:31:41Z"
+      "updated": "2026-11-16T12:25:30Z"
     },
     {
       "id": "L33",
@@ -677,6 +681,36 @@
       "scope": "",
       "created": "2026-11-15T17:19:52Z",
       "updated": "2026-11-15T17:19:52Z"
+    },
+    {
+      "id": "L43",
+      "text": "Quando o critério cita a saída e o exit code de um comando, exercite o próprio comando (main com o ambiente controlado), não só a função interna, porque o teste da função passava sem provar o que o comando imprime nem o código de saída.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "q-strategy"
+      ],
+      "sources": [
+        ".specs/features/q-strategy/verification.md:26"
+      ],
+      "scope": "",
+      "created": "2026-11-16T12:25:30Z",
+      "updated": "2026-11-16T12:25:30Z"
+    },
+    {
+      "id": "L44",
+      "text": "Em percurso ordenado com efeito colateral por item (aviso, log), teste um item com efeito depois de um que já resolve e asserte que o efeito não acontece, porque uma avaliação antecipada avisaria fora da ordem sem nenhum teste falhar.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "q-strategy"
+      ],
+      "sources": [
+        ".specs/features/q-strategy/verification.md:28"
+      ],
+      "scope": "",
+      "created": "2026-11-16T12:25:30Z",
+      "updated": "2026-11-16T12:25:30Z"
     }
   ]
 }
