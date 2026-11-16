@@ -49,13 +49,22 @@ that is delegable (section 5), you answer it instead:
    option (smaller scope, no new dependency, no data loss, no outward action) and say so.
 3. **Record before acting** (one call; never edit piloto.md by hand):
 
-       python "<plugin-root>/scripts/piloto.py" registrar <slug> --by <quem perguntou> --question "<pergunta>" --options "<a | b | c>" --decision "<escolha>" --reason "<por quê, em uma frase>" --basis M2,Q5 --confidence alta|media|baixa
+       python "<plugin-root>/scripts/piloto.py" registrar <slug> --by <quem perguntou> --question "<pergunta>" --options "<a | b | c>" --decision "<escolha>" --reason "<por quê, em uma frase>" --basis M2,Q5 --confidence alta|media|baixa [--categoria dependencia|esquema|arquitetura]
 
    No basis → leave `--basis` empty: the script forces `baixa` and marks `⚠️ revisar`.
+   A new dependency, a database schema change or a deviation from an architecture decision: pass
+   `--categoria dependencia|esquema|arquitetura` together with the mandate item that covers it (`--basis M<n>`).
+   Without one the script exits 3 with `categoria <valor> exige item de mandato (--basis M<n>); devolva a pergunta ao usuário`.
+   **Brake:** the 3rd decision marked `⚠️ revisar` in a feature is refused with exit 3
+   (`freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário`), and so is every one after it;
+   `alta` and `media` decisions still go on. On exit 3 (brake or category) do not decide: hand the question back to
+   the user (section 5), then record it with `--decision "devolvido ao usuário"` (never marked, never counted by the brake).
 4. **Show one line** in the chat and go on without waiting: `🛸 Piloto D<n>: <decisão> (base <refs>)`.
 5. Where the flow writes an approval in an artifact (tasks approval, Data's single question), write
    `**Approved**: <YYYY-MM-DD> - piloto: "D<n> <resumo>"` (never `user:`). The gates accept a `piloto:` line
-   only on tasks.md and only while piloto.md is active with a confirmed mandate.
+   only on tasks.md, with the mandate confirmed by the user and piloto.md active or finished (`encerrar` does not
+   void it), as long as the cited decision was recorded up to the `**Encerrado:**` stamp; a decision recorded
+   after it does not count.
 6. **Never widen the spec.** A decision that would add scope the spec does not have is out: record it as
    `--decision "fora do escopo da spec: não feito"` with `--confidence baixa` and continue.
 
@@ -67,6 +76,8 @@ These still stop and ask the user, with options and a recommendation as STARCODE
 - A missing credential or access; any destructive operation; the batch cost confirmation when the mandate
   has no cost limit, or the batch exceeds it.
 - A circuit breaker still open after McCoy's diagnosis.
+- A new dependency, a database schema change and a deviation from an architecture decision, unless a mandate
+  item covers it (`--categoria` with `--basis M<n>`); and any question the brake refused (exit 3).
 Everything else that STARCODE.md lists as a business decision, gray area, tasks approval, Linear write
 confirmation, McCoy option or Q fix choice is delegable. Each stop that is not delegable is recorded too,
 with `--decision "devolvido ao usuário"`.
@@ -82,4 +93,5 @@ When the feature is done (or stops on a non-delegable point), run `piloto.py sta
 most 10 lines: what was delivered, how many decisions, each `⚠️ revisar` decision (ID and one line), and the
 actions waiting for the user (push, PR, merge). The full log is `.specs/features/<slug>/piloto.md`. Then the
 Guinan reads it in the retro. When nothing is left, `piloto.py encerrar <slug> --reason "feature concluída"`
-and `python "<plugin-root>/scripts/crew_live.py" stop picard`.
+and `python "<plugin-root>/scripts/crew_live.py" stop picard`. Finishing does not void the `piloto:` approval:
+the gates still accept it for decisions recorded up to the end, and refuse one recorded after it.

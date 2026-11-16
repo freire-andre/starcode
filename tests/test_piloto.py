@@ -199,12 +199,12 @@ class PilotApprovalGateTests(PilotoCase):
         self.assertFalse(gc.approved([self.LINE], self.fdir, allow_pilot=True))
         self.confirmed()
         for _ in range(4):
-            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque", "M1")
         self.assertTrue(gc.approved([self.LINE], self.fdir, allow_pilot=True))
         self.assertFalse(gc.approved([self.LINE], self.fdir))  # the spec never accepts it
         self.assertFalse(gc.approved(['**Approved**: 2026-11-13 - piloto: "sem id"'], self.fdir, allow_pilot=True))
         piloto.finish(SLUG, self.repo)
-        self.assertFalse(gc.approved([self.LINE], self.fdir, allow_pilot=True))
+        self.assertTrue(gc.approved([self.LINE], self.fdir, allow_pilot=True))  # finished: still valid (SC-187)
 
     def test_user_line_still_accepted(self):
         self.assertTrue(gc.approved(['**Approved**: 2026-11-13 - user: "sim"']))
@@ -218,7 +218,7 @@ class PilotApprovalGateTests(PilotoCase):
             (self.fdir / name).write_text(text, encoding="utf-8")
         self.confirmed()
         for _ in range(4):
-            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque", "M1")
         tasks = self.fdir / "tasks.md"
         text = tasks.read_text(encoding="utf-8")
         text = re.sub(r"^\*\*Approved\*\*:.*$", self.LINE, text, flags=re.M)
@@ -249,7 +249,7 @@ class PilotDecisaoCitadaTests(PilotoCase):
 
     def register(self, upto):
         for _ in range(upto):
-            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque", "M1")
 
     def set_approval(self, *lines, target="tasks.md"):
         path = self.fdir / target
@@ -276,12 +276,14 @@ class PilotDecisaoCitadaTests(PilotoCase):
         body = src[src.index("def approved("):src.index("def size_of")]
         self.assertIn("pilot_approved(", body)
         pilot = src[src.index("def pilot_approved("):src.index("def pilot_unregistered(")]
-        self.assertIn("active_confirmed_in(", pilot)
-        self.assertIn("registered_decisions_in(", pilot)
+        self.assertIn("approval_valid_in(", pilot)
+        self.assertIn("registered_decisions_in(", src[src.index("def pilot_unregistered("):src.index("def approval_error")])
 
     def test_aprovacao_com_decisao_registrada_passa_nos_dois_gates(self):
         self.confirmed()
-        self.register(7)
+        self.register(5)
+        for _ in range(2):  # the 6th and 7th are review decisions (no basis): still accepted by the gates
+            piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque")
         self.assertIn("⚠️ revisar", self.path.read_text(encoding="utf-8").split("### D7 · ")[1])
         self.set_approval(self.pil("D7 tasks cobrem a spec"))
         self.assert_tasks_ok()
@@ -314,16 +316,11 @@ class PilotDecisaoCitadaTests(PilotoCase):
     def test_mandato_sem_user_nao_vale(self):
         self.confirmed()
         self.register(1)
-        # finished pilot with the decision registered: both gates refuse the line
+        # finished pilot with the decision registered before the end: both gates accept the line (SC-187)
         piloto.finish(SLUG, self.repo)
-        self.assertFalse(gc.approved([self.pil("D1 ok")], self.fdir, allow_pilot=True))
+        self.assertTrue(gc.approved([self.pil("D1 ok")], self.fdir, allow_pilot=True))
         self.set_approval(self.pil("D1 ok"))
-        for errors in self.gate_errors():
-            self.assertEqual(len([e for e in errors if e.startswith(SEM_APPROVED)]), 1, errors)
-            self.assertEqual([e for e in errors if "não está registrada" in e], [], errors)
-        reopened = self.path.read_text(encoding="utf-8").replace("**Status:** encerrado", "**Status:** ativo")
-        self.path.write_text(reopened, encoding="utf-8")
-        self.assert_tasks_ok()  # active again, same file: the line is accepted
+        self.assert_tasks_ok()
         text = self.path.read_text(encoding="utf-8")
         self.path.write_text(MANDATE_DATE_RE.sub(r"\1", text), encoding="utf-8")
         self.assertEqual(piloto.main(["ativo", SLUG, "--root", str(self.repo)]), 1)
@@ -388,6 +385,258 @@ class PilotDecisaoCitadaTests(PilotoCase):
             "test_uma_linha_valida_basta")]
         for needle in needles:
             self.assertIn(needle, body)
+
+
+FREIO_MSG = "freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário"
+CATEGORIAS = ("dependencia", "esquema", "arquitetura")
+
+
+def categoria_msg(valor):
+    return f"categoria {valor} exige item de mandato (--basis M<n>); devolva a pergunta ao usuário"
+
+
+class PilotFreiosTests(PilotoCase):
+    STAMP = "2026-11-14T10:00:00Z"
+    TASKS_MSG = SEM_APPROVED + (": a execução só começa depois da aprovação; "
+                                "nunca escreva uma aprovação que o usuário não deu")
+
+    def setUp(self):
+        super().setUp()
+        gates = ROOT / "tests" / "fixtures" / "gates" / "large" / ".specs" / "features" / "export-csv"
+        for name in ("spec.md", "tasks.md"):
+            (self.fdir / name).write_text((gates / name).read_text(encoding="utf-8"), encoding="utf-8")
+
+    # --- gates (R1 a R3) ---
+    def register_n(self, n, stamp=STAMP):
+        with mock.patch.object(piloto, "_now", return_value=stamp):
+            for _ in range(n):
+                piloto.record(SLUG, self.repo, "data", "q?", "a | b", "a", "porque", "M1")
+
+    def finish_at(self, stamp):
+        with mock.patch.object(piloto, "_now", return_value=stamp):
+            piloto.finish(SLUG, self.repo, "feature concluída")
+
+    def set_approval(self, *lines):
+        path = self.fdir / "tasks.md"
+        text = APPROVED_LINE_RE.sub("", path.read_text(encoding="utf-8"))
+        path.write_text(text.replace("\n", "\n" + "\n".join(lines) + "\n", 1), encoding="utf-8")
+
+    def gate_errors(self):
+        import validate_tasks as vt
+        import validate_verification as vv
+
+        return (vt.evaluate(SLUG, self.repo, execute=True).errors, vv.evaluate(SLUG, self.repo).errors)
+
+    def pil(self, text):
+        return f'**Approved**: 2026-11-14 - piloto: "{text}"'
+
+    def assert_accepted(self):
+        for errors in self.gate_errors():
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [], errors)
+
+    def assert_refused(self):
+        for errors, expected in zip(self.gate_errors(), (self.TASKS_MSG, SEM_APPROVED)):
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [expected], errors)
+
+    def test_aprovacao_vale_depois_de_encerrar(self):
+        self.confirmed()
+        self.register_n(2)
+        self.set_approval(self.pil("D2 tasks cobrem a spec"))
+        self.assertTrue(gc.approved([self.pil("D2 ok")], self.fdir, allow_pilot=True))  # active
+        self.assert_accepted()
+        self.finish_at(self.STAMP)  # same stamp as D2: counts as before
+        self.assertIn("**Status:** encerrado", self.path.read_text(encoding="utf-8"))
+        self.assertTrue(gc.approved([self.pil("D2 ok")], self.fdir, allow_pilot=True))
+        self.assertFalse(gc.approved([self.pil("D2 ok")], self.fdir))  # the spec never accepts it
+        self.assert_accepted()
+        later = self.path.read_text(encoding="utf-8").replace(f"**Encerrado:** {self.STAMP}",
+                                                              "**Encerrado:** 2026-11-14T10:00:05Z")
+        self.path.write_text(later, encoding="utf-8")
+        self.assert_accepted()  # earlier stamp counts too
+        self.set_approval(self.pil("D9 nao existe"))
+        self.assert_refused_unregistered()
+
+    def assert_refused_unregistered(self):
+        msg = "tasks.md: a aprovação do piloto cita D9, que não está registrada no piloto.md"
+        for errors in self.gate_errors():
+            self.assertEqual([e for e in errors if e.startswith("tasks.md")], [msg], errors)
+
+    def test_decisao_depois_do_encerramento_reprova(self):
+        self.confirmed()
+        self.register_n(2)
+        self.finish_at(self.STAMP)
+        text = self.path.read_text(encoding="utf-8")
+        self.path.write_text(text.replace(f"### D2 · {self.STAMP}", "### D2 · 2026-11-14T10:00:01Z"),
+                             encoding="utf-8")
+        self.assertFalse(gc.approved([self.pil("D2 ok")], self.fdir, allow_pilot=True))
+        self.set_approval(self.pil("D2 tasks cobrem a spec"))
+        self.assert_refused()
+        self.set_approval(self.pil("D1 tasks cobrem a spec"))  # D1 is not after the end
+        self.assert_accepted()
+        self.set_approval(self.pil("D2 ok"), self.pil("D1 ok"))
+        self.assert_accepted()
+
+    def test_mandato_sem_user_reprova_ativo_e_encerrado(self):
+        self.confirmed()
+        self.register_n(1)
+        text = self.path.read_text(encoding="utf-8")
+        self.path.write_text(MANDATE_DATE_RE.sub(r"\1", text), encoding="utf-8")
+        self.set_approval(self.pil("D1 ok"))
+        self.assertFalse(gc.approved([self.pil("D1 ok")], self.fdir, allow_pilot=True))
+        self.assert_refused()  # active
+        self.finish_at(self.STAMP)
+        self.assertFalse(gc.approved([self.pil("D1 ok")], self.fdir, allow_pilot=True))
+        self.assert_refused()  # finished
+
+    # --- freio e categoria (R4 a R9) ---
+    def reg(self, decision="a", basis="", *extra):
+        args = ["registrar", "--by", "data", "--question", "q", "--options", "a | b", "--decision", decision,
+                "--reason", "r"] + (["--basis", basis] if basis else []) + list(extra)
+        return self.cli(*args)
+
+    def assert_refused_cli(self, res, code, message, before):
+        self.assertEqual((res.returncode, res.stdout, res.stderr), (code, "", message + "\n"))
+        self.assertEqual(self.snapshot(), before)
+
+    def test_freio_na_terceira_revisar(self):
+        self.confirmed()
+        for _ in range(2):
+            self.assertEqual(self.reg().returncode, 0)
+        before = self.snapshot()
+        self.assert_refused_cli(self.reg(), 3, FREIO_MSG, before)
+        # baixa with a basis is also a review decision
+        self.assert_refused_cli(self.reg("a", "M1", "--confidence", "baixa"), 3, FREIO_MSG, before)
+        self.assertNotIn("### D3", self.path.read_text(encoding="utf-8"))
+
+    def test_segunda_revisar_segue(self):
+        self.confirmed()
+        self.assertEqual(self.reg("a", "M1").returncode, 0)  # alta: not counted
+        first = self.reg()
+        self.assertEqual((first.returncode, first.stdout.strip()), (0, "D2 registrada (confiança baixa, revisar)"))
+        second = self.reg()
+        self.assertEqual((second.returncode, second.stdout.strip(), second.stderr),
+                         (0, "D3 registrada (confiança baixa, revisar)", ""))
+        text = self.path.read_text(encoding="utf-8")
+        self.assertRegex(text, r"### D3 · \S+Z · data · confiança baixa · ⚠️ revisar\n")
+        self.assertEqual(text.count("⚠️ revisar"), 2)
+
+    def test_freio_fica_e_alta_segue(self):
+        self.confirmed()
+        for _ in range(2):
+            self.assertEqual(self.reg().returncode, 0)
+        before = self.snapshot()
+        self.assert_refused_cli(self.reg(), 3, FREIO_MSG, before)
+        alta = self.reg("a", "M1")
+        self.assertEqual((alta.returncode, alta.stdout.strip()), (0, "D3 registrada (confiança alta)"))
+        media = self.reg("a", "M2", "--confidence", "media")
+        self.assertEqual((media.returncode, media.stdout.strip()), (0, "D4 registrada (confiança média)"))
+        before = self.snapshot()
+        self.assert_refused_cli(self.reg(), 3, FREIO_MSG, before)  # the brake stays
+        self.assertEqual(self.path.read_text(encoding="utf-8").count("⚠️ revisar"), 2)
+
+    def test_devolvido_ao_usuario_fora_do_freio(self):
+        self.confirmed()
+        self.assertEqual(self.reg().returncode, 0)  # D1 revisar
+        devolvido = self.reg("devolvido ao usuário")
+        self.assertEqual((devolvido.returncode, devolvido.stderr), (0, ""))
+        text = self.path.read_text(encoding="utf-8")
+        self.assertRegex(text, r"### D2 · \S+Z · data · confiança baixa\n- \*\*Pergunta:\*\* q\n"
+                               r"- \*\*Opções:\*\* a \| b\n- \*\*Decisão:\*\* devolvido ao usuário\n")
+        self.assertEqual(text.count("⚠️ revisar"), 1)  # D2 not flagged
+        self.assertEqual(self.reg().returncode, 0)  # D3 is only the 2nd revisar: D2 did not count
+        self.assertEqual(self.path.read_text(encoding="utf-8").count("⚠️ revisar"), 2)
+        again = self.reg("devolvido ao usuário")  # brake on: still recorded
+        self.assertEqual((again.returncode, again.stdout.strip()), (0, "D4 registrada (confiança baixa)"))
+        self.assertEqual(self.path.read_text(encoding="utf-8").count("⚠️ revisar"), 2)
+        before = self.snapshot()
+        self.assert_refused_cli(self.reg(), 3, FREIO_MSG, before)
+
+    def test_categoria_exige_mandato(self):
+        self.confirmed()
+        for cat in CATEGORIAS:
+            for basis in ("", "Q5"):
+                before = self.snapshot()
+                res = self.reg("a", basis, "--categoria", cat)
+                self.assert_refused_cli(res, 3, categoria_msg(cat), before)
+        for n, cat in enumerate(CATEGORIAS, 1):
+            res = self.reg("a", "M1", "--categoria", cat)
+            self.assertEqual((res.returncode, res.stdout.strip()), (0, f"D{n} registrada (confiança alta)"))
+            self.assertRegex(self.path.read_text(encoding="utf-8"),
+                             rf"### D{n} · \S+Z · data · confiança alta · categoria {cat}\n")
+        before = self.snapshot()
+        res = self.reg("a", "M9", "--categoria", "esquema")  # nonexistent mandate item
+        self.assertEqual((res.returncode, res.stdout.strip()), (1, "ERRO: item de mandato inexistente: M9"))
+        self.assertEqual(self.snapshot(), before)
+
+    def test_categoria_invalida_sai_2(self):
+        self.confirmed()
+        before = self.snapshot()
+        for value in ("outra", "", "Esquema"):
+            res = self.reg("a", "M1", "--categoria", value)
+            self.assertEqual((res.returncode, res.stdout), (2, ""), value)
+            self.assertIn("--categoria", res.stderr)
+            self.assertEqual(self.snapshot(), before)
+        self.assertNotIn("### D1", self.path.read_text(encoding="utf-8"))
+
+    # --- skill, DECISIONS e CHANGELOG (R10, R11) ---
+    def test_skill_descreve_freio_e_categoria(self):
+        step4 = ("[--categoria dependencia|esquema|arquitetura]",
+                 "   A new dependency, a database schema change or a deviation from an architecture decision: pass\n"
+                 "   `--categoria dependencia|esquema|arquitetura` together with the mandate item that covers it "
+                 "(`--basis M<n>`).",
+                 "   **Brake:** the 3rd decision marked `⚠️ revisar` in a feature is refused with exit 3\n"
+                 "   (`freio: 3ª decisão ⚠️ revisar nesta feature; devolva a pergunta ao usuário`), and so is every "
+                 "one after it;",
+                 "   the user (section 5), then record it with `--decision \"devolvido ao usuário\"` "
+                 "(never marked, never counted by the brake).")
+        gate = ("   only on tasks.md, with the mandate confirmed by the user and piloto.md active or finished "
+                "(`encerrar` does not\n   void it), as long as the cited decision was recorded up to the "
+                "`**Encerrado:**` stamp; a decision recorded\n   after it does not count.")
+        never = ("- A new dependency, a database schema change and a deviation from an architecture decision, "
+                 "unless a mandate\n  item covers it (`--categoria` with `--basis M<n>`); and any question the "
+                 "brake refused (exit 3).")
+        for root in [ROOT] + [ROOT / "dist" / cli for cli in CLIS]:
+            text = (root / "skills" / "piloto-automatico" / "SKILL.md").read_text(encoding="utf-8")
+            s4 = text.split("## 4. Autopilot rules", 1)[1].split("\n## 5.", 1)[0]
+            s5 = text.split("## 5. What the autopilot never decides", 1)[1].split("\n## 6.", 1)[0]
+            s7 = text.split("## 7. End", 1)[1]
+            for needle in step4 + (gate,):
+                self.assertIn(needle, s4, f"{root}: {needle}")
+            step5 = s4.split("5. Where the flow writes an approval", 1)[1].split("\n6. ", 1)[0]
+            self.assertIn(gate, step5, root)
+            self.assertIn(never, s5, root)
+            self.assertNotIn("only while piloto.md is active", text, root)
+            self.assertIn("Finishing does not void the `piloto:` approval", s7, root)
+
+    def test_decisions_piloto_freios(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        m = re.search(r"^### SC-187:.*\n(.*?)(?=^### |\Z)", text, re.M | re.S)
+        self.assertIsNotNone(m)
+        body = m.group(0)
+        for field in ("**Problema**:", "**Decisão**:", "**Motivo**:", "**Por que não é bug**:"):
+            self.assertEqual(body.count(field), 1, field)
+        decisao = body.split("**Decisão**:", 1)[1].split("- **Motivo**:", 1)[0]
+        for term in ("`ativo` ou `encerrado`", "`- user:`", "carimbo", "`**Encerrado:**`", "(R1)", "(R2)", "(R3)",
+                     "inclusive `baixa` com `--basis`", FREIO_MSG, "exit 3", "(R4)", "2ª é gravada com exit 0", "(R5)",
+                     "o freio fica", "`alta` e `media` com base continuam gravadas", "(R6)",
+                     "`--decision \"devolvido ao usuário\"` é gravada sem `⚠️ revisar`, não conta no freio", "(R7)",
+                     "`--categoria dependencia|esquema|arquitetura`", categoria_msg("<valor>"), "cita `categoria <valor>`",
+                     "(R8)", "sai com 2 (uso), sem gravar", "(R9)", "seção 4", "seção 5", "seção 7", "(R10)"):
+            self.assertIn(term, decisao, term)
+        motivo = body.split("**Motivo**:", 1)[1].split("- **Por que não é bug**:", 1)[0]
+        self.assertIn("disjuntor D27", motivo)
+        bug = body.split("**Por que não é bug**:", 1)[1]
+        for name in ("test_aprovacao_vale_depois_de_encerrar", "test_decisao_depois_do_encerramento_reprova",
+                     "test_mandato_sem_user_reprova_ativo_e_encerrado", "test_freio_na_terceira_revisar",
+                     "test_segunda_revisar_segue", "test_freio_fica_e_alta_segue",
+                     "test_devolvido_ao_usuario_fora_do_freio", "test_categoria_exige_mandato",
+                     "test_categoria_invalida_sai_2", "test_skill_descreve_freio_e_categoria",
+                     "test_decisions_piloto_freios"):
+            self.assertIn(f"`{name}`", bug, name)
+            self.assertTrue(hasattr(PilotFreiosTests, name), name)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("- Freios do piloto automático (SC-187):", unreleased)
 
 
 class PilotBannerTests(PilotoCase):
