@@ -632,7 +632,7 @@ class PilotFreiosTests(PilotoCase):
 
     def test_decisions_piloto_freios(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
-        m = re.search(r"^### SC-187:.*\n(.*?)(?=^### |\Z)", text, re.M | re.S)
+        m = re.search(r"^### SC-187:[^\n]*\n(.*?)(?=^### |\Z)", text, re.M | re.S)
         self.assertIsNotNone(m)
         body = m.group(0)
         for field in ("**Problema**:", "**Decisão**:", "**Motivo**:", "**Por que não é bug**:"):
