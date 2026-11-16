@@ -405,12 +405,30 @@ class BuildTests(unittest.TestCase):
         for field in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
             self.assertIn(field, entry)
         decision = entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0]
-        for term in ("R1", "R6", "F6-6", "palavra inteira", "docstring", "1800 s", "check_proofs",
-                     "Binary files", "differ", "byte nulo", "stderr", "secret_scan pulou"):
-            self.assertIn(term, decision)
+        for phrase in ("R1: `skills/guinan/SKILL.md` passa a ter `**Header first (F6-6):**` e nenhuma skill do "
+                       "`dist/` dos 4 CLIs contém `Header first`",
+                       "R2: `sees()` exige palavra inteira: se a palavra esperada começa ou termina com caractere de "
+                       "palavra (`\\w`), não pode haver caractere de palavra colado do lado correspondente na saída",
+                       "`test_login PASSED` não casa com `test_login_extra PASSED`",
+                       "`test_login (m.C.test_login) ... ok` casa com a mesma linha",
+                       "R3: uma linha exatamente `<nome> (<id pontuado>)` é aceita unida à seguinte por um espaço",
+                       "`test_x (m.C.test_x)` seguido de `Docstring ... ok` casa com `test_x (m.C.test_x) ... ok`",
+                       "`test_x` seguido de `... ok` continua sem casar",
+                       "R4: cada comando de prova (`Run`, prova avulsa e `Build`) tem tempo limite fixo de 1800 s",
+                       "o `check_proofs` encerra o comando",
+                       "grava `fail - tempo limite (1800 s)` em cada linha que depende dele, e o veredito é falha",
+                       "R5: o scanner escaneia o arquivo de texto cujo diff tem a frase `Binary files` numa linha "
+                       "adicionada",
+                       "só pula como binário o diff que tem uma linha que casa `^Binary files .* differ$` ou que "
+                       "contém o byte nulo",
+                       "R6: se o `git diff` do arquivo falha ou passa do tempo limite, o scanner escreve no stderr "
+                       "`StarCode hook: secret_scan pulou <arquivo> (<motivo>)` e segue para os outros arquivos, sem "
+                       "bloquear por causa dele"):
+            self.assertIn(phrase, decision, phrase)
         for name in ("test_nenhuma_skill_do_dist_tem_header_first", "test_sees_palavra_inteira",
                      "test_sees_docstring_do_unittest", "test_prova_com_tempo_limite",
-                     "test_frase_binary_files_em_texto_e_escaneada", "test_arquivo_pulado_avisa"):
+                     "test_frase_binary_files_em_texto_e_escaneada", "test_arquivo_pulado_avisa",
+                     "test_timeout_do_git_diff_avisa_e_segue", "test_byte_nulo_depois_de_8000_e_binario"):
             self.assertIn(name, entry.split("**Por que não é bug**", 1)[1])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         unreleased = re.split(r"\n## \[", changelog.split("## [Unreleased]", 1)[1], maxsplit=1)[0]

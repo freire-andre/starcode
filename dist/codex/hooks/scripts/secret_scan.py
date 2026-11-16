@@ -124,7 +124,7 @@ def _skipped(path: str, reason: str) -> None:
 
 
 def _is_binary(data: str) -> bool:
-    return "\x00" in data[:8000]
+    return "\x00" in data  # R5: o diff inteiro, não só os primeiros 8000 caracteres
 
 
 def _env_finding(path: str, name: str) -> str | None:
