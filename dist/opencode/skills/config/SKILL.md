@@ -66,7 +66,7 @@ Ask: aceitar a proposta inteira ou trocar linhas (`<tripulante> = <cli>:<modelo>
 step 3 goes through `model_info.py` before it is accepted; a ⛔ verdict blocks it.
 
 ## 5. Optional keys (global scope only, and only if the user asks)
-`outputLanguage` (pt-BR | en), `qStrategy` (opencode-subagent, orca-worker, self-verified),
+`outputLanguage` (pt-BR | en), `qStrategy` (orca-worker, self-verified),
 `fleet.maxBatch` (1–10), `fleet.timeoutMinutes`, `fleet.workers` (list of `<cli>:<model>`). The local file
 holds only `crew`.
 

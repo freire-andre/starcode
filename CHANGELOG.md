@@ -8,6 +8,10 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+### Alterado
+
+- `dispatch.py q-cli` segue o `qStrategy` do config do usuário quando o campo existe: `orca-worker` é o percurso atual, `self-verified` para e devolve `self-verified`, `opencode-subagent` é pulado com aviso no stderr (ainda não implementado). Sem o campo, nada muda. A skill `config` deixa de oferecer `opencode-subagent`.
+
 ### Corrigido
 
 - OpenCode: `install_local.py` copia o pacote para `~/.config/opencode/starcode` e aponta as skills e o plugin para essa cópia, em vez do `dist/` do clone. A troca da cópia é atômica o bastante para não deixar pasta incompleta: se a cópia falhar, a antiga fica intacta, o `opencode.json` não é gravado e o comando sai com 1 e `opencode: falha ao copiar <origem> para <destino>: <motivo>`. Caminhos de skill do StarCode que não existem mais saem do `opencode.json`.

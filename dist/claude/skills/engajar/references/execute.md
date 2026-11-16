@@ -140,7 +140,7 @@ before any new `batch`.
 3. Q brief: `python "P/scripts/dispatch.py" q-brief <slug> --base <B> --head <sha of I> --out <temp>/<slug>-q.md`.
 4. Pick the Q CLI by family: `python "P/scripts/dispatch.py" q-cli --laforge <laforge cli:model> [--configured <q cli:model>]`
    (order: configured Q, codex, antigravity, opencode; first of another family with `orca_worker` ok; never hard-code
-   the CLI). Output `self-verified` (exit 1) → no worker: run the `q` skill as a clean-context subagent and mark
+   the CLI). When the user config has `qStrategy`, `q-cli` follows that list in order (`orca-worker` = this order, `self-verified` = stop, `opencode-subagent` = skipped with a warning). Output `self-verified` (exit 1) → no worker: run the `q` skill as a clean-context subagent and mark
    `**Verification:** self-verified`. The Q's `Dispatched` entry is already in the Handoff commit of step 2 (no worker: `--dispatch-remove Q` after the subagent ends). Start the Q **in the existing worktree of `I`**; the default order is:
 
        orca orchestration worker-start --agent codex --worktree <worktree of I> --spec-file <temp>/<slug>-q.md --json

@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import unittest
@@ -366,6 +367,101 @@ class FamilyAndQCliTests(TempRepoCase):
             # a record that says unavailable still wins over the binary
             d = self.caps(antigravity="unavailable")
             self.assertIsNone(dispatch.q_cli("codex:cli-default", None, d, lambda b: "/bin/" + b))
+
+    LF = "claude:claude-sonnet-5-5"
+
+    def test_q_strategy_none_keeps_current_order(self):  # C1
+        d = self.caps(codex="ok", antigravity="ok", opencode="ok")
+        self.assertEqual(dispatch.q_cli(self.LF, None, d, strategies=None), "codex")
+        self.assertEqual(dispatch.q_cli(self.LF, None, d), "codex")
+
+    def test_q_strategy_orca_worker_walks_cli_order(self):  # C2
+        d = self.caps(codex="ok", antigravity="ok", opencode="ok")
+        for strat in (["orca-worker"], ["orca-worker", "self-verified"]):
+            self.assertEqual(dispatch.q_cli(self.LF, None, d, strategies=strat), "codex", strat)
+        d = self.caps(codex="unavailable", antigravity="ok")
+        self.assertEqual(dispatch.q_cli(self.LF, None, d, strategies=["orca-worker"]), "antigravity")
+
+    def test_q_strategy_self_verified_first_wins(self):  # C3
+        d = self.caps(codex="ok")
+        self.assertIsNone(dispatch.q_cli(self.LF, None, d, strategies=["self-verified", "orca-worker"]))
+        out = io.StringIO()
+        user = self.tmp / "starcode-home"
+        user.mkdir(parents=True, exist_ok=True)
+        (user / "config.json").write_text('{"schemaVersion": 1, "qStrategy": ["self-verified", "orca-worker"]}',
+                                          encoding="utf-8")
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["q-cli", "--laforge", self.LF, "--caps-dir", str(d)])
+        self.assertEqual((code, out.getvalue().strip()), (1, "self-verified"))
+
+    def test_q_strategy_opencode_subagent_skipped_with_warning(self):  # C4
+        d = self.caps(codex="ok")
+        warned: list[str] = []
+        self.assertEqual(dispatch.q_cli(self.LF, None, d, strategies=["opencode-subagent", "orca-worker"],
+                                        warn=warned.append), "codex")
+        line = "q-cli: estratégia opencode-subagent ainda não implementada; seguindo para a próxima"
+        self.assertEqual(warned, [line])
+        self.write_user_config('{"schemaVersion": 1, "qStrategy": ["opencode-subagent", "orca-worker"]}')
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = dispatch.main(["q-cli", "--laforge", self.LF, "--caps-dir", str(d)])
+        self.assertEqual((code, out.getvalue().strip(), err.getvalue().strip()), (0, "codex", line))
+
+    def test_q_strategy_nothing_available_is_self_verified(self):  # C5
+        d = self.caps(codex="ok")
+        self.assertIsNone(dispatch.q_cli(self.LF, None, d, strategies=["opencode-subagent"]))
+        none_ok = self.caps(codex="unavailable", antigravity="unavailable", opencode="unavailable")
+        self.assertIsNone(dispatch.q_cli(self.LF, None, none_ok, strategies=["orca-worker"]))
+        self.write_user_config('{"schemaVersion": 1, "qStrategy": ["opencode-subagent"]}')
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = dispatch.main(["q-cli", "--laforge", self.LF, "--caps-dir", str(d)])
+        self.assertEqual((code, out.getvalue().strip()), (1, "self-verified"))
+
+    def write_user_config(self, text: str) -> None:
+        user = self.tmp / "starcode-home"
+        user.mkdir(parents=True, exist_ok=True)
+        (user / "config.json").write_text(text, encoding="utf-8")
+
+    def test_q_cli_command_reads_user_qstrategy(self):  # C6
+        d = self.caps(codex="ok")
+
+        def run():
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                code = dispatch.main(["q-cli", "--laforge", self.LF, "--caps-dir", str(d)])
+            return code, out.getvalue().strip()
+
+        self.write_user_config('{"schemaVersion": 1, "qStrategy": ["self-verified"]}')
+        self.assertEqual(run(), (1, "self-verified"))
+        self.write_user_config('{"schemaVersion": 1, "qStrategy": ["self-verified", "self-verified"]}')  # invalid
+        self.assertEqual(run(), (0, "codex"))
+        self.write_user_config('{"schemaVersion": 1}')
+        self.assertEqual(run(), (0, "codex"))
+        self.write_user_config("not json")
+        self.assertEqual(run(), (0, "codex"))
+
+    def test_q_strategy_docs_match_implementation(self):  # C7
+        root = Path(dispatch.__file__).resolve().parent.parent
+        skill = (root / "skills/config/SKILL.md").read_text(encoding="utf-8")
+        line = next(ln for ln in skill.splitlines() if "`qStrategy` (" in ln)
+        self.assertIn("`qStrategy` (orca-worker, self-verified)", line)
+        self.assertNotIn("opencode-subagent", skill)
+        schema = (root / "schemas/config.md").read_text(encoding="utf-8")
+        self.assertIn("`opencode-subagent` is accepted but skipped by `q-cli` (not implemented yet)", schema)
+        execute = (root / "skills/engajar/references/execute.md").read_text(encoding="utf-8")
+        self.assertIn("When the user config has `qStrategy`, `q-cli` follows that list in order", execute)
+
+    def test_decisions_q_strategy(self):
+        root = Path(dispatch.__file__).resolve().parent.parent
+        text = (root / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = next(e for e in re.split(r"^### ", text, flags=re.M) if e.startswith("SC-185:"))
+        for part in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**",
+                     "`load_user_config`", "`STARCODE_HOME`", "`self-verified`", "`opencode-subagent`",
+                     "q-cli: estratégia opencode-subagent ainda não implementada; seguindo para a próxima",
+                     "test_q_strategy_none_keeps_current_order", "test_q_cli_command_reads_user_qstrategy",
+                     "test_q_strategy_docs_match_implementation"):
+            self.assertIn(part, entry, part)
 
     def test_q_cli_differs_from_all_laforge_families(self):  # C29
         d = self.caps(codex="ok", antigravity="ok", opencode="ok")

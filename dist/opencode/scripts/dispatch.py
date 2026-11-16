@@ -620,11 +620,9 @@ def _orca_worker_ok(cli: str, caps_dir: Path | None, configured: bool = False, w
     return configured or bool(which(CLI_BINARIES.get(cli, cli)))
 
 
-def q_cli(laforge: str | list[str], configured: str | None = None, caps_dir: Path | None = None,
-          which=shutil.which) -> str | None:
+def _q_cli_orca_worker(laforge: str | list[str], configured: str | None, caps_dir: Path | None, which) -> str | None:
     """First CLI of (configured, codex, antigravity, opencode) whose family differs from all the LaForge
-    families (one spec or a list) and that is available for an Orca worker (R18); None means self-verified (R19), only when no CLI of
-    another family is configured or available."""
+    families (one spec or a list) and that is available for an Orca worker (R18)."""
     lfs = {family(x) for x in ([laforge] if isinstance(laforge, str) else laforge)}
     seen: list[str] = []
     for spec in ([configured] if configured else []) + list(Q_CLI_ORDER):
@@ -637,6 +635,34 @@ def q_cli(laforge: str | list[str], configured: str | None = None, caps_dir: Pat
                 and _orca_worker_ok(cli, caps_dir, spec == configured, which)):
             return spec
     return None
+
+
+def q_cli(laforge: str | list[str], configured: str | None = None, caps_dir: Path | None = None,
+          which=shutil.which, strategies: list[str] | None = None, warn=None) -> str | None:
+    """Walk the qStrategy list (None = `["orca-worker"]`, the historical order): `orca-worker` picks the first
+    CLI of another family available for an Orca worker (R18); `self-verified` stops with None (R19);
+    `opencode-subagent` is not implemented yet: `warn` gets a line and the walk goes on. None also when
+    no item gives a Q."""
+    for item in (strategies if strategies is not None else ["orca-worker"]):
+        if item == "self-verified":
+            return None
+        if item == "opencode-subagent":
+            if warn:
+                warn("q-cli: estratégia opencode-subagent ainda não implementada; seguindo para a próxima")
+            continue
+        if item == "orca-worker":
+            pick = _q_cli_orca_worker(laforge, configured, caps_dir, which)
+            if pick:
+                return pick
+    return None
+
+
+def user_q_strategy() -> list[str] | None:
+    """`qStrategy` of the valid user config (honours STARCODE_HOME); None when absent, invalid or without the field."""
+    cfg, errs = sc.load_user_config()
+    if errs or not cfg:
+        return None
+    return cfg.get("qStrategy")
 
 
 def default_runner(cmd, **kw):
@@ -1000,7 +1026,8 @@ def main(argv: list[str] | None = None) -> int:
             lfs = [*a.laforge_pos, *a.laforge]
             if not lfs:
                 raise ValueError("q-cli precisa de ao menos um --laforge <cli:model>")
-            pick = q_cli(lfs, a.configured, Path(a.caps_dir) if a.caps_dir else None)
+            pick = q_cli(lfs, a.configured, Path(a.caps_dir) if a.caps_dir else None,
+                         strategies=user_q_strategy(), warn=lambda m: print(m, file=sys.stderr))
             print(pick or "self-verified")
             return 0 if pick else 1
         if a.compare:
