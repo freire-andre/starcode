@@ -38,10 +38,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 7
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36
-- updated: 2026-11-16T17:20:28Z
+- signal: `weak_test` · features: 8
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25
+- updated: 2026-11-17T23:38:49Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 3
@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 6
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26
-- updated: 2026-11-16T20:40:03Z
+- signal: `weak_test` · features: 7
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27
+- updated: 2026-11-17T23:38:50Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -328,6 +328,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: lote1-correcoes
 - sources: .specs/features/lote1-correcoes/verification.md:27
 - updated: 2026-11-16T20:40:03Z
+
+### L54 - Ao trocar a leitura manual de argv por argparse, preserve os casos que o argparse interpreta diferente (argumento iniciado por hífen, posição) e teste-os, porque um caminho '-review.json' passou a ser tratado como opção.
+- signal: `spec_deviation` · features: 1
+- features: retro-fase9
+- sources: .specs/features/retro-fase9/verification.md:23
+- updated: 2026-11-17T23:38:49Z
+
+### L55 - Ao trocar um helper usado em vários campos, teste cada campo que o usa, inclusive os condicionais, com valor inválido e válido, porque o teste cobria só os campos fixos.
+- signal: `weak_test` · features: 1
+- features: retro-fase9
+- sources: .specs/features/retro-fase9/verification.md:24
+- updated: 2026-11-17T23:38:49Z
+
+### L56 - Quando um artefato cita um commit da feature, o teste confere que o hash existe e tocou o arquivo esperado, não só o formato hexadecimal, porque qualquer hash passava.
+- signal: `weak_test` · features: 1
+- features: retro-fase9
+- sources: .specs/features/retro-fase9/verification.md:26
+- updated: 2026-11-17T23:38:49Z
 
 ## Quarantined
 
