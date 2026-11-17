@@ -24,12 +24,12 @@
 **Phase:** execute
 **Size:** PEQUENA
 **Git mode:** 3
-**Next:** LaForge implementa (SC-189)
+**Next:** PR (confirmação)
 **Linear:** SC-189
 **Integration branch:** feature/agents-readme
-**Last integrated:** none
-**Dispatched:** T1 · SC-189 · base 2384af8 · claude:claude-sonnet-5-5 · 2026-11-17T10:59:51Z · ctx_572763709288
+**Last integrated:** e20265e
+**Dispatched:** none
 **Settled:** 2026-11-17: issue + despacho: "Sim (Recomendado)"; 2026-11-17: May change ampliado com tests/test_release_docs.py (Picard: o teste fixava v1.0 no README)
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-17: T1: 54cf481, d471c55, 1fff6d9 (correção da regra de fluxo pedida pelo Picard); 960 OK; escopo conferido à mão (PEQUENA sem spec: check_scope não roda), 5 arquivos no May change, 3 commits com Refs SC-189; diagnóstico L0 48/105
 **Breaker:** closed
