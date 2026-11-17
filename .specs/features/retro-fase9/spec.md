@@ -76,7 +76,7 @@ Proof: run unit | test_decisions_retro_fase9 (test_review_gate.ReviewGateTests.t
 **Linear:** SC-190
 **Integration branch:** feature/retro-fase9
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-190 · base 54cfaed · claude:claude-sonnet-5-5 · 2026-11-17T21:37:38Z · ctx_3c178830fa7f
 **Settled:** 2026-11-17: spec + 5 issues: "sim" (SC-190; ações abertas SC-191, SC-192, SC-193, SC-194)
 **Attempts:** none
 **Reports:** none
