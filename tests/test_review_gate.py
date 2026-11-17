@@ -218,7 +218,8 @@ class ReviewGateTests(unittest.TestCase):
         scripts = sorted((ROOT / "dist" / "claude" / "scripts" / "review").glob("*.py"))
         self.assertIn("review_gate.py", [p.name for p in scripts])
         for p in scripts:
-            res = subprocess.run([sys.executable, "-I", str(p), "--help"], capture_output=True)
+            res = subprocess.run([sys.executable, "-I", str(p), "--help"], capture_output=True,
+                                 stdin=subprocess.DEVNULL, timeout=60)
             self.assertEqual(res.returncode, 0, f"{p.name}: {res.stderr.decode('utf-8', 'replace')}")
 
     def test_retro_fase9_estado(self) -> None:  # R5
