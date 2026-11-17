@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-190
-**May change**: scripts/review/review_gate.py, tests/test_review_gate.py, .specs/features/fase-9-worf-guinan-diagnostico/retro.md, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/review/review_gate.py, scripts/review/scan_bypasses.py, tests/test_review_gate.py, .specs/features/fase-9-worf-guinan-diagnostico/retro.md, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Item 1.6 da triagem v2, só a retro da fase 9. Discovery: `.specs/features/retro-fase9/context.md`.
@@ -77,7 +77,7 @@ Proof: run unit | test_decisions_retro_fase9 (test_review_gate.ReviewGateTests.t
 **Integration branch:** feature/retro-fase9
 **Last integrated:** none
 **Dispatched:** T1 · SC-190 · base 54cfaed · claude:claude-sonnet-5-5 · 2026-11-17T21:37:38Z · ctx_3c178830fa7f
-**Settled:** 2026-11-17: spec + 5 issues: "sim" (SC-190; ações abertas SC-191, SC-192, SC-193, SC-194)
+**Settled:** 2026-11-17: spec + 5 issues: "sim" (SC-190; ações abertas SC-191, SC-192, SC-193, SC-194); 2026-11-17: May change ampliado com scripts/review/scan_bypasses.py (Picard: --help lê o stdin depois do uso e trava com stdin aberto, contra R4)
 **Attempts:** none
 **Reports:** none
 **Breaker:** closed
