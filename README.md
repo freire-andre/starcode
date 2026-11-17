@@ -3,7 +3,7 @@
 Plugin de desenvolvimento orientado a especificação (SDD) com uma tripulação de agentes Star Trek,
 para Claude Code, Codex, Antigravity CLI e OpenCode dentro da Orca IDE, com o Linear como base dos tickets.
 
-Estado: **v1.0**, com os 4 CLIs suportados (Claude Code, Codex, Antigravity CLI e OpenCode). A matriz de
+Estado: **v1.8.0**, com os 4 CLIs suportados (Claude Code, Codex, Antigravity CLI e OpenCode). A matriz de
 compatibilidade está em [`docs/compatibilidade.md`](docs/compatibilidade.md). O plano completo está em
 `PLANO_STARCODE.md`; as decisões, em `DECISIONS.md`; o aceite de cada fase, em `docs/aceite/`.
 
