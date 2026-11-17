@@ -66,8 +66,10 @@ class ReadmeTests(unittest.TestCase):
         ):
             self.assertIn(cmd, self.text, cmd)
 
-    def test_readme_states_v1_and_private_access(self):
-        self.assertIn("v1.0", self.text)
+    def test_readme_states_current_version_and_private_access(self):
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        estado = next(l for l in self.text.splitlines() if l.startswith("Estado:"))
+        self.assertIn(f"**v{version}**", estado)
         self.assertIn("gh auth login", self.text)
         self.assertIn("docs/compatibilidade.md", self.text)
         self.assertNotIn("Fase 1", self.text)
