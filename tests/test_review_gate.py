@@ -17,6 +17,7 @@ import review_gate  # noqa: E402
 
 SCRIPT = ROOT / "scripts" / "review" / "review_gate.py"
 REVIEW = FIXTURES / "review"
+CRLF, LF = chr(13) + chr(10), chr(10)  # o stdout no Windows sai com CRLF
 
 
 def load(name: str) -> dict:
@@ -28,7 +29,7 @@ def gate(data: dict):
         p = Path(t) / "review.json"
         p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         res = subprocess.run([sys.executable, "-I", str(SCRIPT), str(p)], capture_output=True)
-    return res.returncode, res.stdout.decode("utf-8")
+    return res.returncode, res.stdout.decode("utf-8").replace(CRLF, LF)
 
 
 def finding(fid="W1", sev="should-fix", **kw) -> dict:
@@ -171,13 +172,34 @@ class ReviewGateTests(unittest.TestCase):
             self.assertIs(review_gate.require_text(v), False, repr(v))
         self.assertFalse(hasattr(review_gate, "blank"))
         self.assertNotIn("blank(", SCRIPT.read_text(encoding="utf-8"))
+        base = {k: "x" for k in review_gate.SECURITY_FIELDS if k != "state"}
         for field in review_gate.SECURITY_FIELDS:
-            f = finding(category="security", state="confirmed",
-                        **{k: "x" for k in review_gate.SECURITY_FIELDS if k != "state"})
-            for bad in ([], {}, 0, "  ", None):
+            for bad in ([], {}, 0, False, "  ", "", None):
+                f = finding(category="security", state="confirmed", **base)
                 f[field] = bad
-                code, out = gate(review([f]))
-                self.assertIn(f"W1: security: campo {field} ausente", out.splitlines(), repr(bad))
+                self.assertEqual(gate(review([f])), (1, f"W1: security: campo {field} ausente\n"),
+                                 f"{field}={bad!r}")
+            if field != "state":
+                for good in ("x", " x ", "0"):
+                    f = finding(category="security", state="confirmed", **base)
+                    f[field] = good
+                    self.assertEqual(gate(review([f])), (0, ""), f"{field}={good!r}")
+        for bad in ([], {}, 0, False, "  ", "", None):  # campo condicional missing_fact
+            f = finding(category="security", state="needs-validation", **base)
+            if bad is not None:
+                f["missing_fact"] = bad
+            self.assertEqual(gate(review([f])),
+                             (1, "W1: security: needs-validation exige missing_fact\n"), repr(bad))
+        f = finding(category="security", state="needs-validation", missing_fact="versão do proxy", **base)
+        self.assertEqual(gate(review([f])), (0, ""))
+        for bad in ([], {}, 0, False, "  ", "", None):  # campo condicional reason
+            f = finding(category="security", state="rejected", **base)
+            if bad is not None:
+                f["reason"] = bad
+            self.assertEqual(gate(review([f], verdict="APPROVE")),
+                             (1, "W1: security: rejected exige reason\n"), repr(bad))
+        f = finding(category="security", state="rejected", reason="barrado pelo WAF", **base)
+        self.assertEqual(gate(review([f], verdict="APPROVE")), (0, ""))
 
     def test_help_sai_com_zero(self) -> None:  # R2
         for flag in ("--help", "-h"):
@@ -203,14 +225,27 @@ class ReviewGateTests(unittest.TestCase):
                 res = run(*args)
                 self.assertNotEqual(res.returncode, 0, args)
                 self.assertEqual(res.stdout, b"", args)
-            res = run(str(ok))
-            self.assertEqual((res.returncode, res.stdout), (0, b""))
+            hy = tmp / "-review.json"  # caminho válido que começa com hífen
+            hy.write_bytes(ok.read_bytes())
+            hyv = tmp / "-viol.json"
+            hyv.write_bytes(viol.read_bytes())
+            before = {p.name: p.read_bytes() for p in tmp.iterdir()}
+            self.assertEqual((run(str(ok)).returncode, run(str(ok)).stdout), (0, b""))
             res = run(str(bad))
-            self.assertEqual(res.returncode, 1)
-            self.assertTrue(res.stdout.decode("utf-8").startswith("summary: review.json ilegível: "))
+            try:
+                json.loads(bad.read_text(encoding="utf-8"))
+            except ValueError as e:
+                erro = str(e)
+            self.assertEqual((res.returncode, res.stdout.decode("utf-8").replace(CRLF, LF)),
+                             (1, f"summary: review.json ilegível: {erro}\n"))
+            viol_out = 'W1: termo proibido "obviously"\n'
             res = run(str(viol))
-            self.assertEqual(res.returncode, 1)
-            self.assertIn('W1: termo proibido "obviously"', res.stdout.decode("utf-8").splitlines())
+            self.assertEqual((res.returncode, res.stdout.decode("utf-8").replace(CRLF, LF)), (1, viol_out))
+            res = run("-review.json")
+            self.assertEqual((res.returncode, res.stdout, res.stderr), (0, b"", b""))
+            res = run("-viol.json")
+            self.assertEqual((res.returncode, res.stdout.decode("utf-8").replace(CRLF, LF), res.stderr),
+                             (1, viol_out, b""))
             after = {p.name: p.read_bytes() for p in tmp.iterdir()}
             self.assertEqual(before, after)
 
@@ -252,6 +287,15 @@ class ReviewGateTests(unittest.TestCase):
         for n in (3, 7):
             self.assertRegex(estados[n], r"^feito em [0-9a-f]{7,40}$", n)
         self.assertEqual(estados[3], estados[7])
+        sha = estados[3].split()[-1]  # commit concreto desta feature: existe e tocou o gate
+        log = subprocess.run(["git", "log", "--format=%H", "--", "scripts/review/review_gate.py"],
+                             cwd=ROOT, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(log.returncode, 0, log.stderr)
+        self.assertTrue(any(h.startswith(sha) for h in log.stdout.split()), sha)
+        body = subprocess.run(["git", "show", "-s", "--format=%B", sha], cwd=ROOT, capture_output=True,
+                              text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(body.returncode, 0, body.stderr)
+        self.assertIn("Refs: SC-190", body.stdout)
         self.assertEqual(estados[4], "aberto: SC-189")
         for n, sc in ((1, 191), (2, 192), (5, 193), (6, 194)):
             self.assertEqual(estados[n], f"aberto: SC-{sc}")
@@ -266,6 +310,15 @@ class ReviewGateTests(unittest.TestCase):
                        "`str` com algum caractere que não seja espaço",
                        "False para `None`, `\"\"`, `\"   \"`, `[]`, `{}`, `0` e `False`",
                        "o `blank()` deixa de existir",
+                       "o `check_finding` a usa em todo campo que passava pelo `blank()` (os sete campos de "
+                       "segurança, `state`, o `missing_fact` do needs-validation e o `reason` do rejected)",
+                       "com exatamente um argumento que não seja `-h` nem `--help`, esse argumento é o "
+                       "caminho, mesmo que comece com hífen",
+                       "o `scan_bypasses.py` passa a imprimir o uso e sair com 0 em `--help`/`-h` sem ler "
+                       "o stdin",
+                       "linha 1 aberta na SC-191, linha 2 aberta na SC-192, linha 5 aberta na SC-193 e "
+                       "linha 6 aberta na SC-194",
+                       "linha 4 aberta na SC-189",
                        "R2: `review_gate.py --help` (ou `-h`) imprime o uso, que cita `review.json`, e sai com 0",
                        "R3: sem argumento ou com mais de um sai com código diferente de 0, sem gravar nada",
                        "com um caminho mantém a saída e os códigos de hoje (0 sem violação, 1 com violação ou "
