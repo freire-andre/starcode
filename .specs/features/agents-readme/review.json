@@ -1,0 +1,18 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. AGENTS.md lista os mesmos comandos de .github/workflows/ci.yml e as regras do dist/ (tools/build.py --check) e do DECISIONS.md (scripts/check_decisions.py, regra D30). A convenção do fluxo está descrita sem um gate inexistente, e a limitação de drive confere com .specs/features/ponte-missao-ativa/retro.md:5. CLAUDE.md só importa o AGENTS.md. O teste do README lê VERSION e confere a linha 'Estado:', o que evita quebrar na próxima release. O diagnóstico sobe Context & Guides de 10% para 30% (44 para 48/105).",
+ "findings": [],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: só documentação e um teste do repo"
+ ],
+ "ladder": [
+  "python tools/build.py --check: OK, dist/ em dia",
+  "python scripts/check_decisions.py: OK",
+  "test_release_docs.py: OK",
+  "claude plugin validate dist/claude --strict: Validation passed",
+  "suíte inteira do worker: 960 OK",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}
