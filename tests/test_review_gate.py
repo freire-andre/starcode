@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -162,6 +163,112 @@ class ReviewGateTests(unittest.TestCase):
                                 verdict="REQUEST_CHANGES"))
         self.assertIn("verdict: esperado APPROVE, recebido REQUEST_CHANGES", out)
         self.assertEqual(gate(review([mk(hardening=True)], verdict="APPROVE")), (0, ""))
+
+    def test_require_text_tabela(self) -> None:  # R1
+        for v in ("texto", " a ", "0"):
+            self.assertIs(review_gate.require_text(v), True, repr(v))
+        for v in (None, "", "   ", "\t\n", [], {}, 0, False, ["x"], {"a": 1}, 1, True):
+            self.assertIs(review_gate.require_text(v), False, repr(v))
+        self.assertFalse(hasattr(review_gate, "blank"))
+        self.assertNotIn("blank(", SCRIPT.read_text(encoding="utf-8"))
+        for field in review_gate.SECURITY_FIELDS:
+            f = finding(category="security", state="confirmed",
+                        **{k: "x" for k in review_gate.SECURITY_FIELDS if k != "state"})
+            for bad in ([], {}, 0, "  ", None):
+                f[field] = bad
+                code, out = gate(review([f]))
+                self.assertIn(f"W1: security: campo {field} ausente", out.splitlines(), repr(bad))
+
+    def test_help_sai_com_zero(self) -> None:  # R2
+        for flag in ("--help", "-h"):
+            res = subprocess.run([sys.executable, "-I", str(SCRIPT), flag], capture_output=True)
+            self.assertEqual(res.returncode, 0, flag)
+            self.assertIn("review.json", res.stdout.decode("utf-8"))
+
+    def test_uso_e_codigos_mantidos(self) -> None:  # R3
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            ok = tmp / "ok.json"
+            ok.write_bytes((REVIEW / "review_clean.json").read_bytes())
+            bad = tmp / "bad.json"
+            bad.write_text("{nao e json", encoding="utf-8")
+            viol = tmp / "viol.json"
+            viol.write_text(json.dumps(review([finding(sev="nit", body="obviously x")])), encoding="utf-8")
+            before = {p.name: p.read_bytes() for p in tmp.iterdir()}
+
+            def run(*args):
+                return subprocess.run([sys.executable, "-I", str(SCRIPT), *args], capture_output=True,
+                                      cwd=t)
+            for args in ((), (str(ok), str(ok))):
+                res = run(*args)
+                self.assertNotEqual(res.returncode, 0, args)
+                self.assertEqual(res.stdout, b"", args)
+            res = run(str(ok))
+            self.assertEqual((res.returncode, res.stdout), (0, b""))
+            res = run(str(bad))
+            self.assertEqual(res.returncode, 1)
+            self.assertTrue(res.stdout.decode("utf-8").startswith("summary: review.json ilegível: "))
+            res = run(str(viol))
+            self.assertEqual(res.returncode, 1)
+            self.assertIn('W1: termo proibido "obviously"', res.stdout.decode("utf-8").splitlines())
+            after = {p.name: p.read_bytes() for p in tmp.iterdir()}
+            self.assertEqual(before, after)
+
+    def test_scripts_de_review_respondem_help(self) -> None:  # R4
+        scripts = sorted((ROOT / "dist" / "claude" / "scripts" / "review").glob("*.py"))
+        self.assertIn("review_gate.py", [p.name for p in scripts])
+        for p in scripts:
+            res = subprocess.run([sys.executable, "-I", str(p), "--help"], capture_output=True)
+            self.assertEqual(res.returncode, 0, f"{p.name}: {res.stderr.decode('utf-8', 'replace')}")
+
+    def test_retro_fase9_estado(self) -> None:  # R5
+        text = (ROOT / ".specs" / "features" / "fase-9-worf-guinan-diagnostico" / "retro.md").read_text(
+            encoding="utf-8")
+        lines = text.splitlines()
+        header = next(ln for ln in lines if ln.startswith("| # |"))
+        cells = [c.strip() for c in header.strip().strip("|").split("|")]
+        self.assertEqual(cells[-1], "Estado")
+        rows = [ln for ln in lines if re.match(r"\| \d+ \|", ln)]
+        self.assertEqual(len(rows), 7)
+        estados = {}
+        for ln in rows:
+            c = [x.strip() for x in ln.strip().strip("|").split("|")]
+            self.assertEqual(len(c), len(cells), ln)
+            estados[int(c[0])] = c[-1]
+        for n in (3, 7):
+            self.assertRegex(estados[n], r"^feito em [0-9a-f]{7,40}$", n)
+        self.assertEqual(estados[3], estados[7])
+        self.assertEqual(estados[4], "aberto: SC-189")
+        for n, sc in ((1, 191), (2, 192), (5, 193), (6, 194)):
+            self.assertEqual(estados[n], f"aberto: SC-{sc}")
+
+    def test_decisions_retro_fase9(self) -> None:  # R6
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = re.split(r"\n### ", text[text.index("### SC-190:"):], maxsplit=1)[0]
+        for field in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
+            self.assertIn(field, entry)
+        decision = entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0]
+        for phrase in ("R1: `require_text(value)` em `scripts/review/review_gate.py` devolve True só para uma "
+                       "`str` com algum caractere que não seja espaço",
+                       "False para `None`, `\"\"`, `\"   \"`, `[]`, `{}`, `0` e `False`",
+                       "o `blank()` deixa de existir",
+                       "R2: `review_gate.py --help` (ou `-h`) imprime o uso, que cita `review.json`, e sai com 0",
+                       "R3: sem argumento ou com mais de um sai com código diferente de 0, sem gravar nada",
+                       "com um caminho mantém a saída e os códigos de hoje (0 sem violação, 1 com violação ou "
+                       "com JSON ilegível)",
+                       "R4: o teste roda cada `dist/claude/scripts/review/*.py` com `--help` e exige exit 0",
+                       "sem lista fixa",
+                       "R5: a tabela da retro da fase 9 ganha a coluna `Estado` nas 7 linhas",
+                       "`feito em <commit ou PR>`, `recusado: <motivo>` ou `aberto: SC-<n>`"):
+            self.assertIn(phrase, decision, phrase)
+        proof = entry.split("**Por que não é bug**", 1)[1]
+        for name in ("test_require_text_tabela", "test_help_sai_com_zero", "test_uso_e_codigos_mantidos",
+                     "test_scripts_de_review_respondem_help", "test_retro_fase9_estado",
+                     "test_decisions_retro_fase9"):
+            self.assertIn(name, proof, name)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("(SC-190)", unreleased)
 
 
 if __name__ == "__main__":
