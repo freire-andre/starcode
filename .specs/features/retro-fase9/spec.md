@@ -72,12 +72,12 @@ Proof: run unit | test_decisions_retro_fase9 (test_review_gate.ReviewGateTests.t
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-190)
+**Next:** Guinan: retro
 **Linear:** SC-190
 **Integration branch:** feature/retro-fase9
-**Last integrated:** 65952cc9f2221323462519b6c210622a80570071
-**Dispatched:** T1-fix · SC-190 · base ee2562f · claude:claude-sonnet-5-5 · 2026-11-17T23:19:30Z · ctx_729a8b46d9f5
-**Settled:** 2026-11-17: spec + 5 issues: "sim" (SC-190; ações abertas SC-191, SC-192, SC-193, SC-194); 2026-11-17: May change ampliado com scripts/review/scan_bypasses.py (Picard: --help lê o stdin depois do uso e trava com stdin aberto, contra R4)
+**Last integrated:** 1697d80
+**Dispatched:** none
+**Settled:** 2026-11-17: spec + 5 issues: "sim" (SC-190; ações abertas SC-191, SC-192, SC-193, SC-194); 2026-11-17: May change ampliado com scripts/review/scan_bypasses.py (Picard: --help lê o stdin depois do uso e trava com stdin aberto, contra R4); 2026-11-17: fluxograma do usuário: "sim, deixe ele e pode subir ele tbm no github" (commit no ramo, vai no PR)
 **Attempts:** none
-**Reports:** 2026-11-17: T1: 42adc6d, ca07cc9, b2dba54, 897934b (require_text, argparse, --help do scan_bypasses sem ler stdin, coluna Estado); 966 OK; ticket gate verde rodado pelo Picard contra o May change ampliado; 2026-11-17: provas verdes; 2026-11-17: Q: codex · effective unconfirmed · FAIL, 5 achados (caminho iniciado por hífen rejeitado, contra R3; C1, C3, C5, C6 fracos); 966 OK. q-check 1 por docs/fluxograma-starcode.svg não rastreado, criado às 20:14 fora do fluxo (nenhum teste ou script o gera): não é do Q, fica intocado e fora dos commits
+**Reports:** 2026-11-17: T1: 42adc6d, ca07cc9, b2dba54, 897934b (require_text, argparse, --help do scan_bypasses sem ler stdin, coluna Estado); 966 OK; ticket gate verde rodado pelo Picard contra o May change ampliado; 2026-11-17: provas verdes; 2026-11-17: Q: codex · effective unconfirmed · FAIL, 5 achados (caminho iniciado por hífen rejeitado, contra R3; C1, C3, C5, C6 fracos); 966 OK. q-check 1 por docs/fluxograma-starcode.svg não rastreado, criado às 20:14 fora do fluxo (nenhum teste ou script o gera): não é do Q, fica intocado e fora dos commits; 2026-11-17: T1-fix: 6d52ab5, 10adce0 (5 achados); 966 OK; ticket gate verde; 2026-11-17: provas e done verdes (966 OK)
 **Breaker:** closed
