@@ -165,9 +165,13 @@ def main(argv: list[str]) -> int:
         description="Gate do review do Worf: valida o review.json. Sai com 0 sem violações e "
                     "com 1 com violações ou com review.json ilegível.")
     parser.add_argument("review_json", metavar="review.json", help="caminho do review.json")
-    args = parser.parse_args(argv[1:])
+    rest = argv[1:]
+    if len(rest) == 1 and rest[0] not in ("-h", "--help"):
+        path = rest[0]  # um único argumento é o caminho, mesmo que comece com hífen
+    else:
+        path = parser.parse_args(rest).review_json
     try:
-        with open(args.review_json, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         if not isinstance(data, dict):
             raise ValueError("raiz deve ser um objeto")
