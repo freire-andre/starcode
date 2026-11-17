@@ -86,7 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--diff")
     try:
         args, _ = parser.parse_known_args(argv)
-    except SystemExit:
+    except SystemExit as e:
+        if e.code == 0:  # --help/-h: o uso já foi impresso, sai sem ler o stdin
+            return 0
         args = argparse.Namespace(diff=None)
     try:
         if args.diff:

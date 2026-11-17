@@ -221,6 +221,19 @@ class ReviewGateTests(unittest.TestCase):
             res = subprocess.run([sys.executable, "-I", str(p), "--help"], capture_output=True,
                                  stdin=subprocess.DEVNULL, timeout=60)
             self.assertEqual(res.returncode, 0, f"{p.name}: {res.stderr.decode('utf-8', 'replace')}")
+            for flag in ("--help", "-h"):  # stdin aberto e sem escrita: --help não pode lê-lo
+                proc = subprocess.Popen([sys.executable, "-I", str(p), flag], stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                try:
+                    proc.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    self.fail(f"{p.name} {flag} travou lendo o stdin")
+                finally:
+                    proc.stdin.close()
+                    proc.stdout.close()
+                    proc.stderr.close()
+                self.assertEqual(proc.returncode, 0, f"{p.name} {flag}")
 
     def test_retro_fase9_estado(self) -> None:  # R5
         text = (ROOT / ".specs" / "features" / "fase-9-worf-guinan-diagnostico" / "retro.md").read_text(
