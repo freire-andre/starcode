@@ -12,6 +12,7 @@ Sai com 0 sem violações. Com violações, sai com 1 e imprime `<local>: <regra
 """
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -84,8 +85,9 @@ def compute_verdict(findings: list) -> str:
     return "APPROVE"
 
 
-def blank(v) -> bool:
-    return not (isinstance(v, str) and v.strip())
+def require_text(value) -> bool:
+    """True só para str com algum caractere que não seja espaço."""
+    return isinstance(value, str) and bool(value.strip())
 
 
 def check_finding(label: str, f: dict) -> list[str]:
@@ -99,18 +101,18 @@ def check_finding(label: str, f: dict) -> list[str]:
         out.append(f'{label}: termo proibido "{t}"')
     if f.get("category") == "security":
         for name in SECURITY_FIELDS:
-            if blank(f.get(name)):
+            if not require_text(f.get(name)):
                 out.append(f"{label}: security: campo {name} ausente")
         state = f.get("state")
-        if not blank(state):
+        if require_text(state):
             if state not in SECURITY_STATES:
                 out.append(f'{label}: security: state "{state}" inválido')
             elif state == "needs-validation":
-                if blank(f.get("missing_fact")):
+                if not require_text(f.get("missing_fact")):
                     out.append(f"{label}: security: needs-validation exige missing_fact")
                 if sev == "blocker":
                     out.append(f"{label}: security: needs-validation permite no máximo should-fix")
-            elif state == "rejected" and blank(f.get("reason")):
+            elif state == "rejected" and not require_text(f.get("reason")):
                 out.append(f"{label}: security: rejected exige reason")
     return out
 
@@ -158,11 +160,14 @@ def check(data: dict) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("uso: review_gate.py <review.json>", file=sys.stderr)
-        return 1
+    parser = argparse.ArgumentParser(
+        prog="review_gate.py",
+        description="Gate do review do Worf: valida o review.json. Sai com 0 sem violações e "
+                    "com 1 com violações ou com review.json ilegível.")
+    parser.add_argument("review_json", metavar="review.json", help="caminho do review.json")
+    args = parser.parse_args(argv[1:])
     try:
-        with open(argv[1], encoding="utf-8") as fh:
+        with open(args.review_json, encoding="utf-8") as fh:
             data = json.load(fh)
         if not isinstance(data, dict):
             raise ValueError("raiz deve ser um objeto")
