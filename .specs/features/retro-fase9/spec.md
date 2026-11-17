@@ -75,9 +75,9 @@ Proof: run unit | test_decisions_retro_fase9 (test_review_gate.ReviewGateTests.t
 **Next:** LaForge implementa T1 (SC-190)
 **Linear:** SC-190
 **Integration branch:** feature/retro-fase9
-**Last integrated:** none
-**Dispatched:** T1 · SC-190 · base 54cfaed · claude:claude-sonnet-5-5 · 2026-11-17T21:37:38Z · ctx_3c178830fa7f
+**Last integrated:** 65952cc9f2221323462519b6c210622a80570071
+**Dispatched:** none
 **Settled:** 2026-11-17: spec + 5 issues: "sim" (SC-190; ações abertas SC-191, SC-192, SC-193, SC-194); 2026-11-17: May change ampliado com scripts/review/scan_bypasses.py (Picard: --help lê o stdin depois do uso e trava com stdin aberto, contra R4)
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-17: T1: 42adc6d, ca07cc9, b2dba54, 897934b (require_text, argparse, --help do scan_bypasses sem ler stdin, coluna Estado); 966 OK; ticket gate verde rodado pelo Picard contra o May change ampliado
 **Breaker:** closed
