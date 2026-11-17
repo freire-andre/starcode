@@ -28,7 +28,7 @@
 **Linear:** SC-189
 **Integration branch:** feature/agents-readme
 **Last integrated:** none
-**Dispatched:** T1 · SC-189 · base pendente · claude:claude-sonnet-5-5 · 2026-11-17T10:59:51Z
+**Dispatched:** T1 · SC-189 · base 2384af8 · claude:claude-sonnet-5-5 · 2026-11-17T10:59:51Z · ctx_572763709288
 **Settled:** 2026-11-17: issue + despacho: "Sim (Recomendado)"
 **Attempts:** none
 **Reports:** none
