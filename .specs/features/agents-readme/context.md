@@ -4,7 +4,7 @@
 **Risk triggers**: none
 **Source request**: "proximo passo" (itens 1.5 e 1.7 da triagem v2; aprovação: "Sim (Recomendado)")
 **Linear**: SC-189
-**May change**: AGENTS.md, CLAUDE.md, README.md, docs/diagnostico/
+**May change**: AGENTS.md, CLAUDE.md, README.md, docs/diagnostico/, tests/test_release_docs.py
 
 ## Inline checks
 1. `AGENTS.md` na raiz, em PT-BR e curto (até ~60 linhas), com estes itens:
@@ -29,7 +29,7 @@
 **Integration branch:** feature/agents-readme
 **Last integrated:** none
 **Dispatched:** T1 · SC-189 · base 2384af8 · claude:claude-sonnet-5-5 · 2026-11-17T10:59:51Z · ctx_572763709288
-**Settled:** 2026-11-17: issue + despacho: "Sim (Recomendado)"
+**Settled:** 2026-11-17: issue + despacho: "Sim (Recomendado)"; 2026-11-17: May change ampliado com tests/test_release_docs.py (Picard: o teste fixava v1.0 no README)
 **Attempts:** none
 **Reports:** none
 **Breaker:** closed
