@@ -338,7 +338,8 @@
         "piloto-decisao-citada",
         "licoes-recorrencia-por-id",
         "q-strategy",
-        "verificacao-1-8-0"
+        "verificacao-1-8-0",
+        "retro-fase9"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -348,11 +349,12 @@
         ".specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério)",
         ".specs/features/q-strategy/verification.md:25",
         ".specs/features/verificacao-1-8-0/verification.md:31",
-        ".specs/features/verificacao-1-8-0/verification.md:36"
+        ".specs/features/verificacao-1-8-0/verification.md:36",
+        ".specs/features/retro-fase9/verification.md:25"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-16T17:20:28Z"
+      "updated": "2026-11-17T23:38:49Z"
     },
     {
       "id": "L21",
@@ -534,7 +536,8 @@
         "impacto-seleciona-real",
         "q-strategy",
         "piloto-freios",
-        "lote1-correcoes"
+        "lote1-correcoes",
+        "retro-fase9"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -542,11 +545,12 @@
         "L39 (verification.md:C8)",
         ".specs/features/q-strategy/verification.md:27",
         ".specs/features/piloto-freios/verification.md:31",
-        ".specs/features/lote1-correcoes/verification.md:26"
+        ".specs/features/lote1-correcoes/verification.md:26",
+        ".specs/features/retro-fase9/verification.md:27"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-16T20:40:03Z"
+      "updated": "2026-11-17T23:38:50Z"
     },
     {
       "id": "L33",
@@ -866,6 +870,51 @@
       "scope": "",
       "created": "2026-11-16T20:40:03Z",
       "updated": "2026-11-16T20:40:03Z"
+    },
+    {
+      "id": "L54",
+      "text": "Ao trocar a leitura manual de argv por argparse, preserve os casos que o argparse interpreta diferente (argumento iniciado por hífen, posição) e teste-os, porque um caminho '-review.json' passou a ser tratado como opção.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "retro-fase9"
+      ],
+      "sources": [
+        ".specs/features/retro-fase9/verification.md:23"
+      ],
+      "scope": "",
+      "created": "2026-11-17T23:38:49Z",
+      "updated": "2026-11-17T23:38:49Z"
+    },
+    {
+      "id": "L55",
+      "text": "Ao trocar um helper usado em vários campos, teste cada campo que o usa, inclusive os condicionais, com valor inválido e válido, porque o teste cobria só os campos fixos.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "retro-fase9"
+      ],
+      "sources": [
+        ".specs/features/retro-fase9/verification.md:24"
+      ],
+      "scope": "",
+      "created": "2026-11-17T23:38:49Z",
+      "updated": "2026-11-17T23:38:49Z"
+    },
+    {
+      "id": "L56",
+      "text": "Quando um artefato cita um commit da feature, o teste confere que o hash existe e tocou o arquivo esperado, não só o formato hexadecimal, porque qualquer hash passava.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "retro-fase9"
+      ],
+      "sources": [
+        ".specs/features/retro-fase9/verification.md:26"
+      ],
+      "scope": "",
+      "created": "2026-11-17T23:38:49Z",
+      "updated": "2026-11-17T23:38:49Z"
     }
   ]
 }

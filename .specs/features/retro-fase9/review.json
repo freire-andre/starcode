@@ -1,0 +1,19 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. require_text substitui blank() nos quatro pontos de check_finding com a lógica invertida corretamente: campo de segurança ausente, state presente, missing_fact e reason (scripts/review/review_gate.py:88-117). O main lê um único argumento que não seja -h/--help como caminho e só delega ao argparse o --help e os usos errados. Sem argumento, sai com 2 (antes 1), o que a spec permite (R3 pede só código diferente de 0); o único chamador, skills/worf/SKILL.md:48, passa sempre o caminho. O scan_bypasses.py sai com 0 no SystemExit de código 0 sem ler o stdin, e os erros de uso continuam caindo no stdin como antes. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (argparse)"
+ ],
+ "ladder": [
+  "python tools/build.py --check: OK, dist/ em dia",
+  "python scripts/check_decisions.py: OK",
+  "test_review_gate.py: 14 testes, OK",
+  "claude plugin validate dist/claude --strict: Validation passed",
+  "review_gate.py sem argumento: exit 2 com uso",
+  "suíte inteira nas provas: 966 OK",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}
