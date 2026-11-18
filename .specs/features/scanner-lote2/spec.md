@@ -78,12 +78,12 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-195)
+**Next:** Guinan: retro
 **Linear:** SC-195
 **Integration branch:** feature/scanner-lote2
-**Last integrated:** 964728e4ce61b287f7b266b041bd66d8fc03cb28
-**Dispatched:** T1-fix · SC-195 · base 78ca876 · claude:claude-sonnet-5-5 · 2026-11-18T22:37:09Z · ctx_96db6d8ac16d
+**Last integrated:** e5e5cbb
+**Dispatched:** none
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 6 achados (bypass do host local com @localhost:5432@evil.com e ::1evil.example; URL com usuário sem senha acusada, contra R5; C2, C5, C6, C7 fracos); 972 OK; q-check 0. Q precisou de Enter manual para iniciar
+**Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 6 achados (bypass do host local com @localhost:5432@evil.com e ::1evil.example; URL com usuário sem senha acusada, contra R5; C2, C5, C6, C7 fracos); 972 OK; q-check 0. Q precisou de Enter manual para iniciar; 2026-11-18: T1-fix: 34d9ae8 (6 achados); 972 OK; ticket gate verde; Picard conferiu 10 variantes do bypass de host (todas acusadas, exceto host local de fato); 2026-11-18: provas e done verdes (972 OK)
 **Breaker:** closed
