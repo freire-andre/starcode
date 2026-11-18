@@ -1,0 +1,22 @@
+{
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. Os três achados da r1 foram resolvidos em 43c082d. W1: CONN_PLACEHOLDER só aceita $ seguido de maiúsculas, dígitos e _, e a senha $ecretPassw0rd9 num host remoto volta a ser acusada. W2: a URL sem credencial só é isenta quando nenhum segmento do caminho ou da query passa sozinho na regra de alta entropia, e os webhooks do Slack e do Discord voltam a ser acusados. W3: AUTHORIZATION voltou à lista de chaves. Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolved em 43c082d",
+  "W2": "resolved em 43c082d",
+  "W3": "resolved em 43c082d"
+ },
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (re, urllib) e o próprio hook"
+ ],
+ "ladder": [
+  "python tools/build.py --check: OK (relatado pelo LaForge e pelo gate ticket)",
+  "python scripts/check_decisions.py: OK",
+  "claude plugin validate dist/claude --strict: Validation passed",
+  "suíte inteira nas provas em 5166deb: 972 OK",
+  "run_gates ticket 93ea945..43c082d: VERDE",
+  "sondagem manual de 14 entradas: W1, W2 e W3 acusados; falsos positivos de R3 a R5 continuam passando; contorno de host local acusado"
+ ]
+}

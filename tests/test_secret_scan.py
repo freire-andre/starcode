@@ -34,6 +34,10 @@ LOOKALIKES = [
     "hash: 3f786850e387550fdab836ed7e6dc881de23001b",
     "def test_token_parser(): assert parse('abc')",
     "ACCESS_TOKEN_TTL=3600",
+    "postgresql://postgres:postgres@localhost",
+    "postgres://user:${DB_PASSWORD}@db",
+    "AUTHOR_EMAIL=dev2024.bot@empresa.com.br",
+    'token_url = "https://auth.example.com/oauth2/token"',
 ]
 
 
@@ -47,9 +51,100 @@ class ScanTextTests(unittest.TestCase):
                 self.assertTrue(ss.scan_text(f"value: {value}", self.allow), kind)
 
     def test_lookalikes_pass(self):
+        for novo in ("postgresql://postgres:postgres@localhost", "postgres://user:${DB_PASSWORD}@db",
+                     "AUTHOR_EMAIL=dev2024.bot@empresa.com.br",
+                     'token_url = "https://auth.example.com/oauth2/token"'):
+            self.assertIn(novo, LOOKALIKES)
         for text in LOOKALIKES:
             with self.subTest(text=text):
                 self.assertEqual(ss.scan_text(text, self.allow), [], text)
+
+    def test_conexao_placeholder_e_local_passam(self):
+        ok = ["postgresql://postgres:postgres@localhost", "postgres://user:${DB_PASSWORD}@db",
+              "postgres://user:$DB_PASSWORD@db", "postgres://user:<senha>@db",
+              "redis://u:hunter22@127.0.0.1:6379/0", "postgres://u:hunter22@[::1]:5432/app"]
+        for text in ok:
+            with self.subTest(text=text):
+                self.assertEqual(ss.scan_text(text, self.allow), [], text)
+        found = ss.scan_text(FAKE["dsn"], self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        # W1: `$NOME` só em maiúsculas; `$ecretPassw0rd9` é senha real
+        found = ss.scan_text("postgres" + "ql://app:" + "$ecretPassw0rd9" + "@db.internal:5432/app", self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        self.assertEqual(ss.scan_text("postgres" + "ql://app:" + "$DB_PASSWORD" + "@db.internal:5432/app",
+                                      self.allow), [])
+        for text in ("postgres://u:hunter22@localhost:5432@evil.com/db",
+                     "postgres://u:hunter22@::1evil.example/db",
+                     "postgres://u:hunter22@localhost.evil.com/db",
+                     "postgres://u:hunter22@127.0.0.1.nip.io/db",
+                     "postgres://u:hunter22@localhost:5432x/db",
+                     "postgres://u:hunter22@[::1]evil.com/db"):
+            with self.subTest(text=text):
+                found = ss.scan_text(text, self.allow)
+                self.assertEqual([f[1] for f in found], ["string de conexão com senha"], text)
+
+    def test_auth_so_como_parte_inteira(self):
+        self.assertEqual(ss.scan_text("AUTHOR_EMAIL=dev2024.bot@empresa.com.br", self.allow), [])
+        for name in ("AUTH_TOKEN", "OAUTH_SECRET", "X_AUTH", "AUTH", "OAUTH"):
+            with self.subTest(name=name):
+                found = ss.scan_text(f"{name}=q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3", self.allow)
+                self.assertEqual([f[1] for f in found], [f"valor de alta entropia em {name}"])
+        jwt = "eyJ" + "hbGciOiJIUzI1NiJ9" + "." + "eyJzdWIiOiJ4OUsyIn0" + "." + "Zx9Yw8Vu7Ts6Rq5Po4Nm"
+        found = ss.scan_text(f"AUTHORIZATION={jwt}", self.allow)
+        self.assertEqual([f[1] for f in found], ["valor de alta entropia em AUTHORIZATION"])
+
+    def test_url_sem_credencial_passa(self):
+        self.assertEqual(ss.scan_text('token_url = "https://auth.example.com/oauth2/token"', self.allow), [])
+        self.assertEqual(ss.scan_text("TOKEN_URL=https://alice@auth.example.com/oauth2/token", self.allow), [])
+        slack = ("https://hooks.slack.com/services/" + "T0AB12CDE/" + "B0XY98ZWV/" + "q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3Hb")
+        found = ss.scan_text("SLACK_WEBHOOK_" + "TOKEN=" + slack, self.allow)
+        self.assertEqual([f[1] for f in found], ["valor de alta entropia em SLACK_WEBHOOK_TOKEN"])
+        discord = "https://discord.com/api/webhooks/" + "123456789012345678/" + "Zx9Yw8Vu7Ts6Rq5Po4Nm3Lk2Ji1Hg0FeDcBa"
+        found = ss.scan_text("DISCORD_WEBHOOK_" + "TOKEN=" + discord, self.allow)
+        self.assertEqual([f[1] for f in found], ["valor de alta entropia em DISCORD_WEBHOOK_TOKEN"])
+        found = ss.scan_text('API_KEY="https://app:S3cr3tPassw0rd@host.example.com/x"', self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        found = ss.scan_text("TOKEN_URL=https://app:S3cr3tPassw0rd@host.example.com/x", self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+
+    def test_decisions_scanner_lote2(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text.split("### SC-195:", 1)[1].split("\n### ", 1)[0]
+        for campo in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
+            self.assertIn(campo, entry)
+        decisao = " ".join(entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0].split())
+        for frase in (
+                "tem o texto inteiro do comando escaneado, inclusive o corpo de heredoc",
+                "`git commit`, `gh pr create|edit|comment|review`, `gh issue create|comment|edit` ou `orca linear`",
+                "`cat <<EOF > notas.md` sozinho não é alvo",
+                "`gh issue create`, `gh issue comment`, `gh issue edit` e `gh pr review` escaneiam o texto "
+                "e os arquivos de `--body-file`/`-F`",
+                "senha placeholder (`${...}`, `$NOME` só com maiúsculas, dígitos e `_`, `<...>`)",
+                "`$ecretPassw0rd9` não é placeholder",
+                "host local (`localhost`, `127.0.0.1`, `::1`)",
+                "o host é o que vem depois do último `@` da autoridade e tem que ser exatamente local, "
+                "com porta opcional e mais nada; na dúvida, acusa",
+                "`FAKE[\"dsn\"]` (host `db.internal`) continua achada",
+                "`AUTH` no nome da chave só vale como parte inteira, separada por `_` ou na borda "
+                "(`AUTH`, `AUTH_TOKEN`, `OAUTH`, `X_AUTH`), então `AUTHOR_EMAIL` passa",
+                "URL `http://` ou `https://` sem `usuário:senha@` não é acusado como alta entropia",
+                "a isenção só vale quando nenhum segmento do caminho ou da query, separado por `/`, `?`, `&` "
+                "ou `=`, passa sozinho na regra de alta entropia (comprimento de 16 ou mais, entropia de 3,5 ou "
+                "mais, com dígito e letra)",
+                "um webhook com token no caminho continua acusado",
+                "`AUTHORIZATION` continua sendo chave de segredo",
+                "usuário sem senha (`https://alice@host`) também não é credencial",
+                "com `usuário:senha@` continua acusado",
+                "todas as fixtures `FAKE` seguem achadas",
+                "os `LOOKALIKES`, agora com os quatro exemplos, seguem sem achado"):
+            self.assertIn(frase, decisao)
+        porque = entry.split("**Por que não é bug**", 1)[1]
+        for teste in ("test_heredoc_de_comando_que_publica_e_escaneado", "test_gh_issue_e_pr_review_sao_escaneados",
+                      "test_conexao_placeholder_e_local_passam", "test_auth_so_como_parte_inteira",
+                      "test_url_sem_credencial_passa", "test_lookalikes_pass", "test_each_fake_secret_is_found"):
+            self.assertIn(teste, porque)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("SC-195", changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0])
 
     def test_secret_is_masked(self):
         findings = ss.scan_text(FAKE["github"], self.allow)
@@ -406,6 +501,39 @@ class TextTargetsTests(TempRepoCase):
 
     def test_gh_pr_body(self):
         self.assertTrue(ss.evaluate(f"gh pr create --title t --body '{FAKE['openai']}'", str(self.repo)))
+
+    def test_heredoc_de_comando_que_publica_e_escaneado(self):
+        tok = FAKE["github"]
+        for cmd in (f"gh pr create --title t --body \"$(cat <<'EOF'\nresumo {tok}\nEOF\n)\"",
+                    f"git commit -m \"$(cat <<'EOF'\nfix: x {tok}\nEOF\n)\""):
+            with self.subTest(cmd=cmd[:20]):
+                found = ss.evaluate(cmd, str(self.repo))
+                self.assertTrue(any("token do GitHub" in f and "linha 2" in f for f in found), found)
+        self.assertEqual(ss.evaluate(f"cat <<EOF > notas.md\n{tok}\nEOF", str(self.repo)), [])
+
+    def test_gh_issue_e_pr_review_sao_escaneados(self):
+        (self.repo / "limpo.md").write_text("tudo certo\n", encoding="utf-8")
+        (self.repo / "sujo.md").write_text(f"chave {FAKE['openai']}\n", encoding="utf-8")
+        cmds = ["gh issue create --title t", "gh issue comment 3", "gh issue edit 3", "gh pr review 3 --approve"]
+        for base in cmds:
+            with self.subTest(base=base):
+                esperado = {
+                    f"{base} --body '{FAKE['anthropic']}'":
+                        [("texto do comando, linha 1", "chave da Anthropic")],
+                    f"{base} --body-file sujo.md":
+                        [("arquivo sujo.md, linha 1", "chave da OpenAI")],
+                    f"{base} -F sujo.md":
+                        [("arquivo sujo.md, linha 1", "chave da OpenAI")],
+                }
+                for cmd, origens in esperado.items():
+                    found = ss.evaluate(cmd, str(self.repo))
+                    self.assertEqual(len(found), len(origens), found)
+                    for f, (origem, tipo) in zip(found, origens):
+                        self.assertTrue(f.startswith(f"{origem}: {tipo} ("), f)
+                        self.assertNotIn(FAKE["anthropic"], f)
+                        self.assertNotIn(FAKE["openai"], f)
+                self.assertEqual(ss.evaluate(f"{base} --body 'tudo certo'", str(self.repo)), [])
+                self.assertEqual(ss.evaluate(f"{base} --body-file limpo.md", str(self.repo)), [])
 
     def test_normal_flow_commands_pass(self):
         for cmd in ("orca linear comment add SC-8 --body 'Gates verdes; commit abc1234'",

@@ -34,7 +34,8 @@
         "impacto-seleciona-real",
         "licoes-recorrencia-por-id",
         "opencode-copia-instalada",
-        "verificacao-1-8-0"
+        "verificacao-1-8-0",
+        "scanner-lote2"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -48,11 +49,13 @@
         "L38 (verification.md:C7)",
         ".specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte)",
         ".specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)",
-        ".specs/features/verificacao-1-8-0/verification.md:43"
+        ".specs/features/verificacao-1-8-0/verification.md:43",
+        ".specs/features/scanner-lote2/verification.md:26",
+        ".specs/features/scanner-lote2/verification.md:27"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-16T17:20:29Z"
+      "updated": "2026-11-18T22:56:47Z"
     },
     {
       "id": "L3",
@@ -537,7 +540,8 @@
         "q-strategy",
         "piloto-freios",
         "lote1-correcoes",
-        "retro-fase9"
+        "retro-fase9",
+        "scanner-lote2"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -546,11 +550,12 @@
         ".specs/features/q-strategy/verification.md:27",
         ".specs/features/piloto-freios/verification.md:31",
         ".specs/features/lote1-correcoes/verification.md:26",
-        ".specs/features/retro-fase9/verification.md:27"
+        ".specs/features/retro-fase9/verification.md:27",
+        ".specs/features/scanner-lote2/verification.md:29"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-17T23:38:50Z"
+      "updated": "2026-11-18T22:56:47Z"
     },
     {
       "id": "L33",
@@ -915,6 +920,51 @@
       "scope": "",
       "created": "2026-11-17T23:38:49Z",
       "updated": "2026-11-17T23:38:49Z"
+    },
+    {
+      "id": "L57",
+      "text": "Toda isenção de segurança por host (local, confiável) extrai o host como o parser de URL faz (último @ da autoridade) e exige igualdade exata, com teste de contorno (@localhost:5432@evil.com, localhost.evil.com); na dúvida, acuse.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "scanner-lote2"
+      ],
+      "sources": [
+        ".specs/features/scanner-lote2/verification.md:24"
+      ],
+      "scope": "",
+      "created": "2026-11-18T22:56:47Z",
+      "updated": "2026-11-18T22:56:47Z"
+    },
+    {
+      "id": "L58",
+      "text": "Ao isentar URL sem credencial, trate usuário sem senha como sem credencial e teste esse caso, porque https://alice@host era acusado contra o requisito.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "scanner-lote2"
+      ],
+      "sources": [
+        ".specs/features/scanner-lote2/verification.md:25"
+      ],
+      "scope": "",
+      "created": "2026-11-18T22:56:47Z",
+      "updated": "2026-11-18T22:56:47Z"
+    },
+    {
+      "id": "L59",
+      "text": "Quando o requisito manda incluir exemplos numa lista de fixtures, o teste exige a presença de cada exemplo na lista, não só que a lista inteira passe, porque removê-los não quebrava nada.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "scanner-lote2"
+      ],
+      "sources": [
+        ".specs/features/scanner-lote2/verification.md:28"
+      ],
+      "scope": "",
+      "created": "2026-11-18T22:56:47Z",
+      "updated": "2026-11-18T22:56:47Z"
     }
   ]
 }
