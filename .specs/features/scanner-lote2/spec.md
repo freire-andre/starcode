@@ -75,15 +75,15 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** LaForge implementa T1 (SC-195)
 **Linear:** SC-195
 **Integration branch:** feature/scanner-lote2
 **Last integrated:** 964728e4ce61b287f7b266b041bd66d8fc03cb28
-**Dispatched:** none
+**Dispatched:** Q · 310aa18
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam)
+**Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira)
 **Breaker:** closed
