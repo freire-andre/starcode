@@ -52,9 +52,9 @@ ASSIGNMENT = re.compile(
         \s*[:=]\s*["']?([^\s"'#,;]{16,})""")
 PLACEHOLDER = re.compile(r"(?i)^(x+|\*+|<.*>|\$\{.*\}|\$[A-Z_]+|changeme|example|placeholder|your[_-].*|dummy.*|test.*|fake.*|redacted.*)$")
 CONN_PLACEHOLDER = re.compile(r"^(?:\$\{.*\}|\$[A-Za-z_]\w*|<.*>)$")
-LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+LOCAL_HOST = re.compile(r"(?i)^(?:(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?|::1)$")
 URL_VALUE = re.compile(r"(?i)^https?://")
-URL_CREDENTIALS = re.compile(r"(?i)^https?://[^/\s@]*@")
+URL_CREDENTIALS = re.compile(r"(?i)^https?://[^/?#\s@:]*:[^/?#\s]*@")  # só usuário:senha@ é credencial
 LOCKFILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "uv.lock",
              "Cargo.lock", "Pipfile.lock", "composer.lock", "Gemfile.lock", "bun.lockb", "go.sum"}
 BODY_FILE_FLAGS = {"--body-file", "--description-file", "-F", "--file"}
@@ -100,12 +100,12 @@ class Allowlist:
 
 
 def _benign_connection(m: re.Match) -> bool:
-    """R3: senha placeholder (`${...}`, `$NOME`, `<...>`) ou host local não é segredo."""
+    """R3: senha placeholder (`${...}`, `$NOME`, `<...>`) ou host local não é segredo.
+    O host é o que vem depois do ÚLTIMO `@` da autoridade e tem que ser exatamente local; na dúvida, acusa."""
     if CONN_PLACEHOLDER.match(m.group(1)):
         return True
-    host = m.group(2).lower()
-    host = host[1:host.index("]")] if host.startswith("[") and "]" in host else host.split(":")[0]
-    return host in LOCAL_HOSTS or m.group(2).lower().startswith("::1")
+    host = m.group(2).rsplit("@", 1)[-1]
+    return bool(LOCAL_HOST.match(host))
 
 
 def scan_text(text: str, allow: Allowlist) -> list[tuple[int, str, str]]:

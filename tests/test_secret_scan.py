@@ -51,6 +51,10 @@ class ScanTextTests(unittest.TestCase):
                 self.assertTrue(ss.scan_text(f"value: {value}", self.allow), kind)
 
     def test_lookalikes_pass(self):
+        for novo in ("postgresql://postgres:postgres@localhost", "postgres://user:${DB_PASSWORD}@db",
+                     "AUTHOR_EMAIL=dev2024.bot@empresa.com.br",
+                     'token_url = "https://auth.example.com/oauth2/token"'):
+            self.assertIn(novo, LOOKALIKES)
         for text in LOOKALIKES:
             with self.subTest(text=text):
                 self.assertEqual(ss.scan_text(text, self.allow), [], text)
@@ -64,6 +68,15 @@ class ScanTextTests(unittest.TestCase):
                 self.assertEqual(ss.scan_text(text, self.allow), [], text)
         found = ss.scan_text(FAKE["dsn"], self.allow)
         self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        for text in ("postgres://u:hunter22@localhost:5432@evil.com/db",
+                     "postgres://u:hunter22@::1evil.example/db",
+                     "postgres://u:hunter22@localhost.evil.com/db",
+                     "postgres://u:hunter22@127.0.0.1.nip.io/db",
+                     "postgres://u:hunter22@localhost:5432x/db",
+                     "postgres://u:hunter22@[::1]evil.com/db"):
+            with self.subTest(text=text):
+                found = ss.scan_text(text, self.allow)
+                self.assertEqual([f[1] for f in found], ["string de conexão com senha"], text)
 
     def test_auth_so_como_parte_inteira(self):
         self.assertEqual(ss.scan_text("AUTHOR_EMAIL=dev2024.bot@empresa.com.br", self.allow), [])
@@ -74,19 +87,37 @@ class ScanTextTests(unittest.TestCase):
 
     def test_url_sem_credencial_passa(self):
         self.assertEqual(ss.scan_text('token_url = "https://auth.example.com/oauth2/token"', self.allow), [])
+        self.assertEqual(ss.scan_text("TOKEN_URL=https://alice@auth.example.com/oauth2/token", self.allow), [])
         found = ss.scan_text('API_KEY="https://app:S3cr3tPassw0rd@host.example.com/x"', self.allow)
-        self.assertTrue(found)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        found = ss.scan_text("TOKEN_URL=https://app:S3cr3tPassw0rd@host.example.com/x", self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
 
     def test_decisions_scanner_lote2(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         entry = text.split("### SC-195:", 1)[1].split("\n### ", 1)[0]
         for campo in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
             self.assertIn(campo, entry)
-        decisao = entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0]
-        for termo in ("texto inteiro do comando", "heredoc", "gh issue create", "gh issue comment",
-                      "gh issue edit", "gh pr review", "placeholder", "host local", "AUTH",
-                      "parte inteira", "URL", "sem credencial"):
-            self.assertIn(termo, decisao)
+        decisao = " ".join(entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0].split())
+        for frase in (
+                "tem o texto inteiro do comando escaneado, inclusive o corpo de heredoc",
+                "`git commit`, `gh pr create|edit|comment|review`, `gh issue create|comment|edit` ou `orca linear`",
+                "`cat <<EOF > notas.md` sozinho não é alvo",
+                "`gh issue create`, `gh issue comment`, `gh issue edit` e `gh pr review` escaneiam o texto "
+                "e os arquivos de `--body-file`/`-F`",
+                "senha placeholder (`${...}`, `$NOME`, `<...>`)",
+                "host local (`localhost`, `127.0.0.1`, `::1`)",
+                "o host é o que vem depois do último `@` da autoridade e tem que ser exatamente local, "
+                "com porta opcional e mais nada; na dúvida, acusa",
+                "`FAKE[\"dsn\"]` (host `db.internal`) continua achada",
+                "`AUTH` no nome da chave só vale como parte inteira, separada por `_` ou na borda "
+                "(`AUTH`, `AUTH_TOKEN`, `OAUTH`, `X_AUTH`), então `AUTHOR_EMAIL` passa",
+                "URL `http://` ou `https://` sem `usuário:senha@` não é acusado como alta entropia",
+                "usuário sem senha (`https://alice@host`) também não é credencial",
+                "com `usuário:senha@` continua acusado",
+                "todas as fixtures `FAKE` seguem achadas",
+                "os `LOOKALIKES`, agora com os quatro exemplos, seguem sem achado"):
+            self.assertIn(frase, decisao)
         porque = entry.split("**Por que não é bug**", 1)[1]
         for teste in ("test_heredoc_de_comando_que_publica_e_escaneado", "test_gh_issue_e_pr_review_sao_escaneados",
                       "test_conexao_placeholder_e_local_passam", "test_auth_so_como_parte_inteira",
@@ -466,9 +497,21 @@ class TextTargetsTests(TempRepoCase):
         cmds = ["gh issue create --title t", "gh issue comment 3", "gh issue edit 3", "gh pr review 3 --approve"]
         for base in cmds:
             with self.subTest(base=base):
-                self.assertTrue(ss.evaluate(f"{base} --body '{FAKE['anthropic']}'", str(self.repo)))
-                self.assertTrue(ss.evaluate(f"{base} --body-file sujo.md", str(self.repo)))
-                self.assertTrue(ss.evaluate(f"{base} -F sujo.md", str(self.repo)))
+                esperado = {
+                    f"{base} --body '{FAKE['anthropic']}'":
+                        [("texto do comando, linha 1", "chave da Anthropic")],
+                    f"{base} --body-file sujo.md":
+                        [("arquivo sujo.md, linha 1", "chave da OpenAI")],
+                    f"{base} -F sujo.md":
+                        [("arquivo sujo.md, linha 1", "chave da OpenAI")],
+                }
+                for cmd, origens in esperado.items():
+                    found = ss.evaluate(cmd, str(self.repo))
+                    self.assertEqual(len(found), len(origens), found)
+                    for f, (origem, tipo) in zip(found, origens):
+                        self.assertTrue(f.startswith(f"{origem}: {tipo} ("), f)
+                        self.assertNotIn(FAKE["anthropic"], f)
+                        self.assertNotIn(FAKE["openai"], f)
                 self.assertEqual(ss.evaluate(f"{base} --body 'tudo certo'", str(self.repo)), [])
                 self.assertEqual(ss.evaluate(f"{base} --body-file limpo.md", str(self.repo)), [])
 
