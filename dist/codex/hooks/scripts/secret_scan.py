@@ -3,7 +3,8 @@
 Targets:
   - `git commit`: the staged diff (`git diff --cached`; with -a/--all, `git diff HEAD`), added lines
     only, plus staged .env* files.
-  - `orca linear comment add/edit | create | save-issue` and `gh pr create/edit`: the command text
+  - `orca linear comment add/edit | create | save-issue`, `gh pr create/edit/comment/review` and
+    `gh issue create/comment/edit`: the command text
     and any --body-file / --description-file / -F file it points to.
 Detection: provider token patterns (AWS, GitHub, Linear, OpenAI, Anthropic, Slack, Google), PEM
 private keys, connection strings with a password, and high-entropy values in KEY=... assignments.
@@ -44,12 +45,16 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("token do Slack", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b")),
     ("chave do Google", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
     ("string de conexão com senha",
-     re.compile(r"\b[a-z][a-z0-9+.-]{1,20}://[^\s:/@'\"]{1,64}:[^\s@/'\"]{3,128}@[^\s/'\"]+", re.I)),
+     re.compile(r"\b[a-z][a-z0-9+.-]{1,20}://[^\s:/@'\"]{1,64}:([^\s@/'\"]{3,128})@([^\s/'\"]+)", re.I)),
 ]
 ASSIGNMENT = re.compile(
-    r"""(?ix)\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|PWD|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|AUTH)[A-Z0-9_]*)
+    r"""(?ix)\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|PWD|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|(?<![A-Z0-9])O?AUTH(?![A-Z0-9]))[A-Z0-9_]*)
         \s*[:=]\s*["']?([^\s"'#,;]{16,})""")
 PLACEHOLDER = re.compile(r"(?i)^(x+|\*+|<.*>|\$\{.*\}|\$[A-Z_]+|changeme|example|placeholder|your[_-].*|dummy.*|test.*|fake.*|redacted.*)$")
+CONN_PLACEHOLDER = re.compile(r"^(?:\$\{.*\}|\$[A-Za-z_]\w*|<.*>)$")
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+URL_VALUE = re.compile(r"(?i)^https?://")
+URL_CREDENTIALS = re.compile(r"(?i)^https?://[^/\s@]*@")
 LOCKFILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "uv.lock",
              "Cargo.lock", "Pipfile.lock", "composer.lock", "Gemfile.lock", "bun.lockb", "go.sum"}
 BODY_FILE_FLAGS = {"--body-file", "--description-file", "-F", "--file"}
@@ -94,6 +99,15 @@ class Allowlist:
         return sha(matched) in self.hashes
 
 
+def _benign_connection(m: re.Match) -> bool:
+    """R3: senha placeholder (`${...}`, `$NOME`, `<...>`) ou host local não é segredo."""
+    if CONN_PLACEHOLDER.match(m.group(1)):
+        return True
+    host = m.group(2).lower()
+    host = host[1:host.index("]")] if host.startswith("[") and "]" in host else host.split(":")[0]
+    return host in LOCAL_HOSTS or m.group(2).lower().startswith("::1")
+
+
 def scan_text(text: str, allow: Allowlist) -> list[tuple[int, str, str]]:
     """Return (line_number, kind, masked) for each finding in text."""
     findings = []
@@ -103,12 +117,16 @@ def scan_text(text: str, allow: Allowlist) -> list[tuple[int, str, str]]:
             for m in rx.finditer(line):
                 if allow.match_ok(m.group(0)):
                     continue
+                if rx.groups and _benign_connection(m):
+                    continue
                 findings.append((n, kind, mask(m.group(0))))
                 hit = True
         if hit:
             continue
         for m in ASSIGNMENT.finditer(line):
             value = m.group(2)
+            if URL_VALUE.match(value) and not URL_CREDENTIALS.match(value):
+                continue  # R5: URL sem usuário:senha@
             if PLACEHOLDER.match(value) or allow.match_ok(value) or allow.match_ok(m.group(0)):
                 continue
             if entropy(value) >= 3.5 and re.search(r"\d", value) and re.search(r"[A-Za-z]", value):
@@ -301,6 +319,7 @@ def evaluate(command: str, cwd: str | None) -> list[str]:
     allow_for: dict[str, Allowlist] = {}
     findings: list[str] = []
     adds: list[dict] = []
+    publishes = False
     for seg in tokenize(command):
         while seg and "=" in seg[0] and seg[0].split("=", 1)[0].isidentifier():
             seg = seg[1:]
@@ -320,14 +339,18 @@ def evaluate(command: str, cwd: str | None) -> list[str]:
                 findings += staged_findings(git_cwd, all_tracked, allow)
                 for add in adds:
                     findings += add_findings(add, allow_for)
-                findings += text_findings("mensagem do commit", " ".join(rest), allow)
+                publishes = True
         elif prog == "orca" and len(args) >= 2 and args[0] == "linear" and (
                 args[1] in ("create", "save-issue") or (args[1] == "comment" and len(args) > 2)):
-            findings += text_findings("comando orca linear", " ".join(args), allow)
+            publishes = True
             findings += _body_files(args, cwd, allow)
-        elif prog == "gh" and len(args) >= 2 and args[0] == "pr" and args[1] in ("create", "edit", "comment"):
-            findings += text_findings("comando gh pr", " ".join(args), allow)
+        elif prog == "gh" and len(args) >= 2 and (
+                (args[0] == "pr" and args[1] in ("create", "edit", "comment", "review"))
+                or (args[0] == "issue" and args[1] in ("create", "comment", "edit"))):
+            publishes = True
             findings += _body_files(args, cwd, allow)
+    if publishes:  # R1: o texto inteiro do comando, inclusive o corpo de heredoc
+        findings += text_findings("texto do comando", command, allow)
     return list(dict.fromkeys(findings))
 
 

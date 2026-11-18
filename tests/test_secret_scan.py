@@ -34,6 +34,10 @@ LOOKALIKES = [
     "hash: 3f786850e387550fdab836ed7e6dc881de23001b",
     "def test_token_parser(): assert parse('abc')",
     "ACCESS_TOKEN_TTL=3600",
+    "postgresql://postgres:postgres@localhost",
+    "postgres://user:${DB_PASSWORD}@db",
+    "AUTHOR_EMAIL=dev2024.bot@empresa.com.br",
+    'token_url = "https://auth.example.com/oauth2/token"',
 ]
 
 
@@ -50,6 +54,46 @@ class ScanTextTests(unittest.TestCase):
         for text in LOOKALIKES:
             with self.subTest(text=text):
                 self.assertEqual(ss.scan_text(text, self.allow), [], text)
+
+    def test_conexao_placeholder_e_local_passam(self):
+        ok = ["postgresql://postgres:postgres@localhost", "postgres://user:${DB_PASSWORD}@db",
+              "postgres://user:$DB_PASSWORD@db", "postgres://user:<senha>@db",
+              "redis://u:hunter22@127.0.0.1:6379/0", "postgres://u:hunter22@[::1]:5432/app"]
+        for text in ok:
+            with self.subTest(text=text):
+                self.assertEqual(ss.scan_text(text, self.allow), [], text)
+        found = ss.scan_text(FAKE["dsn"], self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+
+    def test_auth_so_como_parte_inteira(self):
+        self.assertEqual(ss.scan_text("AUTHOR_EMAIL=dev2024.bot@empresa.com.br", self.allow), [])
+        for name in ("AUTH_TOKEN", "OAUTH_SECRET", "X_AUTH", "AUTH", "OAUTH"):
+            with self.subTest(name=name):
+                found = ss.scan_text(f"{name}=q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3", self.allow)
+                self.assertEqual([f[1] for f in found], [f"valor de alta entropia em {name}"])
+
+    def test_url_sem_credencial_passa(self):
+        self.assertEqual(ss.scan_text('token_url = "https://auth.example.com/oauth2/token"', self.allow), [])
+        found = ss.scan_text('API_KEY="https://app:S3cr3tPassw0rd@host.example.com/x"', self.allow)
+        self.assertTrue(found)
+
+    def test_decisions_scanner_lote2(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        entry = text.split("### SC-195:", 1)[1].split("\n### ", 1)[0]
+        for campo in ("**Problema**", "**Decisão**", "**Motivo**", "**Por que não é bug**"):
+            self.assertIn(campo, entry)
+        decisao = entry.split("**Decisão**", 1)[1].split("**Motivo**", 1)[0]
+        for termo in ("texto inteiro do comando", "heredoc", "gh issue create", "gh issue comment",
+                      "gh issue edit", "gh pr review", "placeholder", "host local", "AUTH",
+                      "parte inteira", "URL", "sem credencial"):
+            self.assertIn(termo, decisao)
+        porque = entry.split("**Por que não é bug**", 1)[1]
+        for teste in ("test_heredoc_de_comando_que_publica_e_escaneado", "test_gh_issue_e_pr_review_sao_escaneados",
+                      "test_conexao_placeholder_e_local_passam", "test_auth_so_como_parte_inteira",
+                      "test_url_sem_credencial_passa", "test_lookalikes_pass", "test_each_fake_secret_is_found"):
+            self.assertIn(teste, porque)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("SC-195", changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0])
 
     def test_secret_is_masked(self):
         findings = ss.scan_text(FAKE["github"], self.allow)
@@ -406,6 +450,27 @@ class TextTargetsTests(TempRepoCase):
 
     def test_gh_pr_body(self):
         self.assertTrue(ss.evaluate(f"gh pr create --title t --body '{FAKE['openai']}'", str(self.repo)))
+
+    def test_heredoc_de_comando_que_publica_e_escaneado(self):
+        tok = FAKE["github"]
+        for cmd in (f"gh pr create --title t --body \"$(cat <<'EOF'\nresumo {tok}\nEOF\n)\"",
+                    f"git commit -m \"$(cat <<'EOF'\nfix: x {tok}\nEOF\n)\""):
+            with self.subTest(cmd=cmd[:20]):
+                found = ss.evaluate(cmd, str(self.repo))
+                self.assertTrue(any("token do GitHub" in f and "linha 2" in f for f in found), found)
+        self.assertEqual(ss.evaluate(f"cat <<EOF > notas.md\n{tok}\nEOF", str(self.repo)), [])
+
+    def test_gh_issue_e_pr_review_sao_escaneados(self):
+        (self.repo / "limpo.md").write_text("tudo certo\n", encoding="utf-8")
+        (self.repo / "sujo.md").write_text(f"chave {FAKE['openai']}\n", encoding="utf-8")
+        cmds = ["gh issue create --title t", "gh issue comment 3", "gh issue edit 3", "gh pr review 3 --approve"]
+        for base in cmds:
+            with self.subTest(base=base):
+                self.assertTrue(ss.evaluate(f"{base} --body '{FAKE['anthropic']}'", str(self.repo)))
+                self.assertTrue(ss.evaluate(f"{base} --body-file sujo.md", str(self.repo)))
+                self.assertTrue(ss.evaluate(f"{base} -F sujo.md", str(self.repo)))
+                self.assertEqual(ss.evaluate(f"{base} --body 'tudo certo'", str(self.repo)), [])
+                self.assertEqual(ss.evaluate(f"{base} --body-file limpo.md", str(self.repo)), [])
 
     def test_normal_flow_commands_pass(self):
         for cmd in ("orca linear comment add SC-8 --body 'Gates verdes; commit abc1234'",
