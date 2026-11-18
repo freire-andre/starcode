@@ -68,6 +68,11 @@ class ScanTextTests(unittest.TestCase):
                 self.assertEqual(ss.scan_text(text, self.allow), [], text)
         found = ss.scan_text(FAKE["dsn"], self.allow)
         self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        # W1: `$NOME` só em maiúsculas; `$ecretPassw0rd9` é senha real
+        found = ss.scan_text("postgres" + "ql://app:" + "$ecretPassw0rd9" + "@db.internal:5432/app", self.allow)
+        self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
+        self.assertEqual(ss.scan_text("postgres" + "ql://app:" + "$DB_PASSWORD" + "@db.internal:5432/app",
+                                      self.allow), [])
         for text in ("postgres://u:hunter22@localhost:5432@evil.com/db",
                      "postgres://u:hunter22@::1evil.example/db",
                      "postgres://u:hunter22@localhost.evil.com/db",
@@ -84,10 +89,19 @@ class ScanTextTests(unittest.TestCase):
             with self.subTest(name=name):
                 found = ss.scan_text(f"{name}=q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3", self.allow)
                 self.assertEqual([f[1] for f in found], [f"valor de alta entropia em {name}"])
+        jwt = "eyJ" + "hbGciOiJIUzI1NiJ9" + "." + "eyJzdWIiOiJ4OUsyIn0" + "." + "Zx9Yw8Vu7Ts6Rq5Po4Nm"
+        found = ss.scan_text(f"AUTHORIZATION={jwt}", self.allow)
+        self.assertEqual([f[1] for f in found], ["valor de alta entropia em AUTHORIZATION"])
 
     def test_url_sem_credencial_passa(self):
         self.assertEqual(ss.scan_text('token_url = "https://auth.example.com/oauth2/token"', self.allow), [])
         self.assertEqual(ss.scan_text("TOKEN_URL=https://alice@auth.example.com/oauth2/token", self.allow), [])
+        slack = ("https://hooks.slack.com/services/" + "T0AB12CDE/" + "B0XY98ZWV/" + "q8Zr2Lm9Xv4Tn7Wp1Ks6Yd3Hb")
+        found = ss.scan_text("SLACK_WEBHOOK_" + "TOKEN=" + slack, self.allow)
+        self.assertEqual([f[1] for f in found], ["valor de alta entropia em SLACK_WEBHOOK_TOKEN"])
+        discord = "https://discord.com/api/webhooks/" + "123456789012345678/" + "Zx9Yw8Vu7Ts6Rq5Po4Nm3Lk2Ji1Hg0FeDcBa"
+        found = ss.scan_text("DISCORD_WEBHOOK_" + "TOKEN=" + discord, self.allow)
+        self.assertEqual([f[1] for f in found], ["valor de alta entropia em DISCORD_WEBHOOK_TOKEN"])
         found = ss.scan_text('API_KEY="https://app:S3cr3tPassw0rd@host.example.com/x"', self.allow)
         self.assertEqual([f[1] for f in found], ["string de conexão com senha"])
         found = ss.scan_text("TOKEN_URL=https://app:S3cr3tPassw0rd@host.example.com/x", self.allow)
@@ -105,7 +119,8 @@ class ScanTextTests(unittest.TestCase):
                 "`cat <<EOF > notas.md` sozinho não é alvo",
                 "`gh issue create`, `gh issue comment`, `gh issue edit` e `gh pr review` escaneiam o texto "
                 "e os arquivos de `--body-file`/`-F`",
-                "senha placeholder (`${...}`, `$NOME`, `<...>`)",
+                "senha placeholder (`${...}`, `$NOME` só com maiúsculas, dígitos e `_`, `<...>`)",
+                "`$ecretPassw0rd9` não é placeholder",
                 "host local (`localhost`, `127.0.0.1`, `::1`)",
                 "o host é o que vem depois do último `@` da autoridade e tem que ser exatamente local, "
                 "com porta opcional e mais nada; na dúvida, acusa",
@@ -113,6 +128,11 @@ class ScanTextTests(unittest.TestCase):
                 "`AUTH` no nome da chave só vale como parte inteira, separada por `_` ou na borda "
                 "(`AUTH`, `AUTH_TOKEN`, `OAUTH`, `X_AUTH`), então `AUTHOR_EMAIL` passa",
                 "URL `http://` ou `https://` sem `usuário:senha@` não é acusado como alta entropia",
+                "a isenção só vale quando nenhum segmento do caminho ou da query, separado por `/`, `?`, `&` "
+                "ou `=`, passa sozinho na regra de alta entropia (comprimento de 16 ou mais, entropia de 3,5 ou "
+                "mais, com dígito e letra)",
+                "um webhook com token no caminho continua acusado",
+                "`AUTHORIZATION` continua sendo chave de segredo",
                 "usuário sem senha (`https://alice@host`) também não é credencial",
                 "com `usuário:senha@` continua acusado",
                 "todas as fixtures `FAKE` seguem achadas",

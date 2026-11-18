@@ -48,10 +48,10 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
      re.compile(r"\b[a-z][a-z0-9+.-]{1,20}://[^\s:/@'\"]{1,64}:([^\s@/'\"]{3,128})@([^\s/'\"]+)", re.I)),
 ]
 ASSIGNMENT = re.compile(
-    r"""(?ix)\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|PWD|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|(?<![A-Z0-9])O?AUTH(?![A-Z0-9]))[A-Z0-9_]*)
+    r"""(?ix)\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|PWD|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|(?<![A-Z0-9])O?AUTH(?![A-Z0-9])|AUTHORIZATION)[A-Z0-9_]*)
         \s*[:=]\s*["']?([^\s"'#,;]{16,})""")
 PLACEHOLDER = re.compile(r"(?i)^(x+|\*+|<.*>|\$\{.*\}|\$[A-Z_]+|changeme|example|placeholder|your[_-].*|dummy.*|test.*|fake.*|redacted.*)$")
-CONN_PLACEHOLDER = re.compile(r"^(?:\$\{.*\}|\$[A-Za-z_]\w*|<.*>)$")
+CONN_PLACEHOLDER = re.compile(r"^(?:\$\{.*\}|\$[A-Z_][A-Z0-9_]*|<.*>)$")  # W1: $NOME só em maiúsculas
 LOCAL_HOST = re.compile(r"(?i)^(?:(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?|::1)$")
 URL_VALUE = re.compile(r"(?i)^https?://")
 URL_CREDENTIALS = re.compile(r"(?i)^https?://[^/?#\s@:]*:[^/?#\s]*@")  # só usuário:senha@ é credencial
@@ -108,6 +108,17 @@ def _benign_connection(m: re.Match) -> bool:
     return bool(LOCAL_HOST.match(host))
 
 
+def _high_entropy(value: str) -> bool:
+    return (len(value) >= 16 and entropy(value) >= 3.5 and bool(re.search(r"\d", value))
+            and bool(re.search(r"[A-Za-z]", value)))
+
+
+def _url_segment_secret(value: str) -> bool:
+    """W2: algum segmento do caminho ou da query (separado por `/`, `?`, `&`, `=`) passa sozinho na alta entropia."""
+    rest = value.split("://", 1)[1]
+    return any(_high_entropy(seg) for seg in re.split(r"[/?&=]", rest)[1:])
+
+
 def scan_text(text: str, allow: Allowlist) -> list[tuple[int, str, str]]:
     """Return (line_number, kind, masked) for each finding in text."""
     findings = []
@@ -125,11 +136,11 @@ def scan_text(text: str, allow: Allowlist) -> list[tuple[int, str, str]]:
             continue
         for m in ASSIGNMENT.finditer(line):
             value = m.group(2)
-            if URL_VALUE.match(value) and not URL_CREDENTIALS.match(value):
-                continue  # R5: URL sem usuário:senha@
+            if URL_VALUE.match(value) and not URL_CREDENTIALS.match(value) and not _url_segment_secret(value):
+                continue  # R5: URL sem usuário:senha@ e sem segmento de alta entropia
             if PLACEHOLDER.match(value) or allow.match_ok(value) or allow.match_ok(m.group(0)):
                 continue
-            if entropy(value) >= 3.5 and re.search(r"\d", value) and re.search(r"[A-Za-z]", value):
+            if _high_entropy(value):
                 findings.append((n, f"valor de alta entropia em {m.group(1)}", mask(value)))
     return findings
 
