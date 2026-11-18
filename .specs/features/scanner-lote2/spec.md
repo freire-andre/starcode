@@ -82,7 +82,7 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 **Linear:** SC-195
 **Integration branch:** feature/scanner-lote2
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-195 · base ca63e45 · claude:claude-sonnet-5-5 · 2026-11-18T21:34:13Z · ctx_64783f17727a
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
 **Reports:** none
