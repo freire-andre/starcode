@@ -82,8 +82,8 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 **Linear:** SC-195
 **Integration branch:** feature/scanner-lote2
 **Last integrated:** 964728e4ce61b287f7b266b041bd66d8fc03cb28
-**Dispatched:** Q · 310aa18
+**Dispatched:** none
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira)
+**Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 6 achados (bypass do host local com @localhost:5432@evil.com e ::1evil.example; URL com usuário sem senha acusada, contra R5; C2, C5, C6, C7 fracos); 972 OK; q-check 0. Q precisou de Enter manual para iniciar
 **Breaker:** closed
