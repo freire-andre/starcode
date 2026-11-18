@@ -28,13 +28,14 @@ Esta spec cobre os itens 2.2 (só o scan), 2.4 e 2.6 da triagem v2. O discovery 
 | Item | Options | User answer |
 |---|---|---|
 | Divisão do lote 2 | por hook (scanner agora, `git_guard` depois) / lote inteiro / um item por missão | approved - user: "Por hook, 2 missões (Recomendado)" |
+| Achados W1–W3 do Worf (r1) | corrigir os três / só W1 / merge como está | approved - user: "Corrigir os três (Recomendado)" |
 
 ## Requirements
 - **R1** - WHEN o comando tem um segmento que publica texto (`git commit`, `gh pr create|edit|comment|review`, `gh issue create|comment|edit` ou `orca linear` nos casos de hoje) THEN o scanner SHALL escanear o texto inteiro do comando, inclusive o corpo de heredoc. Um token do GitHub no corpo heredoc de `gh pr create` e de `git commit -m` SHALL ser negado.
 - **R2** - WHEN o comando é `gh issue create`, `gh issue comment`, `gh issue edit` ou `gh pr review` THEN o scanner SHALL escanear o texto e os arquivos de `--body-file`/`-F`, como já faz com `gh pr create`. Um segredo `FAKE` no `--body` ou no arquivo SHALL ser negado.
-- **R3** - IF uma string de conexão tem senha placeholder (`${...}`, `$NOME`, `<...>`) ou host local (`localhost`, `127.0.0.1`, `::1`) THEN o scanner SHALL não acusá-la. `postgresql://postgres:postgres@localhost` e `postgres://user:${DB_PASSWORD}@db` SHALL passar, e a fixture `FAKE["dsn"]` (host `db.internal`) SHALL continuar sendo encontrada.
-- **R4** - The system SHALL tratar `AUTH` no nome da chave de atribuição só como parte inteira do nome, separada por `_` ou na borda: `AUTH`, `AUTH_TOKEN`, `OAUTH`, `X_AUTH`. `AUTHOR_EMAIL=dev2024.bot@empresa.com.br` SHALL passar.
-- **R5** - IF o valor de uma atribuição é uma URL `http://` ou `https://` sem `usuário:senha@` THEN o scanner SHALL não acusá-lo como alta entropia. `token_url = "https://auth.example.com/oauth2/token"` SHALL passar.
+- **R3** - IF uma string de conexão tem senha placeholder (`${...}`, `$NOME` só com maiúsculas, dígitos e `_`, `<...>`) ou host local (`localhost`, `127.0.0.1`, `::1`) THEN o scanner SHALL não acusá-la. `postgresql://postgres:postgres@localhost` e `postgres://user:${DB_PASSWORD}@db` SHALL passar, e a fixture `FAKE["dsn"]` (host `db.internal`) SHALL continuar sendo encontrada.
+- **R4** - The system SHALL tratar `AUTH` no nome da chave de atribuição só como parte inteira do nome, separada por `_` ou na borda: `AUTH`, `AUTH_TOKEN`, `OAUTH`, `X_AUTH`. `AUTHOR_EMAIL=dev2024.bot@empresa.com.br` SHALL passar, e `AUTHORIZATION` SHALL continuar sendo chave de segredo.
+- **R5** - IF o valor de uma atribuição é uma URL `http://` ou `https://` sem `usuário:senha@` e nenhum segmento do caminho ou da query passa sozinho na regra de alta entropia THEN o scanner SHALL não acusá-lo como alta entropia. Um webhook com token no caminho SHALL continuar acusado. `token_url = "https://auth.example.com/oauth2/token"` SHALL passar.
 - **R6** - The system SHALL continuar encontrando todas as fixtures `FAKE` e deixando passar todos os `LOOKALIKES` de `tests/test_secret_scan.py`. Os quatro exemplos de R3 a R5 SHALL entrar em `LOOKALIKES`.
 - **R7** - The system SHALL ter no `DECISIONS.md` a entrada da issue desta feature (`### SC-195:`) com **Problema**, **Decisão**, **Motivo** e **Por que não é bug**. A **Decisão** SHALL trazer R1 a R6 em frase: texto inteiro do comando, os quatro comandos `gh` novos, placeholder e host local, `AUTH` como parte inteira e URL sem credencial. O **Por que não é bug** SHALL citar os testes. SHALL ter também uma linha em `CHANGELOG.md` `[Unreleased]`.
 
@@ -75,7 +76,7 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 
 ## Handoff
 
-**Phase:** review
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** usuário decide W1–W3 (rodada de correção ou merge)
@@ -83,7 +84,7 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 **Integration branch:** feature/scanner-lote2
 **Last integrated:** e5e5cbb
 **Dispatched:** none
-**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "sim"; 2026-11-18: PR aberto: https://github.com/freire-andre/starcode/pull/65
+**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "sim"; 2026-11-18: PR aberto: https://github.com/freire-andre/starcode/pull/65; 2026-11-18: review r1 publicado; W1–W3: "Corrigir os três (Recomendado)" (R3, R4, R5 emendados)
 **Attempts:** none
 **Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 6 achados (bypass do host local com @localhost:5432@evil.com e ::1evil.example; URL com usuário sem senha acusada, contra R5; C2, C5, C6, C7 fracos); 972 OK; q-check 0. Q precisou de Enter manual para iniciar; 2026-11-18: T1-fix: 34d9ae8 (6 achados); 972 OK; ticket gate verde; Picard conferiu 10 variantes do bypass de host (todas acusadas, exceto host local de fato); 2026-11-18: provas e done verdes (972 OK); 2026-11-18: done verde após escapar \| em 2 células do verification.md (o validador lia como divisor); Guinan: L57, L58, L59 novas, L2 e L32 (--id); retro com 4 sugestões; test_lessons OK; 2026-11-18: Worf r1: COMMENT, 2 should-fix (W1 senha $minúscula vira placeholder, além da spec; W2 webhook em URL isentado por R5) e 1 nit (W3 AUTHORIZATION fora, por R4); gate 0
 **Breaker:** closed

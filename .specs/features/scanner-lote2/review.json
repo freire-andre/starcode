@@ -8,7 +8,7 @@
    "severity": "should-fix",
    "path": "hooks/scripts/secret_scan.py",
    "line": 54,
-   "body": "CONN_PLACEHOLDER aceita `$` seguido de letra ou `_` e qualquer caractere de palavra, minúsculo inclusive, então uma senha real que começa com `$` passa como placeholder. `postgres://app:$ecretPassw0rd9@db.internal:5432/app` dá [] neste ramo e é acusada na main. A spec pede `$NOME`, e o PLACEHOLDER que já existe usa `$[A-Z_]+`. Sugestão: `$[A-Z_][A-Z0-9_]*`, sem re.I, e um teste com `$ecretPassw0rd9` acusado.",
+   "body": "CONN_PLACEHOLDER aceita `$` seguido de letra ou `_` e qualquer caractere de palavra, minúsculo inclusive, então uma senha real que começa com `$` passa como placeholder. uma string de conexão com host `db.internal` e senha `$ecretPassw0rd9` dá [] neste ramo e é acusada na main. A spec pede `$NOME`, e o PLACEHOLDER que já existe usa `$[A-Z_]+`. Sugestão: `$[A-Z_][A-Z0-9_]*`, sem re.I, e um teste com `$ecretPassw0rd9` acusado.",
    "evidence": "hooks/scripts/secret_scan.py:54",
    "category": "auth-bypass",
    "attacker": "quem commita ou publica por engano uma string de conexão real",
@@ -16,7 +16,7 @@
    "control": "padrão 'string de conexão com senha' com a isenção _benign_connection",
    "boundary": "hook PreToolUse que deveria negar o comando",
    "impact": "senha de banco iniciada por $ vai para o Git ou para o PR sem bloqueio",
-   "proof": "scan_text('postgres://app:$ecretPassw0rd9@db.internal:5432/app') = [] no ramo; ['string de conexão com senha'] na main",
+   "proof": "scan_text(string de conexão com host db.internal e senha $ecretPassw0rd9) = [] no ramo; ['string de conexão com senha'] na main",
    "state": "open"
   },
   {
@@ -24,7 +24,7 @@
    "severity": "should-fix",
    "path": "hooks/scripts/secret_scan.py",
    "line": 128,
-   "body": "A isenção de R5 pula qualquer valor `https://` sem `usuário:senha@`, mesmo quando o próprio caminho é o segredo. `SLACK_WEBHOOK_TOKEN=https://hooks.slack.com/services/T0123ABCD/B0456EFGH/abcDEF123ghiJKL789mnoPQR` e `DISCORD_TOKEN=https://discord.com/api/webhooks/...` dão [] neste ramo e são acusadas na main. Segue o texto de R5, mas a spec não previu webhook. Sugestão, que depende de decisão do usuário: isentar a URL só quando nenhum segmento do caminho ou da query passa sozinho na regra de alta entropia. `oauth2/token` continua passando.",
+   "body": "A isenção de R5 pula qualquer valor `https://` sem `usuário:senha@`, mesmo quando o próprio caminho é o segredo. `SLACK_WEBHOOK_TOKEN=` com uma URL `hooks.slack.com/services/...` cujo último segmento é um token de 24 caracteres e o webhook do Discord dão [] neste ramo e são acusadas na main. Segue o texto de R5, mas a spec não previu webhook. Sugestão, que depende de decisão do usuário: isentar a URL só quando nenhum segmento do caminho ou da query passa sozinho na regra de alta entropia. `oauth2/token` continua passando.",
    "evidence": "hooks/scripts/secret_scan.py:128",
    "category": "auth-bypass",
    "attacker": "quem commita ou publica por engano uma URL de webhook com token",
@@ -32,7 +32,7 @@
    "control": "regra de alta entropia em ASSIGNMENT",
    "boundary": "hook PreToolUse que deveria negar o comando",
    "impact": "webhook do Slack ou do Discord (credencial de escrita) vai para o Git ou para o PR sem bloqueio",
-   "proof": "scan_text('SLACK_WEBHOOK_TOKEN=https://hooks.slack.com/services/T0123ABCD/B0456EFGH/abcDEF123ghiJKL789mnoPQR') = [] no ramo; ['valor de alta entropia em SLACK_WEBHOOK_TOKEN'] na main",
+   "proof": "scan_text(SLACK_WEBHOOK_TOKEN= com URL de webhook do Slack com token no caminho) = [] no ramo; ['valor de alta entropia em SLACK_WEBHOOK_TOKEN'] na main",
    "state": "open"
   },
   {
