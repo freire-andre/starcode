@@ -1,6 +1,6 @@
 # scanner-lote2 proofs
 
-**HEAD**: 30aa45c
+**HEAD**: 5166deb
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 11 pass, 0 fail
@@ -35,7 +35,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 972 tests in 484.339s
+Ran 972 tests in 464.988s
 
 OK (skipped=1)
 inativo
