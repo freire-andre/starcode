@@ -83,7 +83,7 @@ Proof: run unit | test_decisions_scanner_lote2 (test_secret_scan.ScanTextTests.t
 **Integration branch:** feature/scanner-lote2
 **Last integrated:** e5e5cbb
 **Dispatched:** none
-**Settled:** 2026-11-18: spec + issue: "sim"
+**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "sim"
 **Attempts:** none
 **Reports:** 2026-11-18: T1: 655eb53 (R1–R7); test_secret_scan 51 OK; ticket gate verde; worker não rodou a suíte inteira (as provas rodam); 2026-11-18: provas verdes (suíte inteira); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 6 achados (bypass do host local com @localhost:5432@evil.com e ::1evil.example; URL com usuário sem senha acusada, contra R5; C2, C5, C6, C7 fracos); 972 OK; q-check 0. Q precisou de Enter manual para iniciar; 2026-11-18: T1-fix: 34d9ae8 (6 achados); 972 OK; ticket gate verde; Picard conferiu 10 variantes do bypass de host (todas acusadas, exceto host local de fato); 2026-11-18: provas e done verdes (972 OK); 2026-11-18: done verde após escapar \| em 2 células do verification.md (o validador lia como divisor); Guinan: L57, L58, L59 novas, L2 e L32 (--id); retro com 4 sugestões; test_lessons OK
 **Breaker:** closed
