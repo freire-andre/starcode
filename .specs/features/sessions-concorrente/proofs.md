@@ -1,6 +1,6 @@
 # sessions-concorrente proofs
 
-**HEAD**: 4e9283c
+**HEAD**: f616de4
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 9 pass, 0 fail
@@ -33,7 +33,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1025 tests in 545.512s
+Ran 1025 tests in 536.654s
 
 OK (skipped=1)
 inativo

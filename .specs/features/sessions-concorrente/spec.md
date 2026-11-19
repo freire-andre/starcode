@@ -65,12 +65,12 @@ Proof: run unit | test_decisions_sessions_concorrente (test_sessions_concorrente
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Correção pós-Q única (LaForge)
+**Next:** Guinan; PR; Worf
 **Linear:** SC-202
 **Integration branch:** feature/sessions-concorrente
 **Last integrated:** 4e9283c
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-202 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 4 achados (write_session substitui o arquivo inteiro; C1, C5 e C6 frouxos)
+**Reports:** 2026-11-19: Q r1 FAIL: 4 achados (write_session substitui o arquivo inteiro; C1, C5 e C6 frouxos); 2026-11-19: pós-Q: f616de4; achados fechados com close-finding; 2026-11-19: done --strict verde
 **Breaker:** closed
