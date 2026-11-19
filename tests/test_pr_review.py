@@ -59,7 +59,7 @@ class PrReviewTests(unittest.TestCase):
             self.assertLess(sec.index("--phase pr-review"), sec.index("**Modes 1/2"))
             rev = _section(text, "## Review (Worf)")
             self.assertRegex(rev, r"`--phase done` is written only after the merge, or\s+after the user's explicit refusal of the merge", root)
-            self.assertRegex(rev, r"Then, only when the last round leaves no `blocker` or `should-fix` open, the merge authorization is asked\s+\(`git-modes\.md`\)", root)
+            self.assertRegex(rev, r"Then, only when the last round leaves no `blocker` or `should-fix` open \(a finding the user sent to a\s+follow-up issue does not count as open\), the merge authorization is asked\s+\(`git-modes\.md`\)", root)
             self.assertRegex(rev, r"and right then \(modes 3/4 as well as 1/2\) run\s+`python \"P/scripts/crew_live\.py\" progress <slug> --phase done` \(100%\)", root)
 
     def test_execute_gates_apos_correcao_worf(self):
@@ -78,6 +78,9 @@ class PrReviewTests(unittest.TestCase):
             self.assertRegex(rev, r"When the last Worf round ends \(APPROVE, or round 3\) and `review\.md` has a `blocker` or\s+`should-fix` finding fixed or confirmed in any round, the Picard invokes the Guinan in lessons-only mode", root)
             self.assertRegex(rev, r"records the `review_finding` lessons through `lessons\.py` and does not rewrite\s+`retro\.md`", root)
             self.assertRegex(rev, r"Without such a finding the Guinan is not invoked", root)
+            self.assertRegex(rev, r"Before the merge is asked, commit on the PR branch `review\.md`,\s+`review\.json` and the lessons \(`\.specs/lessons\.json` and `\.specs/LESSONS\.md`\) with the message\s+`docs\(specs\): review e lições \(<slug>\)` and the `Refs` footer, and push with the user's confirmation\s+\(`git-modes\.md`\)", root)
+            self.assertLess(rev.index("Without such a finding"), rev.index("docs(specs): review e lições"))
+            self.assertLess(rev.index("docs(specs): review e lições"), rev.index("the merge authorization is asked"))
             sec = _section(_read(root, "skills/guinan/SKILL.md"), "## 1c. Lessons-only mode")
             self.assertRegex(sec, r"`review_finding` signal only, through `lessons\.py`", root)
             self.assertRegex(sec, r"Do not write or rewrite `retro\.md`", root)
@@ -112,7 +115,9 @@ class PrReviewTests(unittest.TestCase):
                        "depois de cada correção do LaForge integrada",
                        "`run_gates.py proofs <slug>` e `run_gates.py done <slug>` no novo HEAD",
                        "`--report \"Worf r<N> <veredito>\"`", "modo só lições", "`review_finding`",
-                       "não reescreve o `retro.md`", "`piloto.py encerrar`", "parada da autorização de merge"):
+                       "não reescreve o `retro.md`", "`piloto.py encerrar`", "parada da autorização de merge",
+                       "commit e push do `review.md`, do `review.json` e das lições antes do merge",
+                       "issue de acompanhamento não conta como aberto"):
             self.assertIn(phrase, decisao, phrase)
         porque = next(ln for ln in entry.splitlines() if ln.startswith("- **Por que não é bug"))
         for name in ("test_fase_pr_review", "test_execute_fase_pr_review", "test_execute_gates_apos_correcao_worf",

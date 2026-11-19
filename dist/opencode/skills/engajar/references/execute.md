@@ -207,7 +207,12 @@ session itself (R17).
   `should-fix` finding fixed or confirmed in any round, the Picard invokes the Guinan in lessons-only mode
   (`skills/guinan`): it records the `review_finding` lessons through `lessons.py` and does not rewrite
   `retro.md`. Without such a finding the Guinan is not invoked. Not on a PEQUENA (no Guinan there).
-- Then, only when the last round leaves no `blocker` or `should-fix` open, the merge authorization is asked
+- **Commit the review and the lessons.** Before the merge is asked, commit on the PR branch `review.md`,
+  `review.json` and the lessons (`.specs/lessons.json` and `.specs/LESSONS.md`) with the message
+  `docs(specs): review e lições (<slug>)` and the `Refs` footer, and push with the user's confirmation
+  (`git-modes.md`).
+- Then, only when the last round leaves no `blocker` or `should-fix` open (a finding the user sent to a
+  follow-up issue does not count as open), the merge authorization is asked
   (`git-modes.md`). `--phase done` is written only after the merge, or
   after the user's explicit refusal of the merge, and right then (modes 3/4 as well as 1/2) run
   `python "P/scripts/crew_live.py" progress <slug> --phase done` (100%).
