@@ -2,10 +2,15 @@
 
 Always blocked (any repo): push --force/-f/--force-with-lease/+refspec/--mirror, remote branch
 deletion (push --delete / :branch), reset --hard, branch -D (or --delete --force), clean -f
-(without --dry-run), checkout/restore of the whole tree (". :/ *").
+(without --dry-run), checkout/restore of the whole tree (". :/ *"), forced checkout (-f/--force) and
+forced switch (--discard-changes/-f/--force), stash drop/clear (SC-196).
+Shells with `c` in combined short flags (`bash -lc "..."`, `sh -ec '...'`) have the inner command
+analyzed. A heredoc whose body is only data (`cat <<EOF > f`, `git commit -m "$(cat <<EOF ...)"`) is
+skipped; the body of a heredoc that goes to a shell (`bash <<EOF`, `... | bash`) is analyzed.
 
 When StarCode is active in the worktree (a Git mode was recorded or .starcode/config.json exists):
-  mode 1: no commit, merge, push or PR       mode 2: no push or PR
+  mode 1: no commit, merge, push or PR (nor cherry-pick, revert, am, pull, rebase, except control
+          flags and --no-commit)             mode 2: no push or PR
   modes 3/4: push and PR allowed (the skill still confirms right before)
   any mode: merge into the base branch, push to the base branch and `gh pr merge` need the user's
   separate authorization, recorded with `git_mode.py authorize-merge <branch>`.
@@ -19,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -31,6 +37,8 @@ SEPARATORS = {"&&", "||", ";", "|", "&", "|&", ";;", "(", ")"}
 WRAPPERS = {"sudo", "command", "env", "time", "nohup", "exec", "xargs"}
 SHELLS = {"bash", "sh", "zsh", "dash", "pwsh", "powershell", "cmd"}
 WHOLE_TREE = {".", "./", ":/", ":(top)", "*", "./*"}
+SHELLS_C = {"bash", "sh", "zsh", "dash"}
+HEREDOC = re.compile(r"(?<!<)<<(?!<)-?[ \t]*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_]\w*))")
 HINT = "Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal."
 
 
@@ -61,6 +69,46 @@ def tokenize(command: str) -> list[list[str]]:
         if current:
             segments.append(current)
     return segments
+
+
+def _goes_to_shell(line: str) -> bool:
+    for seg in tokenize(line):
+        i = 0
+        while i < len(seg) and ("=" in seg[i] and not seg[i].startswith("-")
+                                and seg[i].split("=", 1)[0].isidentifier()):
+            i += 1
+        while i < len(seg) and _base(seg[i]) in WRAPPERS:
+            i += 1
+        if i < len(seg) and _base(seg[i]) in SHELLS:
+            return True
+    return False
+
+
+def strip_heredoc_data(command: str) -> str:
+    """Drop the body lines (and delimiter) of heredocs that are only data; keep shell bodies."""
+    out: list[str] = []
+    pending: list[tuple[str, bool]] = []  # (delimiter, dash) of the heredocs still waiting for a body
+    drop = False
+    for line in command.split("\n"):
+        if pending:
+            delim, dash = pending[0]
+            text = line.lstrip("\t") if dash else line
+            if text.rstrip("\r") == delim:
+                pending.pop(0)
+                if drop:
+                    continue
+            elif drop:
+                continue
+            out.append(line)
+            continue
+        out.append(line)
+        marks = HEREDOC.findall(line)
+        if marks:
+            drop = not _goes_to_shell(line)
+            for a, b, c in marks:
+                dash = bool(re.search(r"<<-", line))
+                pending.append((a or b or c, dash))
+    return "\n".join(out)
 
 
 def _short_flags(args: list[str]) -> set[str]:
@@ -102,7 +150,7 @@ class Guard:
     # --- entry -----------------------------------------------------------------------------
     def evaluate(self, command: str, depth: int = 0) -> str | None:
         cwd = self.cwd
-        for seg in tokenize(command):
+        for seg in tokenize(strip_heredoc_data(command)):
             i = 0
             while i < len(seg) and ("=" in seg[i] and not seg[i].startswith("-")
                                     and seg[i].split("=", 1)[0].isidentifier()):
@@ -117,6 +165,13 @@ class Guard:
                 cwd = str(target if target.is_absolute() else Path(cwd) / target)
                 continue
             if prog in SHELLS and depth < 3:
+                if prog in SHELLS_C:
+                    for k, a in enumerate(args):
+                        if (a.startswith("-") and not a.startswith("--") and len(a) > 2
+                                and a[1:].isalpha() and "c" in a[1:] and k + 1 < len(args)):
+                            reason = Guard(cwd).evaluate(" ".join(args[k + 1:]), depth + 1)
+                            if reason:
+                                return reason
                 for flag in ("-c", "-Command", "-command", "/c", "/C"):
                     if flag in args and args.index(flag) + 1 < len(args):
                         inner = " ".join(args[args.index(flag) + 1:])
@@ -215,11 +270,56 @@ class Guard:
         return None
 
     def _git_checkout(self, args: list[str], cwd: str) -> str | None:
+        if "--force" in args or "f" in _short_flags(args):
+            return ("StarCode bloqueou `git checkout` forçado (-f/--force): descarta mudanças locais sem "
+                    "volta. " + HINT)
         paths = args[args.index("--") + 1:] if "--" in args else [a for a in args if not a.startswith("-")]
         if any(p in WHOLE_TREE for p in paths):
             return ("StarCode bloqueou `git checkout -- .`: descarta todas as mudanças locais. "
                     "Use `git stash` ou peça ao usuário. " + HINT)
         return None
+
+    def _git_switch(self, args: list[str], cwd: str) -> str | None:
+        if "--discard-changes" in args or "--force" in args or "f" in _short_flags(args):
+            return ("StarCode bloqueou `git switch` forçado (--discard-changes, -f ou --force): descarta "
+                    "mudanças locais sem volta. " + HINT)
+        return None
+
+    def _git_stash(self, args: list[str], cwd: str) -> str | None:
+        pos = _positionals(args)
+        if pos and pos[0] in ("drop", "clear"):
+            return (f"StarCode bloqueou `git stash {pos[0]}`: apaga o stash sem volta. " + HINT)
+        return None
+
+    def _mode1_block(self, name: str, cwd: str) -> str | None:
+        ctx = self._ctx(cwd)
+        if ctx["active"] and ctx["mode"] == 1:
+            return (f"StarCode bloqueou `git {name}`: o modo Git deste worktree é 1 (somente código "
+                    "local, sem commits). Para isso, rode /starcode:engajar e escolha o modo 2, 3 ou 4.")
+        return None
+
+    @staticmethod
+    def _git_control(args: list[str]) -> bool:
+        return any(a in ("--abort", "--continue", "--quit", "--skip") for a in args)
+
+    def _git_cherry_pick(self, args: list[str], cwd: str) -> str | None:
+        if self._git_control(args) or "--no-commit" in args or "n" in _short_flags(args):
+            return None
+        return self._mode1_block("cherry-pick", cwd)
+
+    def _git_revert(self, args: list[str], cwd: str) -> str | None:
+        if self._git_control(args) or "--no-commit" in args or "n" in _short_flags(args):
+            return None
+        return self._mode1_block("revert", cwd)
+
+    def _git_am(self, args: list[str], cwd: str) -> str | None:
+        return None if self._git_control(args) else self._mode1_block("am", cwd)
+
+    def _git_pull(self, args: list[str], cwd: str) -> str | None:
+        return None if self._git_control(args) else self._mode1_block("pull", cwd)
+
+    def _git_rebase(self, args: list[str], cwd: str) -> str | None:
+        return None if self._git_control(args) else self._mode1_block("rebase", cwd)
 
     def _git_restore(self, args: list[str], cwd: str) -> str | None:
         if ("--staged" in args or "-S" in args) and not ("--worktree" in args or "-W" in args):

@@ -8,6 +8,8 @@ from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 import starcode_common as sc
 from git_guard import Guard, extract, tokenize
 
+HINT_TEXT = ("Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no "
+             "terminal.")
 HOOK = ROOT / "hooks" / "scripts" / "git_guard.py"
 
 ALWAYS_BLOCKED = [
@@ -70,7 +72,24 @@ ALWAYS_ALLOWED = [
 ]
 
 
+HEREDOC_TOKENS = [
+    ("cat <<EOF > a.md\ngit reset --hard\nEOF\ngit status",
+     [["cat", "<<", "EOF", ">", "a.md"], ["git", "reset", "--hard"], ["EOF"], ["git", "status"]]),
+    ("bash <<-EOF\n\tgit status\n\tEOF",
+     [["bash", "<<", "-EOF"], ["git", "status"], ["EOF"]]),
+    ("git commit -m \"$(cat <<'EOF'\nmsg\nEOF\n)\"",
+     [["git", "commit", "-m", '"$(cat', "<<'EOF'"], ["msg"], ["EOF"], [')"']]),
+    ('cat <<"X" | bash\nls\nX',
+     [["cat", "<<", "X"], ["bash"], ["ls"], ["X"]]),
+]
+
+
 class TokenizeTests(unittest.TestCase):
+    def test_tokenize_inalterado(self):
+        for cmd, expected in HEREDOC_TOKENS:
+            with self.subTest(cmd=cmd):
+                self.assertEqual(tokenize(cmd), expected)
+
     def test_splits_compound_commands(self):
         self.assertEqual(tokenize("git status && git push -f; echo ok | cat"),
                          [["git", "status"], ["git", "push", "-f"], ["echo", "ok"], ["cat"]])
@@ -90,6 +109,78 @@ class NoModeTests(TempRepoCase):
             with self.subTest(cmd=cmd):
                 self.assertIsNone(Guard(str(self.repo)).evaluate(cmd), cmd)
 
+    def test_checkout_e_switch_forcados(self):
+        g = Guard(str(self.repo))
+        for cmd in ("git checkout -f main", "git checkout --force main", "git checkout -fb x",
+                    "git switch --discard-changes main", "git switch -f main", "git switch --force main"):
+            with self.subTest(cmd=cmd):
+                reason = g.evaluate(cmd)
+                self.assertIsNotNone(reason, cmd)
+                self.assertIn("forçado", reason)
+                self.assertTrue(reason.endswith(HINT_TEXT))
+        for cmd in ("git checkout main", "git checkout -b x", "git switch main", "git switch -c x"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(g.evaluate(cmd), cmd)
+
+    def test_stash_drop_e_clear(self):
+        g = Guard(str(self.repo))
+        for cmd in ("git stash drop", "git stash drop stash@{1}", "git stash clear"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNotNone(g.evaluate(cmd), cmd)
+        for cmd in ("git stash", "git stash push -m drop", "git stash pop", "git stash apply",
+                    "git stash list", "git stash show"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(g.evaluate(cmd), cmd)
+
+    def test_shell_com_flags_combinadas(self):
+        g = Guard(str(self.repo))
+        for cmd in ('bash -lc "git reset --hard"', "sh -ec 'git clean -fd'", 'bash -xec "git reset --hard"',
+                    'bash -c "git reset --hard"'):
+            with self.subTest(cmd=cmd):
+                self.assertIsNotNone(g.evaluate(cmd), cmd)
+        self.assertIsNone(g.evaluate('bash -lc "git status"'))
+
+    def test_heredoc_de_dado_passa(self):
+        g = Guard(str(self.repo))
+        for cmd in ("cat <<'EOF' > notas.md\ngit reset --hard\nEOF",
+                    "cat <<EOF > notas.md\ngit reset --hard\nEOF",
+                    "cat <<-EOF > notas.md\n\tgit reset --hard\n\tEOF",
+                    'cat <<"EOF" > notas.md\ngit reset --hard\nEOF',
+                    "git commit -m \"$(cat <<'EOF'\nfix\n\ngit reset --hard\nEOF\n)\""):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(g.evaluate(cmd), cmd)
+
+    def test_heredoc_para_shell_bloqueia(self):
+        g = Guard(str(self.repo))
+        for cmd in ("bash <<EOF\ngit reset --hard\nEOF", "sh <<'EOF'\ngit reset --hard\nEOF",
+                    "cat <<EOF | bash\ngit reset --hard\nEOF",
+                    "cat <<EOF > a.md\nok\nEOF\ngit reset --hard"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNotNone(g.evaluate(cmd), cmd)
+        self.assertIsNone(g.evaluate("bash <<EOF\ngit status\nEOF"))
+
+    def test_decisions_guard_lote2(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        start = text.index("### SC-196:")
+        nxt = text.find("\n### ", start + 1)
+        entry = text[start:nxt if nxt != -1 else len(text)]
+        for field in ("**Problema", "**Decisão", "**Motivo", "**Por que não é bug"):
+            self.assertIn(field, entry)
+        decision = next(l for l in entry.splitlines() if l.startswith("- **Decisão"))
+        for term in ("checkout", "switch", "stash drop", "stash clear", "-lc", "cherry-pick", "revert",
+                     "`am`", "pull", "rebase", "--no-commit", "--abort", "heredoc", "shell"):
+            self.assertIn(term, decision)
+        why = next(l for l in entry.splitlines() if l.startswith("- **Por que não é bug"))
+        for name in ("test_checkout_e_switch_forcados", "test_stash_drop_e_clear",
+                     "test_shell_com_flags_combinadas", "test_modo_1_comandos_que_criam_commit",
+                     "test_heredoc_de_dado_passa", "test_heredoc_para_shell_bloqueia",
+                     "test_tokenize_inalterado"):
+            self.assertIn(name, why)
+        self.assertIn("(SC-196)", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        doc = (ROOT / "hooks" / "scripts" / "git_guard.py").read_text(encoding="utf-8").split('"""')[1]
+        for term in ("stash drop", "switch", "heredoc", "cherry-pick"):
+            self.assertIn(term, doc)
+
     def test_inactive_repo_allows_push_to_main(self):
         self.assertIsNone(Guard(str(self.repo)).evaluate("git push origin main"))
 
@@ -107,6 +198,26 @@ class ModeTests(TempRepoCase):
         for cmd in ("git add .", "git status", "git diff", "git stash"):
             with self.subTest(cmd=cmd):
                 self.assertIsNone(self.guard(cmd))
+
+    def test_modo_1_comandos_que_criam_commit(self):
+        blocked = ("git cherry-pick abc123", "git revert HEAD", "git am p.patch", "git pull",
+                   "git pull origin main", "git rebase main")
+        allowed = ("git cherry-pick --abort", "git cherry-pick --continue", "git cherry-pick -n abc",
+                   "git cherry-pick --no-commit abc", "git revert --no-commit HEAD", "git revert -n HEAD",
+                   "git revert --continue", "git am --abort", "git am --skip", "git pull --quit",
+                   "git rebase --abort", "git rebase --continue", "git rebase --skip", "git rebase --quit")
+        self.set_mode(1)
+        for cmd in blocked:
+            with self.subTest(mode=1, cmd=cmd):
+                self.assertIn("modo Git deste worktree é 1", self.guard(cmd) or "")
+        for cmd in allowed:
+            with self.subTest(mode=1, cmd=cmd):
+                self.assertIsNone(self.guard(cmd), cmd)
+        for mode in (2, 3, 4):
+            self.set_mode(mode)
+            for cmd in blocked:
+                with self.subTest(mode=mode, cmd=cmd):
+                    self.assertIsNone(self.guard(cmd), cmd)
 
     def test_mode_2(self):
         self.set_mode(2)

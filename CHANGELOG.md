@@ -10,6 +10,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Alterado
 
+- `git_guard.py`: bloqueia `git checkout -f`/`--force`, `git switch --discard-changes|-f|--force` e `git stash drop|clear` em qualquer repo; analisa o comando interno de `bash -lc`/`-ec` (flags curtas com `c`); no modo 1 bloqueia `cherry-pick`, `revert`, `am`, `pull` e `rebase` (exceto `--abort`, `--continue`, `--quit`, `--skip` e `-n`/`--no-commit`); ignora o corpo de heredoc que é só dado e continua analisando o que vai para um shell (SC-196).
 - Scanner de segredos: escaneia o texto inteiro do comando que publica (inclusive heredoc), passa a cobrir `gh issue create|comment|edit` e `gh pr review`, e deixa de acusar string de conexão com placeholder ou host local, `AUTHOR_EMAIL` e URL sem credencial (SC-195).
 - `review_gate.py` ganha `require_text` (no lugar do `blank`, com teste de tabela) e `argparse`: `--help` sai com 0 e sem argumento o exit é diferente de 0; um teste roda `--help` em cada script de `dist/claude/scripts/review/`; a retro da fase 9 ganha a coluna `Estado` (SC-190).
 - Correções do lote 1 (SC-188): cabeçalho da Guinan na forma `(F6-6)` das outras skills (nenhuma do `dist/` tem `Header first`); `sees()` das provas exige palavra inteira e aceita a docstring do `unittest` verboso; comando de prova passa de 1800 s é encerrado e vira `fail - tempo limite (1800 s)`; o scanner de segredos só pula como binário o diff `Binary files ... differ` ou com byte nulo e avisa no stderr quando pula um arquivo.
