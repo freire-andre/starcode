@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-203
-**May change**: skills/worf/SKILL.md, skills/mccoy/SKILL.md, evals/routing/, evals/README.md, tests/test_evals_f9.py, tests/test_worf_skill.py, tests/test_roteamento_worf_mccoy.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: skills/worf/SKILL.md, skills/mccoy/SKILL.md, evals/routing/, evals/README.md, tests/test_evals_f9.py, tests/test_worf_skill.py, skills/piloto-automatico/SKILL.md, tests/test_roteamento_worf_mccoy.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Esta spec cobre o item 3.3 da triagem v2. O discovery está em `.specs/features/roteamento-worf-mccoy/context.md`. As descrições do `worf` e do `mccoy` têm gatilhos genéricos, sem StarCode ("review do PR", "revise esse PR", "esse teste não passa", "investigue o bug"), e o eval de roteamento não tem quase-acertos nem os pares `config` × `setup` e `piloto-automatico` × `engajar`.
@@ -23,7 +23,6 @@ Esta spec cobre o item 3.3 da triagem v2. O discovery está em `.specs/features/
 | Item | Options | User answer |
 |---|---|---|
 | `pos-piloto-automatico` falhou no eval (foi para o `engajar`) | dar gatilhos ao piloto / tirar o caso e abrir issue / manter falhando | approved - user: "Dar gatilhos ao piloto (Recomendado)" |
-| Causa real: `invocation: user` no `src/crew.yaml` vira `disable-model-invocation: true` | liberar o modelo (both) / manter só o usuário | approved - user: "Manter só o usuário (Recomendado)" |
 | Causa real: `invocation: user` no `src/crew.yaml` vira `disable-model-invocation: true` | liberar o modelo (both) / manter só o usuário | approved - user: "Manter só o usuário (Recomendado)": o caso sai, o R6 volta à descrição anterior |
 
 Os demais casos novos estão no `context.md` (Gray Areas) e valem com a aprovação desta spec.
