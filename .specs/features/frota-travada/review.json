@@ -1,0 +1,24 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O stalled só é preenchido com batch vazio e todas as entradas ativas blocked, a linha travado: é comparada inteira e o execute.md para nos passos 1 e 10 com as duas opções. Um nit: FrotaTravadaTests herda de BatchTests e roda de novo os 10 testes herdados. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "tests/test_dispatch.py",
+   "line": 719,
+   "body": "FrotaTravadaTests herda de BatchTests para reaproveitar os helpers (tasks, active, integrate) e, por isso, o unittest roda de novo os 10 testes de BatchTests sob a classe nova (14 testes listados em FrotaTravadaTests, 4 próprios). Extrair os helpers para uma base sem testes (mixin) ou acrescentar os 4 testes à própria BatchTests evita a duplicação.",
+   "evidence": "tests/test_dispatch.py:719"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: dispatch.py (biblioteca padrão) e texto de fluxo"
+ ],
+ "ladder": [
+  "python tools/build.py --check: ok; python scripts/check_decisions.py: ok; claude plugin validate dist/claude --strict: ok",
+  "unittest test_dispatch: OK; run_gates.py proofs (4/4) e done --strict: verdes",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}
