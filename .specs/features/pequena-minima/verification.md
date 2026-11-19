@@ -22,9 +22,9 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| O gate aceita `waivedness` como dispensa e deixa passar uma verificação sem tabelas. | `$env:PYTHONDONTWRITEBYTECODE='1'; python -c "import sys; sys.path[:0]=['tests','scripts','scripts/gates']; import test_pequena_minima as t; x=t.PequenaTests(); x.setUp(); x.done_repo(verification='**Verification:** waivedness'); r=t.validate_verification.evaluate('peq',x.repo); print('errors:',r.errors); print('warnings:',r.warnings); x.tearDown()"` → `errors: []`<br>`warnings: ['Q dispensado (PEQUENA)']` | Delimitar o valor do marcador e testar valores inválidos no gate completo. | |
-| A prova citada de C4 não exercita o `settle` nem a ordem do gate antes do merge. | `tests/test_pequena_minima.py:154` | Citar também `test_settle_small_roda_gate_ticket` na prova de C4. | |
-| C7 aceita `Worf` em qualquer ponto após o início da seção 8, mesmo sem exigir revisão no PR. | `tests/test_pequena_minima.py:298` | Verificar a relação entre Worf e PR na instrução do caminho SMALL. | |
+| O gate aceita `waivedness` como dispensa e deixa passar uma verificação sem tabelas. | `$env:PYTHONDONTWRITEBYTECODE='1'; python -c "import sys; sys.path[:0]=['tests','scripts','scripts/gates']; import test_pequena_minima as t; x=t.PequenaTests(); x.setUp(); x.done_repo(verification='**Verification:** waivedness'); r=t.validate_verification.evaluate('peq',x.repo); print('errors:',r.errors); print('warnings:',r.warnings); x.tearDown()"` → `errors: []`<br>`warnings: ['Q dispensado (PEQUENA)']` | Delimitar o valor do marcador e testar valores inválidos no gate completo. | e8eb40a |
+| A prova citada de C4 não exercita o `settle` nem a ordem do gate antes do merge. | `tests/test_pequena_minima.py:154` | Citar também `test_settle_small_roda_gate_ticket` na prova de C4. | 30cec43 |
+| C7 aceita `Worf` em qualquer ponto após o início da seção 8, mesmo sem exigir revisão no PR. | `tests/test_pequena_minima.py:298` | Verificar a relação entre Worf e PR na instrução do caminho SMALL. | d7dc186 |
 
 ## Limits
 

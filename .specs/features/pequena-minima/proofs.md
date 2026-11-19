@@ -1,9 +1,9 @@
 # pequena-minima proofs
 
-**HEAD**: 9978cbe
+**HEAD**: d7dc186
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 11 pass, 0 fail
+**Result**: 12 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -11,6 +11,7 @@
 | C2 | `run unit / test_spec_small_limite (test_pequena_minima.PequenaTests.test_spec_small_limite) ... ok` | pass |
 | C3 | `run unit / test_small_sem_aprovacao (test_pequena_minima.PequenaTests.test_small_sem_aprovacao) ... ok` | pass |
 | C4 | `run unit / test_dispatch_small_t1 (test_pequena_minima.PequenaTests.test_dispatch_small_t1) ... ok` | pass |
+| C4 | `run unit / test_settle_small_roda_gate_ticket (test_pequena_minima.PequenaTests.test_settle_small_roda_gate_ti` | pass |
 | C5 | `run unit / test_q_waive (test_pequena_minima.PequenaTests.test_q_waive) ... ok` | pass |
 | C6 | `run unit / test_done_waived (test_pequena_minima.PequenaTests.test_done_waived) ... ok` | pass |
 | C7 | `run unit / test_textos_fluxo_pequena (test_pequena_minima.PequenaTests.test_textos_fluxo_pequena) ... ok` | pass |
@@ -35,7 +36,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 989 tests in 496.827s
+Ran 989 tests in 495.928s
 
 OK (skipped=1)
 inativo
