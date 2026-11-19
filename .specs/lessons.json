@@ -36,7 +36,8 @@
         "opencode-copia-instalada",
         "verificacao-1-8-0",
         "scanner-lote2",
-        "guard-lote2"
+        "guard-lote2",
+        "pequena-minima"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -53,11 +54,12 @@
         ".specs/features/verificacao-1-8-0/verification.md:43",
         ".specs/features/scanner-lote2/verification.md:26",
         ".specs/features/scanner-lote2/verification.md:27",
-        ".specs/features/guard-lote2/verification.md:27"
+        ".specs/features/guard-lote2/verification.md:27",
+        "verification.md: achado 3 (C7 Worf sem PR)"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-19T00:58:27Z"
+      "updated": "2026-11-19T11:59:04Z"
     },
     {
       "id": "L3",
@@ -176,18 +178,20 @@
         "despacho-media-escopo",
         "q-familia-revendedor",
         "opencode-copia-instalada",
-        "verificacao-1-8-0"
+        "verificacao-1-8-0",
+        "pequena-minima"
       ],
       "sources": [
         ".specs/features/fase-11-telas/verification.md:achado 3",
         "L29 (verification.md: achado ID em minúscula; spec.md Edge Cases)",
         "L31 (verification.md achado C7 (test_model_info.py:164))",
         ".specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)",
-        ".specs/features/verificacao-1-8-0/verification.md:40"
+        ".specs/features/verificacao-1-8-0/verification.md:40",
+        "verification.md: achado 2 (prova da C4 sem settle)"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-16T17:20:28Z"
+      "updated": "2026-11-19T11:59:04Z"
     },
     {
       "id": "L11",
@@ -999,6 +1003,21 @@
       "scope": "",
       "created": "2026-11-19T00:58:27Z",
       "updated": "2026-11-19T00:58:27Z"
+    },
+    {
+      "id": "L62",
+      "text": "Ao casar um marcador de estado por regex, delimite o valor (palavra inteira até o fim da linha) e teste um valor que só começa igual, porque 'waivedness' dispensava o Q e o gate passava sem tabelas.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "pequena-minima"
+      ],
+      "sources": [
+        "verification.md: achado 1 (waivedness)"
+      ],
+      "scope": "",
+      "created": "2026-11-19T11:59:04Z",
+      "updated": "2026-11-19T11:59:04Z"
     }
   ]
 }

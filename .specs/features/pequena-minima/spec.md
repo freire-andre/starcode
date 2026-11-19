@@ -83,7 +83,7 @@ Proof: run unit | test_decisions_pequena_minima (test_pequena_minima.PequenaTest
 **Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Guinan faz a retro; depois PR e Worf
+**Next:** PR (com confirmação) e Worf
 **Linear:** SC-197
 **Integration branch:** feature/pequena-minima
 **Last integrated:** 9978cbe
