@@ -79,13 +79,13 @@ Proof: run unit | test_decisions_pequena_minima (test_pequena_minima.PequenaTest
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-197)
+**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
 **Linear:** SC-197
 **Integration branch:** feature/pequena-minima
-**Last integrated:** none
+**Last integrated:** 9978cbe
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: sim; issue SC-197 criada
 **Attempts:** none
