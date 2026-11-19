@@ -31,6 +31,7 @@ Esta spec cobre o item 2.5 e a parte do 2.2 sobre o bloqueio falso do `git_guard
 |---|---|---|
 | Divisão do lote 2 | por hook (scanner antes, `git_guard` agora) / lote inteiro / um item por missão | approved - user: "Por hook, 2 missões (Recomendado)" |
 | Heredoc que vai para um shell | shell continua bloqueado / todo corpo passa | approved - user: "Shell continua bloqueado (Recomendado)" |
+| W1 do Worf (r1): heredoc para shell via wrapper com opção, `source`, `.` ou `eval` | corrigir no mesmo PR / merge e follow-up | approved - user: "Corrigir no mesmo PR (Recomendado)" |
 
 ## Requirements
 - **R1** - WHEN o comando é `git checkout` com `-f` ou `--force` (inclusive combinado, ex.: `-fb`), ou `git switch` com `--discard-changes`, `-f` ou `--force`, THEN o hook SHALL bloquear o comando em qualquer repo, com motivo que cita o comando e o `HINT`. Sem essas flags, `git checkout main`, `git checkout -b x` e `git switch main` SHALL passar.
@@ -38,7 +39,7 @@ Esta spec cobre o item 2.5 e a parte do 2.2 sobre o bloqueio falso do `git_guard
 - **R3** - WHEN um shell de `SHELLS` (`bash`, `sh`, `zsh`, `dash`) recebe uma flag curta combinada que contém `c` (ex.: `-lc`, `-ec`, `-xec`) THEN o hook SHALL analisar o argumento seguinte como comando, como já faz com `-c`. `bash -lc "git reset --hard"` e `sh -ec 'git clean -fd'` SHALL ser bloqueados. `bash -lc "git status"` SHALL passar.
 - **R4** - WHILE o modo Git do worktree é 1 the hook SHALL bloquear `git cherry-pick`, `git revert`, `git am`, `git pull` e `git rebase`. Continuam passando as flags de controle (`--abort`, `--continue`, `--quit`, `--skip`) e `cherry-pick`/`revert` com `-n` ou `--no-commit`. Nos modos 2, 3 e 4 esses comandos SHALL passar.
 - **R5** - WHEN o comando tem um heredoc (`<<DELIM`, `<<-DELIM`, `<<'DELIM'` ou `<<"DELIM"`) cujo comando não é um shell e não está ligado por `|` a um shell THEN o hook SHALL ignorar as linhas do corpo até o delimitador e analisar o resto como antes. `cat <<'EOF' > notas.md` com uma linha `git reset --hard` SHALL passar, e `git commit -m "$(cat <<'EOF' ...)"` com essa linha no corpo SHALL passar.
-- **R6** - WHEN o corpo do heredoc vai para um shell (`bash <<EOF`, `sh <<EOF`, `cat <<EOF | bash`) THEN o hook SHALL analisar as linhas do corpo como comandos. Com uma linha `git reset --hard` no corpo, esses comandos SHALL ser bloqueados. Um comando depois do delimitador SHALL continuar sendo analisado: `cat <<EOF > a.md` ... `EOF` seguido de `git reset --hard` SHALL ser bloqueado.
+- **R6** - WHEN o corpo do heredoc pode ir para um shell, isto é, algum token do pipeline do heredoc tem base em `SHELLS`, `source`, `.` ou `eval` (ex.: `bash <<EOF`, `cat <<EOF | bash`, `cat <<EOF | sudo -u root bash`, `nice -n 5 sh <<EOF`, `source /dev/stdin <<EOF`, `eval "$(cat <<EOF ...)"`) THEN o hook SHALL analisar as linhas do corpo como comandos (na dúvida, shell). Com uma linha `git reset --hard` no corpo, esses comandos SHALL ser bloqueados. Um comando depois do delimitador SHALL continuar sendo analisado: `cat <<EOF > a.md` ... `EOF` seguido de `git reset --hard` SHALL ser bloqueado.
 - **R7** - The system SHALL manter a saída de `tokenize` igual à de hoje, e todos os testes de `tests/test_secret_scan.py` SHALL continuar passando.
 - **R8** - The system SHALL ter no `DECISIONS.md` a entrada da issue desta feature (`### SC-196:`) com **Problema**, **Decisão**, **Motivo** e **Por que não é bug**. A **Decisão** SHALL trazer R1 a R6 em frase: checkout e switch forçados, `stash drop`/`clear`, flags combinadas com `c`, os cinco comandos do modo 1 com as exceções, e o heredoc de dado contra o de shell. O **Por que não é bug** SHALL citar os testes. SHALL ter também uma linha em `CHANGELOG.md` `[Unreleased]` e a docstring de `git_guard.py` atualizada com os bloqueios novos.
 
@@ -81,7 +82,7 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 
 ## Handoff
 
-**Phase:** review
+**Phase:** execute
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** usuário decide W1
@@ -89,7 +90,7 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 **Integration branch:** feature/guard-lote2
 **Last integrated:** fee09e6
 **Dispatched:** none
-**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "Sim"; 2026-11-18: PR aberto: https://github.com/freire-andre/starcode/pull/66
+**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "Sim"; 2026-11-18: PR aberto: https://github.com/freire-andre/starcode/pull/66; 2026-11-18: review r1 publicado; W1: "Corrigir no mesmo PR (Recomendado)" (R6 emendado)
 **Attempts:** none
 **Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 4 achados (contorno: '# <<EOF' em comentário esconde a linha seguinte; falsos bloqueios: checkout -- -f, heredoc + shell em segmento separado, <<- e << juntos; C1, C3, C4, C5, C8 fracos); 980 OK; q-check 0; 2026-11-18: T1-fix: e077846 (4 achados); 980 OK; ticket gate verde; Picard sondou 30 entradas: contornos com comentário e aspas bloqueados; o único que passa (echo a#<<EOF) abre heredoc de verdade no bash, porque # no meio da palavra não é comentário; 2026-11-18: provas e done verdes em fee09e6 (980 OK); 2026-11-18: Guinan: L60, L61 novas, L2 e L32 (--id); retro com 3 sugestões; test_lessons OK; 2026-11-18: Worf r1: REQUEST_CHANGES, W1 blocker (heredoc para shell via sudo -u, env -i, nice, timeout, xargs -0, source, ., eval vira dado e passa; na main bloqueava); gate 0
 **Breaker:** closed
