@@ -17,6 +17,8 @@ never the target code.
   ERRO  verification.md with no `## Checks` table, or a check with no row or no test in it
   ERRO  verification.md with no `## Findings`, or a finding whose `Closed` cell names no commit of this repo
         (Git mode 1: `degradada (modo 1)` instead of a commit, only with degraded verification)
+  ERRO  a `Closed` cell with a commit but no coverage (`C<n>` of the feature or an existing `test_<name>`), and a row of
+        `## Checks`/`## Findings` whose cell count differs from the header (SC-199; `dispatch.py close-finding`)
   ERRO  `**Verification:** waived` on a spec that is not SMALL; on a SMALL one it replaces the Q tables (AVISO)
   ERRO  spec.md (not SMALL: the minimal PEQUENA spec has no approval, D-a) or tasks.md with no `**Approved**: <date> - user: "<words>"`
   ERRO  a feature has a binding capture cited by a requirement (a "feature with screens") and: no `screens.md`
@@ -99,6 +101,168 @@ def _col(header: list[str], *names: str) -> int | None:
 
 def _cell(row: list[str], i: int | None) -> str:
     return row[i].strip() if i is not None and i < len(row) else ""
+
+
+# --- tables with line numbers, closing of findings (SC-199) -------------------------------------------
+
+COVER_ID_RE = re.compile(r"\bC\d+\b")
+COVER_TEST_RE = re.compile(r"\btest_\w+")
+SEP_ROW_RE = re.compile(r"^\|?[\s:|-]+\|?$")
+CLOSED_DOT = "·"
+
+
+def numbered_lines(text: str) -> list[tuple[int, str]]:
+    """(1-based line number, rstripped text) of every line outside fenced code blocks."""
+    out, in_fence = [], False
+    for i, ln in enumerate(text.splitlines(), 1):
+        if ln.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence:
+            out.append((i, ln.rstrip()))
+    return out
+
+
+def section_pairs(pairs: list[tuple[int, str]], name: str) -> list[tuple[int, str]] | None:
+    """Like gc.section, over numbered lines."""
+    pat = re.compile(r"^##\s+" + re.escape(name) + r"\s*\*?\s*$", re.IGNORECASE)
+    start = next((i + 1 for i, (_, ln) in enumerate(pairs) if pat.match(ln.strip())), None)
+    if start is None:
+        return None
+    body = []
+    for item in pairs[start:]:
+        lvl = gc.heading_level(item[1])
+        if lvl and lvl <= 2:
+            break
+        body.append(item)
+    return body
+
+
+def cell_spans(line: str) -> list[tuple[int, int]]:
+    """Character span of every cell of a table row, between its `|` (an escaped `&#124;` is not one)."""
+    text = line.rstrip()
+    pipes = [i for i, ch in enumerate(text) if ch == "|"]
+    if not pipes:
+        return []
+    lead = text[:pipes[0]].strip() == ""
+    starts = [pipes[0] + 1] if lead else [0]
+    bounds = pipes[1:] if lead else pipes[:]
+    spans, begin = [], starts[0]
+    for b in bounds:
+        spans.append((begin, b))
+        begin = b + 1
+    if begin < len(text) or not bounds:
+        spans.append((begin, len(text)))
+    return spans
+
+
+class Table:
+    def __init__(self, header: list[str], size: int):
+        self.header, self.size = header, size
+        self.rows: list[tuple[int, list[str], list[tuple[int, int]]]] = []  # (line, cells, spans)
+        self.bad: list[tuple[int, int]] = []  # (line, cells)
+
+
+def numbered_tables(body: list[tuple[int, str]]) -> list[Table]:
+    out: list[Table] = []
+    buf: list[tuple[int, str]] = []
+    for item in body + [(0, "")]:
+        if item[1].strip().startswith("|"):
+            buf.append(item)
+            continue
+        rows = [(n, ln) for n, ln in buf if not (SEP_ROW_RE.match(ln.strip()) and "-" in ln)]
+        buf = []
+        if len(rows) < 2:
+            continue
+        hspans = cell_spans(rows[0][1])
+        t = Table([rows[0][1][a:b].strip().lower() for a, b in hspans], len(hspans))
+        for n, ln in rows[1:]:
+            spans = cell_spans(ln)
+            if len(spans) != t.size:
+                t.bad.append((n, len(spans)))
+            else:
+                t.rows.append((n, [ln[a:b].strip() for a, b in spans], spans))
+        out.append(t)
+    return out
+
+
+def feature_check_ids(fdir: Path) -> list[str]:
+    src = fdir / "tasks.md" if (fdir / "tasks.md").exists() else fdir / "spec.md"
+    checks, _, _ = gc.read_checks(gc.read_lines(src))
+    return [c.cid for c in checks]
+
+
+def defines_test(root: Path, name: str) -> bool:
+    """True when some file under tests/ at HEAD defines `def <name>(`."""
+    code, _ = _git(root, "grep", "-q", "-E", "-e", rf"^[[:space:]]*def {re.escape(name)}[[:space:]]*\(",
+                   "HEAD", "--", "tests")
+    return code == 0
+
+
+def valid_cover(root: Path, fdir: Path, token: str) -> bool:
+    if re.fullmatch(r"C\d+", token):
+        return token in feature_check_ids(fdir)
+    if re.fullmatch(r"test_\w+", token):
+        return defines_test(root, token)
+    return False
+
+
+def cover_tokens(closed: str) -> list[str]:
+    part = closed.split(CLOSED_DOT, 1)[1] if CLOSED_DOT in closed else closed
+    return COVER_ID_RE.findall(part) + COVER_TEST_RE.findall(part)
+
+
+def findings_table(vtext: str) -> tuple[list[tuple[int, str]], list[Table]]:
+    """(numbered lines, tables of `## Findings`); raises ValueError when verification.md has no findings table."""
+    pairs = numbered_lines(vtext)
+    body = section_pairs(pairs, "Findings")
+    if body is None:
+        raise ValueError("verification.md sem `## Findings`")
+    return pairs, [t for t in numbered_tables(body) if _col(t.header, "closed") is not None]
+
+
+def close_finding(fdir: Path, root: Path, n: int, commits: list[str], covers: list[str]) -> str:
+    """Writes `<sha7> · <cover>` in the `Closed` cell of finding n. ValueError (exit 2) names the problem;
+    nothing is written then. Only the bytes of that cell change."""
+    vpath = fdir / "verification.md"
+    if not vpath.exists():
+        raise ValueError("falta verification.md")
+    raw = vpath.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"verification.md não é UTF-8: {exc}")
+    _, tables = findings_table(text)
+    if not tables:
+        raise ValueError("`## Findings` sem tabela com a coluna `Closed`")
+    for t in tables:
+        if t.bad:
+            line, m = t.bad[0]
+            raise ValueError(f"verification.md:{line}: {m} células, o cabeçalho tem {t.size} (escape pipe como &#124;)")
+    rows = [(t, r) for t in tables for r in t.rows]
+    if n < 1 or n > len(rows):
+        raise ValueError(f"achado {n} fora da faixa: a tabela tem {len(rows)} achado(s)")
+    shorts = []
+    for sha in commits:
+        code, out = (1, "") if sha.startswith("-") or not sha else _git(root, "rev-parse", "--verify", "-q", f"{sha}^{{commit}}")
+        if code != 0 or not out:
+            raise ValueError(f"o commit {sha or '(vazio)'} não existe neste repositório")
+        shorts.append(out[:7])
+    for cov in covers:
+        if not valid_cover(root, fdir, cov):
+            raise ValueError(f"cobertura '{cov}' inválida: use um C<n> dos checks da feature ou um test_<nome> "
+                             "definido como `def test_<nome>` em tests/ no HEAD")
+    t, (line, _cells, spans) = rows[n - 1]
+    ci = _col(t.header, "closed")
+    a, b = spans[ci]
+    lines = text.splitlines(keepends=True)
+    old = lines[line - 1]
+    body = old.rstrip("\r\n")
+    eol = old[len(body):]
+    new_cell = f" {', '.join(shorts)} {CLOSED_DOT} {', '.join(covers)} "
+    lines[line - 1] = body[:a] + new_cell + body[b:] + eol
+    vpath.write_bytes("".join(lines).encode("utf-8"))
+    return f"achado {n} fechado: {', '.join(shorts)} {CLOSED_DOT} {', '.join(covers)}"
 
 
 def _binding_captures(fdir: Path, res: gc.Result) -> list[Path]:
@@ -255,13 +419,17 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
         res.warnings.append("Q dispensado (PEQUENA)")
         _check_screens(fdir, strict, res)
         return res
-    vchecks = gc.section(vlines, "Checks")
+    vpairs = numbered_lines(vpath.read_text(encoding="utf-8", errors="replace"))
     judged: dict[str, str] = {}
-    for header, rows in _tables(vchecks or []):
-        ci, ti = _col(header, "check"), _col(header, "test")
+    vchecks = section_pairs(vpairs, "Checks")
+    for table in numbered_tables(vchecks or []):
+        for line, m in table.bad:
+            res.errors.append(f"verification.md:{line}: {m} células, o cabeçalho tem {table.size} "
+                              "(escape pipe como &#124;)")
+        ci, ti = _col(table.header, "check"), _col(table.header, "test")
         if ci is None or ti is None:
             continue
-        for r in rows:
+        for _, r, _ in table.rows:
             judged[_cell(r, ci).strip("*` ")] = _cell(r, ti)
     if not judged:
         res.errors.append("verification.md sem tabela em `## Checks` (| Check | Test | Holds |)")
@@ -271,16 +439,19 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
                 res.errors.append(f"verification.md: {cid} sem linha em `## Checks`")
             elif not judged[cid] or judged[cid] in ("-", "—"):
                 res.errors.append(f"verification.md: {cid} sem o teste que o Q conferiu")
-    findings = gc.section(vlines, "Findings")
+    findings = section_pairs(vpairs, "Findings")
     if findings is None:
         res.errors.append("verification.md sem `## Findings` (use `None.` quando não houver achados)")
     else:
-        for header, rows in _tables(findings):
-            fi, cl = _col(header, "finding"), _col(header, "closed")
+        for table in numbered_tables(findings):
+            for line, m in table.bad:
+                res.errors.append(f"verification.md:{line}: {m} células, o cabeçalho tem {table.size} "
+                                  "(escape pipe como &#124;)")
+            fi, cl = _col(table.header, "finding"), _col(table.header, "closed")
             if cl is None:
                 res.errors.append("`## Findings` sem a coluna `Closed`")
                 continue
-            for r in rows:
+            for _, r, _ in table.rows:
                 name, closed = _cell(r, fi)[:50] or "achado", _cell(r, cl)
                 if MODE1_CLOSED in closed.lower():
                     if not degraded:
@@ -291,6 +462,9 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
                     res.errors.append(f"achado '{name}' sem commit em `Closed`: corrija e cite o commit (ciclo 4.6)")
                 elif not any(_is_commit(proj, s) for s in shas):
                     res.errors.append(f"achado '{name}': `Closed` cita {shas[0]}, que não é commit deste repo")
+                elif not any(valid_cover(proj, fdir, t) for t in cover_tokens(closed)):
+                    res.errors.append(f"achado '{name}': `Closed` sem cobertura (C<n> ou test_<nome>): "
+                                      "use dispatch.py close-finding")
 
     _check_screens(fdir, strict, res)
 

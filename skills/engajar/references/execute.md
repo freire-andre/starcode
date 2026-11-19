@@ -168,7 +168,8 @@ before any new `batch`.
 
 ## 5. Post-Q cycle (4.6) and the end
 - Open findings → **one** LaForge dispatch in the worktree of `I` with **all findings in one brief**;
-  each fix is a commit with `Refs: <ID>` citing the finding. Then write the commit in each `Closed` cell.
+  each fix is a commit with `Refs: <ID>` citing the finding. Then close each finding with
+  `python "P/scripts/dispatch.py" close-finding <slug> <n> --commit <sha> --cover <C<n>|test_name>` (no hand-editing of the `Closed` cell; it checks the commit and the coverage).
 - Screens (R28): the `differs` rows of `screens.md` join the same single fix brief, with the Q findings. After the
   fix, dispatch the judge again with `dispatch.py screens-brief ... --round 2` (only the pictures and `differs` rows;
   there is no round 3). What still differs after round 2 goes to the user with the evidence.

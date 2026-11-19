@@ -85,6 +85,7 @@ Also note a rule the diff implements that no check covers, when it can be wrong 
 
 - In Evidence, a finding from a probe carries the exact command in backticks and the literal output it printed; `<file>:<line>` alone is valid only for findings from reading code (steps 1 and 3).
 - One `## Checks` row for **every** check of `## Checks` in the tasks file, with the test you opened.
+- Write every pipe inside a cell as `&#124;`, also inside backticks (a raw `|` splits the cell and the `done` gate rejects the row).
 - Leave `Closed` empty: the fix commit is written there later. With no findings, write `None.` under
   `## Findings` instead of the table.
 - `**Verdict**: FAIL` when there is at least one finding.

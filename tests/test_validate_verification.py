@@ -102,8 +102,8 @@ class ValidateVerificationTests(TempRepoCase):
         self.assertIn("C2 sem o teste", errs)
         # closing with a real commit passes that rule
         sha = run_git(self.repo, "rev-parse", "--short", "HEAD")
-        (fdir / "verification.md").write_text(verification(findings.replace("| |\n", f"| {sha} C1 |\n")
-                                                           .replace("abcdef1234", sha)), encoding="utf-8")
+        (fdir / "verification.md").write_text(verification(findings.replace("| |\n", f"| {sha} · C1 |\n")
+                                                           .replace("abcdef1234", f"{sha} · C2")), encoding="utf-8")
         res = vv.evaluate("demo", self.repo)
         self.assertFalse(any("Closed" in e for e in res.errors), res.report())
 
