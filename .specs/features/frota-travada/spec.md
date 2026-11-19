@@ -25,15 +25,15 @@ Proof: run unit | test_decisions_frota_travada (test_dispatch.FrotaTravadaTests.
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-200)
+**Next:** push e PR (confirmação); Worf
 **Linear:** SC-200
 **Integration branch:** feature/frota-travada
-**Last integrated:** none
-**Dispatched:** T1 · SC-200 · base 2257294 · claude:claude-sonnet-5-5 · 2026-11-19T16:58:12Z · ctx_76035a8961e3
+**Last integrated:** 982fed7
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA)
 **Breaker:** closed
