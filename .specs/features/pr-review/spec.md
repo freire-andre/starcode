@@ -74,15 +74,15 @@ Proof: run unit | test_decisions_pr_review (test_pr_review.PrReviewTests.test_de
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** commit e push do review e das lições (confirmação); depois autorização de merge
+**Next:** nenhum: missão concluída
 **Linear:** SC-198
 **Integration branch:** feature/pr-review
 **Last integrated:** 10154e8
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-198 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (merge após r3 aberta; retomada com PR mergeado; Guinan exclui corrigidos; asserções frouxas C1/C3/C7); 2026-11-19: pós-Q: 48d7055, ca5b699; done --strict verde; 2026-11-19: PR #68 aberto; 2026-11-19: Worf r1 COMMENT; 2026-11-19: Worf r2 APPROVE
+**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (merge após r3 aberta; retomada com PR mergeado; Guinan exclui corrigidos; asserções frouxas C1/C3/C7); 2026-11-19: pós-Q: 48d7055, ca5b699; done --strict verde; 2026-11-19: PR #68 aberto; 2026-11-19: Worf r1 COMMENT; 2026-11-19: Worf r2 APPROVE; 2026-11-19: merge cbe46fe (PR #68); SC-198 Done
 **Breaker:** closed
