@@ -1,0 +1,17 @@
+{
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. W1 resolvido em a472654: o execute.md manda commitar review.md, review.json e as lições no ramo do PR e fazer o push confirmado antes de pedir o merge. W2 resolvido em a472654: o achado que o usuário mandou para uma issue de acompanhamento não conta como aberto. Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolved em a472654",
+  "W2": "resolved em a472654"
+ },
+ "research": [
+  "nenhuma superfície externa: textos de fluxo e handoff.py (biblioteca padrão)"
+ ],
+ "ladder": [
+  "run_gates.py proofs e done --strict no HEAD após a472654: verdes",
+  "test_pr_review, test_flow*, test_crew_live, build --check, check_decisions, plugin validate --strict e ticket T1: verdes (relatório do worker)"
+ ]
+}

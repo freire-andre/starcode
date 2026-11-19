@@ -83,6 +83,11 @@ Everything else that STARCODE.md lists as a business decision, gray area, tasks 
 confirmation, McCoy option or Q fix choice is delegable. Each stop that is not delegable is recorded too,
 with `--decision "devolvido ao usuário"`.
 
+## 5b. Worf rounds and the merge stop
+The autopilot **stays on** during the Worf rounds (the LaForge fixes and the next rounds are delegable). At
+the merge authorization stop, after the last round and the Guinan's lessons, run
+`piloto.py encerrar <slug> --reason "parada da autorização de merge"` and ask the user.
+
 ## 6. Resume and switch off
 - After a compaction or a new session: `piloto.py ativo <slug>` exit 0 → continue in autopilot from the
   Handoff (`engajar` B.2); the Git mode is still asked.

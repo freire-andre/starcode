@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 15
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2, pequena-minima
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27, verification.md: achado 3 (C7 Worf sem PR)
-- updated: 2026-11-19T11:59:04Z
+- signal: `weak_test` · features: 16
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2, pequena-minima, pr-review
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27, verification.md: achado 3 (C7 Worf sem PR), verification.md: achados 4 e 5 (asserções por trecho)
+- updated: 2026-11-19T14:18:01Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -20,10 +20,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-14T23:53:01Z
 
 ### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
-- signal: `weak_test` · features: 6
-- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0, pequena-minima
-- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40, verification.md: achado 2 (prova da C4 sem settle)
-- updated: 2026-11-19T11:59:04Z
+- signal: `weak_test` · features: 7
+- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0, pequena-minima, pr-review
+- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40, verification.md: achado 2 (prova da C4 sem settle), verification.md: achado 2 (edge case sem check)
+- updated: 2026-11-19T14:18:00Z
 
 ### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
 - signal: `weak_test` · features: 2
@@ -382,6 +382,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: pequena-minima
 - sources: verification.md: achado 1 (waivedness)
 - updated: 2026-11-19T11:59:04Z
+
+### L63 - Ao acrescentar um passo a uma seção de fluxo, releia as paradas já existentes nela e teste a frase condicional inteira do passo novo, porque o pedido de merge incondicional contradizia a parada da rodada 3 e o teste não via.
+- signal: `weak_test` · features: 1
+- features: pr-review
+- sources: verification.md: achado 1 (merge após r3 aberta)
+- updated: 2026-11-19T14:18:00Z
+
+### L64 - Ao criar um modo ou exceção que remete a uma regra geral, cite a regra que a exceção contraria e escreva a exceção explícita, porque o modo só lições remetia à seção 1, que excluía achados corrigidos.
+- signal: `ac_gap` · features: 1
+- features: pr-review
+- sources: verification.md: achado 3 (Guinan exclui corrigidos)
+- updated: 2026-11-19T14:18:01Z
+
+### L65 - Quando um passo do fluxo grava arquivos depois do PR aberto (review, lições), a instrução manda commitar e fazer o push antes do merge, porque senão o merge entra sem eles e a árvore da feature fica suja.
+- signal: `review_finding` · features: 1
+- features: pr-review
+- sources: review.md: W1 (r1)
+- updated: 2026-11-19T14:44:11Z
 
 ## Quarantined
 
