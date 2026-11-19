@@ -87,9 +87,9 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 **Next:** LaForge implementa T1 (SC-196)
 **Linear:** SC-196
 **Integration branch:** feature/guard-lote2
-**Last integrated:** none
-**Dispatched:** T1 · SC-196 · base 52d5c11 · claude:claude-sonnet-5-5 · 2026-11-19T00:04:44Z · ctx_8f1dbb67d9e8
+**Last integrated:** 5e1cc95b9b19e895d0e13826c9edf822e79ca8e8
+**Dispatched:** none
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno
 **Breaker:** closed
