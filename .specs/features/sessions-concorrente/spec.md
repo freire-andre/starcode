@@ -62,15 +62,15 @@ Proof: run unit | test_decisions_sessions_concorrente (test_sessions_concorrente
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** nenhum: missão concluída
 **Linear:** SC-202
 **Integration branch:** feature/sessions-concorrente
 **Last integrated:** 4e9283c
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-202 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 4 achados (write_session substitui o arquivo inteiro; C1, C5 e C6 frouxos); 2026-11-19: pós-Q: f616de4; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L68, L69; recorrências L32, L25; 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (sem achados)
+**Reports:** 2026-11-19: Q r1 FAIL: 4 achados (write_session substitui o arquivo inteiro; C1, C5 e C6 frouxos); 2026-11-19: pós-Q: f616de4; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L68, L69; recorrências L32, L25; 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (sem achados); 2026-11-19: merge b98b5d6 (PR #71); SC-202 Done
 **Breaker:** closed

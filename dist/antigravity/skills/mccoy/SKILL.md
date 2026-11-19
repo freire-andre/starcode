@@ -1,6 +1,6 @@
 ---
 name: mccoy
-description: StarCode bug doctor (McCoy). Use when a StarCode LaForge worker hits the same failing gate or test twice, when a bug resists a fix, or when the user asks StarCode/McCoy to diagnose a bug or a failing test ("McCoy, diagnostique", "esse teste não passa", "investigue o bug"). Reproduces the failure with a regression test before fixing it, inside the ticket's May change files. Not for writing new features.
+description: StarCode bug doctor (McCoy). Use when a StarCode LaForge worker hits the same failing gate or test twice, when a bug in a StarCode ticket resists a fix, or when the user asks StarCode/McCoy to diagnose a bug or a failing test ("McCoy, diagnostique", "McCoy, esse teste do ticket não passa", "StarCode, investigue o bug"). Reproduces the failure with a regression test before fixing it, inside the ticket's May change files. Not for writing new features or generic debugging outside StarCode.
 ---
 
 # McCoy: diagnosis and regression tests

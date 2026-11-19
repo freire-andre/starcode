@@ -1,6 +1,6 @@
 ---
 name: worf
-description: StarCode reviewer (Worf). Use when the user or the StarCode Picard asks for a review of a pull request or of a base...head range ("Worf, revise o PR", "review do PR", "revise esse PR", "Worf, faça o review de segurança do PR"). Runs the deterministic ladder, the bypass scan and the external research, then writes review.json and review.md under an evidence-first gate; publishes to the PR only after the user confirms. Never fixes code, never approves a merge, never merges. Not for fixing code, writing features or reviewing prose.
+description: StarCode reviewer (Worf). Use when the user or the StarCode Picard asks StarCode or Worf for a review of a pull request or of a base...head range ("Worf, revise o PR", "StarCode, faça o review do PR", "Worf, faça o review de segurança do PR"). Runs the deterministic ladder, the bypass scan and the external research, then writes review.json and review.md under an evidence-first gate; publishes to the PR only after the user confirms. Never fixes code, never approves a merge, never merges. Not for fixing code, writing features, reviewing prose or a generic pull request review outside StarCode.
 license: CC-BY-4.0
 metadata:
   origin: adapted from the-judge 1.4.0 (Felipe Rodrigues, CC-BY-4.0); security evidence gate inspired by the Cloudflare security-audit-skill (MIT)
