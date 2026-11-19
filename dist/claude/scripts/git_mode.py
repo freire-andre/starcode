@@ -40,9 +40,16 @@ def main(argv: list[str] | None = None) -> int:
     if sc.git_dir(args.cwd) is None:
         print("ERRO: não é um repositório Git.")
         return 2
-    data = sc.read_session(args.cwd)
+    try:
+        return _run(args)
+    except TimeoutError as exc:
+        print(f"trava ocupada: {exc} (tente de novo)", file=sys.stderr)
+        return 2
 
+
+def _run(args: argparse.Namespace) -> int:
     if args.cmd == "get":
+        data = sc.read_session(args.cwd)
         mode = sc.git_mode(args.cwd)
         if mode is None:
             print("unset")
@@ -50,19 +57,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{mode} ({sc.MODES[mode]}; definido em {data.get('setAt', '?')})")
         return 0
     if args.cmd == "set":
-        data.update({"gitMode": args.mode, "setAt": sc.now_iso()})
-        data.pop("mergeAuthorization", None)
-        path = sc.write_session(args.cwd, data)
+        def mutate(data: dict) -> None:
+            data.update({"gitMode": args.mode, "setAt": sc.now_iso()})
+            data.pop("mergeAuthorization", None)
+
+        path = sc.update_session(args.cwd, mutate)
         print(f"OK: modo Git {args.mode} ({sc.MODES[args.mode]}) gravado em {path}")
         return 0
     if args.cmd == "authorize-merge":
         expires = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(minutes=args.minutes)
-        data["mergeAuthorization"] = {"branch": args.branch, "expiresAt": expires.isoformat()}
-        sc.write_session(args.cwd, data)
+
+        def mutate(data: dict) -> None:
+            data["mergeAuthorization"] = {"branch": args.branch, "expiresAt": expires.isoformat()}
+
+        sc.update_session(args.cwd, mutate)
         print(f"OK: merge/push em {args.branch} autorizado até {expires.isoformat()}")
         return 0
-    data.pop("mergeAuthorization", None)
-    sc.write_session(args.cwd, data)
+    sc.update_session(args.cwd, lambda data: data.pop("mergeAuthorization", None))
     print("OK: autorização de merge revogada")
     return 0
 

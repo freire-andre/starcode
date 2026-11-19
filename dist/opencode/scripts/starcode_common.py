@@ -9,6 +9,9 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
+import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -123,6 +126,73 @@ MODES = {
 }
 
 
+LOCK_TIMEOUT = 5.0  # seconds a caller waits for a state-file lock (SC-202)
+
+
+@contextmanager
+def locked(path: str | Path, timeout: float = 5.0):
+    """Exclusive OS lock on the neighbour file `<path>.lock`; TimeoutError(str(path)) after `timeout` seconds."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_name(path.name + ".lock")
+    fh = open(lock_path, "a+b")
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            try:
+                if os.name == "nt":
+                    import msvcrt  # noqa: PLC0415
+                    fh.seek(0)
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl  # noqa: PLC0415
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(str(path)) from None
+                time.sleep(0.02)
+        try:
+            yield
+        finally:
+            try:
+                if os.name == "nt":
+                    import msvcrt  # noqa: PLC0415
+                    fh.seek(0)
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl  # noqa: PLC0415
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+    finally:
+        fh.close()
+
+
+def write_json_atomic(path: str | Path, data: Any) -> None:
+    """Unique temp file in the same folder + os.replace (5 retries on PermissionError); temp removed on failure."""
+    path = Path(path)
+    fd, tmp = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(data, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        for attempt in range(6):  # Windows: a reader holding the file can make replace fail for a moment
+            try:
+                os.replace(tmp, path)
+                return
+            except PermissionError:
+                if attempt == 5:
+                    raise
+                time.sleep(0.05)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def session_path(cwd: str | Path | None) -> Path | None:
     gd = git_dir(cwd)
     return gd / "starcode" / "session.json" if gd else None
@@ -139,15 +209,25 @@ def read_session(cwd: str | Path | None) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def write_session(cwd: str | Path | None, data: dict) -> Path:
+def update_session(cwd: str | Path | None, mutate) -> Path:
+    """Read session.json, apply `mutate(data)` in place and write it, all under `locked` (SC-202)."""
     path = session_path(cwd)
     if path is None:
         raise RuntimeError("não é um repositório Git")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+    with locked(path, LOCK_TIMEOUT):
+        data = read_session(cwd)
+        mutate(data)
+        write_json_atomic(path, data)
     return path
+
+
+def write_session(cwd: str | Path | None, data: dict) -> Path:
+    """Replace the whole session.json with `data` (under `locked`). To change keys use `update_session`."""
+    def replace(cur: dict) -> None:
+        cur.clear()
+        cur.update(data)
+
+    return update_session(cwd, replace)
 
 
 def git_mode(cwd: str | Path | None) -> int | None:

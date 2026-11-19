@@ -44,16 +44,16 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-19T16:29:48Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
-- signal: `weak_test` · features: 4
-- features: ajustes-review-pr39, despacho-media-escopo, verificacao-1-8-0, fecha-achado
-- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9, .specs/features/verificacao-1-8-0/verification.md:38, .specs/features/fecha-achado/verification.md:achado 3
-- updated: 2026-11-19T16:29:48Z
+- signal: `weak_test` · features: 5
+- features: ajustes-review-pr39, despacho-media-escopo, verificacao-1-8-0, fecha-achado, sessions-concorrente
+- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9, .specs/features/verificacao-1-8-0/verification.md:38, .specs/features/fecha-achado/verification.md:achado 3, .specs/features/sessions-concorrente/verification.md:achado 4
+- updated: 2026-11-19T18:51:35Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 10
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5
-- updated: 2026-11-19T16:29:48Z
+- signal: `weak_test` · features: 11
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3
+- updated: 2026-11-19T18:51:34Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -412,6 +412,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: fecha-achado
 - sources: .specs/features/fecha-achado/verification.md:achado 2
 - updated: 2026-11-19T16:29:48Z
+
+### L68 - Teste de escrita concorrente deve passar pelo mesmo caminho de ler-mudar-gravar que a produção usa; uma função que substitui o arquivo inteiro perde as chaves das outras escritas mesmo sob trava.
+- signal: `weak_test` · features: 1
+- features: sessions-concorrente
+- sources: .specs/features/sessions-concorrente/verification.md:achado 1
+- updated: 2026-11-19T18:51:34Z
+
+### L69 - Prove novas tentativas e limpeza com a falha simulada até o limite: sucesso na última tentativa permitida e falha depois dela, com o arquivo anterior intacto e sem temporário sobrando.
+- signal: `weak_test` · features: 1
+- features: sessions-concorrente
+- sources: .specs/features/sessions-concorrente/verification.md:achado 2
+- updated: 2026-11-19T18:51:34Z
 
 ## Quarantined
 
