@@ -1,35 +1,18 @@
 {
- "round": 1,
- "verdict": "REQUEST_CHANGES",
- "summary": "TL;DR: REQUEST_CHANGES. Os bloqueios novos (checkout e switch forçados, stash drop e clear, flags combinadas com c, modo 1) estão corretos, e o heredoc de dado deixou de dar bloqueio falso. Mas o heredoc que vai para um shell só é reconhecido quando o shell é o primeiro comando depois dos wrappers sem opção. Com sudo -u, env -i, nice, timeout, xargs -0, source ou . /dev/stdin, ou dentro de eval, o corpo é tratado como dado, e um git reset --hard nele passa. Na main, esses mesmos comandos eram bloqueados. Isso contraria a decisão do usuário (shell continua bloqueado). Arquivos mecânicos fora do review: dist/.",
- "findings": [
-  {
-   "id": "W1",
-   "severity": "blocker",
-   "path": "hooks/scripts/git_guard.py",
-   "line": 84,
-   "body": "`_goes_to_shell` só reconhece o shell quando ele é o primeiro comando depois de atribuições e de wrappers sem opção. Com `cat <<EOF | sudo -u root bash`, `| env -i bash`, `| nice bash`, `| timeout 60 bash` e `| xargs -0 bash`, com `sudo -u root bash <<EOF`, `nice -n 5 sh <<EOF`, `source /dev/stdin <<EOF`, `. /dev/stdin <<EOF` e com `eval \"$(cat <<EOF ...)\"`, o corpo vira dado e é descartado antes da análise. Um `git reset --hard` no corpo passa. Na main, todos eram bloqueados, porque cada linha do corpo era analisada. Sugestão: na dúvida, trate como shell. O corpo só é dado quando nenhum token do pipeline tem base em SHELLS, `source`, `.` ou `eval`. Inclua esses casos no teste de R6.",
-   "evidence": "hooks/scripts/git_guard.py:84",
-   "category": "auth-bypass",
-   "attacker": "agente que roda um comando destrutivo por engano através de um heredoc",
-   "entry": "comando Bash/PowerShell avaliado pelo hook PreToolUse",
-   "control": "strip_heredoc_data, que descarta o corpo de heredoc tido como dado",
-   "boundary": "hook PreToolUse que deveria negar o comando",
-   "impact": "git reset --hard, push --force ou stash clear rodam sem bloqueio quando o corpo vai para um shell por sudo -u, env -i, nice, timeout, xargs -0, source, . ou eval",
-   "proof": "Guard('.').evaluate('cat <<EOF | sudo -u root bash\ngit reset --hard\nEOF') is None no ramo; na main devolve o motivo do bloqueio. O mesmo para source /dev/stdin <<EOF e | nice bash.",
-   "state": "open"
-  }
- ],
- "carryover": {},
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O W1 da r1 foi resolvido em e678e67. O pipeline do heredoc vai para um shell quando algum token dele tem base em SHELLS, source, . ou eval (na dúvida, shell). Os caminhos com sudo -u, env -i, nice, timeout, xargs -0, source, . e eval voltaram a ser bloqueados, e o heredoc de dado continua passando. O bloqueio falso conservador (ex.: grep bash <<EOF) foi aceito e está registrado no DECISIONS.md. Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolved em e678e67"
+ },
  "research": [
   "nenhuma superfície externa: biblioteca padrão (re, shlex) e semântica de heredoc do bash"
  ],
  "ladder": [
-  "python tools/build.py --check: OK",
-  "python scripts/check_decisions.py: OK",
+  "suíte inteira nas provas em 9ea9cd8: 980 OK",
+  "run_gates ticket addccd3..e678e67: VERDE (inclui build --check e check_decisions)",
   "claude plugin validate dist/claude --strict: Validation passed",
-  "suíte inteira nas provas em fee09e6: 980 OK",
-  "scan_bypasses.py: 0 candidatos",
-  "sondagem manual: 12 entradas de heredoc para shell; 10 passam no ramo e eram bloqueadas na main (W1)"
+  "sondagem manual de 22 entradas: 15 heredocs para shell bloqueados, 7 de dado passam"
  ]
 }
