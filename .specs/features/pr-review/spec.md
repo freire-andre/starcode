@@ -76,7 +76,7 @@ Proof: run unit | test_decisions_pr_review (test_pr_review.PrReviewTests.test_de
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Guinan faz a retro; depois PR (pr-review) e Worf
+**Next:** PR (com confirmação), --phase pr-review e Worf
 **Linear:** SC-198
 **Integration branch:** feature/pr-review
 **Last integrated:** 10154e8
