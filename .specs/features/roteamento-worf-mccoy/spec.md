@@ -72,12 +72,12 @@ Proof: run unit | test_descricao_piloto (test_roteamento_worf_mccoy.RoteamentoWo
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
+**Next:** Correção pós-Q única (LaForge)
 **Linear:** SC-203
 **Integration branch:** feature/roteamento-worf-mccoy
 **Last integrated:** c3e9e2f
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-203 criada; eval: casos novos e vizinhos
 **Attempts:** none
-**Reports:** 2026-11-19: eval: 12/13; pos-piloto-automatico foi para o engajar; usuário: dar gatilhos ao piloto (R6); 2026-11-19: piloto: invocation user impede o roteamento; usuário: manter só o usuário (caso sai, R6 reverte); 2026-11-19: R6 revertido em c3e9e2f; eval: 12/12 nos casos novos e vizinhos que ficam
+**Reports:** 2026-11-19: eval: 12/13; pos-piloto-automatico foi para o engajar; usuário: dar gatilhos ao piloto (R6); 2026-11-19: piloto: invocation user impede o roteamento; usuário: manter só o usuário (caso sai, R6 reverte); 2026-11-19: R6 revertido em c3e9e2f; eval: 12/12 nos casos novos e vizinhos que ficam; 2026-11-19: Q r1 FAIL: 6 achados (testes frouxos C1-C6; README sobre o alcance dos negativos)
 **Breaker:** closed
