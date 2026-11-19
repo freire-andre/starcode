@@ -38,7 +38,8 @@
         "scanner-lote2",
         "guard-lote2",
         "pequena-minima",
-        "pr-review"
+        "pr-review",
+        "roteamento-worf-mccoy"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -57,11 +58,12 @@
         ".specs/features/scanner-lote2/verification.md:27",
         ".specs/features/guard-lote2/verification.md:27",
         "verification.md: achado 3 (C7 Worf sem PR)",
-        "verification.md: achados 4 e 5 (asserções por trecho)"
+        "verification.md: achados 4 e 5 (asserções por trecho)",
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 5"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-19T14:18:01Z"
+      "updated": "2026-11-19T21:20:14Z"
     },
     {
       "id": "L3",
@@ -560,7 +562,8 @@
         "scanner-lote2",
         "guard-lote2",
         "fecha-achado",
-        "sessions-concorrente"
+        "sessions-concorrente",
+        "roteamento-worf-mccoy"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -573,11 +576,12 @@
         ".specs/features/scanner-lote2/verification.md:29",
         ".specs/features/guard-lote2/verification.md:28",
         ".specs/features/fecha-achado/verification.md:achado 5",
-        ".specs/features/sessions-concorrente/verification.md:achado 3"
+        ".specs/features/sessions-concorrente/verification.md:achado 3",
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 4"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-19T18:51:34Z"
+      "updated": "2026-11-19T21:20:13Z"
     },
     {
       "id": "L33",
@@ -1137,6 +1141,51 @@
       "scope": "",
       "created": "2026-11-19T18:51:34Z",
       "updated": "2026-11-19T18:51:34Z"
+    },
+    {
+      "id": "L70",
+      "text": "Teste de descrição de skill extrai todos os gatilhos entre aspas e confere cada um contra a regra; procurar só as frases esperadas deixa passar um gatilho genérico novo.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "roteamento-worf-mccoy"
+      ],
+      "sources": [
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-19T21:20:12Z",
+      "updated": "2026-11-19T21:20:12Z"
+    },
+    {
+      "id": "L71",
+      "text": "Teste de arquivo estruturado (YAML, JSON) analisa o arquivo e compara a estrutura inteira; linhas soltas passam com o campo na seção errada ou com o documento malformado.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "roteamento-worf-mccoy"
+      ],
+      "sources": [
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-19T21:20:13Z",
+      "updated": "2026-11-19T21:20:13Z"
+    },
+    {
+      "id": "L72",
+      "text": "Ao descrever o que um caso negativo de eval garante, use o alcance do grader (uma skill ou qualquer skill), porque o README prometia nenhuma skill e o grader só barrava uma.",
+      "signal": "spec_precision_gap",
+      "status": "candidate",
+      "features": [
+        "roteamento-worf-mccoy"
+      ],
+      "sources": [
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 6"
+      ],
+      "scope": "",
+      "created": "2026-11-19T21:20:14Z",
+      "updated": "2026-11-19T21:20:14Z"
     }
   ]
 }
