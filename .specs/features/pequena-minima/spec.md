@@ -64,6 +64,7 @@ Proof: run unit | test_small_sem_aprovacao (test_pequena_minima.PequenaTests.tes
 
 **C4** - `brief`, `start` (runner falso) e `settle` tratam a spec SMALL como `T1` (R4)
 Proof: run unit | test_dispatch_small_t1 (test_pequena_minima.PequenaTests.test_dispatch_small_t1) ... ok
+Proof: run unit | test_settle_small_roda_gate_ticket (test_pequena_minima.PequenaTests.test_settle_small_roda_gate_ticket) ... ok
 
 **C5** - `q-waive` grava o marcador na SMALL e recusa com 2 e a mensagem exata em outra classe (R5)
 Proof: run unit | test_q_waive (test_pequena_minima.PequenaTests.test_q_waive) ... ok
