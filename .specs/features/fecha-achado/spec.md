@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-199
-**May change**: scripts/dispatch.py, scripts/gates/validate_verification.py, src/briefs/q-verify.md, skills/engajar/references/execute.md, tests/test_fecha_achado.py, tests/test_validate_verification.py, tests/test_q_skill.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/dispatch.py, scripts/gates/validate_verification.py, src/briefs/q-verify.md, skills/engajar/references/execute.md, tests/test_fecha_achado.py, tests/test_validate_verification.py, tests/test_validate_verification_screens.py, tests/test_q_skill.py, tests/test_acceptance_doc_f11.py, tests/test_dispatch_screens.py, tests/test_pequena_minima.py, tests/test_piloto.py, tests/test_worf_skill.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Esta spec cobre o item 3.7 da triagem v2 e a decisão do dono D-c. O discovery está em `.specs/features/fecha-achado/context.md`. Hoje o gate `done` só confere o commit na célula `Closed` (`scripts/gates/validate_verification.py:276-289`), e a célula é preenchida à mão. Nesta sessão, uma célula a mais (`||`) e pipes sem escape na evidência do Q deixaram o `done` vermelho com a mensagem "sem commit em `Closed`", que não apontava a causa.
