@@ -85,18 +85,7 @@ def read_json(path: Path) -> dict:
 
 
 def write_json(path: Path, data: dict) -> None:
-    fd, tmp = tempfile.mkstemp(prefix=path.name, suffix=".tmp", dir=path.parent)
-    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(data, fh, ensure_ascii=False, indent=2)
-        fh.write("\n")
-    for _ in range(5):  # Windows: a reader holding the file can make replace fail for a moment
-        try:
-            os.replace(tmp, path)
-            return
-        except PermissionError:
-            import time  # noqa: PLC0415
-            time.sleep(0.05)
-    os.replace(tmp, path)
+    sc.write_json_atomic(path, data)
 
 
 # --- crew status ------------------------------------------------------------------------------
@@ -165,6 +154,12 @@ def update_sessions(d: Path, available: list[str], mutate, now: datetime | None 
     """Read sessions.json, apply `mutate(sessions)`, drop expired entries, write it, then recalculate and write
     crew.json (flat). `strict`: a sessions.json that exists but cannot be read raises instead of restarting
     from empty (the hook stays silent). Returns the new crew.json content."""
+    spath = d / SESSIONS_FILE
+    with sc.locked(spath, sc.LOCK_TIMEOUT):
+        return _update_sessions(d, available, mutate, now, strict)
+
+
+def _update_sessions(d: Path, available: list[str], mutate, now: datetime | None, strict: bool) -> dict:
     now = now or datetime.now(timezone.utc)
     spath = d / SESSIONS_FILE
     if strict and spath.exists():
@@ -254,19 +249,28 @@ def set_progress(d: Path, slug: str, done: int, total: int, phase: str | None) -
     if phase == "done":
         percent, done = 100, total
     path = d / "progress.json"
-    data = read_json(path)
     entry = {"done": done, "total": total, "percent": percent}
     if phase:
         entry["phase"] = phase
     entry["updatedAt"] = sc.now_iso()  # the status line shows the most recently updated feature (F6-9)
-    data[slug] = entry
-    write_json(path, data)
+    with sc.locked(path, sc.LOCK_TIMEOUT):
+        data = read_json(path)
+        data[slug] = entry
+        write_json(path, data)
     return entry
 
 
 # --- cli --------------------------------------------------------------------------------------
 
 def main(argv: list[str] | None = None) -> int:
+    try:
+        return _main(argv)
+    except TimeoutError as exc:
+        print(f"trava ocupada: {exc} (tente de novo)", file=sys.stderr)
+        return 2
+
+
+def _main(argv: list[str] | None = None) -> int:
     sc.utf8_stdio()
     p = argparse.ArgumentParser(prog="crew_live.py")
     p.add_argument("--cwd", default=None)
@@ -301,8 +305,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd in ("start", "stop", "set", "reset"):
         crew, available = crew_members()
         if args.cmd == "reset":
-            write_json(d / SESSIONS_FILE, {})
-            write_json(d / "crew.json", {k: 0 for k in available})
+            with sc.locked(d / SESSIONS_FILE, sc.LOCK_TIMEOUT):
+                write_json(d / SESSIONS_FILE, {})
+                write_json(d / "crew.json", {k: 0 for k in available})
             print("Status da tripulação zerado")
             return 0
         member = args.member.lower()
