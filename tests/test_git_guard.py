@@ -111,14 +111,17 @@ class NoModeTests(TempRepoCase):
 
     def test_checkout_e_switch_forcados(self):
         g = Guard(str(self.repo))
-        for cmd in ("git checkout -f main", "git checkout --force main", "git checkout -fb x",
-                    "git switch --discard-changes main", "git switch -f main", "git switch --force main"):
+        for cmd, name in (("git checkout -f main", "git checkout"), ("git checkout --force main", "git checkout"),
+                          ("git checkout -fb x", "git checkout"),
+                          ("git switch --discard-changes main", "git switch"),
+                          ("git switch -f main", "git switch"), ("git switch --force main", "git switch")):
             with self.subTest(cmd=cmd):
                 reason = g.evaluate(cmd)
                 self.assertIsNotNone(reason, cmd)
-                self.assertIn("forçado", reason)
+                self.assertIn(f"`{name}` forçado", reason)
                 self.assertTrue(reason.endswith(HINT_TEXT))
-        for cmd in ("git checkout main", "git checkout -b x", "git switch main", "git switch -c x"):
+        for cmd in ("git checkout main", "git checkout -b x", "git switch main", "git switch -c x",
+                    "git checkout -- -f", "git checkout main -- -f", "git switch -- -f"):
             with self.subTest(cmd=cmd):
                 self.assertIsNone(g.evaluate(cmd), cmd)
 
@@ -134,11 +137,14 @@ class NoModeTests(TempRepoCase):
 
     def test_shell_com_flags_combinadas(self):
         g = Guard(str(self.repo))
-        for cmd in ('bash -lc "git reset --hard"', "sh -ec 'git clean -fd'", 'bash -xec "git reset --hard"',
-                    'bash -c "git reset --hard"'):
-            with self.subTest(cmd=cmd):
-                self.assertIsNotNone(g.evaluate(cmd), cmd)
-        self.assertIsNone(g.evaluate('bash -lc "git status"'))
+        for shell in ("bash", "sh", "zsh", "dash"):
+            for flag in ("-lc", "-ec", "-xec"):
+                with self.subTest(shell=shell, flag=flag):
+                    self.assertIsNotNone(g.evaluate(f'{shell} {flag} "git reset --hard"'))
+                    self.assertIsNotNone(g.evaluate(f"{shell} {flag} 'git clean -fd'"))
+                    self.assertIsNone(g.evaluate(f'{shell} {flag} "git status"'))
+            with self.subTest(shell=shell, flag="-c"):
+                self.assertIsNotNone(g.evaluate(f'{shell} -c "git reset --hard"'))
 
     def test_heredoc_de_dado_passa(self):
         g = Guard(str(self.repo))
@@ -146,15 +152,36 @@ class NoModeTests(TempRepoCase):
                     "cat <<EOF > notas.md\ngit reset --hard\nEOF",
                     "cat <<-EOF > notas.md\n\tgit reset --hard\n\tEOF",
                     'cat <<"EOF" > notas.md\ngit reset --hard\nEOF',
-                    "git commit -m \"$(cat <<'EOF'\nfix\n\ngit reset --hard\nEOF\n)\""):
+                    "git commit -m \"$(cat <<'EOF'\nfix\n\ngit reset --hard\nEOF\n)\"",
+                    # dois heredocs na mesma linha e em linhas separadas
+                    "cat <<A <<B > notas.md\none\nA\ngit reset --hard\nB",
+                    "cat <<A > a.md\none\nA\ncat <<B > b.md\ngit reset --hard\nB",
+                    # heredoc sem fecho: o corpo vai até o fim do comando
+                    "cat <<EOF > notas.md\ngit reset --hard",
+                    # comentário depois do operador
+                    "cat <<'EOF' > a.md # nota\ngit reset --hard\nEOF",
+                    # o heredoc pertence ao cat; o bash é de outro segmento
+                    "cat <<EOF > a; bash -c true\ngit reset --hard\nEOF",
+                    # cada delimitador guarda a sua variante: só <<- aceita tab antes do delimitador
+                    "cat <<-A <<B\none\nA\n\tB\ngit reset --hard\nB"):
             with self.subTest(cmd=cmd):
                 self.assertIsNone(g.evaluate(cmd), cmd)
 
     def test_heredoc_para_shell_bloqueia(self):
         g = Guard(str(self.repo))
         for cmd in ("bash <<EOF\ngit reset --hard\nEOF", "sh <<'EOF'\ngit reset --hard\nEOF",
+                    "bash -s <<EOF\ngit reset --hard\nEOF",
                     "cat <<EOF | bash\ngit reset --hard\nEOF",
-                    "cat <<EOF > a.md\nok\nEOF\ngit reset --hard"):
+                    "cat <<EOF 2>&1 | bash\ngit reset --hard\nEOF",
+                    "cat <<EOF > a.md\nok\nEOF\ngit reset --hard",
+                    # << em comentário ou em string não abre heredoc
+                    "echo ok # <<EOF\ngit reset --hard",
+                    'echo "<<EOF"\ngit reset --hard',
+                    "echo '<<EOF'\ngit reset --hard",
+                    # aspas sem fechar: na dúvida, a linha seguinte é analisada
+                    "echo 'x <<EOF\ngit reset --hard",
+                    # dois heredocs: o que vai para o shell continua analisado
+                    "cat <<A > a.md\nx\nA\nbash <<B\ngit reset --hard\nB"):
             with self.subTest(cmd=cmd):
                 self.assertIsNotNone(g.evaluate(cmd), cmd)
         self.assertIsNone(g.evaluate("bash <<EOF\ngit status\nEOF"))
@@ -167,19 +194,52 @@ class NoModeTests(TempRepoCase):
         for field in ("**Problema", "**Decisão", "**Motivo", "**Por que não é bug"):
             self.assertIn(field, entry)
         decision = next(l for l in entry.splitlines() if l.startswith("- **Decisão"))
-        for term in ("checkout", "switch", "stash drop", "stash clear", "-lc", "cherry-pick", "revert",
-                     "`am`", "pull", "rebase", "--no-commit", "--abort", "heredoc", "shell"):
-            self.assertIn(term, decision)
+        conditions = (
+            # R1
+            "`git checkout` com `-f`/`--force` (inclusive combinado, como `-fb`)",
+            "`git switch` com `--discard-changes`, `-f` ou `--force` são bloqueados em qualquer repo",
+            "com o comando e o `HINT`", "`checkout main`, `checkout -b x` e `switch main` passam",
+            # R2
+            "`git stash drop` (com ou sem referência) e `git stash clear` são bloqueados em qualquer repo",
+            "`stash`, `push`, `pop`, `apply`, `list` e `show` passam",
+            # R3
+            "`bash`, `sh`, `zsh` e `dash` com flag curta combinada que contém `c` (`-lc`, `-ec`, `-xec`)",
+            "tem o argumento seguinte analisado como comando",
+            # R4
+            "com o modo Git 1, `git cherry-pick`, `revert`, `am`, `pull` e `rebase` são bloqueados",
+            "exceto as flags de controle `--abort`, `--continue`, `--quit`, `--skip`",
+            "`cherry-pick`/`revert` com `-n` ou `--no-commit`", "nos modos 2, 3 e 4 passam",
+            # R5
+            "(`<<EOF`, `<<-EOF`, `<<'EOF'`, `<<\"EOF\"`)",
+            "cujo comando não é um shell e não está ligado por `|` a um shell é ignorado até o delimitador",
+            "`git commit -m \"$(cat <<'EOF' ...)\"`",
+            # R6
+            "(`bash <<EOF`, `sh <<EOF`, `cat <<EOF | bash`) continua analisado linha a linha",
+            "um comando depois do delimitador continua analisado",
+            # R7 e os fechamentos da rodada pós-Q
+            "`tokenize` não mudou (R7)",
+            "fora de comentário e de aspas", "depois de `--` vem caminho", "cada heredoc pertence ao seu comando",
+            "só o `<<-` aceita tab",
+        )
+        for phrase in conditions:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, decision)
         why = next(l for l in entry.splitlines() if l.startswith("- **Por que não é bug"))
         for name in ("test_checkout_e_switch_forcados", "test_stash_drop_e_clear",
                      "test_shell_com_flags_combinadas", "test_modo_1_comandos_que_criam_commit",
                      "test_heredoc_de_dado_passa", "test_heredoc_para_shell_bloqueia",
                      "test_tokenize_inalterado"):
             self.assertIn(name, why)
-        self.assertIn("(SC-196)", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("(SC-196)", unreleased)
         doc = (ROOT / "hooks" / "scripts" / "git_guard.py").read_text(encoding="utf-8").split('"""')[1]
-        for term in ("stash drop", "switch", "heredoc", "cherry-pick"):
-            self.assertIn(term, doc)
+        for term in ("forced checkout (-f/--force)", "forced switch (--discard-changes/-f/--force)",
+                     "stash drop/clear", "`bash -lc", "`sh -ec", "cherry-pick, revert, am, pull, rebase",
+                     "except control", "--no-commit", "heredoc whose body is only data",
+                     "heredoc that goes to a shell", "comment or in quotes"):
+            with self.subTest(term=term):
+                self.assertIn(term, doc)
 
     def test_inactive_repo_allows_push_to_main(self):
         self.assertIsNone(Guard(str(self.repo)).evaluate("git push origin main"))
@@ -202,10 +262,9 @@ class ModeTests(TempRepoCase):
     def test_modo_1_comandos_que_criam_commit(self):
         blocked = ("git cherry-pick abc123", "git revert HEAD", "git am p.patch", "git pull",
                    "git pull origin main", "git rebase main")
-        allowed = ("git cherry-pick --abort", "git cherry-pick --continue", "git cherry-pick -n abc",
-                   "git cherry-pick --no-commit abc", "git revert --no-commit HEAD", "git revert -n HEAD",
-                   "git revert --continue", "git am --abort", "git am --skip", "git pull --quit",
-                   "git rebase --abort", "git rebase --continue", "git rebase --skip", "git rebase --quit")
+        control = ("--abort", "--continue", "--quit", "--skip")
+        allowed = [f"git {c} {f}" for c in ("cherry-pick", "revert", "am", "pull", "rebase") for f in control]
+        allowed += [f"git {c} {f} abc" for c in ("cherry-pick", "revert") for f in ("-n", "--no-commit")]
         self.set_mode(1)
         for cmd in blocked:
             with self.subTest(mode=1, cmd=cmd):
@@ -213,6 +272,9 @@ class ModeTests(TempRepoCase):
         for cmd in allowed:
             with self.subTest(mode=1, cmd=cmd):
                 self.assertIsNone(self.guard(cmd), cmd)
+        for cmd in ("git rebase -n main", "git pull --no-commit", "git am -n p.patch"):
+            with self.subTest(mode=1, cmd=cmd):
+                self.assertIsNotNone(self.guard(cmd), cmd)  # -n/--no-commit só isenta cherry-pick e revert
         for mode in (2, 3, 4):
             self.set_mode(mode)
             for cmd in blocked:
