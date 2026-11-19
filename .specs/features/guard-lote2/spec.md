@@ -88,7 +88,7 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 **Linear:** SC-196
 **Integration branch:** feature/guard-lote2
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-196 · base 52d5c11 · claude:claude-sonnet-5-5 · 2026-11-19T00:04:44Z · ctx_8f1dbb67d9e8
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
 **Reports:** none
