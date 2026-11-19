@@ -101,6 +101,19 @@ class PequenaTests(TempRepoCase):
                 self.assertIn(error, r.errors[0])
         r = self.spec_res(SMALL.replace("PROJ-9", "sem id"))
         self.assertEqual(r.errors, ["falta a linha `**Linear**:` com o ID da issue"])
+        # W1: cada check precisa da sua linha Proof:
+        two = SMALL + "**C2** - a outra coisa funciona" + NL + "Proof: run unit | test_b ... ok" + NL
+        r = self.spec_res(two)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+        r = self.spec_res(two.replace("Proof: run unit | test_a ... ok" + NL, ""))
+        self.assertEqual(len(r.errors), 1, r.errors)
+        self.assertIn("C1 sem `Proof:`", r.errors[0])
+        r = self.spec_res(two.replace("Proof: run unit | test_b ... ok" + NL, ""))
+        self.assertEqual(len(r.errors), 1, r.errors)
+        self.assertIn("C2 sem `Proof:`", r.errors[0])
+        r = self.spec_res(SMALL.replace("Proof: run unit | test_a ... ok" + NL, ""))
+        self.assertEqual(len(r.errors), 1, r.errors)
+        self.assertIn("C1 sem `Proof:`", r.errors[0])
 
     # --- R2 -------------------------------------------------------------------------------------
     def test_spec_small_limite(self):

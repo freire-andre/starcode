@@ -102,11 +102,22 @@ def _check_small(lines: list[str], errors: list[str]) -> None:
     elif not gc.meaningful(scope):
         errors.append("`## Scope` está vazia")
     checks_body = gc.section(lines, "Checks")
-    checks = [c for c in (gc.CHECK_RE.match(x.strip()) for x in (checks_body or [])) if c]
+    checks: list[str] = []
+    proved: set[str] = set()
+    for raw in checks_body or []:
+        text = raw.strip()
+        cm = gc.CHECK_RE.match(text)
+        if cm:
+            checks.append(cm.group(1))
+        elif checks and gc.PROOF_RE.match(text):
+            proved.add(checks[-1])
     if checks_body is None:
         errors.append("falta a seção obrigatória `## Checks`")
     elif not checks:
         errors.append("`## Checks` sem nenhum check: um `**C<n>** - <afirmação observável>` com `Proof:`")
+    for cid in checks:
+        if cid not in proved:
+            errors.append(f"{cid} sem `Proof:`: diga o comando de teste cujo filtro seleciona o teste")
     paths = gc.split_paths(gc.field_value(lines, "May change") or "")
     if not paths:
         errors.append("falta a linha `**May change**:` com os arquivos que a tarefa pode alterar")
