@@ -22,6 +22,9 @@
         confirmação (passo 7) ou siga esperando` (exit stays 1).
     python dispatch.py brief <slug> <ticket> --out <file>
         The worker brief for --spec-file: the ticket's 5 blocks plus the fixed worker rules.
+    python dispatch.py fix-brief <slug> [--out <file>]
+        The post-Q fix brief from the open rows (empty `Closed`) of `## Findings` in verification.md (SC-205).
+        Exit 2 with `nada a corrigir: <slug> sem achados abertos` when none is open.
     python dispatch.py start <slug> <ticket> --cli <cli> --model <model> [--root DIR] [--json]
         Starts one worker: brief, `Dispatched` entry, Linear status and label, `worker-start` (OpenCode: a
         worktree first), then the entry again with dispatch id and model, and `worktree set`. Refusal: exit 2.
@@ -365,7 +368,7 @@ def format_batch(res: dict) -> str:
     return "\n".join(lines)
 
 
-def spec_brief(slug: str, ticket: str, root: Path) -> str:
+def spec_brief(slug: str, ticket: str, root: Path, lessons_text: str = "") -> str:
     """MEDIUM or SMALL feature (no tasks.md): the briefing comes from spec.md (R23, R24)."""
     fdir = gc.resolve_feature(slug, root, "spec.md")
     lines = gc.read_lines(fdir / "spec.md")
@@ -383,7 +386,7 @@ def spec_brief(slug: str, ticket: str, root: Path) -> str:
     may = gc.effective_may_change(gc.split_paths(gc.field_value(lines, "May change") or ""))
     out += ["## BOUNDARIES", "May change: " + (", ".join(may) if may else
             "não definido na spec; pare e pergunte antes de alterar arquivos fora do Scope"), ""]
-    return "\n".join(out).rstrip() + "\n\n" + PROOF_RULE + "\n\n" + WORKER_RULES.format(
+    return "\n".join(out).rstrip() + "\n\n" + PROOF_RULE + "\n\n" + lessons_text + WORKER_RULES.format(
         slug=fdir.name, ticket=ticket, plugin=sc.PLUGIN_ROOT.as_posix())
 
 
@@ -430,29 +433,37 @@ def checks_context(task: vt.Task, lines: list[str]) -> list[str]:
 MAX_LESSONS = 10
 
 
+LESSONS_INTRO = "Estas lições se repetiram em features anteriores; o Q reprova um teste que viole alguma delas."
+
+
 def lessons_section(root: Path) -> str:
-    """`## Lessons` with up to 10 most recent confirmed lessons; '' when there is none (R25)."""
+    """`## Lessons`: up to 10 confirmed lessons, most repeated first (features, then updated, then ID number,
+    all descending), after the Q's intro line; '' when there is none (R25, SC-205)."""
     try:
         data = lessons._load(root)
     except lessons.StoreError as exc:
         print(f"aviso: lessons.json inválido, briefing sem lições ({exc})", file=sys.stderr)
         return ""
-    rows = lessons._recent([x for x in data["lessons"] if x["status"] == "confirmed"])[:MAX_LESSONS]
+    rows = sorted([x for x in data["lessons"] if x["status"] == "confirmed"],
+                  key=lambda x: (len(x.get("features", [])), x.get("updated", ""), lessons._num(x)),
+                  reverse=True)[:MAX_LESSONS]
     if not rows:
         return ""
     body = "\n".join(f"- {x['id']}: {x['text']}" for x in rows)
-    return f"\n## Lessons\n\n{body}\n"
+    return f"\n## Lessons\n\n{LESSONS_INTRO}\n\n{body}\n"
 
 
 def worker_brief(slug: str, ticket: str, root: Path) -> str:
-    return _worker_brief(slug, ticket, root) + lessons_section(root)
+    """The `## Lessons` section goes before the fixed worker rules (SC-205)."""
+    sec = lessons_section(root).lstrip("\n")
+    return _worker_brief(slug, ticket, root, sec + "\n" if sec else "")
 
 
-def _worker_brief(slug: str, ticket: str, root: Path) -> str:
+def _worker_brief(slug: str, ticket: str, root: Path, lessons_text: str = "") -> str:
     fdir0 = gc.resolve_feature(slug, root, "spec.md")
     if not (fdir0 / "tasks.md").exists():
         require_committed(fdir0, ("spec.md",))
-        return spec_brief(slug, ticket, root)
+        return spec_brief(slug, ticket, root, lessons_text)
     require_committed(fdir0, ("spec.md", "tasks.md"))
     fdir, tasks = load_tasks(slug, root)
     want = ticket.upper()
@@ -466,7 +477,8 @@ def _worker_brief(slug: str, ticket: str, root: Path) -> str:
         task = dataclasses.replace(task, blocks=blocks)
     body = tasks_export.briefing(with_decisions(task), fdir.name)
     head = f"# Ticket {task.tid}: {task.title}\n\nIssue: {linear_id(task) or 'sem issue'}\n\n"
-    return head + body + "\n" + WORKER_RULES.format(slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
+    return head + body + "\n" + lessons_text + WORKER_RULES.format(
+        slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
 
 
 def brief_template(name: str = "q-verify.md") -> Path:
@@ -954,6 +966,57 @@ def q_waive(slug: str, root: Path, emit=print) -> int:
     return 0
 
 
+FIX_RULES = """## Regras fixas da correção (StarCode)
+
+- Um commit por achado, com `Refs: <ID do Linear>` no corpo, citando o achado.
+- Nunca escreva em `.specs/`.
+- Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.
+- Antes de terminar: a suíte inteira verde e `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} <ticket> <base>..HEAD` verde.
+- Relatório final: o commit e o teste de cada achado corrigido."""
+
+
+def fix_brief(slug: str, root: Path) -> str:
+    """SC-205: brief of the post-Q fix from the open rows (empty `Closed`) of `## Findings`; ValueError = exit 2."""
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    vpath = fdir / "verification.md"
+    if not vpath.exists():
+        raise ValueError(f"falta verification.md em {fdir.name}")
+    _, tables = vv.findings_table(vpath.read_text(encoding="utf-8"))
+    rows = [(t, r) for t in tables for r in t.rows]
+    opened = []
+    for i, (t, (_line, cells, _spans)) in enumerate(rows, 1):
+        if not vv._cell(cells, vv._col(t.header, "closed")):
+            opened.append((i, t, cells))
+    if not opened:
+        raise NothingToFix(f"nada a corrigir: {slug} sem achados abertos")
+    slines = gc.read_lines(fdir / "spec.md")
+    title = next((ln[2:].strip() for ln in slines if ln.startswith("# ")), fdir.name)
+    ids = gc.LINEAR_ID_RE.findall(gc.field_value(slines, "Linear") or "")
+    if (fdir / "tasks.md").exists():
+        _, tasks = load_tasks(slug, root)
+        may = list(dict.fromkeys(p for t in tasks for p in effective_may_change(t)))
+    else:
+        may = gc.effective_may_change(gc.split_paths(gc.field_value(slines, "May change") or ""))
+    out = [f"# Correção dos achados do Q: {title}", "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
+           f"Feature: `{fdir.name}`", ""]
+    for i, t, cells in opened:
+        out += [f"## Achado {i}", "",
+                f"- Finding: {vv._cell(cells, vv._col(t.header, 'finding'))}",
+                f"- Evidence: {vv._cell(cells, vv._col(t.header, 'evidence'))}",
+                f"- Fix: {vv._cell(cells, vv._col(t.header, 'fix'))}", ""]
+    out += ["## BOUNDARIES", "May change: " + (", ".join(may) if may else
+            "não definido na spec; pare e pergunte antes de alterar arquivos fora do Scope"), ""]
+    sec = lessons_section(root).lstrip("\n")
+    if sec:
+        out += [sec.rstrip("\n"), ""]
+    out.append(FIX_RULES.format(slug=fdir.name, plugin=sc.PLUGIN_ROOT.as_posix()))
+    return "\n".join(out) + "\n"
+
+
+class NothingToFix(ValueError):
+    """No open finding: exit 2 with the bare message, no `ERRO:` prefix."""
+
+
 def close_finding(slug: str, n: int, commits: list[str], covers: list[str], root: Path) -> str:
     """SC-199 (D-c): fills the `Closed` cell of finding n with `<sha7> · <cover>`; ValueError (exit 2) writes nothing."""
     fdir = gc.resolve_feature(slug, root, "spec.md")
@@ -1018,6 +1081,10 @@ def main(argv: list[str] | None = None) -> int:
     pcf.add_argument("--commit", action="append", required=True)
     pcf.add_argument("--cover", action="append", required=True)
     pcf.add_argument("--root", default=".")
+    pfb = sub.add_parser("fix-brief")
+    pfb.add_argument("slug")
+    pfb.add_argument("--out")
+    pfb.add_argument("--root", default=".")
     pf = sub.add_parser("family")
     pf.add_argument("spec")
     pf.add_argument("--compare")
@@ -1079,6 +1146,14 @@ def main(argv: list[str] | None = None) -> int:
         if a.cmd == "close-finding":
             print(close_finding(a.slug, a.n, a.commit, a.cover, Path(a.root).resolve()))
             return 0
+        if a.cmd == "fix-brief":
+            text = fix_brief(a.slug, Path(a.root).resolve())
+            if a.out:
+                Path(a.out).write_text(text, encoding="utf-8", newline="\n")
+                print(f"briefing da correção gravado em {a.out}")
+            else:
+                print(text, end="")
+            return 0
         if a.cmd == "q-cli":
             lfs = [*a.laforge_pos, *a.laforge]
             if not lfs:
@@ -1094,6 +1169,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except FileNotFoundError as exc:
         print(f"dispatch: arquivo não encontrado: {exc.filename or exc}", file=sys.stderr)
+        return 2
+    except NothingToFix as exc:
+        print(exc, file=sys.stderr)
         return 2
     except (LookupError, ValueError, screens.ScreenError) as exc:
         print(f"ERRO: {exc}", file=sys.stderr)

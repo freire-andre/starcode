@@ -10,6 +10,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Alterado
 
+- Lições no brief: `lessons_section` ordena por número de features, depois data e ID (limite 10) e abre com a frase do Q; no brief de worker a seção vem antes das regras fixas (no do Q segue no fim); novo `dispatch.py fix-brief <slug> [--out]` gera o brief da correção pós-Q com os achados abertos, o `May change`, as lições e as regras fixas, e o `execute.md` (seção 5) manda usá-lo (SC-205).
 - Paridade declarada: o `README.md` troca "com os 4 CLIs suportados" por três níveis de suporte (Claude Code principal, Codex secundário completo, Antigravity CLI e OpenCode melhor esforço) e o `docs/compatibilidade.md` ganha `## Nível de suporte` com a tabela e as pendências do dono (aceite das Fases 8 e 9 no Codex) (SC-204).
 - Roteamento do Worf e do McCoy fora do StarCode: descrições presas ao StarCode com "Not for" (review de PR e depuração genéricos) e 3 casos novos em `evals/routing/` (36 frases) (SC-203).
 - Escrita concorrente dos arquivos de sessão: `locked` (trava do SO no `<arquivo>.lock`, 5 s) e `write_json_atomic` (temporário único) no `starcode_common.py`; `update_sessions`, `set_progress`, `write_session` e o `git_mode.py` (via novo `update_session`) leem, mudam e gravam sob a trava, sem `session.tmp`; trava esgotada deixa o hook em silêncio e faz `crew_live.py`/`git_mode.py` saírem com 2 e `trava ocupada: <arquivo> (tente de novo)` (SC-202).
