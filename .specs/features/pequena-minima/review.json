@@ -1,0 +1,42 @@
+{
+ "round": 1,
+ "verdict": "COMMENT",
+ "summary": "TL;DR: COMMENT. O caminho da PEQUENA funciona de ponta a ponta: a spec SMALL passa no gate, o dispatch trata a feature como T1, o q-waive grava o marcador e o done aceita waived só como palavra inteira e só em spec SMALL. Um should-fix: o gate da spec SMALL não exige a linha Proof em cada check, então um check sem prova só aparece no proofs, depois do worker (na MÉDIA, o validate_checks recusa já na spec). Dois nits: o STARCODE.md ainda diz que a Guinan sempre roda, e o q-waive sobrescreve um verification.md existente. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "should-fix",
+   "path": "scripts/gates/validate_spec.py",
+   "line": 105,
+   "body": "O `_check_small` conta os checks só pela linha `**C<n>** - ...` e não exige `Proof:` em cada um. Sonda: uma spec SMALL com `**C1** - algo` sem `Proof:` dá `ok` no `validate_spec`, e o primeiro erro aparece no `run_gates.py proofs` (`C1: fail - sem prova`), depois de um worker inteiro. A spec mínima não passa por aprovação humana, então o gate é a única conferência antes do despacho. Na MÉDIA, `gc.validate_checks` recusa isso já na spec. Proposta: exigir ao menos uma linha `Proof:` por check na spec SMALL e testar o caso sem prova.",
+   "evidence": "scripts/gates/validate_spec.py:105"
+  },
+  {
+   "id": "W2",
+   "severity": "nit",
+   "path": "src/context/STARCODE.md",
+   "line": 58,
+   "body": "As regras centrais, que todo tripulante carrega, ainda dizem que a Guinan roda a retro depois do `done` e antes do PR, sem a exceção da PEQUENA que o `execute.md` (seção 8) e a rota do engajar agora trazem. Proposta: acrescentar \"(exceto na PEQUENA, D-a)\".",
+   "evidence": "src/context/STARCODE.md:58"
+  },
+  {
+   "id": "W3",
+   "severity": "nit",
+   "path": "scripts/dispatch.py",
+   "line": 923,
+   "body": "O `q_waive` grava o `verification.md` sem conferir se já existe um. Se um Q tiver rodado na feature, o relatório e os achados dele somem sem aviso. Proposta: recusar com saída 2 quando já houver um `verification.md` sem o marcador `waived`.",
+   "evidence": "scripts/dispatch.py:923"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (re, pathlib) e scripts internos"
+ ],
+ "ladder": [
+  "suíte inteira em 8bb50f9: 989 testes OK (1 skip)",
+  "python tools/build.py --check, python scripts/check_decisions.py, claude plugin validate dist/claude --strict: verdes",
+  "run_gates.py proofs (8/8) e done --strict: verdes",
+  "scan_bypasses.py: 0 candidatos",
+  "sondas: spec PEQUENA (alias) passa; q-waive sem feature sai com 2; check sem Proof passa na spec e falha no proofs"
+ ]
+}
