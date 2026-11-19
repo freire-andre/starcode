@@ -81,15 +81,15 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
 **Next:** LaForge implementa T1 (SC-196)
 **Linear:** SC-196
 **Integration branch:** feature/guard-lote2
 **Last integrated:** 5e1cc95b9b19e895d0e13826c9edf822e79ca8e8
-**Dispatched:** none
+**Dispatched:** Q · 6e17b2a
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno
+**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK)
 **Breaker:** closed
