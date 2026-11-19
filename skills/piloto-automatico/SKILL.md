@@ -19,7 +19,7 @@ still follow) and `<plugin-root>/skills/engajar/references/crew-voice.md`. All o
 ## 1. Start (normal engajar steps 1–4)
 Banner, preflight, resume, **Git mode (asked every session; the autopilot never answers it)** and sizing,
 exactly as `engajar` sections B.1–B.4. Say in one line what the autopilot will and will not do (section 5).
-PEQUENA: the autopilot is not worth an interview; say so and offer the normal `{{CMD:engajar}}` flow.
+PEQUENA: the autopilot is not worth an interview; say so and send it to the normal `{{CMD:engajar}}` flow, the PEQUENA path (spec mínima do Picard + LaForge, Q dispensado; `references/execute.md` section 8 of engajar).
 
 Then propose the slug, record the Handoff as `engajar` B.5 says, and create the log:
 

@@ -10,6 +10,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Alterado
 
+- Caminho da PEQUENA (MÉDIA mínima): a spec `**Size**: SMALL` do Picard (só `## Scope`, `## Checks`, `**May change**:` e `**Linear**:`, no máximo 5 checks e 3 arquivos) passa no gate de spec e no `execute` sem aprovação, vai como `T1` pelo `dispatch.py start`/`settle`, e o novo `dispatch.py q-waive` grava `**Verification:** waived (PEQUENA)`, que o gate `done` aceita com o aviso `Q dispensado (PEQUENA)`; sem Guinan, com Worf no PR (SC-197).
 - `git_guard.py`: bloqueia `git checkout -f`/`--force`, `git switch --discard-changes|-f|--force` e `git stash drop|clear` em qualquer repo; analisa o comando interno de `bash -lc`/`-ec` (flags curtas com `c`); no modo 1 bloqueia `cherry-pick`, `revert`, `am`, `pull` e `rebase` (exceto `--abort`, `--continue`, `--quit`, `--skip` e `-n`/`--no-commit`); ignora o corpo de heredoc que é só dado e continua analisando o que vai para um shell (SC-196).
 - Scanner de segredos: escaneia o texto inteiro do comando que publica (inclusive heredoc), passa a cobrir `gh issue create|comment|edit` e `gh pr review`, e deixa de acusar string de conexão com placeholder ou host local, `AUTHOR_EMAIL` e URL sem credencial (SC-195).
 - `review_gate.py` ganha `require_text` (no lugar do `blank`, com teste de tabela) e `argparse`: `--help` sai com 0 e sem argumento o exit é diferente de 0; um teste roda `--help` em cada script de `dist/claude/scripts/review/`; a retro da fase 9 ganha a coluna `Estado` (SC-190).

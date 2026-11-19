@@ -53,11 +53,9 @@ class SpecTests(GateCase):
         r = validate_spec.evaluate(None, self.medium, True)
         self.assertEqual((r.errors, r.warnings), ([], []))
 
-    def test_size_required_and_small_rejected(self):
+    def test_size_required(self):
         spec = self.lf / "spec.md"
-        self.edit(spec, "**Size**: LARGE", "**Size**: SMALL")
-        self.assertHas(self.spec_errors(self.large), "SMALL")
-        self.edit(spec, "**Size**: SMALL", "")
+        self.edit(spec, "**Size**: LARGE", "")
         self.assertHas(self.spec_errors(self.large), "**Size**")
 
     def test_full_template_sections(self):

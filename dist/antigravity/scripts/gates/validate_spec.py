@@ -6,7 +6,9 @@ requirement IDs are R<n>; `**Size**:` selects the brief (MEDIUM) or full (LARGE/
 the brief spec carries `## Checks` (D24); a decision map with closed statuses; capture rules back in phase 11 (F11-2, supersedes D25).
 
 What it checks
-  ERRO   `**Size**:` missing or SMALL (a SMALL task has no spec)
+  ERRO   `**Size**:` missing
+  ERRO   SMALL (D-a, minimal spec): no `## Scope`, `## Checks` with no check, no `**May change**:` or no `**Linear**:` ID,
+         or more than 5 checks / 3 files (DECISIONS.md, CHANGELOG.md and folders not counted); no Approved line needed
   ERRO   a required section is missing or empty; a `*` section N/A without a reason
   ERRO   no requirement, a duplicated R<n>, a requirement without SHALL (EARS)
   ERRO   `## Open Questions` not empty
@@ -87,6 +89,35 @@ def _check_captures(fdir: Path, lines: list[str], reqs_lines: list[str], errors:
 
 
 
+SMALL_MAX_CHECKS = 5
+SMALL_MAX_FILES = 3
+SMALL_FREE_FILES = ("DECISIONS.md", "CHANGELOG.md")
+
+
+def _check_small(lines: list[str], errors: list[str]) -> None:
+    """Minimal PEQUENA spec (D-a): Scope, Checks, May change and Linear only; no approval line (R1, R2)."""
+    scope = gc.section(lines, "Scope")
+    if scope is None:
+        errors.append("falta a seção obrigatória `## Scope`")
+    elif not gc.meaningful(scope):
+        errors.append("`## Scope` está vazia")
+    checks_body = gc.section(lines, "Checks")
+    checks = [c for c in (gc.CHECK_RE.match(x.strip()) for x in (checks_body or [])) if c]
+    if checks_body is None:
+        errors.append("falta a seção obrigatória `## Checks`")
+    elif not checks:
+        errors.append("`## Checks` sem nenhum check: um `**C<n>** - <afirmação observável>` com `Proof:`")
+    paths = gc.split_paths(gc.field_value(lines, "May change") or "")
+    if not paths:
+        errors.append("falta a linha `**May change**:` com os arquivos que a tarefa pode alterar")
+    if not gc.LINEAR_ID_RE.search(gc.field_value(lines, "Linear") or ""):
+        errors.append("falta a linha `**Linear**:` com o ID da issue")
+    files = [p for p in paths if p not in SMALL_FREE_FILES and not p.endswith("/")]
+    if len(checks) > SMALL_MAX_CHECKS or len(files) > SMALL_MAX_FILES:
+        errors.append(f"PEQUENA passou do limite ({len(checks)} checks, {len(files)} arquivos): "
+                      "reclassifique para MÉDIA")
+
+
 def evaluate(target: str | None, root: Path, require_approval: bool = False) -> gc.Result:
     res = gc.Result("validate_spec")
     try:
@@ -107,7 +138,7 @@ def evaluate(target: str | None, root: Path, require_approval: bool = False) -> 
         errors.append("falta a linha `**Size**: MEDIUM | LARGE | COMPLEX` (classe do dimensionamento por risco)")
         size = "LARGE"
     elif size == "SMALL":
-        errors.append("`**Size**: SMALL` não tem spec: a tarefa PEQUENA vai direto ao LaForge com checks inline")
+        _check_small(lines, errors)
         return res
     brief = size == "MEDIUM"
 
