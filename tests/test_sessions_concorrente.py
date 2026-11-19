@@ -52,11 +52,6 @@ def _w_session(cwd: str, mine: list[str]) -> None:
         sc.update_session(cwd, lambda data, key=key: data.__setitem__(key, 1))
 
 
-def _w_write_session(cwd: str, mine: list[str]) -> None:
-    for key in mine:
-        sc.write_session(cwd, {**sc.read_session(cwd), key: 1})  # the old read-then-write shape must not crash
-
-
 def _run_parallel(target, make_args) -> list[int]:
     ctx = multiprocessing.get_context("spawn")
     procs = [ctx.Process(target=target, args=make_args([f"k{p}-{i}" for i in range(PER_PROC)])) for p in range(PROCS)]
@@ -152,6 +147,30 @@ class SessionsConcorrenteTests(TempRepoCase):
             sc.write_json_atomic(target, {"a": 3})
         self.assertEqual(len(calls), 3)
         self.assertEqual(json.loads(target.read_text(encoding="utf-8")), {"a": 3})
+        # up to 5 new attempts: success on the 6th call writes the new content
+        calls.clear()
+
+        def busy_until(n):
+            def fake(a, b):
+                calls.append(1)
+                if len(calls) < n:
+                    raise PermissionError("busy")
+                real_replace(a, b)
+            return fake
+
+        with mock.patch.object(sc.os, "replace", busy_until(6)), mock.patch.object(sc.time, "sleep"):
+            sc.write_json_atomic(target, {"a": 4})
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(json.loads(target.read_text(encoding="utf-8")), {"a": 4})
+        # failure on the 6th call raises, old bytes intact, no temp left
+        calls.clear()
+        before = target.read_bytes()
+        with mock.patch.object(sc.os, "replace", busy_until(7)), mock.patch.object(sc.time, "sleep"),                 self.assertRaises(PermissionError):
+            sc.write_json_atomic(target, {"a": 5})
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(target.read_bytes(), before)
+        self.assertEqual(sorted(p.name for p in self.tmp.iterdir() if p.name != "repo"),
+                         ["estado.json", "estado.json.lock"])
 
     # R2 / R3 / R4 --------------------------------------------------------------------------
 
@@ -187,8 +206,15 @@ class SessionsConcorrenteTests(TempRepoCase):
         path = sc.write_session(self.repo, {"gitMode": 2})
         self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"gitMode": 2})
         self.assertEqual(list(gd.rglob("session.tmp")), [])
-        codes = _run_parallel(_w_write_session, lambda mine: (str(self.repo), mine))
-        self.assertEqual(codes, [0] * PROCS)  # write_session no longer fails under contention
+        # write_session replaces the whole file with exactly `data`
+        sc.update_session(self.repo, lambda data: data.update({"extra": 1}))
+        sc.write_session(self.repo, {"only": 2})
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"only": 2})
+        self.assertEqual(list(gd.rglob("session.tmp")), [])
+        # production code under scripts/ and hooks/ never calls write_session outside starcode_common.py
+        callers = [str(p.relative_to(ROOT)) for folder in ("scripts", "hooks") for p in (ROOT / folder).rglob("*.py")
+                   if p.name != "starcode_common.py" and "write_session(" in p.read_text(encoding="utf-8")]
+        self.assertEqual(callers, [])
         # git_mode.py writes through update_session, never through a bare write
         src = (ROOT / "scripts" / "git_mode.py").read_text(encoding="utf-8")
         self.assertEqual(src.count("sc.update_session("), 3)
@@ -230,6 +256,12 @@ class SessionsConcorrenteTests(TempRepoCase):
             code, out, err = self.cli(git_mode.main, "--cwd", str(self.repo), "set", "3")
         self.assertEqual((code, out, err), (2, "", f"trava ocupada: {gpath} (tente de novo)\n"))
         self.assertEqual(gpath.read_bytes(), raw)
+        for args in (("authorize-merge", "feature/x"), ("revoke-merge",)):
+            raw = gpath.read_bytes()
+            with self.held(gpath):
+                code, out, err = self.cli(git_mode.main, "--cwd", str(self.repo), *args)
+            self.assertEqual((code, out, err), (2, "", f"trava ocupada: {gpath} (tente de novo)\n"), args)
+            self.assertEqual(gpath.read_bytes(), raw, args)
         # positive: with the lock free the same commands work
         code, out, err = self.cli(git_mode.main, "--cwd", str(self.repo), "set", "3")
         self.assertEqual((code, err), (0, ""))
@@ -250,6 +282,9 @@ class SessionsConcorrenteTests(TempRepoCase):
         problema = entry.split("**Problema**")[1].split("**Decisão**")[0]
         self.assertIn("64", problema)
         self.assertIn("16 processos", problema)
+        for phrase in ("`sessions.json` terminou com 9, 11 e 13 das 64 entradas",
+                       "`write_session` teve 10, 6 e 11 das 64 escritas falhando com `PermissionError`"):
+            self.assertIn(phrase, problema, phrase)
         decisao = entry.split("**Decisão**")[1].split("**Motivo**")[0]
         for term in ("`locked(path, timeout=5.0)`", "`write_json_atomic(path, data)`", "`update_session(cwd, mutate)`", "5 s", "hook", "silencios",
                      "saída 2", "trava ocupada: <arquivo> (tente de novo)"):

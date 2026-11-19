@@ -222,6 +222,7 @@ def update_session(cwd: str | Path | None, mutate) -> Path:
 
 
 def write_session(cwd: str | Path | None, data: dict) -> Path:
+    """Replace the whole session.json with `data` (under `locked`). To change keys use `update_session`."""
     def replace(cur: dict) -> None:
         cur.clear()
         cur.update(data)
