@@ -181,7 +181,20 @@ class NoModeTests(TempRepoCase):
                     # aspas sem fechar: na dúvida, a linha seguinte é analisada
                     "echo 'x <<EOF\ngit reset --hard",
                     # dois heredocs: o que vai para o shell continua analisado
-                    "cat <<A > a.md\nx\nA\nbash <<B\ngit reset --hard\nB"):
+                    "cat <<A > a.md\nx\nA\nbash <<B\ngit reset --hard\nB",
+                    # na dúvida, shell: algum token do pipeline é shell, source, . ou eval
+                    "cat <<EOF | sudo -u root bash\ngit reset --hard\nEOF",
+                    "cat <<EOF | env -i bash\ngit reset --hard\nEOF",
+                    "cat <<EOF | nice bash\ngit reset --hard\nEOF",
+                    "cat <<EOF | timeout 60 bash\ngit reset --hard\nEOF",
+                    "cat <<EOF | xargs -0 bash\ngit reset --hard\nEOF",
+                    "sudo -u root bash <<EOF\ngit reset --hard\nEOF",
+                    "nice -n 5 sh <<EOF\ngit reset --hard\nEOF",
+                    "source /dev/stdin <<EOF\ngit reset --hard\nEOF",
+                    ". /dev/stdin <<EOF\ngit reset --hard\nEOF",
+                    "eval \"$(cat <<'EOF'\ngit reset --hard\nEOF\n)\"",
+                    # bloqueio falso aceito (conservador)
+                    "grep bash <<EOF\ngit reset --hard\nEOF"):
             with self.subTest(cmd=cmd):
                 self.assertIsNotNone(g.evaluate(cmd), cmd)
         self.assertIsNone(g.evaluate("bash <<EOF\ngit status\nEOF"))
@@ -215,6 +228,8 @@ class NoModeTests(TempRepoCase):
             "`git commit -m \"$(cat <<'EOF' ...)\"`",
             # R6
             "(`bash <<EOF`, `sh <<EOF`, `cat <<EOF | bash`) continua analisado linha a linha",
+            "Na dúvida, shell", "algum token do pipeline dele tem base em `SHELLS`, `source`, `.` ou `eval`",
+            "`grep bash <<EOF` é aceito por ser conservador",
             "um comando depois do delimitador continua analisado",
             # R7 e os fechamentos da rodada pós-Q
             "`tokenize` não mudou (R7)",
@@ -237,7 +252,8 @@ class NoModeTests(TempRepoCase):
         for term in ("forced checkout (-f/--force)", "forced switch (--discard-changes/-f/--force)",
                      "stash drop/clear", "`bash -lc", "`sh -ec", "cherry-pick, revert, am, pull, rebase",
                      "except control", "--no-commit", "heredoc whose body is only data",
-                     "heredoc that goes to a shell", "comment or in quotes"):
+                     "heredoc that goes to a shell", "comment or in quotes", "SHELLS, `source`, `.` or `eval`",
+                     "doubt, shell"):
             with self.subTest(term=term):
                 self.assertIn(term, doc)
 
