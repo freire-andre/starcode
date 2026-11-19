@@ -37,6 +37,9 @@
     python dispatch.py q-waive <slug> [--root DIR]
         PEQUENA (spec `**Size**: SMALL`, D-a): writes `verification.md` with `**Verification:** waived (PEQUENA)` and
         `Q dispensado: tarefa PEQUENA (D-a).`, exit 0. Any other class: exit 2, nothing written.
+    python dispatch.py close-finding <slug> <n> --commit <sha> --cover <C<n>|test_nome> [--root DIR]
+        Writes `<sha7> · <cover>` in the `Closed` cell of finding n; exit 2, nothing written, on a missing commit,
+        a cover that is no feature `C<n>` or `test_<name>` defined in tests/ at HEAD, n out of range or a malformed row.
     python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
         The Q CLI: first of Q_CLI_ORDER whose family differs from ALL the given LaForge families and whose
         Orca worker is available. None qualifies: `self-verified` (exit 1).
@@ -73,6 +76,7 @@ import validate_config  # noqa: E402
 import starcode_common as sc  # noqa: E402
 import tasks_export  # noqa: E402
 import validate_tasks as vt  # noqa: E402
+import validate_verification as vv  # noqa: E402
 
 PREFIX_FAMILIES = (("claude", "anthropic"), ("gpt", "openai"), ("o1", "openai"), ("o3", "openai"),
                    ("o4", "openai"), ("codex", "openai"), ("gemini", "google"), ("deepseek", "deepseek"))
@@ -941,6 +945,12 @@ def q_waive(slug: str, root: Path, emit=print) -> int:
     return 0
 
 
+def close_finding(slug: str, n: int, commits: list[str], covers: list[str], root: Path) -> str:
+    """SC-199 (D-c): fills the `Closed` cell of finding n with `<sha7> · <cover>`; ValueError (exit 2) writes nothing."""
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    return vv.close_finding(fdir, gc.project_root(fdir), n, commits, covers)
+
+
 def main(argv: list[str] | None = None) -> int:
     sc.utf8_stdio()
     p = argparse.ArgumentParser(prog="dispatch.py", description="Apoio ao despacho sequencial do Picard.")
@@ -993,6 +1003,12 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("--round", type=int, choices=(1, 2), default=1)
     ps.add_argument("--out", required=True)
     ps.add_argument("--root", default=".")
+    pcf = sub.add_parser("close-finding")
+    pcf.add_argument("slug")
+    pcf.add_argument("n", type=int)
+    pcf.add_argument("--commit", action="append", required=True)
+    pcf.add_argument("--cover", action="append", required=True)
+    pcf.add_argument("--root", default=".")
     pf = sub.add_parser("family")
     pf.add_argument("spec")
     pf.add_argument("--compare")
@@ -1050,6 +1066,9 @@ def main(argv: list[str] | None = None) -> int:
             text = screens_brief(a.slug, Path(a.root).resolve(), a.url, a.serve, a.round)
             Path(a.out).write_text(text, encoding="utf-8", newline="\n")
             print(f"briefing do juiz de telas gravado em {a.out}")
+            return 0
+        if a.cmd == "close-finding":
+            print(close_finding(a.slug, a.n, a.commit, a.cover, Path(a.root).resolve()))
             return 0
         if a.cmd == "q-cli":
             lfs = [*a.laforge_pos, *a.laforge]

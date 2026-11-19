@@ -352,7 +352,8 @@
         "licoes-recorrencia-por-id",
         "q-strategy",
         "verificacao-1-8-0",
-        "retro-fase9"
+        "retro-fase9",
+        "fecha-achado"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -363,11 +364,12 @@
         ".specs/features/q-strategy/verification.md:25",
         ".specs/features/verificacao-1-8-0/verification.md:31",
         ".specs/features/verificacao-1-8-0/verification.md:36",
-        ".specs/features/retro-fase9/verification.md:25"
+        ".specs/features/retro-fase9/verification.md:25",
+        ".specs/features/fecha-achado/verification.md:achado 4"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-17T23:38:49Z"
+      "updated": "2026-11-19T16:29:48Z"
     },
     {
       "id": "L21",
@@ -437,16 +439,18 @@
       "features": [
         "ajustes-review-pr39",
         "despacho-media-escopo",
-        "verificacao-1-8-0"
+        "verificacao-1-8-0",
+        "fecha-achado"
       ],
       "sources": [
         "verification.md:C2 (tests/test_coverage_rule.py:22)",
         "verification.md: achado C9",
-        ".specs/features/verificacao-1-8-0/verification.md:38"
+        ".specs/features/verificacao-1-8-0/verification.md:38",
+        ".specs/features/fecha-achado/verification.md:achado 3"
       ],
       "scope": "",
       "created": "2026-11-13T16:43:22Z",
-      "updated": "2026-11-16T17:20:28Z"
+      "updated": "2026-11-19T16:29:48Z"
     },
     {
       "id": "L26",
@@ -552,7 +556,8 @@
         "lote1-correcoes",
         "retro-fase9",
         "scanner-lote2",
-        "guard-lote2"
+        "guard-lote2",
+        "fecha-achado"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -563,11 +568,12 @@
         ".specs/features/lote1-correcoes/verification.md:26",
         ".specs/features/retro-fase9/verification.md:27",
         ".specs/features/scanner-lote2/verification.md:29",
-        ".specs/features/guard-lote2/verification.md:28"
+        ".specs/features/guard-lote2/verification.md:28",
+        ".specs/features/fecha-achado/verification.md:achado 5"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-19T00:58:27Z"
+      "updated": "2026-11-19T16:29:48Z"
     },
     {
       "id": "L33",
@@ -1067,6 +1073,36 @@
       "scope": "",
       "created": "2026-11-19T14:44:11Z",
       "updated": "2026-11-19T14:44:11Z"
+    },
+    {
+      "id": "L66",
+      "text": "Para saber se um nome é definido em código, analise a sintaxe (ast) em vez de buscar texto, porque uma definição aparente dentro de string ou comentário passava como função real.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fecha-achado"
+      ],
+      "sources": [
+        ".specs/features/fecha-achado/verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-19T16:29:48Z",
+      "updated": "2026-11-19T16:29:48Z"
+    },
+    {
+      "id": "L67",
+      "text": "Ao ler tabelas Markdown, trate como linha da tabela também a linha com pipe que segue outra linha da tabela sem pipe inicial, porque ela escapava da contagem de células.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "fecha-achado"
+      ],
+      "sources": [
+        ".specs/features/fecha-achado/verification.md:achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-19T16:29:48Z",
+      "updated": "2026-11-19T16:29:48Z"
     }
   ]
 }
