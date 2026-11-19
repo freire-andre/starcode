@@ -28,12 +28,12 @@ Proof: run unit | test_decisions_frota_travada (test_dispatch.FrotaTravadaTests.
 **Phase:** pr-review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** Worf r1
+**Next:** publicar r1, push do review, merge (confirmação)
 **Linear:** SC-200
 **Integration branch:** feature/frota-travada
 **Last integrated:** 982fed7
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA); 2026-11-19: PR aberto
+**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA); 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (W1 nit aberto)
 **Breaker:** closed
