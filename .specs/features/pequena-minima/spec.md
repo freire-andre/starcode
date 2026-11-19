@@ -82,12 +82,12 @@ Proof: run unit | test_decisions_pequena_minima (test_pequena_minima.PequenaTest
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
+**Next:** Correção pós-Q única (LaForge), depois proofs e done
 **Linear:** SC-197
 **Integration branch:** feature/pequena-minima
 **Last integrated:** 9978cbe
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: sim; issue SC-197 criada
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-19: Q r1 FAIL: 3 achados (waivedness aceito; prova C4 sem settle; C7 Worf sem PR)
 **Breaker:** closed
