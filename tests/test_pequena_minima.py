@@ -306,10 +306,13 @@ class PequenaTests(TempRepoCase):
         for needle in ("**Size**: SMALL", "## Scope", "## Checks", "**May change**:", "**Linear**:",
                        'dispatch.py" start', 'dispatch.py" settle', 'run_gates.py" proofs',
                        'dispatch.py" q-waive <slug>', "**Verification:** waived (PEQUENA)",
-                       "run_gates.py done <slug>", "Worf", "The Guinan is **not** invoked",
+                       "run_gates.py done <slug>",
                        "no approval", "PEQUENA passou do limite"):
             with self.subTest(needle=needle):
                 self.assertIn(needle, sec8)
+        flat = " ".join(sec8.split())
+        self.assertIn("4. PR in modes 3/4 and the Worf on the PR (section \"Review (Worf)\") stay.", flat)
+        self.assertIn("The Guinan is **not** invoked: no retro for a PEQUENA task.", flat)
         route = next(ln for ln in text["engajar"].splitlines() if ln.startswith("| PEQUENA"))
         self.assertIn("spec mínima do Picard + LaForge (Q dispensado)", route)
         flow = next(ln for ln in text["risk"].splitlines() if ln.startswith("| PEQUENA"))
