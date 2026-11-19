@@ -76,12 +76,12 @@ Proof: run unit | test_decisions_pr_review (test_pr_review.PrReviewTests.test_de
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Correção pós-Q única (LaForge)
+**Next:** Guinan faz a retro; depois PR (pr-review) e Worf
 **Linear:** SC-198
 **Integration branch:** feature/pr-review
 **Last integrated:** 10154e8
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-198 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (merge após r3 aberta; retomada com PR mergeado; Guinan exclui corrigidos; asserções frouxas C1/C3/C7)
+**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (merge após r3 aberta; retomada com PR mergeado; Guinan exclui corrigidos; asserções frouxas C1/C3/C7); 2026-11-19: pós-Q: 48d7055, ca5b699; done --strict verde
 **Breaker:** closed
