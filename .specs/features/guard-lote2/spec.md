@@ -84,12 +84,12 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 **Phase:** review
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-196)
+**Next:** Guinan: retro
 **Linear:** SC-196
 **Integration branch:** feature/guard-lote2
-**Last integrated:** 5e1cc95b9b19e895d0e13826c9edf822e79ca8e8
-**Dispatched:** T1-fix · SC-196 · base f0c42bb · claude:claude-sonnet-5-5 · 2026-11-19T00:37:59Z · ctx_725e5404de0a
+**Last integrated:** fee09e6
+**Dispatched:** none
 **Settled:** 2026-11-18: spec + issue: "sim"
 **Attempts:** none
-**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 4 achados (contorno: '# <<EOF' em comentário esconde a linha seguinte; falsos bloqueios: checkout -- -f, heredoc + shell em segmento separado, <<- e << juntos; C1, C3, C4, C5, C8 fracos); 980 OK; q-check 0
+**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 4 achados (contorno: '# <<EOF' em comentário esconde a linha seguinte; falsos bloqueios: checkout -- -f, heredoc + shell em segmento separado, <<- e << juntos; C1, C3, C4, C5, C8 fracos); 980 OK; q-check 0; 2026-11-18: T1-fix: e077846 (4 achados); 980 OK; ticket gate verde; Picard sondou 30 entradas: contornos com comentário e aspas bloqueados; o único que passa (echo a#<<EOF) abre heredoc de verdade no bash, porque # no meio da palavra não é comentário; 2026-11-18: provas e done verdes em fee09e6 (980 OK)
 **Breaker:** closed
