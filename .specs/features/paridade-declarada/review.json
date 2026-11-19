@@ -1,0 +1,15 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O README e a matriz declaram os três níveis (Claude Code principal, Codex secundário completo, Antigravity CLI e OpenCode melhor esforço), cada um com o que significa; a seção Nível de suporte vem antes da Matriz, que não mudou; as pendências do dono deixam à vista o aceite das Fases 8 e 9 no Codex. Os testes comparam linhas inteiras e a tabela exata. Nenhum achado. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: documentação e testes"
+ ],
+ "ladder": [
+  "python tools/build.py --check: ok; python scripts/check_decisions.py: ok; claude plugin validate dist/claude --strict: ok",
+  "run_gates.py proofs (3/3) e done --strict: verdes, com 1 aviso esperado (Q dispensado, PEQUENA); suíte inteira 1034 testes OK no gate proofs",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}

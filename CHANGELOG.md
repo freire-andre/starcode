@@ -10,6 +10,7 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ### Alterado
 
+- Paridade declarada: o `README.md` troca "com os 4 CLIs suportados" por três níveis de suporte (Claude Code principal, Codex secundário completo, Antigravity CLI e OpenCode melhor esforço) e o `docs/compatibilidade.md` ganha `## Nível de suporte` com a tabela e as pendências do dono (aceite das Fases 8 e 9 no Codex) (SC-204).
 - Roteamento do Worf e do McCoy fora do StarCode: descrições presas ao StarCode com "Not for" (review de PR e depuração genéricos) e 3 casos novos em `evals/routing/` (36 frases) (SC-203).
 - Escrita concorrente dos arquivos de sessão: `locked` (trava do SO no `<arquivo>.lock`, 5 s) e `write_json_atomic` (temporário único) no `starcode_common.py`; `update_sessions`, `set_progress`, `write_session` e o `git_mode.py` (via novo `update_session`) leem, mudam e gravam sob a trava, sem `session.tmp`; trava esgotada deixa o hook em silêncio e faz `crew_live.py`/`git_mode.py` saírem com 2 e `trava ocupada: <arquivo> (tente de novo)` (SC-202).
 - Frota travada só com workers atrasados: quando o `dispatch.py batch` sai vazio e toda entrada ativa do `Dispatched` está ` · blocked`, o JSON ganha `"stalled"` e o texto a linha `travado:`; o `execute.md` (2F) manda o Picard parar com duas opções, cancelar com confirmação ou seguir esperando (SC-200).

@@ -69,15 +69,15 @@ Proof: run unit | test_descricao_piloto (test_roteamento_worf_mccoy.RoteamentoWo
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** nenhum: missão concluída
 **Linear:** SC-203
 **Integration branch:** feature/roteamento-worf-mccoy
 **Last integrated:** c3e9e2f
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-203 criada; eval: casos novos e vizinhos
 **Attempts:** none
-**Reports:** 2026-11-19: eval: 12/13; pos-piloto-automatico foi para o engajar; usuário: dar gatilhos ao piloto (R6); 2026-11-19: piloto: invocation user impede o roteamento; usuário: manter só o usuário (caso sai, R6 reverte); 2026-11-19: R6 revertido em c3e9e2f; eval: 12/12 nos casos novos e vizinhos que ficam; 2026-11-19: Q r1 FAIL: 6 achados (testes frouxos C1-C6; README sobre o alcance dos negativos); 2026-11-19: pós-Q: d5e81b1, 89c1491; achados fechados com close-finding; 2026-11-19: Guinan: L70, L71, L72; recorrências L32, L2; 2026-11-19: PR aberto; 2026-11-19: correção: eval local 11/11 nos casos que ficaram (não 12/12); 2026-11-19: Worf r1 APPROVE (sem achados)
+**Reports:** 2026-11-19: eval: 12/13; pos-piloto-automatico foi para o engajar; usuário: dar gatilhos ao piloto (R6); 2026-11-19: piloto: invocation user impede o roteamento; usuário: manter só o usuário (caso sai, R6 reverte); 2026-11-19: R6 revertido em c3e9e2f; eval: 12/12 nos casos novos e vizinhos que ficam; 2026-11-19: Q r1 FAIL: 6 achados (testes frouxos C1-C6; README sobre o alcance dos negativos); 2026-11-19: pós-Q: d5e81b1, 89c1491; achados fechados com close-finding; 2026-11-19: Guinan: L70, L71, L72; recorrências L32, L2; 2026-11-19: PR aberto; 2026-11-19: correção: eval local 11/11 nos casos que ficaram (não 12/12); 2026-11-19: Worf r1 APPROVE (sem achados); 2026-11-19: merge 82b0472 (PR #72); SC-203 Done
 **Breaker:** closed
