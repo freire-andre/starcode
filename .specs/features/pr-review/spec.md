@@ -73,13 +73,13 @@ Proof: run unit | test_decisions_pr_review (test_pr_review.PrReviewTests.test_de
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-198)
+**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
 **Linear:** SC-198
 **Integration branch:** feature/pr-review
-**Last integrated:** none
+**Last integrated:** 10154e8
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-198 criada
 **Attempts:** none
