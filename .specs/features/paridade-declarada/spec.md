@@ -22,15 +22,15 @@ Proof: run unit | test_decisions_paridade (test_paridade_declarada.ParidadeDecla
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-204)
+**Next:** push e PR (confirmação); Worf
 **Linear:** SC-204
 **Integration branch:** feature/paridade-declarada
-**Last integrated:** none
+**Last integrated:** 2a31040
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA)
 **Breaker:** closed
