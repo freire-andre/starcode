@@ -25,15 +25,15 @@ Proof: run unit | test_decisions_frota_travada (test_dispatch.FrotaTravadaTests.
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** push e PR (confirmação); Worf
+**Next:** Worf r1
 **Linear:** SC-200
 **Integration branch:** feature/frota-travada
 **Last integrated:** 982fed7
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA)
+**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA); 2026-11-19: PR aberto
 **Breaker:** closed
