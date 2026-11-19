@@ -82,15 +82,15 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MÉDIA
 **Git mode:** 3
-**Next:** merge + Done (confirmação)
+**Next:** lote 3 da triagem v2 (3.1 e 3.5 primeiro)
 **Linear:** SC-196
 **Integration branch:** feature/guard-lote2
 **Last integrated:** 9ea9cd8
 **Dispatched:** none
-**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "Sim"; 2026-11-18: PR aberto: https://github.com/freire-andre/starcode/pull/66; 2026-11-18: review r1 publicado; W1: "Corrigir no mesmo PR (Recomendado)" (R6 emendado)
+**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "Sim"; 2026-11-18: PR aberto: https://github.com/freire-andre/starcode/pull/66; 2026-11-18: review r1 publicado; W1: "Corrigir no mesmo PR (Recomendado)" (R6 emendado); 2026-11-19: review r2 publicado; merge + Done: "Sim, publicar, merge e Done (Recomendado)"
 **Attempts:** none
-**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 4 achados (contorno: '# <<EOF' em comentário esconde a linha seguinte; falsos bloqueios: checkout -- -f, heredoc + shell em segmento separado, <<- e << juntos; C1, C3, C4, C5, C8 fracos); 980 OK; q-check 0; 2026-11-18: T1-fix: e077846 (4 achados); 980 OK; ticket gate verde; Picard sondou 30 entradas: contornos com comentário e aspas bloqueados; o único que passa (echo a#<<EOF) abre heredoc de verdade no bash, porque # no meio da palavra não é comentário; 2026-11-18: provas e done verdes em fee09e6 (980 OK); 2026-11-18: Guinan: L60, L61 novas, L2 e L32 (--id); retro com 3 sugestões; test_lessons OK; 2026-11-18: Worf r1: REQUEST_CHANGES, W1 blocker (heredoc para shell via sudo -u, env -i, nice, timeout, xargs -0, source, ., eval vira dado e passa; na main bloqueava); gate 0; 2026-11-18: T1-fix2: e678e67 (W1); 980 OK; ticket gate verde; Picard sondou 22 entradas: 15 de heredoc para shell bloqueadas, 7 de dado passam; 2026-11-18: provas e done verdes (980 OK); Worf r2: APPROVE, W1 resolvido
+**Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 4 achados (contorno: '# <<EOF' em comentário esconde a linha seguinte; falsos bloqueios: checkout -- -f, heredoc + shell em segmento separado, <<- e << juntos; C1, C3, C4, C5, C8 fracos); 980 OK; q-check 0; 2026-11-18: T1-fix: e077846 (4 achados); 980 OK; ticket gate verde; Picard sondou 30 entradas: contornos com comentário e aspas bloqueados; o único que passa (echo a#<<EOF) abre heredoc de verdade no bash, porque # no meio da palavra não é comentário; 2026-11-18: provas e done verdes em fee09e6 (980 OK); 2026-11-18: Guinan: L60, L61 novas, L2 e L32 (--id); retro com 3 sugestões; test_lessons OK; 2026-11-18: Worf r1: REQUEST_CHANGES, W1 blocker (heredoc para shell via sudo -u, env -i, nice, timeout, xargs -0, source, ., eval vira dado e passa; na main bloqueava); gate 0; 2026-11-18: T1-fix2: e678e67 (W1); 980 OK; ticket gate verde; Picard sondou 22 entradas: 15 de heredoc para shell bloqueadas, 7 de dado passam; 2026-11-18: provas e done verdes (980 OK); Worf r2: APPROVE, W1 resolvido; 2026-11-19: PR #66 merge 11f597b; SC-196 Done
 **Breaker:** closed
