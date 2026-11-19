@@ -34,6 +34,7 @@ Exit 0 ok, 1 the feature is not done, 2 usage error.
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import subprocess
 import sys
@@ -167,7 +168,8 @@ def numbered_tables(body: list[tuple[int, str]]) -> list[Table]:
     out: list[Table] = []
     buf: list[tuple[int, str]] = []
     for item in body + [(0, "")]:
-        if item[1].strip().startswith("|"):
+        ln = item[1].strip()
+        if ln.startswith("|") or (buf and "|" in ln):  # a row right after a table row belongs to the block
             buf.append(item)
             continue
         rows = [(n, ln) for n, ln in buf if not (SEP_ROW_RE.match(ln.strip()) and "-" in ln)]
@@ -193,10 +195,24 @@ def feature_check_ids(fdir: Path) -> list[str]:
 
 
 def defines_test(root: Path, name: str) -> bool:
-    """True when some file under tests/ at HEAD defines `def <name>(`."""
-    code, _ = _git(root, "grep", "-q", "-E", "-e", rf"^[[:space:]]*def {re.escape(name)}[[:space:]]*\(",
-                   "HEAD", "--", "tests")
-    return code == 0
+    """True when a `tests/**/*.py` file at HEAD, parsed by `ast`, defines a function `<name>`.
+    A file that does not parse counts for nothing; text inside strings or comments is no definition."""
+    code, listing = _git(root, "ls-tree", "-r", "--name-only", "HEAD", "--", "tests")
+    if code != 0:
+        return False
+    for path in listing.splitlines():
+        if not path.endswith(".py"):
+            continue
+        p = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=root, capture_output=True, stdin=subprocess.DEVNULL)
+        if p.returncode != 0:
+            continue
+        try:
+            tree = ast.parse(p.stdout)
+        except (SyntaxError, ValueError):
+            continue
+        if any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name for n in ast.walk(tree)):
+            return True
+    return False
 
 
 def valid_cover(root: Path, fdir: Path, token: str) -> bool:

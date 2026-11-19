@@ -136,25 +136,77 @@ class FechaAchadoTests(TempRepoCase):
                 f"| C2 a mais | `a|b` | y | {sha} · C1 |\n"
                 f"| C3 a menos | y | {sha} · C1 |\n"
                 f"| C4 dupla | y | z | {sha} · C1 ||\n"
-                f"| C5 escapada | `a &#124; b` | y | {sha} · C1 |\n")
+                f"| C5 escapada | `a &#124; b` | y | {sha} · C1 |\n"
+                f"C6 | e | f | x | extra\n")
         res = self.done(rows)
         lines = self.vpath.read_text(encoding="utf-8").splitlines()
 
         def at(prefix: str) -> int:
             return next(i for i, ln in enumerate(lines, 1) if ln.startswith(prefix))
 
-        want = [f"verification.md:{at('| C2 a mais')}: 5 células, o cabeçalho tem 4 (escape pipe como &#124;)",
-                f"verification.md:{at('| C3 a menos')}: 3 células, o cabeçalho tem 4 (escape pipe como &#124;)",
-                f"verification.md:{at('| C4 dupla')}: 5 células, o cabeçalho tem 4 (escape pipe como &#124;)"]
+        msg = "verification.md:{}: {} células, o cabeçalho tem {} (escape pipe como &#124;)"
+        want = [msg.format(at("| C2 a mais"), 5, 4), msg.format(at("| C3 a menos"), 3, 4),
+                msg.format(at("| C4 dupla"), 5, 4), msg.format(at("C6 | e"), 5, 4)]
         self.assertEqual(res.errors, want, res.report())
-        # the same in `## Checks`
         checks = ("| C1 | `tests/t.py` `test_alpha` | yes |\n| C2 | `a|b` | yes | extra |\n"
+                  "| C3 | `tests/t.py` |\n"
+                  "C4 | `tests/t.py` | yes | extra\n"
                   "| C2 | `tests/t.py` `test_beta` | yes |\n")
         self.vpath.write_text(verification("None.", checks=checks), encoding="utf-8", newline="\n")
         res = vv.evaluate("demo", self.repo)
-        n = self.vpath.read_text(encoding="utf-8").splitlines().index("| C2 | `a|b` | yes | extra |") + 1
-        self.assertEqual([e for e in res.errors if "células" in e],
-                         [f"verification.md:{n}: 5 células, o cabeçalho tem 3 (escape pipe como &#124;)"])
+        lines = self.vpath.read_text(encoding="utf-8").splitlines()
+        msg3 = "verification.md:{}: {} células, o cabeçalho tem 3 (escape pipe como &#124;)"
+        want = [msg3.format(at("| C2 | `a|b`"), 5), msg3.format(at("| C3 |"), 2), msg3.format(at("C4 |"), 4)]
+        self.assertEqual([e for e in res.errors if "células" in e], want, res.report())
+        self.assertFalse(any("commit" in e for e in res.errors), res.report())
+
+    def commit_test_file(self, name: str, content: str) -> None:
+        (self.repo / "tests" / name).write_text(content, encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", f"test: {name}")
+
+    def test_cobertura_le_ast(self):
+        self.commit_test_file("doc.py", "texto = '''\n    def test_fantasma():\n'''\n")
+        self.commit_test_file("quebrado.py", "def test_quebrado(:\n")
+        self.commit_test_file("real.py", "async def test_assincrono():\n    pass\n\n\ndef test_real():\n    pass\n")
+        sha = run_git(self.repo, "rev-parse", "HEAD")
+        self.assertTrue(check_proofs.evaluate("demo", self.repo).ok)
+        for name in ("test_fantasma", "test_quebrado"):
+            before = snapshot(self.repo)
+            code, _, err = cli(self.repo, "1", "--commit", sha, "--cover", name)
+            self.assertEqual(code, 2, name)
+            self.assertIn(f"cobertura '{name}' inválida", err)
+            self.assertEqual(snapshot(self.repo), before, name)
+            res = self.done(HEADER + f"| C1 frouxa | `t.py:1` | x | {sha[:7]} · {name} |\n")
+            self.assertIn(f"achado 'C1 frouxa': {COVER_MSG}", res.errors, name)
+        for name in ("test_real", "test_assincrono"):
+            code, _, err = cli(self.repo, "1", "--commit", sha, "--cover", name)
+            self.assertEqual((code, err), (0, ""), name)
+            res = self.done(HEADER + f"| C1 frouxa | `t.py:1` | x | {sha[:7]} · {name} |\n")
+            self.assertTrue(res.ok, res.report())
+
+    def test_cobertura_sem_tasks(self):
+        tasks = (self.fdir / "tasks.md").read_text(encoding="utf-8")
+        (self.fdir / "tasks.md").unlink()
+        spec = self.fdir / "spec.md"
+        spec.write_text(spec.read_text(encoding="utf-8") + "\n## Checks" + tasks.split("## Checks", 1)[1],
+                        encoding="utf-8", newline="\n")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "chore: sem tasks")
+        sha = run_git(self.repo, "rev-parse", "HEAD")
+        self.assertTrue(check_proofs.evaluate("demo", self.repo).ok)
+        code, _, err = cli(self.repo, "1", "--commit", sha, "--cover", "C1")
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(self.cell(1), f"{sha[:7]} · C1")
+        before = snapshot(self.repo)
+        code, _, err = cli(self.repo, "1", "--commit", sha, "--cover", "C9")
+        self.assertEqual(code, 2)
+        self.assertIn("cobertura 'C9' inválida", err)
+        self.assertEqual(snapshot(self.repo), before)
+        res = self.done(HEADER + f"| C1 frouxa | `t.py:1` | x | {sha[:7]} · C1 |\n")
+        self.assertFalse(any("cobertura" in e for e in res.errors), res.report())
+        res = self.done(HEADER + f"| C1 frouxa | `t.py:1` | x | {sha[:7]} · C9 |\n")
+        self.assertIn(f"achado 'C1 frouxa': {COVER_MSG}", res.errors)
 
     def test_textos_close_finding(self):
         q = (ROOT / "src" / "briefs" / "q-verify.md").read_text(encoding="utf-8")
@@ -175,12 +227,19 @@ class FechaAchadoTests(TempRepoCase):
         for k, v in fields.items():
             self.assertIsNotNone(v, k)
         decisao = fields["Decisão"].group(1)
-        for term in ("D-c", "close-finding", "<sha> · <cobertura>", "C<n>", "def test_<nome>", "tests/",
-                     "&#124;", "células, o cabeçalho tem", "Closed", "sair com 2"):
+        for term in ("D-c", "close-finding", "<sha> · <cobertura>", "sair com 2"):
             self.assertIn(term, decisao, term)
+        for phrase in ("a cobertura vale se for um `C<n>` dos checks da feature",
+                       "ou um `test_<nome>` definido em `tests/` no HEAD",
+                       "lido por `ast`",
+                       "uma linha de `## Checks` ou `## Findings` com número de células diferente do cabeçalho "
+                       "dá `verification.md:<linha>: <m> células, o cabeçalho tem <k> (escape pipe como &#124;)`",
+                       "uma linha sem pipe inicial logo depois de uma linha da tabela"):
+            self.assertIn(phrase, decisao, phrase)
         bug = fields["Por que não é bug"].group(1)
         for name in ("test_close_finding_grava", "test_close_finding_recusa", "test_close_finding_preserva_bytes",
-                     "test_done_exige_cobertura", "test_done_acusa_celulas", "test_textos_close_finding",
+                     "test_done_exige_cobertura", "test_done_acusa_celulas", "test_cobertura_le_ast", "test_cobertura_sem_tasks",
+                     "test_textos_close_finding",
                      "test_decisions_fecha_achado"):
             self.assertIn(name, bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")

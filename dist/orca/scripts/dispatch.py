@@ -35,9 +35,11 @@
         Reports (never restores or deletes) what the Q left changed: only `verification.md`, `screens.md` and
         `captures/<name>.running.png` of the feature are allowed. Exit 0 clean, 1 files outside the list, 2 git failed.
     python dispatch.py q-waive <slug> [--root DIR]
-    python dispatch.py close-finding <slug> <n> --commit <sha> --cover <C<n>|test_nome> [--root DIR]
         PEQUENA (spec `**Size**: SMALL`, D-a): writes `verification.md` with `**Verification:** waived (PEQUENA)` and
         `Q dispensado: tarefa PEQUENA (D-a).`, exit 0. Any other class: exit 2, nothing written.
+    python dispatch.py close-finding <slug> <n> --commit <sha> --cover <C<n>|test_nome> [--root DIR]
+        Writes `<sha7> · <cover>` in the `Closed` cell of finding n; exit 2, nothing written, on a missing commit,
+        a cover that is no feature `C<n>` or `test_<name>` defined in tests/ at HEAD, n out of range or a malformed row.
     python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
         The Q CLI: first of Q_CLI_ORDER whose family differs from ALL the given LaForge families and whose
         Orca worker is available. None qualifies: `self-verified` (exit 1).
