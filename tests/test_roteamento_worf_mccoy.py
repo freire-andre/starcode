@@ -45,6 +45,13 @@ class RoteamentoWorfMccoyTests(unittest.TestCase):
         self.assertTrue(d.endswith("Not for writing new features or generic debugging outside StarCode."), d)
         self.assertIn("generic debugging outside StarCode", d.split("Not for")[-1])
 
+    def test_descricao_piloto(self):
+        d = descricao("piloto-automatico")
+        for gatilho in ('"StarCode, piloto automático"', '"toque a feature no piloto automático"'):
+            self.assertIn(gatilho, d)
+        self.assertIn("only when the user asks for the StarCode autopilot", d)
+        self.assertNotIn("Only the user invokes it", d)
+
     def test_casos_novos(self):
         for name, (prompt, graders) in CASOS.items():
             text = (ROUTING / name / "case.yaml").read_text(encoding="utf-8")
@@ -85,10 +92,10 @@ class RoteamentoWorfMccoyTests(unittest.TestCase):
         for term in ("review do PR", "revise esse PR", "esse teste não passa", "investigue o bug",
                      "a generic pull request review outside StarCode", "generic debugging outside StarCode",
                      "neg-worf-generic-pr", "neg-mccoy-generic-test", "pos-config-model", "pos-piloto-automatico",
-                     "37 frases"):
+                     "37 frases", '"StarCode, piloto automático"', '"toque a feature no piloto automático"'):
             self.assertIn(term, decisao, term)
         nao_bug = entry.split("**Por que não é bug**")[1]
-        for name in ("test_descricao_worf", "test_descricao_mccoy", "test_casos_novos",
+        for name in ("test_descricao_worf", "test_descricao_mccoy", "test_descricao_piloto", "test_casos_novos",
                      "test_readme_e_contagem", "test_decisions_roteamento"):
             self.assertIn(name, nao_bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
