@@ -6,7 +6,10 @@ deletion (push --delete / :branch), reset --hard, branch -D (or --delete --force
 forced switch (--discard-changes/-f/--force), stash drop/clear (SC-196).
 Shells with `c` in combined short flags (`bash -lc "..."`, `sh -ec '...'`) have the inner command
 analyzed. A heredoc whose body is only data (`cat <<EOF > f`, `git commit -m "$(cat <<EOF ...)"`) is
-skipped; the body of a heredoc that goes to a shell (`bash <<EOF`, `... | bash`) is analyzed. Each
+skipped; the body of a heredoc that goes to a shell (`bash <<EOF`, `... | bash`) is analyzed. When in
+doubt, shell: any token of the heredoc pipeline with base in SHELLS, `source`, `.` or `eval` (`sudo -u
+root bash`, `nice -n 5 sh`, `source /dev/stdin`, `eval "$(cat <<EOF ...)"`) sends the body to a shell;
+a false block such as `grep bash <<EOF` is accepted as conservative. Each
 heredoc belongs to its own command or pipeline, keeps its own `<<-` variant, and `<<` inside a
 comment or in quotes opens nothing. After `--` come paths, not flags (`git checkout -- -f`).
 
@@ -39,6 +42,7 @@ SEPARATORS = {"&&", "||", ";", "|", "&", "|&", ";;", "(", ")"}
 WRAPPERS = {"sudo", "command", "env", "time", "nohup", "exec", "xargs"}
 SHELLS = {"bash", "sh", "zsh", "dash", "pwsh", "powershell", "cmd"}
 WHOLE_TREE = {".", "./", ":/", ":(top)", "*", "./*"}
+SHELL_SINKS = SHELLS | {"source", ".", "eval"}
 SHELLS_C = {"bash", "sh", "zsh", "dash"}
 HEREDOC = re.compile(r"<<(-?)[ \t]*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_]\w*))")
 HINT = "Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no terminal."
@@ -74,16 +78,9 @@ def tokenize(command: str) -> list[list[str]]:
 
 
 def _goes_to_shell(line: str) -> bool:
-    for seg in tokenize(line):
-        i = 0
-        while i < len(seg) and ("=" in seg[i] and not seg[i].startswith("-")
-                                and seg[i].split("=", 1)[0].isidentifier()):
-            i += 1
-        while i < len(seg) and _base(seg[i]) in WRAPPERS:
-            i += 1
-        if i < len(seg) and _base(seg[i]) in SHELLS:
-            return True
-    return False
+    """When in doubt, shell (SC-196 W1): any token of the pipeline whose base is a shell, `source`, `.`
+    or `eval` sends the heredoc body to a shell (`sudo -u root bash`, `env -i bash`, `xargs -0 bash`...)."""
+    return any(_base(tok) in SHELL_SINKS for seg in tokenize(line) for tok in seg)
 
 
 def _heredoc_marks(line: str) -> list[tuple[str, bool, bool]]:
