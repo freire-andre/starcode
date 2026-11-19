@@ -25,7 +25,7 @@ class WorfSkillTests(unittest.TestCase):
             text = _read(root, "skills/worf/SKILL.md")
             self.assertTrue(text.startswith("---\nname: worf\n"), root)
             desc = text.split("---", 2)[1]
-            for trigger in ("Worf, revise o PR", "review do PR", "revise esse PR"):
+            for trigger in ("Worf, revise o PR", "StarCode, faça o review do PR"):
                 self.assertIn(trigger, desc, f"{root}: {trigger}")
             self.assertIn("Not for fixing code", desc)
             marks = ["**Deterministic ladder.**", "**Bypass scan.**", "**External research.**",

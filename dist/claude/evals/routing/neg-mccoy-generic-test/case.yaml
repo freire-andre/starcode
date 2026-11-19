@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: routing-neg-mccoy-generic-test
+description: "Não deve disparar starcode:mccoy (depuração genérica fora do StarCode)."
+tags: [routing, negative]
+execution:
+  prompt: "Esse teste não passa: test_soma falha com AssertionError. O que pode ser?"
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: no-mccoy
+    tool: Skill
+    input_match: "starcode:mccoy"
+    min: 0
+    max: 0

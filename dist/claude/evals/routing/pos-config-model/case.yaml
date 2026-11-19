@@ -1,0 +1,21 @@
+schema_version: "1.0"
+name: routing-pos-config-model
+description: "Deve disparar starcode:config e não starcode:setup."
+tags: [routing, positive]
+execution:
+  prompt: "Quero trocar o modelo do LaForge para o Kimi só neste projeto do StarCode."
+  max_turns: 3
+  allowed_tools: [Skill, Read, Glob, Grep]
+runs: 1
+graders:
+  - type: tool_used
+    name: routes-to-config
+    tool: Skill
+    input_match: "starcode:config"
+    min: 1
+  - type: tool_used
+    name: no-setup
+    tool: Skill
+    input_match: "starcode:setup"
+    min: 0
+    max: 0
