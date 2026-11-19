@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 13
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27
-- updated: 2026-11-18T22:56:47Z
+- signal: `weak_test` · features: 14
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27
+- updated: 2026-11-19T00:58:27Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 8
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29
-- updated: 2026-11-18T22:56:47Z
+- signal: `weak_test` · features: 9
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28
+- updated: 2026-11-19T00:58:27Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -364,6 +364,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: scanner-lote2
 - sources: .specs/features/scanner-lote2/verification.md:28
 - updated: 2026-11-18T22:56:47Z
+
+### L60 - Quando um parser ignora parte do texto (corpo de heredoc, comentário, string), teste o marcador que abre a parte ignorada dentro de comentário e de aspas, porque '# <<EOF' escondia o comando real da linha seguinte.
+- signal: `ac_gap` · features: 1
+- features: guard-lote2
+- sources: .specs/features/guard-lote2/verification.md:25
+- updated: 2026-11-19T00:58:27Z
+
+### L61 - Ao interpretar sintaxe de shell, associe cada construção ao seu comando ou pipeline e respeite '--', porque o heredoc de um segmento era tratado como entrada do shell de outro, e um arquivo chamado -f virava flag.
+- signal: `spec_deviation` · features: 1
+- features: guard-lote2
+- sources: .specs/features/guard-lote2/verification.md:26
+- updated: 2026-11-19T00:58:27Z
 
 ## Quarantined
 
