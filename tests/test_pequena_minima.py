@@ -279,6 +279,13 @@ class PequenaTests(TempRepoCase):
         errs = validate_verification.evaluate("peq", self.repo).errors
         self.assertTrue(any("sem tabela em `## Checks`" in e for e in errs), errs)
         self.assertFalse(any("waived" in e for e in errs), errs)
+        # só `waived` como palavra inteira dispensa: o resto não dispensa as tabelas
+        for value in ("waivedness", "unwaived", "waived-x", "waived (OUTRA)"):
+            with self.subTest(value=value):
+                self.done_repo(verification=f"# peq: Verification{NL}{NL}**Verification:** {value}{NL}")
+                res = validate_verification.evaluate("peq", self.repo)
+                self.assertTrue(any("sem tabela em `## Checks`" in e for e in res.errors), res.errors)
+                self.assertNotIn("Q dispensado (PEQUENA)", res.warnings)
 
     # --- R7 -------------------------------------------------------------------------------------
     def test_textos_fluxo_pequena(self):

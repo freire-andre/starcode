@@ -45,7 +45,7 @@ import images  # noqa: E402
 HEAD_RE = re.compile(r"\*\*HEAD\*\*\s*:\s*`?([0-9a-f]{4,40})", re.IGNORECASE)
 TREE_RE = re.compile(r"\*\*Tree\*\*\s*:\s*(.+)", re.IGNORECASE)
 DEGRADED_RE = re.compile(r"\*\*Verification:?\*\*\s*:?\s*\**\s*(degraded|self-verified)", re.IGNORECASE)
-WAIVED_RE = re.compile(r"\*\*Verification:?\*\*\s*:?\s*\**\s*waived", re.IGNORECASE)
+WAIVED_RE = re.compile(r"\*\*Verification:?\*\*\s*:?\s*\**\s*waived(?: \(PEQUENA\))?\s*$", re.IGNORECASE)
 SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 MODE1_CLOSED = "degradada (modo 1)"
 ROUND_RE = re.compile(r"\*\*Round\*\*\s*:\s*(\d+)", re.IGNORECASE)
