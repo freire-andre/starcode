@@ -75,12 +75,12 @@ Proof: run unit | test_decisions_fecha_achado (test_fecha_achado.FechaAchadoTest
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
+**Next:** Correção pós-Q única (LaForge)
 **Linear:** SC-199
 **Integration branch:** feature/fecha-achado
 **Last integrated:** 61d7980
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-199 criada
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (teste fantasma em string; linha sem pipe inicial; fallback spec sem prova; C5 e C7 frouxos)
 **Breaker:** closed
