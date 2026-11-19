@@ -347,6 +347,8 @@ class PequenaTests(TempRepoCase):
         self.assertIn("spec mínima do Picard + LaForge (Q dispensado)", route)
         flow = next(ln for ln in text["risk"].splitlines() if ln.startswith("| PEQUENA"))
         self.assertIn("spec mínima do Picard + LaForge (Q dispensado)", flow.split("|")[3])
+        core = " ".join((ROOT / "src" / "context" / "STARCODE.md").read_text(encoding="utf-8").split())
+        self.assertIn("The Guinan does not run on a PEQUENA (D-a).", core)
         self.assertIn("**Size:** SMALL | MEDIUM | LARGE | COMPLEX", text["state"])
         pil = next(ln for ln in text["piloto"].splitlines() if ln.startswith("PEQUENA:"))
         self.assertIn("spec mínima do Picard + LaForge, Q dispensado", pil)
