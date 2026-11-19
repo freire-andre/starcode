@@ -131,5 +131,5 @@ compaction mid-flow, continue when files and Git agree; on a conflict, stop and 
 | `**Dispatched:**` not integrated | execute | `orca orchestration worker-show` first; never a second worker for the same ticket |
 | all tickets integrated, no `verification.md` | execute / review | `run_gates.py proofs`, then the Q |
 | `verification.md` with open findings | review | one LaForge fix pass, then `run_gates.py done` (no second Q) |
-| PR open, Phase `pr-review` | pr-review | read `review.md` (round and verdict); continue with the LaForge fix, or the next Worf round, or the merge authorization request |
+| PR open, Phase `pr-review` | pr-review | read `review.md` (round and verdict); continue with the LaForge fix, or the next Worf round, or the merge authorization request; PR already merged (per Git) → write `--phase done` and `python "P/scripts/crew_live.py" progress <slug> --phase done` |
 | `**Breaker:** open` | any | the two exits of `execute.md` section 6 before anything else |

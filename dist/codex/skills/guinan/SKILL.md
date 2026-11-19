@@ -55,6 +55,8 @@ become one of the suggestions (e.g. a mandate item to add next time). Never edit
 ## 1c. Lessons-only mode (after the Worf)
 When the Picard asks for **lessons only** (after the last Worf round, `review.md` with a fixed or confirmed
 `blocker` or `should-fix`): do section 1 for the `review_finding` signal only, through `lessons.py`, and stop.
+Here a `blocker` or `should-fix` finding **resolved (fixed) or confirmed** in any round counts, an explicit
+exception to the section 1 exclusion of what was not confirmed.
 Do not write or rewrite `retro.md` (sections 1b and 2 are skipped) and touch no other file.
 
 ## 2. Retro (R24)
