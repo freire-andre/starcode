@@ -43,7 +43,7 @@ FIELDS = (  # (option, marker, default)
 BREAKER_LIMIT = 3  # D27: the 3rd failure of the same error id opens the breaker
 ATTEMPT_RE = re.compile(r"^([\w.:/-]+)=(fail|ok)$")
 PHASES = ("discovery", "spec", "spec-approved", "tasks", "tasks-approved", "published", "execute",
-          "review", "done")
+          "review", "pr-review", "done")
 FIELD_RE = re.compile(r"^\*\*([^*]+?):\*\*\s*(.*)$")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
