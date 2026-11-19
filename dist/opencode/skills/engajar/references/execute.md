@@ -185,7 +185,11 @@ before any new `batch`.
   reason on the issues; the banner shows `Verificação: degradada (<slug>)`.
 - `completed` only with the user's explicit confirmation in this session, with `run_gates.py done` green,
   and **never in mode 1**. Modes 3/4: push and PR follow `git-modes.md` (each confirmed right before).
-- Then `--phase done` and `python "P/scripts/crew_live.py" progress <slug> --phase done` (100%).
+- **Modes 3/4:** right after the PR is open, `python "P/scripts/handoff.py" set <slug> --phase pr-review` (the
+  feature is still in progress during the Worf rounds); `--phase done` comes only after the merge, or after the
+  user's explicit refusal of the merge (section "Review (Worf)").
+- **Modes 1/2 (no PR):** right after the Guinan, `--phase done` and
+  `python "P/scripts/crew_live.py" progress <slug> --phase done` (100%).
 
 ## Review (Worf)
 After opening the PR (modes 3/4) and before asking for the merge authorization, the Picard invokes the
@@ -193,9 +197,18 @@ Worf (`skills/worf`): on Claude, a subagent with the model from `crew.yaml`; on 
 session itself (R17).
 - `REQUEST_CHANGES`, or `COMMENT` with an open `should-fix` → **one LaForge dispatch** with all open
   findings in a single brief, then the next Worf round.
+- After each LaForge fix is integrated, run `python "P/scripts/gates/run_gates.py" proofs <slug>` and
+  `python "P/scripts/gates/run_gates.py" done <slug>` on the new HEAD **before** the next Worf round.
+- After each round record `python "P/scripts/handoff.py" set <slug> --report "Worf r<N> <verdict>"`.
 - After round 3 with findings still open, the Picard stops and shows the findings and the evidence,
   without asking for the merge (R18).
 - Publishing the review (PR comments) always needs the user's confirmation.
+- **Lessons only.** When the last Worf round ends (APPROVE, or round 3) and `review.md` has a `blocker` or
+  `should-fix` finding fixed or confirmed in any round, the Picard invokes the Guinan in lessons-only mode
+  (`skills/guinan`): it records the `review_finding` lessons through `lessons.py` and does not rewrite
+  `retro.md`. Without such a finding the Guinan is not invoked. Not on a PEQUENA (no Guinan there).
+- Then the merge authorization is asked (`git-modes.md`). `--phase done` is written only after the merge, or
+  after the user's explicit refusal of the merge.
 
 ## Text for the PR and the Linear comments (Uhura)
 Whenever you open a PR or comment on Linear (start, integrated, blocked, cancelled, done), have the text

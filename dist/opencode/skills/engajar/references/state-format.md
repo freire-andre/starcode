@@ -34,7 +34,7 @@ it from the older file) in the same turn. The banner reads all three.
 ```markdown
 ## Handoff
 
-**Phase:** discovery | spec | spec-approved | tasks | tasks-approved | published | execute | review | done
+**Phase:** discovery | spec | spec-approved | tasks | tasks-approved | published | execute | review | pr-review | done
 **Size:** SMALL | MEDIUM | LARGE | COMPLEX
 **Git mode:** <1-4>
 **Next:** <one sentence: exactly what happens next>
@@ -131,4 +131,5 @@ compaction mid-flow, continue when files and Git agree; on a conflict, stop and 
 | `**Dispatched:**` not integrated | execute | `orca orchestration worker-show` first; never a second worker for the same ticket |
 | all tickets integrated, no `verification.md` | execute / review | `run_gates.py proofs`, then the Q |
 | `verification.md` with open findings | review | one LaForge fix pass, then `run_gates.py done` (no second Q) |
+| PR open, Phase `pr-review` | pr-review | read `review.md` (round and verdict); continue with the LaForge fix, or the next Worf round, or the merge authorization request |
 | `**Breaker:** open` | any | the two exits of `execute.md` section 6 before anything else |
