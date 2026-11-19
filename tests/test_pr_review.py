@@ -44,9 +44,9 @@ class PrReviewTests(unittest.TestCase):
                     return handoff.main([*args, "--root", str(root)])
 
             self.assertEqual(run("set", "x", "--phase", "pr-review"), 0)
-            self.assertIn("**Phase:** pr-review", (feat / "spec.md").read_text(encoding="utf-8"))
+            self.assertIn("**Phase:** pr-review\n", (feat / "spec.md").read_text(encoding="utf-8"))
             self.assertEqual(run("set", "x", "--phase", "pr-revisao"), 2)
-            self.assertIn("**Phase:** pr-review", (feat / "spec.md").read_text(encoding="utf-8"))
+            self.assertIn("**Phase:** pr-review\n", (feat / "spec.md").read_text(encoding="utf-8"))
 
     def test_execute_fase_pr_review(self):
         # R2
@@ -59,13 +59,15 @@ class PrReviewTests(unittest.TestCase):
             self.assertLess(sec.index("--phase pr-review"), sec.index("**Modes 1/2"))
             rev = _section(text, "## Review (Worf)")
             self.assertRegex(rev, r"`--phase done` is written only after the merge, or\s+after the user's explicit refusal of the merge", root)
+            self.assertRegex(rev, r"Then, only when the last round leaves no `blocker` or `should-fix` open, the merge authorization is asked\s+\(`git-modes\.md`\)", root)
+            self.assertRegex(rev, r"and right then \(modes 3/4 as well as 1/2\) run\s+`python \"P/scripts/crew_live\.py\" progress <slug> --phase done` \(100%\)", root)
 
     def test_execute_gates_apos_correcao_worf(self):
         # R3
         for root in _roots():
             rev = _section(_read(root, "skills/engajar/references/execute.md"), "## Review (Worf)")
             self.assertRegex(rev, r"After each LaForge fix is integrated, run `python \"P/scripts/gates/run_gates\.py\" proofs <slug>` and\s+`python \"P/scripts/gates/run_gates\.py\" done <slug>` on the new HEAD \*\*before\*\* the next Worf round", root)
-            self.assertIn('--report "Worf r<N> <verdict>"', rev)
+            self.assertRegex(rev, r"After each round record `python \"P/scripts/handoff\.py\" set <slug> --report \"Worf r<N> <verdict>\"`", root)
             self.assertLess(rev.index("one LaForge dispatch"), rev.index('run_gates.py" proofs'))
             self.assertLess(rev.index('run_gates.py" done'), rev.index("--report"))
 
@@ -79,7 +81,7 @@ class PrReviewTests(unittest.TestCase):
             sec = _section(_read(root, "skills/guinan/SKILL.md"), "## 1c. Lessons-only mode")
             self.assertRegex(sec, r"`review_finding` signal only, through `lessons\.py`", root)
             self.assertRegex(sec, r"Do not write or rewrite `retro\.md`", root)
-            self.assertRegex(sec, r"`blocker` or `should-fix`", root)
+            self.assertRegex(sec, r"Here a `blocker` or `should-fix` finding \*\*resolved \(fixed\) or confirmed\*\* in any round counts, an explicit\s+exception to the section 1 exclusion of what was not confirmed", root)
 
     def test_piloto_encerra_apos_worf(self):
         # R5
@@ -94,7 +96,7 @@ class PrReviewTests(unittest.TestCase):
         for root in _roots():
             text = _read(root, "skills/engajar/references/state-format.md")
             self.assertRegex(text, r"(?m)^\*\*Phase:\*\* .*execute \| review \| pr-review \| done$", root)
-            self.assertRegex(text, r"(?m)^\| PR open, Phase `pr-review` \| pr-review \| read `review\.md` \(round and verdict\); continue with the LaForge fix, or the next Worf round, or the merge authorization request \|$", root)
+            self.assertRegex(text, r"(?m)^\| PR open, Phase `pr-review` \| pr-review \| read `review\.md` \(round and verdict\); continue with the LaForge fix, or the next Worf round, or the merge authorization request; PR already merged \(per Git\) → write `--phase done` and `python \"P/scripts/crew_live\.py\" progress <slug> --phase done` \|$", root)
 
     def test_decisions_pr_review(self):
         # R7
@@ -107,6 +109,7 @@ class PrReviewTests(unittest.TestCase):
         decisao = next(ln for ln in entry.splitlines() if ln.startswith("- **Decisão"))
         for phrase in ("a F9-5 (mantida)", "`--phase pr-review`",
                        "`--phase done` só depois do merge ou da recusa explícita do merge pelo usuário",
+                       "depois de cada correção do LaForge integrada",
                        "`run_gates.py proofs <slug>` e `run_gates.py done <slug>` no novo HEAD",
                        "`--report \"Worf r<N> <veredito>\"`", "modo só lições", "`review_finding`",
                        "não reescreve o `retro.md`", "`piloto.py encerrar`", "parada da autorização de merge"):
@@ -119,7 +122,9 @@ class PrReviewTests(unittest.TestCase):
         cl = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         i = cl.index("## [Unreleased]")
         j = cl.find("\n## [", i + 1)
-        self.assertIn("(SC-198)", cl[i:j if j != -1 else len(cl)])
+        unreleased = cl[i:j if j != -1 else len(cl)]
+        self.assertTrue(any("(SC-198)" in ln and "`pr-review`" in ln and ln.startswith("- Fase `pr-review`")
+                            for ln in unreleased.splitlines()))
 
 
 if __name__ == "__main__":
