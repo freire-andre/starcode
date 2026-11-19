@@ -395,6 +395,12 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md: achado 3 (Guinan exclui corrigidos)
 - updated: 2026-11-19T14:18:01Z
 
+### L65 - Quando um passo do fluxo grava arquivos depois do PR aberto (review, lições), a instrução manda commitar e fazer o push antes do merge, porque senão o merge entra sem eles e a árvore da feature fica suja.
+- signal: `review_finding` · features: 1
+- features: pr-review
+- sources: review.md: W1 (r1)
+- updated: 2026-11-19T14:44:11Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.

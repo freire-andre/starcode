@@ -1052,6 +1052,21 @@
       "scope": "",
       "created": "2026-11-19T14:18:01Z",
       "updated": "2026-11-19T14:18:01Z"
+    },
+    {
+      "id": "L65",
+      "text": "Quando um passo do fluxo grava arquivos depois do PR aberto (review, lições), a instrução manda commitar e fazer o push antes do merge, porque senão o merge entra sem eles e a árvore da feature fica suja.",
+      "signal": "review_finding",
+      "status": "candidate",
+      "features": [
+        "pr-review"
+      ],
+      "sources": [
+        "review.md: W1 (r1)"
+      ],
+      "scope": "",
+      "created": "2026-11-19T14:44:11Z",
+      "updated": "2026-11-19T14:44:11Z"
     }
   ]
 }
