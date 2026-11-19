@@ -34,6 +34,9 @@
     python dispatch.py q-check <slug> [--root DIR]
         Reports (never restores or deletes) what the Q left changed: only `verification.md`, `screens.md` and
         `captures/<name>.running.png` of the feature are allowed. Exit 0 clean, 1 files outside the list, 2 git failed.
+    python dispatch.py q-waive <slug> [--root DIR]
+        PEQUENA (spec `**Size**: SMALL`, D-a): writes `verification.md` with `**Verification:** waived (PEQUENA)` and
+        `Q dispensado: tarefa PEQUENA (D-a).`, exit 0. Any other class: exit 2, nothing written.
     python dispatch.py q-cli --laforge <cli:model> [--laforge <cli:model>]... [<cli:model>...] [--configured <q>]
         The Q CLI: first of Q_CLI_ORDER whose family differs from ALL the given LaForge families and whose
         Orca worker is available. None qualifies: `self-verified` (exit 1).
@@ -350,7 +353,7 @@ def format_batch(res: dict) -> str:
 
 
 def spec_brief(slug: str, ticket: str, root: Path) -> str:
-    """MEDIUM feature (no tasks.md): the briefing comes from spec.md (R23, R24)."""
+    """MEDIUM or SMALL feature (no tasks.md): the briefing comes from spec.md (R23, R24)."""
     fdir = gc.resolve_feature(slug, root, "spec.md")
     lines = gc.read_lines(fdir / "spec.md")
     checks = gc.section(lines, "Checks")
@@ -917,6 +920,22 @@ def settle(slug: str, ticket: str, branch: str, root: Path, runner=default_runne
     return 0
 
 
+def q_waive(slug: str, root: Path, emit=print) -> int:
+    """D-a: the Q is waived for a PEQUENA (Size SMALL); writes verification.md with the marker the `done` gate
+    reads. Exit 2 refuses any other class, writing nothing."""
+    fdir = gc.resolve_feature(slug, root, "spec.md")
+    lines = gc.read_lines(fdir / "spec.md")
+    size = gc.size_of(lines)
+    if size != "SMALL":
+        emit(f"q-waive recusado: só a PEQUENA dispensa o Q (Size: {size or gc.field_value(lines, 'Size') or '?'})")
+        return 2
+    body = [f"# {fdir.name}: Verification", "", "**Verification:** waived (PEQUENA)", "",
+            "Q dispensado: tarefa PEQUENA (D-a)."]
+    (fdir / "verification.md").write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
+    emit(f"Q dispensado: verification.md gravado em {fdir.name}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     sc.utf8_stdio()
     p = argparse.ArgumentParser(prog="dispatch.py", description="Apoio ao despacho sequencial do Picard.")
@@ -950,6 +969,9 @@ def main(argv: list[str] | None = None) -> int:
     pse.add_argument("ticket")
     pse.add_argument("--branch", required=True)
     pse.add_argument("--root", default=".")
+    pw = sub.add_parser("q-waive")
+    pw.add_argument("slug")
+    pw.add_argument("--root", default=".")
     pq = sub.add_parser("q-brief")
     pq.add_argument("slug")
     pq.add_argument("--base", required=True)
@@ -1009,6 +1031,8 @@ def main(argv: list[str] | None = None) -> int:
             return code
         if a.cmd == "settle":
             return settle(a.slug, a.ticket, a.branch, Path(a.root).resolve())
+        if a.cmd == "q-waive":
+            return q_waive(a.slug, Path(a.root).resolve())
         if a.cmd == "q-brief":
             Path(a.out).write_text(q_brief(a.slug, Path(a.root).resolve(), a.base, a.head), encoding="utf-8")
             print(f"briefing do Q gravado em {a.out}")

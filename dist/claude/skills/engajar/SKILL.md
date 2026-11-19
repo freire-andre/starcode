@@ -86,7 +86,7 @@ if it is still open after that round; "public contract" only if someone outside 
 ### 5. Route
 | Class | Next |
 |---|---|
-| PEQUENA | LaForge with inline checks (≤5 steps; more than that → reclassify) |
+| PEQUENA | spec mínima do Picard + LaForge (Q dispensado); no approval, no Guinan, Worf on the PR; ≤5 checks and ≤3 files, more than that → reclassify (`execute.md` section 8) |
 | MÉDIA | short Troi → Spock (brief spec with `## Checks`) → approval → LaForge |
 | GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → one question: approval 2 + publication → Linear writes → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket → Guinan → PR → Worf → merge authorization |
 

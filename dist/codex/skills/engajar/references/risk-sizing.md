@@ -20,7 +20,7 @@ small the diff is. One line of auth code is still auth. One migration file is st
 
 | Class | Criterion | Flow | Approvals |
 |---|---|---|---|
-| PEQUENA | ≤3 files, one-sentence scope, **no trigger** | LaForge with inline checks | 0 |
+| PEQUENA | ≤3 files, one-sentence scope, **no trigger** | spec mínima do Picard + LaForge (Q dispensado) | 0 |
 | MÉDIA | clear feature **or** exactly 1 trigger | short Troi + Spock (brief spec with `## Checks`) + LaForge | 1 (spec) |
 | GRANDE | several components **or** 2+ triggers | full flow | 2 (spec + tasks) |
 | COMPLEXA | new domain, high ambiguity or irreversibility as the core of the work | full flow + gray-area discussion | 2 |
@@ -42,7 +42,7 @@ How to decide:
    critical data, infrastructure change, deploy pipeline) → COMPLEXA.
 6. When in doubt between two classes after the round of questions, pick the higher one and say why.
 
-Safety valve: if the inline step list of a PEQUENA task goes past 5 steps, reclassify it.
+Safety valve: if the minimal spec of a PEQUENA task goes past 5 checks or 3 files (the gate refuses it), reclassify it.
 
 ## Output format (always this block, markers in English, text in PT-BR)
 
