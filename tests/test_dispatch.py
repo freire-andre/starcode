@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from helpers import FIXTURES, TempRepoCase, run_git
+from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 
 import dispatch
 import handoff
@@ -642,7 +642,7 @@ class BatchTests(TempRepoCase):
             code = dispatch.main(["batch", "demo", "--root", str(self.repo), "--json"])
         data = json.loads(out.getvalue())
         self.assertEqual(code, 0)
-        self.assertEqual(set(data), {"batch", "costTotal", "excluded", "active"})
+        self.assertEqual(set(data), {"batch", "costTotal", "excluded", "active", "stalled"})
         self.assertEqual(set(data["batch"][0]), {"ticket", "linear", "title", "cli", "model", "cost"})
         self.assertEqual((data["batch"][0]["ticket"], data["batch"][0]["linear"]), ("T1", "PROJ-1"))
         self.assertEqual(data["excluded"], [{"ticket": "T2", "reason": "espera T1"}])
@@ -711,6 +711,93 @@ class DispatchCliSubprocessTests(unittest.TestCase):
             r = subprocess.run([sys.executable, str(script), "--help"], env=env,
                                capture_output=True, text=True, cwd=str(root))
             self.assertEqual(r.returncode, 0, f"{script}: {r.stderr}")
+
+
+LINE = "travado: só restam workers atrasados (T1, T2): cancele com confirmação (passo 7) ou siga esperando"
+
+
+class FrotaTravadaTests(BatchTests):
+    def run_cli(self, *extra: str) -> tuple[int, str]:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = dispatch.main(["batch", "demo", "--root", str(self.repo), *extra])
+        return code, out.getvalue()
+
+    def test_batch_travado(self):
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["b.py"]}])
+        self.active(entry("T1") + " · disp_1 · blocked", entry("T2") + " · blocked")
+        code, text = self.run_cli()
+        self.assertEqual(code, 1)
+        self.assertEqual(text.splitlines(), [LINE])
+        code, js = self.run_cli("--json")
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(js)["stalled"], ["T1", "T2"])
+        self.assertEqual(json.loads(js)["batch"], [])
+
+    def test_batch_nao_travado(self):
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["b.py"]}])
+        # no active entry, batch with a ticket
+        code, text = self.run_cli()
+        self.assertEqual(code, 0)
+        self.assertNotIn("travado:", text)
+        self.assertEqual(json.loads(self.run_cli("--json")[1])["stalled"], [])
+        # one active without blocked (overdue or not)
+        self.active(entry("T1") + " · blocked", entry("T2"))
+        code, text = self.run_cli()
+        self.assertEqual(code, 1)
+        self.assertNotIn("travado:", text)
+        self.assertEqual(json.loads(self.run_cli("--json")[1])["stalled"], [])
+        # blocked active but a ticket in the batch: not stalled
+        self.tasks([{"tid": "T1", "paths": ["a.py"]}, {"tid": "T2", "paths": ["b.py"]}])
+        self.active(entry("T1") + " · blocked")
+        code, text = self.run_cli()
+        self.assertEqual(code, 0)
+        self.assertNotIn("travado:", text)
+        self.assertEqual(json.loads(self.run_cli("--json")[1])["stalled"], [])
+        # every ticket integrated, nothing active
+        self.active("none")
+        self.integrate("feat: a\n\nRefs: PROJ-1")
+        self.integrate("feat: b\n\nRefs: PROJ-2")
+        code, text = self.run_cli()
+        self.assertEqual(code, 1)
+        self.assertNotIn("travado:", text)
+        self.assertEqual(json.loads(self.run_cli("--json")[1])["stalled"], [])
+
+    def test_execute_travado(self):
+        text = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+        sec = text.split("## 2F.", 1)[1].split("\n## ", 1)[0]
+        step1 = sec.split("1. **Batch.**", 1)[1].split("2. **Start", 1)[0]
+        step10 = sec.split("10. **Next.**", 1)[1]
+        for part in (step1, step10):
+            self.assertIn("travado:", part)
+            self.assertIn("cancel with confirmation", part)
+            self.assertIn("step 7", part)
+            self.assertIn("keep waiting", part)
+        self.assertIn("recommendation", step1)
+        self.assertIn("do not wait", step1)
+
+    def test_decisions_frota_travada(self):
+        text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
+        m = re.search(r"^### SC-200:.*?(?=^### |\Z)", text, re.M | re.S)
+        self.assertIsNotNone(m)
+        entry_text = m.group(0)
+        fields = {k: re.search(rf"^- \*\*{k}\*\*: (.+)$", entry_text, re.M) for k in
+                  ("Problema", "Decisão", "Motivo", "Por que não é bug")}
+        for k, v in fields.items():
+            self.assertIsNotNone(v, k)
+        decisao = fields["Decisão"].group(1)
+        for term in ("`\"stalled\": [\"T<n>\", ...]`", "` · blocked`", "lista vazia", LINE.replace("(T1, T2)", "(<T…, separados por vírgula>)"),
+                     "o código de saída continua 1", "`execute.md` (seção 2F, passos 1 e 10)", "cancelar com confirmação (passo 7)",
+                     "seguir esperando", "recomendação"):
+            self.assertIn(term, decisao, term)
+        bug = fields["Por que não é bug"].group(1)
+        for name in ("test_batch_travado", "test_batch_nao_travado", "test_execute_travado", "test_decisions_frota_travada"):
+            self.assertIn(name, bug, name)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        self.assertIn("(SC-200)", unreleased)
+        self.assertIn("stalled", unreleased)
+        self.assertIn("travado:", unreleased)
 
 
 if __name__ == "__main__":
