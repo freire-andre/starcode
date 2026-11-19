@@ -1,7 +1,8 @@
-"""SC-203: roteamento do worf e do mccoy fora do StarCode (R1 a R5)."""
+"""SC-203: roteamento do worf e do mccoy fora do StarCode (R1 a R6)."""
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 
 from helpers import ROOT
@@ -14,9 +15,13 @@ CASOS = {
                                [("starcode:mccoy", 0, 0)]),
     "pos-config-model": ("Quero trocar o modelo do LaForge para o Kimi só neste projeto do StarCode.",
                          [("starcode:config", 1, None), ("starcode:setup", 0, 0)]),
-    "pos-piloto-automatico": ("StarCode, toque a feature de exportar CSV no piloto automático: me entreviste uma vez e decida o resto por mim.",
-                              [("starcode:piloto-automatico", 1, None), ("starcode:engajar", 0, 0)]),
 }
+
+DESCRICAO_PILOTO_MAIN = ("description: StarCode autopilot (Picard). Only the user invokes it. Runs a feature end to end "
+    "with one interview up front: Troi grills the user (no round cap) and builds a decision mandate, the user approves "
+    "the spec, and from then on the Picard answers every question of the flow in the user's place, based on the "
+    "interview, recording each question and decision in .specs/features/<slug>/piloto.md. Push, PR, merge and deploy "
+    "still need the user.")
 
 
 def descricao(skill: str) -> str:
@@ -46,13 +51,18 @@ class RoteamentoWorfMccoyTests(unittest.TestCase):
         self.assertIn("generic debugging outside StarCode", d.split("Not for")[-1])
 
     def test_descricao_piloto(self):
-        d = descricao("piloto-automatico")
-        for gatilho in ('"StarCode, piloto automático"', '"toque a feature no piloto automático"'):
-            self.assertIn(gatilho, d)
-        self.assertIn("only when the user asks for the StarCode autopilot", d)
-        self.assertNotIn("Only the user invokes it", d)
+        atual = (ROOT / "skills" / "piloto-automatico" / "SKILL.md").read_bytes()
+        r = subprocess.run(["git", "show", "main:skills/piloto-automatico/SKILL.md"],
+                           cwd=ROOT, capture_output=True)
+        if r.returncode == 0:
+            self.assertEqual(atual, r.stdout)
+        else:
+            self.assertIn(DESCRICAO_PILOTO_MAIN.encode("utf-8"), atual)
+            self.assertNotIn(b"only when the user asks for the StarCode autopilot", atual)
 
     def test_casos_novos(self):
+        self.assertEqual(len(CASOS), 3)
+        self.assertFalse((ROUTING / "pos-piloto-automatico").exists())
         for name, (prompt, graders) in CASOS.items():
             text = (ROUTING / name / "case.yaml").read_text(encoding="utf-8")
             lines = text.splitlines()
@@ -76,10 +86,11 @@ class RoteamentoWorfMccoyTests(unittest.TestCase):
     def test_readme_e_contagem(self):
         readme = (ROOT / "evals" / "README.md").read_text(encoding="utf-8")
         cases = [p for p in ROUTING.iterdir() if p.is_dir()]
-        self.assertEqual(len(cases), 37)
-        self.assertIn("37 frases", readme)
+        self.assertEqual(len(cases), 36)
+        self.assertIn("36 frases", readme)
         for name in CASOS:
             self.assertIn(f"`{name}`", readme)
+        self.assertNotIn("pos-piloto-automatico", readme)
 
     def test_decisions_roteamento(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
@@ -91,8 +102,8 @@ class RoteamentoWorfMccoyTests(unittest.TestCase):
         decisao = entry.split("**Decisão**")[1].split("**Motivo**")[0]
         for term in ("review do PR", "revise esse PR", "esse teste não passa", "investigue o bug",
                      "a generic pull request review outside StarCode", "generic debugging outside StarCode",
-                     "neg-worf-generic-pr", "neg-mccoy-generic-test", "pos-config-model", "pos-piloto-automatico",
-                     "37 frases", '"StarCode, piloto automático"', '"toque a feature no piloto automático"'):
+                     "neg-worf-generic-pr", "neg-mccoy-generic-test", "pos-config-model",
+                     "36 frases", "disable-model-invocation: true"):
             self.assertIn(term, decisao, term)
         nao_bug = entry.split("**Por que não é bug**")[1]
         for name in ("test_descricao_worf", "test_descricao_mccoy", "test_descricao_piloto", "test_casos_novos",

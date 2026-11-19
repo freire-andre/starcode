@@ -1,6 +1,6 @@
 ---
 name: piloto-automatico
-description: StarCode autopilot (Picard). Applies only when the user asks for the StarCode autopilot in these words: "StarCode, piloto automático", "toque a feature no piloto automático", "StarCode, no piloto automático". Runs a feature end to end with one interview up front: Troi grills the user (no round cap) and builds a decision mandate, the user approves the spec, and from then on the Picard answers every question of the flow in the user's place, based on the interview, recording each question and decision in .specs/features/<slug>/piloto.md. Push, PR, merge and deploy still need the user. Not for the normal StarCode flow, where the Picard asks the user questions (that is engajar).
+description: StarCode autopilot (Picard). Only the user invokes it. Runs a feature end to end with one interview up front: Troi grills the user (no round cap) and builds a decision mandate, the user approves the spec, and from then on the Picard answers every question of the flow in the user's place, based on the interview, recording each question and decision in .specs/features/<slug>/piloto.md. Push, PR, merge and deploy still need the user.
 disable-model-invocation: true
 ---
 

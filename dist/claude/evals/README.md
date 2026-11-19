@@ -6,7 +6,7 @@ pasta para `dist/claude/evals/`; os resultados ficam em `dist/claude/evals/resul
 | Suíte | Casos | Aceite (Fase 1) |
 |---|---|---|
 | `risk-sizing/` | 12 tarefas com a classe esperada (tag `trigger`: 8 com gatilho de risco; `no-trigger`: 4) | 100% dos casos `trigger` (nunca PEQUENA) e ≥90% no total |
-| `routing/` | 37 frases: 22 que devem disparar `engajar`/`setup`/`troi`/`spock`/`data`/`laforge`/`mccoy`/`q`/`uhura`/`scotty`/`nova-missao`/`worf`/`guinan`/`diagnostico`/`config`/`piloto-automatico` e 15 que não devem disparar nenhuma skill do StarCode | todas passam (Fases 1, 2, 3, 8 e 9) |
+| `routing/` | 36 frases: 21 que devem disparar `engajar`/`setup`/`troi`/`spock`/`data`/`laforge`/`mccoy`/`q`/`uhura`/`scotty`/`nova-missao`/`worf`/`guinan`/`diagnostico`/`config` e 15 que não devem disparar nenhuma skill do StarCode | todas passam (Fases 1, 2, 3, 8 e 9) |
 
 Fase 9: 9 casos novos de roteamento em `routing/` (R33), 2 positivos e 1 negativo por skill:
 
@@ -16,14 +16,13 @@ Fase 9: 9 casos novos de roteamento em `routing/` (R33), 2 positivos e 1 negativ
 | `guinan` | `pos-guinan-lessons`, `pos-guinan-retro` | `neg-guinan-review-pr` |
 | `diagnostico` | `pos-diagnostico-harness`, `pos-diagnostico-level` | `neg-diagnostico-setup` |
 
-SC-203: 4 casos novos de roteamento em `routing/` (fora do StarCode e duas rotas que faltavam):
+SC-203: 3 casos novos de roteamento em `routing/` (fora do StarCode e duas rotas que faltavam):
 
 | Caso | Espera |
 |---|---|
 | `neg-worf-generic-pr` | não dispara `worf` (review de PR genérico) |
 | `neg-mccoy-generic-test` | não dispara `mccoy` (depuração genérica) |
 | `pos-config-model` | dispara `config` e não `setup` |
-| `pos-piloto-automatico` | dispara `piloto-automatico` e não `engajar` |
 
 ```
 python tools/build.py
