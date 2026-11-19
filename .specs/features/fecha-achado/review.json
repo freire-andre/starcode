@@ -1,0 +1,25 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O close-finding e a regra nova do done cumprem a spec (commit e cobertura conferidos; erro de células com o número da linha; &#124; não conta como separador). Um nit de custo: a checagem de teste existente abre um git show por arquivo de tests/ a cada cobertura, sem cache (done da feature em ~8,6 s com 5 achados e 111 arquivos). Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "scripts/gates/validate_verification.py",
+   "line": 197,
+   "body": "defines_test roda git ls-tree e um git show por arquivo .py de tests/ a cada cobertura test_*, sem cache entre achados; com 111 arquivos, o done desta feature levou ~8,6 s para 5 achados e cresce linear com os achados. Ler os nomes definidos uma vez por execução (cache por raiz e HEAD, ou um git cat-file --batch) deixa o custo constante.",
+   "evidence": "scripts/gates/validate_verification.py:197"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (ast, subprocess, re) e git local"
+ ],
+ "ladder": [
+  "python tools/build.py --check: ok; python scripts/check_decisions.py: ok; claude plugin validate dist/claude --strict: ok",
+  "unittest test_fecha_achado e test_validate_verification*: OK; suíte inteira 1005 testes OK (skipped=1) no gate proofs",
+  "run_gates.py proofs (10/10) e done --strict: verdes",
+  "scan_bypasses.py: 1 candidato (noqa: E402 no import de dispatch.py, padrão dos imports vizinhos), descartado"
+ ]
+}
