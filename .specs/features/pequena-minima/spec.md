@@ -81,15 +81,15 @@ Proof: run unit | test_decisions_pequena_minima (test_pequena_minima.PequenaTest
 
 ## Handoff
 
-**Phase:** review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge corrige W1-W3; proofs, done, Worf r2
+**Next:** Worf r2; depois push (confirmação) e merge
 **Linear:** SC-197
 **Integration branch:** feature/pequena-minima
 **Last integrated:** 9978cbe
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: sim; issue SC-197 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 3 achados (waivedness aceito; prova C4 sem settle; C7 Worf sem PR); 2026-11-19: pós-Q: e8eb40a, d7dc186; C4 em 30cec43; done --strict verde; 2026-11-19: PR #67 aberto; 2026-11-19: Worf r1 COMMENT: W1 should-fix, W2/W3 nits; usuário: corrigir os 3 neste PR
+**Reports:** 2026-11-19: Q r1 FAIL: 3 achados (waivedness aceito; prova C4 sem settle; C7 Worf sem PR); 2026-11-19: pós-Q: e8eb40a, d7dc186; C4 em 30cec43; done --strict verde; 2026-11-19: PR #67 aberto; 2026-11-19: Worf r1 COMMENT: W1 should-fix, W2/W3 nits; usuário: corrigir os 3 neste PR; 2026-11-19: pós-Worf: c0c5681 W1, 1d0fc98 W3, 7b82306 W2, 00a0f1f decisões; proofs e done --strict verdes
 **Breaker:** closed

@@ -1,6 +1,6 @@
 # pequena-minima proofs
 
-**HEAD**: d7dc186
+**HEAD**: 00a0f1f
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 12 pass, 0 fail
@@ -36,7 +36,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 989 tests in 495.928s
+Ran 989 tests in 492.708s
 
 OK (skipped=1)
 inativo
