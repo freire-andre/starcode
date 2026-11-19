@@ -72,15 +72,15 @@ Proof: run unit | test_decisions_fecha_achado (test_fecha_achado.FechaAchadoTest
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Guinan; PR; Worf
+**Next:** Worf r1
 **Linear:** SC-199
 **Integration branch:** feature/fecha-achado
 **Last integrated:** 61d7980
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-199 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (teste fantasma em string; linha sem pipe inicial; fallback spec sem prova; C5 e C7 frouxos); 2026-11-19: pós-Q: adb7fad; achados fechados com close-finding; 2026-11-19: done --strict verde
+**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (teste fantasma em string; linha sem pipe inicial; fallback spec sem prova; C5 e C7 frouxos); 2026-11-19: pós-Q: adb7fad; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L66, L67; recorrências L25, L20, L32; 2026-11-19: PR aberto
 **Breaker:** closed
