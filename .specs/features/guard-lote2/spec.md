@@ -89,7 +89,7 @@ Proof: run unit | test_decisions_guard_lote2 (test_git_guard.NoModeTests.test_de
 **Integration branch:** feature/guard-lote2
 **Last integrated:** fee09e6
 **Dispatched:** none
-**Settled:** 2026-11-18: spec + issue: "sim"
+**Settled:** 2026-11-18: spec + issue: "sim"; 2026-11-18: push + PR: "Sim"
 **Attempts:** none
 **Reports:** 2026-11-18: T1: 8455a7f (R1–R8); 980 OK; ticket gate verde; Picard sondou 34 entradas: as 2 que passam são sintaxe inválida no shell ou heredoc sem fecho (corpo é dado), sem contorno; 2026-11-18: provas verdes (980 OK); 2026-11-18: Q: codex · effective unconfirmed · FAIL, 4 achados (contorno: '# <<EOF' em comentário esconde a linha seguinte; falsos bloqueios: checkout -- -f, heredoc + shell em segmento separado, <<- e << juntos; C1, C3, C4, C5, C8 fracos); 980 OK; q-check 0; 2026-11-18: T1-fix: e077846 (4 achados); 980 OK; ticket gate verde; Picard sondou 30 entradas: contornos com comentário e aspas bloqueados; o único que passa (echo a#<<EOF) abre heredoc de verdade no bash, porque # no meio da palavra não é comentário; 2026-11-18: provas e done verdes em fee09e6 (980 OK); 2026-11-18: Guinan: L60, L61 novas, L2 e L32 (--id); retro com 3 sugestões; test_lessons OK
 **Breaker:** closed
