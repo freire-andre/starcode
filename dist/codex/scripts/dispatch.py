@@ -16,7 +16,10 @@
         integrated, no shared `May change` path with an active or already chosen ticket, nothing
         sensitive or `Runs alone` unless idle, up to fleet.maxBatch minus the active workers. Each
         ticket gets a cli:model (fleet.workers round-robin, else the effective LaForge) and a cost tier.
-        Exit 0 with a batch, 1 when empty, 2 on a usage or read error.
+        Exit 0 with a batch, 1 when empty, 2 on a usage or read error. The JSON also has `"stalled": ["T<n>", ...]`:
+        the active entries when the batch is empty and ALL of them are ` · blocked` (overdue), else `[]`. Then the
+        text output ends with `travado: só restam workers atrasados (<T…, separados por vírgula>): cancele com
+        confirmação (passo 7) ou siga esperando` (exit stays 1).
     python dispatch.py brief <slug> <ticket> --out <file>
         The worker brief for --spec-file: the ticket's 5 blocks plus the fixed worker rules.
     python dispatch.py start <slug> <ticket> --cli <cli> --model <model> [--root DIR] [--json]
@@ -301,8 +304,11 @@ def batch(slug: str, root: Path, branch: str | None = None, base: str | None = N
         out.append({"ticket": t.tid, "linear": linear_id(t), "title": t.title, "cli": cli, "model": model,
                     "cost": sc.cost_tier(model, crew.get("costTiers"))})
     active = [{"ticket": tid, "pair": _entry_pair(e)} for tid, e in zip(active_ids, entries)]
+    stalled = [tid for tid, e in zip(active_ids, entries) if not out and e.split("·")[-1].strip() == "blocked"]
+    if len(stalled) != len(entries):
+        stalled = []
     return {"batch": out, "costTotal": _cost_total([b["cost"] for b in out]), "excluded": excluded,
-            "active": active}
+            "active": active, "stalled": stalled}
 
 
 def _parse_utc(text: str) -> datetime:
@@ -353,6 +359,9 @@ def format_batch(res: dict) -> str:
     if res["batch"]:
         lines.append(f"total: {res['costTotal']}")
     lines += [f"{x['ticket']}: {x['reason']}" for x in res["excluded"]]
+    if res.get("stalled"):
+        lines.append(f"travado: só restam workers atrasados ({', '.join(res['stalled'])}): "
+                     "cancele com confirmação (passo 7) ou siga esperando")
     return "\n".join(lines)
 
 

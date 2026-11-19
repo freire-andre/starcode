@@ -65,7 +65,10 @@ batch, or in Git mode 1, this section runs as written, without a question.
 Each worker is still a LaForge in its own child worktree; you coordinate and never edit code (D23).
 
 1. **Batch.** `python "P/scripts/dispatch.py" batch <slug> --json`.
-   - Exit 1 (nothing ready) → section 4 when every ticket is integrated, otherwise wait (step 4).
+   - Exit 1 (nothing ready) → section 4 when every ticket is integrated, otherwise wait (step 4). **Exception:
+     the text has the line `travado:` (JSON `stalled` not empty: only overdue workers are left) → do not wait:
+     stop with one message listing the `stalled` tickets and two options, **cancel with confirmation** (step 7)
+     or **keep waiting**, with your recommendation, and act on the answer.**
    - **One ticket** → section 2 with that ticket, **no question**.
    - **Two or more** → one message: one line per ticket (ticket, issue, CLI, model, cost tier), the total,
      and the excluded tickets with the reason, then **one confirmation**. A swap the user asks for becomes
@@ -105,7 +108,8 @@ Each worker is still a LaForge in its own child worktree; you coordinate and nev
    `batch`. The others go on; tickets that depend on it stay out of the batch.
 9. **Merge conflict**: `git merge --abort`; the ticket returns to the queue with the conflicting files; the
    others go on. The summary at the end of the batch gives the options of section 3.
-10. **Next.** No active entries left → run `batch` again (step 1). Every ticket integrated → section 4 (proofs).
+10. **Next.** No active entries left → run `batch` again (step 1). If `batch` says `travado:` (only overdue
+    workers left), stop with the two options of step 1 (cancel with confirmation, step 7, or keep waiting). Every ticket integrated → section 4 (proofs).
 
 **Resume:** check each `**Dispatched:**` entry with `orca orchestration worker-show --dispatch <id>` (section 6)
 before any new `batch`.
