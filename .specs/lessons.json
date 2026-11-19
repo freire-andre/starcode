@@ -440,17 +440,19 @@
         "ajustes-review-pr39",
         "despacho-media-escopo",
         "verificacao-1-8-0",
-        "fecha-achado"
+        "fecha-achado",
+        "sessions-concorrente"
       ],
       "sources": [
         "verification.md:C2 (tests/test_coverage_rule.py:22)",
         "verification.md: achado C9",
         ".specs/features/verificacao-1-8-0/verification.md:38",
-        ".specs/features/fecha-achado/verification.md:achado 3"
+        ".specs/features/fecha-achado/verification.md:achado 3",
+        ".specs/features/sessions-concorrente/verification.md:achado 4"
       ],
       "scope": "",
       "created": "2026-11-13T16:43:22Z",
-      "updated": "2026-11-19T16:29:48Z"
+      "updated": "2026-11-19T18:51:35Z"
     },
     {
       "id": "L26",
@@ -557,7 +559,8 @@
         "retro-fase9",
         "scanner-lote2",
         "guard-lote2",
-        "fecha-achado"
+        "fecha-achado",
+        "sessions-concorrente"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -569,11 +572,12 @@
         ".specs/features/retro-fase9/verification.md:27",
         ".specs/features/scanner-lote2/verification.md:29",
         ".specs/features/guard-lote2/verification.md:28",
-        ".specs/features/fecha-achado/verification.md:achado 5"
+        ".specs/features/fecha-achado/verification.md:achado 5",
+        ".specs/features/sessions-concorrente/verification.md:achado 3"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-19T16:29:48Z"
+      "updated": "2026-11-19T18:51:34Z"
     },
     {
       "id": "L33",
@@ -1103,6 +1107,36 @@
       "scope": "",
       "created": "2026-11-19T16:29:48Z",
       "updated": "2026-11-19T16:29:48Z"
+    },
+    {
+      "id": "L68",
+      "text": "Teste de escrita concorrente deve passar pelo mesmo caminho de ler-mudar-gravar que a produção usa; uma função que substitui o arquivo inteiro perde as chaves das outras escritas mesmo sob trava.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "sessions-concorrente"
+      ],
+      "sources": [
+        ".specs/features/sessions-concorrente/verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-19T18:51:34Z",
+      "updated": "2026-11-19T18:51:34Z"
+    },
+    {
+      "id": "L69",
+      "text": "Prove novas tentativas e limpeza com a falha simulada até o limite: sucesso na última tentativa permitida e falha depois dela, com o arquivo anterior intacto e sem temporário sobrando.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "sessions-concorrente"
+      ],
+      "sources": [
+        ".specs/features/sessions-concorrente/verification.md:achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-19T18:51:34Z",
+      "updated": "2026-11-19T18:51:34Z"
     }
   ]
 }
