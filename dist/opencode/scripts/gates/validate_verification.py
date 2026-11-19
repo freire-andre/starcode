@@ -17,7 +17,8 @@ never the target code.
   ERRO  verification.md with no `## Checks` table, or a check with no row or no test in it
   ERRO  verification.md with no `## Findings`, or a finding whose `Closed` cell names no commit of this repo
         (Git mode 1: `degradada (modo 1)` instead of a commit, only with degraded verification)
-  ERRO  spec.md or tasks.md with no `**Approved**: <date> - user: "<words>"`
+  ERRO  `**Verification:** waived` on a spec that is not SMALL; on a SMALL one it replaces the Q tables (AVISO)
+  ERRO  spec.md (not SMALL: the minimal PEQUENA spec has no approval, D-a) or tasks.md with no `**Approved**: <date> - user: "<words>"`
   ERRO  a feature has a binding capture cited by a requirement (a "feature with screens") and: no `screens.md`
         with a `Screen`/`Verdict` table, a verdict that is not `match...`, no `**Round**:` or round > 2, no
         `**Verifier**:`, a cited capture with no `<name>.running.png`, a picture whose CSS size differs from the
@@ -44,6 +45,7 @@ import images  # noqa: E402
 HEAD_RE = re.compile(r"\*\*HEAD\*\*\s*:\s*`?([0-9a-f]{4,40})", re.IGNORECASE)
 TREE_RE = re.compile(r"\*\*Tree\*\*\s*:\s*(.+)", re.IGNORECASE)
 DEGRADED_RE = re.compile(r"\*\*Verification:?\*\*\s*:?\s*\**\s*(degraded|self-verified)", re.IGNORECASE)
+WAIVED_RE = re.compile(r"\*\*Verification:?\*\*\s*:?\s*\**\s*waived(?: \(PEQUENA\))?\s*$", re.IGNORECASE)
 SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 MODE1_CLOSED = "degradada (modo 1)"
 ROUND_RE = re.compile(r"\*\*Round\*\*\s*:\s*(\d+)", re.IGNORECASE)
@@ -191,7 +193,10 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
     build = [] if len(build) == 1 and build[0].lower().startswith("none") else build
     ids = [c.cid for c in checks]
 
+    small = gc.size_of(gc.read_lines(spec)) == "SMALL"
     for art in [spec] + ([tasks] if tasks.exists() else []):
+        if art == spec and small:
+            continue  # D-a: the minimal PEQUENA spec carries no approval line
         err = gc.approval_error(gc.read_lines(art), fdir, art.name, art == tasks,
                                 f"{art.name} sem `**Approved**: <AAAA-MM-DD> - user: \"<palavras do usuário>\"`")
         if err:
@@ -200,6 +205,7 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
     vpath, ppath = fdir / "verification.md", fdir / "proofs.md"
     vlines = gc.read_lines(vpath) if vpath.exists() else []
     degraded = any(DEGRADED_RE.search(ln) for ln in vlines)
+    waived = any(WAIVED_RE.search(ln) for ln in vlines) and not degraded
 
     # proofs.md: written at HEAD, clean tree, every check and the Build passing.
     if not ppath.exists():
@@ -242,6 +248,12 @@ def evaluate(feature: str | None, root: Path, strict: bool = False) -> gc.Result
     # verification.md: the Q's judgement of every check, and every finding closed.
     if not vpath.exists():
         res.errors.append("falta verification.md: o Q (verificador independente) ainda não rodou")
+        return res
+    if waived and not small:
+        res.errors.append("`**Verification:** waived` só vale para a PEQUENA")
+    elif waived:
+        res.warnings.append("Q dispensado (PEQUENA)")
+        _check_screens(fdir, strict, res)
         return res
     vchecks = gc.section(vlines, "Checks")
     judged: dict[str, str] = {}

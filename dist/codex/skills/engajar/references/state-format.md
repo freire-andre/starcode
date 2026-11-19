@@ -35,7 +35,7 @@ it from the older file) in the same turn. The banner reads all three.
 ## Handoff
 
 **Phase:** discovery | spec | spec-approved | tasks | tasks-approved | published | execute | review | done
-**Size:** MEDIUM | LARGE | COMPLEX
+**Size:** SMALL | MEDIUM | LARGE | COMPLEX
 **Git mode:** <1-4>
 **Next:** <one sentence: exactly what happens next>
 **Linear:** <issue ID (MEDIUM) | project URL + issue IDs (LARGE/COMPLEX) | none yet>

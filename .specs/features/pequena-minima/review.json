@@ -1,0 +1,19 @@
+{
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. W1 resolvido em c0c5681: a spec SMALL exige Proof em cada check, e a sonda com C2 sem prova dá 'C2 sem `Proof:`'. W3 resolvido em 1d0fc98: o q-waive recusa com saída 2 um verification.md do Q, sem gravar. W2 resolvido em 7b82306: o STARCODE.md diz que a Guinan não roda na PEQUENA. Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolved em c0c5681",
+  "W2": "resolved em 7b82306",
+  "W3": "resolved em 1d0fc98"
+ },
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (re, pathlib) e scripts internos"
+ ],
+ "ladder": [
+  "run_gates.py proofs e done --strict em e26e365: verdes",
+  "run_gates ticket 8e276d0..00a0f1f, build --check, check_decisions, plugin validate --strict: verdes (relatório do worker)",
+  "sondas: check sem Proof recusado com o ID do check; q-waive sobre relatório do Q sai com 2"
+ ]
+}
