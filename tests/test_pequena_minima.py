@@ -244,6 +244,23 @@ class PequenaTests(TempRepoCase):
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             self.assertEqual(dispatch.main(["q-waive", "peq", "--root", str(self.repo)]), 0)
+        # W3: um verification.md do Q (sem o marcador waived) nunca é sobrescrito
+        report = "# peq: Verification\n\n**Verification:** pass\n\n| Check | Result |\n|---|---|\n| C1 | pass |\n"
+        vpath.write_bytes(report.encode("utf-8"))
+        before = vpath.read_bytes()
+        refusal = "q-waive recusado: verification.md já existe (relatório do Q)"
+        lines = []
+        self.assertEqual(dispatch.q_waive("peq", self.repo, emit=lines.append), 2)
+        self.assertEqual(lines, [refusal])
+        self.assertEqual(vpath.read_bytes(), before)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.assertEqual(dispatch.main(["q-waive", "peq", "--root", str(self.repo)]), 2)
+        self.assertEqual(buf.getvalue().strip(), refusal)
+        self.assertEqual(vpath.read_bytes(), before)
+        vpath.write_bytes(WAIVED.encode("utf-8"))  # sobre um arquivo waived continua funcionando
+        self.assertEqual(dispatch.q_waive("peq", self.repo, emit=out.append), 0)
+        self.assertEqual(vpath.read_bytes(), WAIVED.encode("utf-8"))
         for size in ("MEDIUM", "LARGE", "COMPLEX"):
             with self.subTest(size=size):
                 vpath.unlink(missing_ok=True)

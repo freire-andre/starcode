@@ -929,6 +929,11 @@ def q_waive(slug: str, root: Path, emit=print) -> int:
     if size != "SMALL":
         emit(f"q-waive recusado: só a PEQUENA dispensa o Q (Size: {size or gc.field_value(lines, 'Size') or '?'})")
         return 2
+    existing = fdir / "verification.md"
+    if existing.exists() and not re.search(
+            r"^\*\*Verification:\*\*\s*waived(?: \(PEQUENA\))?\s*$", existing.read_text(encoding="utf-8"), re.M):
+        emit("q-waive recusado: verification.md já existe (relatório do Q)")
+        return 2
     body = [f"# {fdir.name}: Verification", "", "**Verification:** waived (PEQUENA)", "",
             "Q dispensado: tarefa PEQUENA (D-a)."]
     (fdir / "verification.md").write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
