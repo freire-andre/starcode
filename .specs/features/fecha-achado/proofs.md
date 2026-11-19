@@ -1,6 +1,6 @@
 # fecha-achado proofs
 
-**HEAD**: 61d7980
+**HEAD**: adb7fad
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 10 pass, 0 fail
@@ -34,7 +34,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1003 tests in 486.941s
+Ran 1005 tests in 517.942s
 
 OK (skipped=1)
 inativo
