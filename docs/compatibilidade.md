@@ -9,6 +9,20 @@ As saídas de `--help` de cada comando usado estão em `docs/cli-baseline/`.
 
 Legenda: ✅ passou · ❌ falhou · ⏳ depende de ação do usuário · ⚠️ passou com ressalva · n/a não se aplica
 
+## Nível de suporte
+
+| CLI | Nível | O que significa |
+| --- | --- | --- |
+| Claude Code | Principal | Todo recurso nasce e é aceito aqui. |
+| Codex | Secundário completo | Paridade de recursos, com aceite em sessão real. |
+| Antigravity CLI | Melhor esforço | Funciona pelo mesmo pacote gerado, sem lógica própria nova; problema só é corrigido quando bloqueia o fluxo. |
+| OpenCode | Melhor esforço | Funciona pelo mesmo pacote gerado, sem lógica própria nova; problema só é corrigido quando bloqueia o fluxo. |
+
+Pendências do dono:
+
+- Aceite da Fase 8 (perfis) em sessão real no Codex (nota 14: hoje a prova é de build).
+- Aceite da Fase 9 (Worf, Guinan e diagnóstico) em sessão real no Codex (nota 15: hoje a prova é de build).
+
 ## Matriz
 
 | Recurso testado | Claude | Codex | Antigravity | OpenCode |
