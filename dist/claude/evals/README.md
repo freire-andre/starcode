@@ -6,7 +6,7 @@ pasta para `dist/claude/evals/`; os resultados ficam em `dist/claude/evals/resul
 | Suíte | Casos | Aceite (Fase 1) |
 |---|---|---|
 | `risk-sizing/` | 12 tarefas com a classe esperada (tag `trigger`: 8 com gatilho de risco; `no-trigger`: 4) | 100% dos casos `trigger` (nunca PEQUENA) e ≥90% no total |
-| `routing/` | 36 frases: 21 que devem disparar `engajar`/`setup`/`troi`/`spock`/`data`/`laforge`/`mccoy`/`q`/`uhura`/`scotty`/`nova-missao`/`worf`/`guinan`/`diagnostico`/`config` e 15 que não devem disparar nenhuma skill do StarCode | todas passam (Fases 1, 2, 3, 8 e 9) |
+| `routing/` | 36 frases: 21 que devem disparar `engajar`/`setup`/`troi`/`spock`/`data`/`laforge`/`mccoy`/`q`/`uhura`/`scotty`/`nova-missao`/`worf`/`guinan`/`diagnostico`/`config` e 15 que não devem disparar skill do StarCode: 7 impedem qualquer skill (`input_match: "starcode:"`) e 8 impedem só uma skill (`starcode:<skill>`) | todas passam (Fases 1, 2, 3, 8 e 9) |
 
 Fase 9: 9 casos novos de roteamento em `routing/` (R33), 2 positivos e 1 negativo por skill:
 
