@@ -62,13 +62,13 @@ Proof: run unit | test_decisions_sessions_concorrente (test_sessions_concorrente
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-202)
+**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
 **Linear:** SC-202
 **Integration branch:** feature/sessions-concorrente
-**Last integrated:** none
+**Last integrated:** 4e9283c
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-202 criada
 **Attempts:** none
