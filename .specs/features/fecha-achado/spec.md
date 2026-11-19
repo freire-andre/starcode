@@ -72,13 +72,13 @@ Proof: run unit | test_decisions_fecha_achado (test_fecha_achado.FechaAchadoTest
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-199)
+**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
 **Linear:** SC-199
 **Integration branch:** feature/fecha-achado
-**Last integrated:** none
+**Last integrated:** 61d7980
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-199 criada
 **Attempts:** none
