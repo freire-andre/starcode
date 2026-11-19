@@ -1,6 +1,6 @@
 # roteamento-worf-mccoy proofs
 
-**HEAD**: c3e9e2f
+**HEAD**: 89c1491
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 9 pass, 0 fail
@@ -33,7 +33,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1031 tests in 539.903s
+Ran 1031 tests in 1119.645s
 
 OK (skipped=1)
 inativo
