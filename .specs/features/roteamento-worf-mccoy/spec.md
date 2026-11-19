@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-203
-**May change**: skills/worf/SKILL.md, skills/mccoy/SKILL.md, evals/routing/, evals/README.md, tests/test_evals_f9.py, tests/test_roteamento_worf_mccoy.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: skills/worf/SKILL.md, skills/mccoy/SKILL.md, evals/routing/, evals/README.md, tests/test_evals_f9.py, tests/test_worf_skill.py, skills/piloto-automatico/SKILL.md, tests/test_roteamento_worf_mccoy.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Esta spec cobre o item 3.3 da triagem v2. O discovery está em `.specs/features/roteamento-worf-mccoy/context.md`. As descrições do `worf` e do `mccoy` têm gatilhos genéricos, sem StarCode ("review do PR", "revise esse PR", "esse teste não passa", "investigue o bug"), e o eval de roteamento não tem quase-acertos nem os pares `config` × `setup` e `piloto-automatico` × `engajar`.
@@ -20,7 +20,11 @@ Esta spec cobre o item 3.3 da triagem v2. O discovery está em `.specs/features/
 - Mudar o grader ou o formato dos casos.
 
 ## Decisions
-None. Os casos novos estão no `context.md` (Gray Areas) e valem com a aprovação desta spec.
+| Item | Options | User answer |
+|---|---|---|
+| `pos-piloto-automatico` falhou no eval (foi para o `engajar`) | dar gatilhos ao piloto / tirar o caso e abrir issue / manter falhando | approved - user: "Dar gatilhos ao piloto (Recomendado)" |
+
+Os demais casos novos estão no `context.md` (Gray Areas) e valem com a aprovação desta spec.
 
 ## Requirements
 - **R1** - The `description` do `skills/worf/SKILL.md` SHALL citar só gatilhos com StarCode, Worf ou o Picard (sem "review do PR" e sem "revise esse PR" sozinhos) e SHALL terminar com uma frase "Not for" que inclua `a generic pull request review outside StarCode`.
@@ -31,7 +35,8 @@ None. Os casos novos estão no `context.md` (Gray Areas) e valem com a aprovaç�
   - `pos-config-model`: prompt "Quero trocar o modelo do LaForge para o Kimi só neste projeto do StarCode.", graders `starcode:config` com `min: 1` e `starcode:setup` com `max: 0`;
   - `pos-piloto-automatico`: prompt "StarCode, toque a feature de exportar CSV no piloto automático: me entreviste uma vez e decida o resto por mim.", graders `starcode:piloto-automatico` com `min: 1` e `starcode:engajar` com `max: 0`.
 - **R4** - The `evals/README.md` SHALL mostrar o novo total de casos de roteamento (`37 frases`) e listar os 4 casos novos. The `tests/test_evals_f9.py` SHALL aceitar o novo caso negativo do `worf` sem perder o que já confere.
-- **R5** - The system SHALL ter no `DECISIONS.md` a entrada `### SC-<n>:` com **Problema**, **Decisão** (os gatilhos tirados das duas descrições, as frases "Not for" e os 4 casos), **Motivo** e **Por que não é bug** (com os testes), mais uma linha em `CHANGELOG.md` `[Unreleased]`.
+- **R6** - The `description` do `skills/piloto-automatico/SKILL.md` SHALL trazer gatilhos explícitos entre aspas (`"StarCode, piloto automático"` e `"toque a feature no piloto automático"`) e SHALL dizer que vale só quando o usuário pede o piloto automático com essas palavras; a frase `Only the user invokes it` SHALL sair. The `pos-piloto-automatico` SHALL passar no eval rodado localmente.
+- **R5** - The system SHALL ter no `DECISIONS.md` a entrada `### SC-<n>:` com **Problema**, **Decisão** (os gatilhos tirados das duas descrições, as frases "Not for", os 4 casos e os gatilhos do piloto), **Motivo** e **Por que não é bug** (com os testes), mais uma linha em `CHANGELOG.md` `[Unreleased]`.
 
 ## Edge Cases
 - Os positivos existentes do `worf` e do `mccoy` citam o nome da skill e continuam valendo (R1, R2).
@@ -59,17 +64,20 @@ Proof: run unit | test_readme_e_contagem (test_roteamento_worf_mccoy.RoteamentoW
 **C5** - Entrada no `DECISIONS.md` com os quatro campos, os termos da Decisão, os testes e a linha no CHANGELOG (R5)
 Proof: run unit | test_decisions_roteamento (test_roteamento_worf_mccoy.RoteamentoWorfMccoyTests.test_decisions_roteamento) ... ok
 
+**C6** - A descrição do `piloto-automatico` tem os dois gatilhos exatos, diz que vale só a pedido do usuário com essas palavras e não tem mais `Only the user invokes it` (R6)
+Proof: run unit | test_descricao_piloto (test_roteamento_worf_mccoy.RoteamentoWorfMccoyTests.test_descricao_piloto) ... ok
+
 ## Handoff
 
 **Phase:** spec-approved
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-203)
+**Next:** LaForge ajusta o R6; eval de novo; proofs; Q
 **Linear:** SC-203
 **Integration branch:** feature/roteamento-worf-mccoy
-**Last integrated:** none
+**Last integrated:** 0051a193308dc0c70b9959ff5e53159d9ed5e711
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-203 criada; eval: casos novos e vizinhos
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-19: eval: 12/13; pos-piloto-automatico foi para o engajar; usuário: dar gatilhos ao piloto (R6)
 **Breaker:** closed
