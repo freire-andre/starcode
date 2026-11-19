@@ -72,5 +72,5 @@ Proof: run unit | test_decisions_sessions_concorrente (test_sessions_concorrente
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-202 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 4 achados (write_session substitui o arquivo inteiro; C1, C5 e C6 frouxos); 2026-11-19: pós-Q: f616de4; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L68, L69; recorrências L32, L25
+**Reports:** 2026-11-19: Q r1 FAIL: 4 achados (write_session substitui o arquivo inteiro; C1, C5 e C6 frouxos); 2026-11-19: pós-Q: f616de4; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L68, L69; recorrências L32, L25; 2026-11-19: PR aberto
 **Breaker:** closed
