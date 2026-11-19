@@ -1,0 +1,18 @@
+{
+ "round": 2,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O W1 da r1 foi resolvido em e678e67. O pipeline do heredoc vai para um shell quando algum token dele tem base em SHELLS, source, . ou eval (na dúvida, shell). Os caminhos com sudo -u, env -i, nice, timeout, xargs -0, source, . e eval voltaram a ser bloqueados, e o heredoc de dado continua passando. O bloqueio falso conservador (ex.: grep bash <<EOF) foi aceito e está registrado no DECISIONS.md. Nenhum blocker novo. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {
+  "W1": "resolved em e678e67"
+ },
+ "research": [
+  "nenhuma superfície externa: biblioteca padrão (re, shlex) e semântica de heredoc do bash"
+ ],
+ "ladder": [
+  "suíte inteira nas provas em 9ea9cd8: 980 OK",
+  "run_gates ticket addccd3..e678e67: VERDE (inclui build --check e check_decisions)",
+  "claude plugin validate dist/claude --strict: Validation passed",
+  "sondagem manual de 22 entradas: 15 heredocs para shell bloqueados, 7 de dado passam"
+ ]
+}

@@ -35,7 +35,8 @@
         "licoes-recorrencia-por-id",
         "opencode-copia-instalada",
         "verificacao-1-8-0",
-        "scanner-lote2"
+        "scanner-lote2",
+        "guard-lote2"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -51,11 +52,12 @@
         ".specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin)",
         ".specs/features/verificacao-1-8-0/verification.md:43",
         ".specs/features/scanner-lote2/verification.md:26",
-        ".specs/features/scanner-lote2/verification.md:27"
+        ".specs/features/scanner-lote2/verification.md:27",
+        ".specs/features/guard-lote2/verification.md:27"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-18T22:56:47Z"
+      "updated": "2026-11-19T00:58:27Z"
     },
     {
       "id": "L3",
@@ -541,7 +543,8 @@
         "piloto-freios",
         "lote1-correcoes",
         "retro-fase9",
-        "scanner-lote2"
+        "scanner-lote2",
+        "guard-lote2"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -551,11 +554,12 @@
         ".specs/features/piloto-freios/verification.md:31",
         ".specs/features/lote1-correcoes/verification.md:26",
         ".specs/features/retro-fase9/verification.md:27",
-        ".specs/features/scanner-lote2/verification.md:29"
+        ".specs/features/scanner-lote2/verification.md:29",
+        ".specs/features/guard-lote2/verification.md:28"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-18T22:56:47Z"
+      "updated": "2026-11-19T00:58:27Z"
     },
     {
       "id": "L33",
@@ -965,6 +969,36 @@
       "scope": "",
       "created": "2026-11-18T22:56:47Z",
       "updated": "2026-11-18T22:56:47Z"
+    },
+    {
+      "id": "L60",
+      "text": "Quando um parser ignora parte do texto (corpo de heredoc, comentário, string), teste o marcador que abre a parte ignorada dentro de comentário e de aspas, porque '# <<EOF' escondia o comando real da linha seguinte.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "guard-lote2"
+      ],
+      "sources": [
+        ".specs/features/guard-lote2/verification.md:25"
+      ],
+      "scope": "",
+      "created": "2026-11-19T00:58:27Z",
+      "updated": "2026-11-19T00:58:27Z"
+    },
+    {
+      "id": "L61",
+      "text": "Ao interpretar sintaxe de shell, associe cada construção ao seu comando ou pipeline e respeite '--', porque o heredoc de um segmento era tratado como entrada do shell de outro, e um arquivo chamado -f virava flag.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "guard-lote2"
+      ],
+      "sources": [
+        ".specs/features/guard-lote2/verification.md:26"
+      ],
+      "scope": "",
+      "created": "2026-11-19T00:58:27Z",
+      "updated": "2026-11-19T00:58:27Z"
     }
   ]
 }
