@@ -72,15 +72,15 @@ Proof: run unit | test_decisions_fecha_achado (test_fecha_achado.FechaAchadoTest
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** nenhum: missão concluída
 **Linear:** SC-199
 **Integration branch:** feature/fecha-achado
 **Last integrated:** 61d7980
 **Dispatched:** none
 **Settled:** 2026-11-19: spec aprovada: Sim; issue SC-199 criada
 **Attempts:** none
-**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (teste fantasma em string; linha sem pipe inicial; fallback spec sem prova; C5 e C7 frouxos); 2026-11-19: pós-Q: adb7fad; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L66, L67; recorrências L25, L20, L32; 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (W1 nit aberto)
+**Reports:** 2026-11-19: Q r1 FAIL: 5 achados (teste fantasma em string; linha sem pipe inicial; fallback spec sem prova; C5 e C7 frouxos); 2026-11-19: pós-Q: adb7fad; achados fechados com close-finding; 2026-11-19: done --strict verde; 2026-11-19: Guinan: L66, L67; recorrências L25, L20, L32; 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (W1 nit aberto); 2026-11-19: merge ae6ffe9 (PR #69); SC-199 Done
 **Breaker:** closed
