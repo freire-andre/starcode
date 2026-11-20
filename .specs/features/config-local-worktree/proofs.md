@@ -1,13 +1,14 @@
 # config-local-worktree proofs
 
-**HEAD**: 7a64808
+**HEAD**: 41e0458
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 9 pass, 0 fail
+**Result**: 10 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
 | C1 | `run unit / test_local_no_worktree_ligado (test_config_local_worktree.ConfigLocalWorktreeTests.test_local_no_wo` | pass |
+| C1 | `run unit / test_consumidores_no_worktree_ligado (test_config_local_worktree.ConfigLocalWorktreeTests.test_cons` | pass |
 | C2 | `run unit / test_entrada_local_inteira (test_config_local_worktree.ConfigLocalWorktreeTests.test_entrada_local_` | pass |
 | C3 | `run unit / test_modelo_valido (test_config_local_worktree.ConfigLocalWorktreeTests.test_modelo_valido) ... ok` | pass |
 | C4 | `run unit / test_aviso_local_versionado (test_config_local_worktree.ConfigLocalWorktreeTests.test_aviso_local_v` | pass |
@@ -33,7 +34,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1045 tests in 582.204s
+Ran 1046 tests in 637.260s
 
 OK (skipped=1)
 inativo
