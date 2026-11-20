@@ -51,7 +51,9 @@ None.
 
 **Build**: `python tools/build.py --check`; `claude plugin validate dist/claude --strict`; `python scripts/check_decisions.py`; `orca plugin validate src/orca --json`
 **Run unit**: `python -m unittest discover -s tests -v 2>&1`
-**Run plugin**: `orca plugin test src/orca` (num worktree no drive da Orca, `docs/compatibilidade.md:150`)
+**Run plugin**: `orca plugin test src/orca`
+
+O `Run plugin` só roda num worktree no drive da Orca (`docs/compatibilidade.md:150`).
 
 **C1** - `parse_dispatch_entry` com tabela de entradas: formato do `start` com e sem dispatch id, com `blocked`, formato antigo, só `<Tn>` (R1)
 Proof: run unit | test_parse_dispatch_entry (test_ponte_manutencao.PonteManutencaoTests.test_parse_dispatch_entry) ... ok
@@ -86,7 +88,7 @@ Proof: run unit | test_decisions_e_changelog (test_ponte_manutencao.PonteManuten
 **Next:** LaForge implementa T1
 **Linear:** SC-207
 **Integration branch:** feature/ponte-manutencao
-**Last integrated:** none
+**Last integrated:** 2b75935cc25b5107910787d3087a1023eec79c12
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
