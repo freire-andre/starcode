@@ -68,15 +68,15 @@ Proof: run unit | test_skill_e_decisions (test_config_local_worktree.ConfigLocal
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** push e PR (confirmação); Worf
+**Next:** Worf r1
 **Linear:** SC-206
 **Integration branch:** feature/config-local-worktree
 **Last integrated:** 41e0458
 **Dispatched:** none
 **Settled:** 2026-11-20: sim
 **Attempts:** none
-**Reports:** 2026-11-20: provas verdes (6/6); 2026-11-20: Q r1 FAIL: 5 achados; R3 precisado (fontes de modelo: crew do usuário, crew local, fleet.workers; o repo não tem modelo); 2026-11-20: pós-Q: d4221d6..41e0458; achados fechados com close-finding; C1 ganhou a prova test_consumidores_no_worktree_ligado; 2026-11-20: Guinan: L74, L75; recorrências L20, L25, L32
+**Reports:** 2026-11-20: provas verdes (6/6); 2026-11-20: Q r1 FAIL: 5 achados; R3 precisado (fontes de modelo: crew do usuário, crew local, fleet.workers; o repo não tem modelo); 2026-11-20: pós-Q: d4221d6..41e0458; achados fechados com close-finding; C1 ganhou a prova test_consumidores_no_worktree_ligado; 2026-11-20: Guinan: L74, L75; recorrências L20, L25, L32; 2026-11-20: PR aberto
 **Breaker:** closed
