@@ -50,6 +50,7 @@ Proof: run unit | test_licoes_antes_das_regras (test_licoes_no_brief.LicoesNoBri
 
 **C3** - `fix-brief` lista só os achados com `Closed` vazio, com o número da tabela, o May change, as lições e as regras; sem achado aberto sai com 2 e a mensagem exata (R3)
 Proof: run unit | test_fix_brief (test_licoes_no_brief.LicoesNoBriefTests.test_fix_brief) ... ok
+Proof: run unit | test_fix_brief_uniao_tickets (test_licoes_no_brief.LicoesNoBriefTests.test_fix_brief_uniao_tickets) ... ok
 
 **C4** - `execute.md` seção 5 cita `dispatch.py" fix-brief <slug>`; entrada `### SC-205:` com os quatro campos e linha no CHANGELOG (R4)
 Proof: run unit | test_execute_e_decisions (test_licoes_no_brief.LicoesNoBriefTests.test_execute_e_decisions) ... ok
@@ -59,12 +60,12 @@ Proof: run unit | test_execute_e_decisions (test_licoes_no_brief.LicoesNoBriefTe
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Correção pós-Q única (LaForge, brief do fix-brief)
+**Next:** proofs e done --strict; Guinan; PR
 **Linear:** SC-205
 **Integration branch:** feature/licoes-no-brief
-**Last integrated:** 9d86e1e
+**Last integrated:** f4842ab
 **Dispatched:** none
 **Settled:** 2026-11-19: sim
 **Attempts:** none
-**Reports:** 2026-11-19: reclassificada para MÉDIA (4 arquivos); T1 integrado em 9d86e1e; 2026-11-19: provas verdes (4/4); 2026-11-20: Q r1 FAIL: 3 achados (1: screens fora do fix-brief, resolvido restringindo o execute.md por decisão do dono; 2 e 3: testes frouxos)
+**Reports:** 2026-11-19: reclassificada para MÉDIA (4 arquivos); T1 integrado em 9d86e1e; 2026-11-19: provas verdes (4/4); 2026-11-20: Q r1 FAIL: 3 achados (1: screens fora do fix-brief, resolvido restringindo o execute.md por decisão do dono; 2 e 3: testes frouxos); 2026-11-20: pós-Q: a9c6ffd, 9fd5264, f4842ab; achados fechados com close-finding; C3 ganhou a prova test_fix_brief_uniao_tickets
 **Breaker:** closed

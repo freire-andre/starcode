@@ -1,15 +1,16 @@
 # licoes-no-brief proofs
 
-**HEAD**: 8abe449
+**HEAD**: f4842ab
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 7 pass, 0 fail
+**Result**: 8 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
 | C1 | `run unit / test_ordem_por_recorrencia (test_licoes_no_brief.LicoesNoBriefTests.test_ordem_por_recorrencia) ...` | pass |
 | C2 | `run unit / test_licoes_antes_das_regras (test_licoes_no_brief.LicoesNoBriefTests.test_licoes_antes_das_regras)` | pass |
 | C3 | `run unit / test_fix_brief (test_licoes_no_brief.LicoesNoBriefTests.test_fix_brief) ... ok` | pass |
+| C3 | `run unit / test_fix_brief_uniao_tickets (test_licoes_no_brief.LicoesNoBriefTests.test_fix_brief_uniao_tickets)` | pass |
 | C4 | `run unit / test_execute_e_decisions (test_licoes_no_brief.LicoesNoBriefTests.test_execute_e_decisions) ... ok` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
@@ -31,7 +32,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1039 tests in 544.980s
+Ran 1039 tests in 537.221s
 
 OK (skipped=1)
 inativo
