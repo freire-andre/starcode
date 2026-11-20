@@ -302,7 +302,7 @@ async function queryIssue(
           id: String(issue.identifier),
           title: issue.title ?? null,
           state: issue.state?.name ?? null,
-          url: issue.url ?? null,
+          url: typeof issue.url === 'string' && issue.url.startsWith('https://linear.app/') ? issue.url : null,
         },
         note: null,
       }
@@ -368,7 +368,7 @@ export default function activate(orca: OrcaWorkerApi): void {
 
   /** Acrescenta ao diário o que mudou desde o último estado bom. */
   function track(path: string, snap: PonteSnapshot, agents: PonteAgent[]): void {
-    const name = path.split(/[\/]/).filter(Boolean).pop() ?? path
+    const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path
     const phase = snap.feature?.phase ?? null
     const map = new Map<string, string>()
     agents.forEach((a, i) => map.set(a.terminalId ?? a.title ?? `#${i}`, a.state))

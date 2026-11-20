@@ -977,7 +977,7 @@ test('host recusa agent.launch sem a capacidade', async () => {
   cliDown(fake)
   fake.python = withFeature(FILES)
   const host = baseMockHost({ // recusa esperada: fora do registro que exige refusals vazio
-    capabilities: ['workspace:read', 'agent:read', 'workspace:write', 'storage:own'],
+    capabilities: ['workspace:read', 'agent:read', 'workspace:write'],
     results: {
       'workspace.readContext': CTX_A,
       'workspace.list': { workspaces: [WS_A, WS_B], truncated: false },
@@ -990,4 +990,45 @@ test('host recusa agent.launch sem a capacidade', async () => {
   await worker.request('ponte.launchPicard', {}).catch(() => undefined)
   assert.ok(host.refusals.some((r) => r.method === 'agent.launch' && r.code === 'capability_denied'))
   await worker.deactivate()
+})
+
+test('issue.url fora do linear vira null', async () => {
+  const caso = async (url: unknown) => {
+    const fake = install()
+    fake.orca = () => ({
+      stdout: JSON.stringify({ ok: true, result: { issue: { identifier: 'SC-116', title: 'T2', state: { name: 'In Progress' }, url } } }),
+    })
+    const worker = await mount(hostFor(CTX_A))
+    const st: any = await worker.request('ponte.state', {})
+    await worker.deactivate()
+    return st.issue
+  }
+  assert.equal((await caso('https://linear.app/x/issue/SC-116')).url, 'https://linear.app/x/issue/SC-116')
+  assert.equal((await caso('https://evil.example/linear.app/')).url, null)
+  assert.equal((await caso('http://linear.app/x')).url, null)
+  assert.equal((await caso('javascript:alert(1)')).url, null)
+  assert.equal((await caso(42)).url, null)
+  assert.equal((await caso(undefined)).url, null)
+})
+
+test('nome do worktree com barra invertida', async () => {
+  for (const [path, nome] of [['C:\\x\\meu-wt', 'meu-wt'], ['/x/meu-wt/', 'meu-wt']]) {
+    install()
+    const wsB = { ...WS_B, path }
+    const host = mockHost({
+      results: {
+        'workspace.readContext': CTX_A,
+        'workspace.list': { workspaces: [WS_A, wsB], truncated: false },
+        'agents.list': { agents: [] },
+        'statusBar.update': { ok: true },
+      },
+    })
+    const worker = await mount(host)
+    await worker.request('ponte.state', {})
+    host.respond('workspace.readContext', CTX_B)
+    const s: any = await worker.request('ponte.state', {})
+    const texts = s.log.map((e: any) => e.text)
+    assert.ok(texts.includes(`Worktree em foco: ${nome}.`), `${path}: ${texts.join('|')}`)
+    await worker.deactivate()
+  }
 })

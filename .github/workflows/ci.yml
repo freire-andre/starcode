@@ -50,7 +50,7 @@ jobs:
         run: claude plugin validate dist/claude --strict
       - name: orca plugin validate
         shell: bash
-        run: 'if command -v orca >/dev/null 2>&1; then orca plugin validate src/orca --json; else echo "orca ausente: validação do plugin pulada"; fi'
+        run: 'if command -v orca >/dev/null 2>&1; then orca plugin validate src/orca --json; else echo "orca ausente: validação do plugin pulada"; echo "::warning title=orca ausente::validação e testes do plugin da Ponte pulados"; echo "- orca plugin validate: pulado (orca ausente)" >> "$GITHUB_STEP_SUMMARY"; fi'
 
   eval:
     if: github.event_name == 'workflow_dispatch'

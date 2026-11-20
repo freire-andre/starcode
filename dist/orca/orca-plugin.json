@@ -68,9 +68,6 @@
     },
     {
       "kind": "agent:launch"
-    },
-    {
-      "kind": "storage:own"
     }
   ]
 }

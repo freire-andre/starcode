@@ -302,3 +302,21 @@ test('painel mostra a missão ativa de outro worktree', async () => {
   const iFeature = tm.indexOf('ponte-missao-ativa')
   assert.ok(iBotao < iAviso && iAviso < iFeature, 'a mensagem fica entre o atalho e o resto da fase')
 })
+
+test('agentFor casa por token inteiro', async () => {
+  const agente = (title: string | null) => ({ terminalId: 't1', title, agent: 'claude', state: 'working', stateStartedAt: AT }) as any
+  const worker = (label: string, issues: string[] = []) => ({ label, issues, base: null, dispatch: null, model: null })
+  const mostra = async (w: ReturnType<typeof worker>, title: string | null) => {
+    const p = await mount(panel, { host: host(estado({ snapshot: { ...dados, workers: [w] }, agents: [agente(title)] })) })
+    return text(p).includes('working')
+  }
+  assert.equal(await mostra(worker('T1'), 'LaForge T1'), true)
+  assert.equal(await mostra(worker('T1'), 'LaForge T10'), false)
+  assert.equal(await mostra(worker('T1'), 'T1'), true)
+  assert.equal(await mostra(worker('T1'), 'T1: painel'), true)
+  assert.equal(await mostra(worker('T1'), 'xT1'), false)
+  assert.equal(await mostra(worker('T9', ['SC-12']), 'trabalho SC-12 em curso'), true)
+  assert.equal(await mostra(worker('T9', ['SC-12']), 'trabalho SC-123'), false)
+  assert.equal(await mostra(worker('T1'), null), false)
+  assert.equal(await mostra(worker('T1'), ''), false)
+})
