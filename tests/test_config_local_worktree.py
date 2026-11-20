@@ -14,6 +14,7 @@ from unittest import mock
 from helpers import ROOT, TempRepoCase, run_git
 
 import banner
+import dispatch
 import setup_helpers as sh
 import starcode_common as sc
 import validate_config as vc
@@ -107,6 +108,79 @@ class ConfigLocalWorktreeTests(TempRepoCase):
              mock.patch.object(banner.conflicts, "scan", return_value=[]):
             text = banner.build_banner(str(wt), True)[0]
         self.assertIn("Config local do repositório: ✅ válido (modelos só deste repositório)", text.splitlines())
+
+    def test_consumidores_no_worktree_ligado(self):
+        """dispatch, setup (crew-table and suggest) and the banner give the same result in the main and in the
+        linked worktree (fake Orca in the banner, never the real one)."""
+        self.write_repo_config()
+        fdir = self.repo / ".specs" / "features" / "demo"
+        fdir.mkdir(parents=True)
+        (fdir / "spec.md").write_text("# Demo: Spec" + chr(10), encoding="utf-8")
+        tasks = ["# Demo: Tasks", "", "## Tasks", "", "### T1: Ticket 1", "**Depends on**: none",
+                 "**Requirements**: R1", "**Tests**: unit", "**Gate**: quick", "**Linear**: PROJ-1", "",
+                 "#### TASK", "Faz.", "", "#### CONTEXT", "Spec.", "", "#### BOUNDARIES", "May change: `a.py`", "",
+                 "#### RULES", "TDD.", "", "#### DELIVERY", "Commit.", ""]
+        (fdir / "tasks.md").write_text(chr(10).join(tasks), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "specs")
+        run_git(self.repo, "branch", "feature/demo")
+        wt = self.linked()
+        local = {"schemaVersion": 1, "crew": {"laforge": {"cli": "opencode", "model": "zai/glm-5.3"}}}
+        main_file = write_json(self.repo / ".starcode" / "config.local.json", local)
+        self.assertFalse((wt / ".starcode" / "config.local.json").exists())
+
+        # dispatch: the default pair of the batch is the effective LaForge
+        main_batch, linked_batch = dispatch.batch("demo", self.repo), dispatch.batch("demo", wt)
+        self.assertEqual(linked_batch, main_batch)
+        self.assertEqual([(b["ticket"], b["cli"], b["model"]) for b in linked_batch["batch"]],
+                         [("T1", "opencode", "zai/glm-5.3")])
+
+        # setup: crew-table and suggest (the CLI reads the current config by itself)
+        def table(cwd: Path) -> str:
+            old = Path.cwd()
+            os.chdir(cwd)
+            try:
+                return sh.crew_table()
+            finally:
+                os.chdir(old)
+
+        main_table, linked_table = table(self.repo), table(wt)
+        self.assertEqual(linked_table, main_table)
+        row = next(r for r in linked_table.splitlines() if "LaForge" in r)
+        self.assertTrue(row.endswith("| opencode · zai/glm-5.3 (config local do repositório) |"), row)
+
+        def suggest_cli(cwd: Path) -> list[str]:
+            proc = subprocess.run(["python", str(ROOT / "scripts" / "setup_helpers.py"), "suggest", "--have",
+                                   "claude,opencode"], cwd=cwd, capture_output=True, text=True, encoding="utf-8")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            return proc.stdout.splitlines()
+
+        main_suggest, linked_suggest = suggest_cli(self.repo), suggest_cli(wt)
+        self.assertEqual(linked_suggest, main_suggest)
+        doc = sc.load_crew()
+        self.assertIn(f"mantidos: {doc['crew']['laforge']['name']}", linked_suggest)
+
+        # banner: valid main file, then an invalid one, both read from the linked worktree
+        def banner_lines(cwd: Path) -> tuple[list[str], str]:
+            with mock.patch.object(banner, "check_orca", return_value="Orca: ✅ disponível"),                  mock.patch.object(banner.conflicts, "scan", return_value=[]):
+                text, summary, _ = banner.build_banner(str(cwd), True)
+            return [ln for ln in text.splitlines() if not ln.startswith("Repositório:")], summary
+
+        main_lines, main_sum = banner_lines(self.repo)
+        linked_lines, linked_sum = banner_lines(wt)
+        self.assertEqual((linked_lines, linked_sum), (main_lines, main_sum))
+        self.assertIn("Config local do repositório: ✅ válido (modelos só deste repositório)", linked_lines)
+        main_file.write_text("{", encoding="utf-8")
+        main_lines, main_sum = banner_lines(self.repo)
+        linked_lines, linked_sum = banner_lines(wt)
+        self.assertEqual((linked_lines, linked_sum), (main_lines, main_sum))
+        invalid = (f"Config local do repositório: ❌ INVÁLIDO, não aplicado: {main_file}: JSON inválido na linha 1, "
+                   "coluna 2 (Expecting property name enclosed in double quotes)")
+        self.assertIn(invalid, linked_lines)
+        self.assertIn("config local inválido", linked_sum)
+        # with the main file invalid, dispatch falls back to the default LaForge on both sides
+        self.assertEqual(dispatch.batch("demo", wt), dispatch.batch("demo", self.repo))
+        self.assertNotEqual(dispatch.batch("demo", wt)["batch"][0]["model"], "zai/glm-5.3")
 
     def test_entrada_local_inteira(self):
         path = self.repo / ".starcode" / "config.local.json"
