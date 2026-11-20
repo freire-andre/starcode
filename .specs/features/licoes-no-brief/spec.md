@@ -57,15 +57,15 @@ Proof: run unit | test_execute_e_decisions (test_licoes_no_brief.LicoesNoBriefTe
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** nenhum: missão concluída
 **Linear:** SC-205
 **Integration branch:** feature/licoes-no-brief
 **Last integrated:** f4842ab
 **Dispatched:** none
 **Settled:** 2026-11-19: sim
 **Attempts:** none
-**Reports:** 2026-11-19: reclassificada para MÉDIA (4 arquivos); T1 integrado em 9d86e1e; 2026-11-19: provas verdes (4/4); 2026-11-20: Q r1 FAIL: 3 achados (1: screens fora do fix-brief, resolvido restringindo o execute.md por decisão do dono; 2 e 3: testes frouxos); 2026-11-20: pós-Q: a9c6ffd, 9fd5264, f4842ab; achados fechados com close-finding; C3 ganhou a prova test_fix_brief_uniao_tickets; 2026-11-20: Guinan: L73; recorrências L20, L32; 2026-11-20: PR aberto; 2026-11-20: Worf r1 APPROVE, 1 nit (W1: Refs com o primeiro ID em feature multi-ticket)
+**Reports:** 2026-11-19: reclassificada para MÉDIA (4 arquivos); T1 integrado em 9d86e1e; 2026-11-19: provas verdes (4/4); 2026-11-20: Q r1 FAIL: 3 achados (1: screens fora do fix-brief, resolvido restringindo o execute.md por decisão do dono; 2 e 3: testes frouxos); 2026-11-20: pós-Q: a9c6ffd, 9fd5264, f4842ab; achados fechados com close-finding; C3 ganhou a prova test_fix_brief_uniao_tickets; 2026-11-20: Guinan: L73; recorrências L20, L32; 2026-11-20: PR aberto; 2026-11-20: Worf r1 APPROVE, 1 nit (W1: Refs com o primeiro ID em feature multi-ticket); 2026-11-20: merge 29cc80a (PR #74); SC-205 Done; W1 na SC-201
 **Breaker:** closed
