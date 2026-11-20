@@ -38,22 +38,22 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 10
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2
-- updated: 2026-11-20T13:12:09Z
+- signal: `weak_test` · features: 11
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4
+- updated: 2026-11-20T15:46:04Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
-- signal: `weak_test` · features: 5
-- features: ajustes-review-pr39, despacho-media-escopo, verificacao-1-8-0, fecha-achado, sessions-concorrente
-- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9, .specs/features/verificacao-1-8-0/verification.md:38, .specs/features/fecha-achado/verification.md:achado 3, .specs/features/sessions-concorrente/verification.md:achado 4
-- updated: 2026-11-19T18:51:35Z
+- signal: `weak_test` · features: 6
+- features: ajustes-review-pr39, despacho-media-escopo, verificacao-1-8-0, fecha-achado, sessions-concorrente, config-local-worktree
+- sources: verification.md:C2 (tests/test_coverage_rule.py:22), verification.md: achado C9, .specs/features/verificacao-1-8-0/verification.md:38, .specs/features/fecha-achado/verification.md:achado 3, .specs/features/sessions-concorrente/verification.md:achado 4, .specs/features/config-local-worktree/verification.md:achado 2
+- updated: 2026-11-20T15:46:03Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 13
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3
-- updated: 2026-11-20T13:12:09Z
+- signal: `weak_test` · features: 14
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5
+- updated: 2026-11-20T15:46:04Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -448,6 +448,18 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: licoes-no-brief
 - sources: .specs/features/licoes-no-brief/verification.md:achado 1
 - updated: 2026-11-20T13:12:09Z
+
+### L74 - Quando um requisito fixa a mensagem de recusa, toda forma de entrada inválida coberta por ele (vazia, parcial) sai com essa mensagem; uma validação anterior com texto próprio passava na frente.
+- signal: `ac_gap` · features: 1
+- features: config-local-worktree
+- sources: .specs/features/config-local-worktree/verification.md:achado 1
+- updated: 2026-11-20T15:46:03Z
+
+### L75 - Antes de escrever que uma regra vale em todas as configs, confira no schema quais têm o campo; a config do repositório não tem modelo e a lista de fleet.workers tinha modelo sem validação.
+- signal: `spec_precision_gap` · features: 1
+- features: config-local-worktree
+- sources: .specs/features/config-local-worktree/verification.md:achado 3
+- updated: 2026-11-20T15:46:04Z
 
 ## Quarantined
 
