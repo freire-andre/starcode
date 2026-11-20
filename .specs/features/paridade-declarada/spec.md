@@ -22,15 +22,15 @@ Proof: run unit | test_decisions_paridade (test_paridade_declarada.ParidadeDecla
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** SMALL
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** nenhum: missão concluída
 **Linear:** SC-204
 **Integration branch:** feature/paridade-declarada
 **Last integrated:** 2a31040
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA); 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (sem achados)
+**Reports:** 2026-11-19: provas e done --strict verdes; Q dispensado (PEQUENA); 2026-11-19: PR aberto; 2026-11-19: Worf r1 APPROVE (sem achados); 2026-11-19: merge 544d69e (PR #73); SC-204 Done
 **Breaker:** closed

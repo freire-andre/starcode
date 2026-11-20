@@ -355,7 +355,8 @@
         "q-strategy",
         "verificacao-1-8-0",
         "retro-fase9",
-        "fecha-achado"
+        "fecha-achado",
+        "licoes-no-brief"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -367,11 +368,12 @@
         ".specs/features/verificacao-1-8-0/verification.md:31",
         ".specs/features/verificacao-1-8-0/verification.md:36",
         ".specs/features/retro-fase9/verification.md:25",
-        ".specs/features/fecha-achado/verification.md:achado 4"
+        ".specs/features/fecha-achado/verification.md:achado 4",
+        ".specs/features/licoes-no-brief/verification.md:achado 2"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-19T16:29:48Z"
+      "updated": "2026-11-20T13:12:09Z"
     },
     {
       "id": "L21",
@@ -563,7 +565,8 @@
         "guard-lote2",
         "fecha-achado",
         "sessions-concorrente",
-        "roteamento-worf-mccoy"
+        "roteamento-worf-mccoy",
+        "licoes-no-brief"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -577,11 +580,12 @@
         ".specs/features/guard-lote2/verification.md:28",
         ".specs/features/fecha-achado/verification.md:achado 5",
         ".specs/features/sessions-concorrente/verification.md:achado 3",
-        ".specs/features/roteamento-worf-mccoy/verification.md:achado 4"
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 4",
+        ".specs/features/licoes-no-brief/verification.md:achado 3"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-19T21:20:13Z"
+      "updated": "2026-11-20T13:12:09Z"
     },
     {
       "id": "L33",
@@ -1186,6 +1190,21 @@
       "scope": "",
       "created": "2026-11-19T21:20:14Z",
       "updated": "2026-11-19T21:20:14Z"
+    },
+    {
+      "id": "L73",
+      "text": "Um gerador que substitui um passo manual da referência cobre todas as entradas que a referência manda juntar, ou a referência passa a dizer o que ele não cobre; o fix-brief ignorava as linhas differs de telas.",
+      "signal": "spec_precision_gap",
+      "status": "candidate",
+      "features": [
+        "licoes-no-brief"
+      ],
+      "sources": [
+        ".specs/features/licoes-no-brief/verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-20T13:12:09Z",
+      "updated": "2026-11-20T13:12:09Z"
     }
   ]
 }

@@ -41,10 +41,12 @@ class DispatchLessonsTests(TempRepoCase):
         self.store([lesson(n) for n in range(1, 13)] + [lesson(20, "candidate"), lesson(21, "quarantined")])
         for text in self.briefs():
             self.assertEqual(text.count("## Lessons"), 1)
-            sec = text.split("## Lessons")[1]
+            sec = text.split("## Lessons")[1].split("\n## ")[0]
             lines = [ln for ln in sec.splitlines() if ln.startswith("- ")]
             self.assertEqual(lines, [f"- L{n}: texto {n}" for n in range(12, 2, -1)])
-            self.assertTrue(text.rstrip().endswith("- L3: texto 3"))
+        worker, q = self.briefs()
+        self.assertTrue(q.rstrip().endswith("- L3: texto 3"))
+        self.assertLess(worker.index("## Lessons"), worker.index("## Regras fixas do worker (StarCode)"))
 
     def test_briefs_unchanged_without_confirmed_lessons(self):
         base = self.briefs()
