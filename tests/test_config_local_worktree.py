@@ -337,14 +337,47 @@ class ConfigLocalWorktreeTests(TempRepoCase):
         self.assertIn(f"mantidos: {crew_names['laforge']}, {crew_names['uhura']}",
                       sh.render_suggestion(res).splitlines())
         self.assertFalse(any(ln.startswith("mantidos:") for ln in sh.render_suggestion(plain).splitlines()))
-        # the CLI reads the current config by itself
-        write_json(sc.user_config_path(), {"schemaVersion": 1, "crew": {"uhura": {"cli": "claude",
-                                                                                    "model": "claude-haiku-5-5"}}})
-        proc = subprocess.run(["python", str(ROOT / "scripts" / "setup_helpers.py"), "suggest", "--have",
-                               "claude,opencode"], cwd=self.repo, capture_output=True, text=True,
-                              encoding="utf-8", env={**os.environ, "STARCODE_HOME": os.environ["STARCODE_HOME"]})
+        # the CLI reads the current config by itself (user file + local file of the repo) and returns whole values
+        def cli(*extra: str) -> subprocess.CompletedProcess:
+            return subprocess.run(["python", str(ROOT / "scripts" / "setup_helpers.py"), "suggest", "--have",
+                                   "claude,opencode", *extra], cwd=self.repo, capture_output=True, text=True,
+                                  encoding="utf-8", env={**os.environ, "STARCODE_HOME": os.environ["STARCODE_HOME"]})
+
+        base = cli("--json")
+        self.assertEqual(base.returncode, 0, base.stderr)
+        plain_cli = json.loads(base.stdout)
+        plain_by = {r["member"]: r for r in plain_cli["rows"]}
+        self.assertEqual(plain_cli["kept"], [])
+        self.assertEqual(plain_cli["config"], {"schemaVersion": 1})
+        write_json(sc.user_config_path(), {"schemaVersion": 1, "crew": {
+            "uhura": {"cli": "claude", "model": "claude-haiku-5-5"},
+            "guinan": {"cli": "codex", "model": "gpt-6-luna"}}})  # codex unavailable
+        write_json(self.repo / ".starcode" / "config.local.json", {"schemaVersion": 1, "crew": {
+            "laforge": {"cli": "opencode", "model": "zai/glm-5.3"},
+            "kirk": {"cli": "codex", "model": "gpt-6-luna"}}})  # codex unavailable
+        proc = cli("--json")
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn(f"mantidos: {crew_names['uhura']}", proc.stdout.splitlines())
+        got = json.loads(proc.stdout)
+        got_by = {r["member"]: r for r in got["rows"]}
+        self.assertEqual([r["member"] for r in got["rows"]], [r["member"] for r in plain_cli["rows"]])
+        self.assertEqual(got_by["laforge"], {**plain_by["laforge"], "cli": "opencode", "model": "zai/glm-5.3",
+                                             "tier": "$$", "changed": False, "kept": True})
+        self.assertEqual(got_by["uhura"], {**plain_by["uhura"], "cli": "claude", "model": "claude-haiku-5-5",
+                                           "tier": "$", "changed": False, "kept": True})
+        for key in plain_by:  # everyone else, unavailable CLIs included, gets the proposal made without config
+            if key not in ("laforge", "uhura"):
+                self.assertEqual(got_by[key], plain_by[key], key)
+                self.assertNotEqual(got_by[key]["cli"], "codex", key)
+        self.assertEqual(got["kept"], [crew_names["laforge"], crew_names["uhura"]])
+        self.assertEqual(got["notes"], plain_cli["notes"])
+        self.assertEqual(got["config"], {"schemaVersion": 1, "crew": {
+            "laforge": {"cli": "opencode", "model": "zai/glm-5.3"},
+            "uhura": {"cli": "claude", "model": "claude-haiku-5-5"}}})
+        text = cli()
+        self.assertEqual(text.returncode, 0, text.stderr)
+        self.assertEqual(text.stdout.splitlines(), sh.render_suggestion(got).splitlines())
+        self.assertIn(f"mantidos: {crew_names['laforge']}, {crew_names['uhura']}", text.stdout.splitlines())
+
 
     def test_skill_e_decisions(self):
         skill = (ROOT / "skills" / "config" / "SKILL.md").read_text(encoding="utf-8")
