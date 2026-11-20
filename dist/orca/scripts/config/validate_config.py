@@ -47,8 +47,10 @@ def _obj(fields: dict, required: bool = False) -> dict:
 
 CREW_ENTRY = _obj({
     "cli": {"type": "enum", "values": CLIS},
-    "model": {"type": "str"},
+    "model": {"type": "model"},
 })
+LOCAL_CREW_ENTRY = {**CREW_ENTRY, "require_all": True}
+MODEL_ID = re.compile(r"[A-Za-z0-9._:/+@-]+")
 
 USER_SCHEMA = _obj({
     "schemaVersion": {"type": "schema", "required": True},
@@ -85,7 +87,7 @@ REPO_SCHEMA = _obj({
 
 LOCAL_SCHEMA = _obj({
     "schemaVersion": {"type": "schema", "required": True},
-    "crew": {"type": "map", "keys": CREW, "value": CREW_ENTRY, "min_entry_keys": 1},
+    "crew": {"type": "map", "keys": CREW, "value": LOCAL_CREW_ENTRY, "min_entry_keys": 1},
 }, required=True)
 
 SCHEMAS = {"user": USER_SCHEMA, "repo": REPO_SCHEMA, "local": LOCAL_SCHEMA}
@@ -139,6 +141,11 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
             errors.append(f"{where}: data no formato AAAA-MM-DD, veio {value!r}")
         elif t == "gitref" and not GIT_REF.match(value):
             errors.append(f"{where}: nome de ramo Git inválido: {value!r}")
+    elif t == "model":
+        if not isinstance(value, str):
+            errors.append(f"{where}: esperado texto, veio {_tname(value)}")
+        elif not MODEL_ID.fullmatch(value) or value.startswith("-"):
+            errors.append(f"{where}: modelo inválido {value}")
     elif t == "worker":
         if not isinstance(value, str):
             errors.append(f"{where}: esperado texto <cli>:<modelo>, veio {_tname(value)}")
@@ -195,6 +202,8 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
                     errors.append(f"{sub_path}: obrigatório")
                 continue
             _check(sub, value[k], sub_path, errors)
+        if spec.get("require_all") and value and any(k not in value for k in fields):
+            errors.append(f"{where}: a entrada local precisa de cli e model juntos")
     else:  # pragma: no cover - schema bug
         raise AssertionError(f"unknown spec type {t}")
 
