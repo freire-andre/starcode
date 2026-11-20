@@ -353,6 +353,15 @@ def build_banner(cwd: str, full: bool, cli: str | None = None) -> tuple[str, str
         lines.append(f"Este repositório ainda não usa o StarCode. {cmd_ref(cli, 'setup')} configura; "
                      f"{cmd_ref(cli, 'engajar')} inicia.")
 
+    if root is not None:
+        local_file = sc.local_config_path(root)
+        if local_file.exists():
+            tracked = sc.git(["ls-files", "--error-unmatch", "--", local_file.name], local_file.parent) is not None
+            ignored = sc.git(["check-ignore", "-q", "--", local_file.name], local_file.parent) is not None
+            if tracked or not ignored:
+                lines.append(f"⚠️ config local versionado ou fora do .gitignore: {local_file}")
+                summary.append("config local fora do .gitignore")
+
     if cli:
         lines.append(f"CLI: {cli}")
         lines.extend(unavailable_extras(cli))

@@ -47,8 +47,10 @@ def _obj(fields: dict, required: bool = False) -> dict:
 
 CREW_ENTRY = _obj({
     "cli": {"type": "enum", "values": CLIS},
-    "model": {"type": "str"},
+    "model": {"type": "model"},
 })
+LOCAL_CREW_ENTRY = {**CREW_ENTRY, "require_all": True}
+MODEL_ID = re.compile(r"[A-Za-z0-9._:/+@-]+")
 
 USER_SCHEMA = _obj({
     "schemaVersion": {"type": "schema", "required": True},
@@ -85,7 +87,7 @@ REPO_SCHEMA = _obj({
 
 LOCAL_SCHEMA = _obj({
     "schemaVersion": {"type": "schema", "required": True},
-    "crew": {"type": "map", "keys": CREW, "value": CREW_ENTRY, "min_entry_keys": 1},
+    "crew": {"type": "map", "keys": CREW, "value": LOCAL_CREW_ENTRY},
 }, required=True)
 
 SCHEMAS = {"user": USER_SCHEMA, "repo": REPO_SCHEMA, "local": LOCAL_SCHEMA}
@@ -100,6 +102,11 @@ def ensure_ignored(folder: Path) -> None:
         return
     sep = "" if not text or text.endswith("\n") else "\n"
     gi.write_text(text + sep + LOCAL_FILE + "\n", encoding="utf-8", newline="\n")
+
+
+def valid_model_id(value: Any) -> bool:
+    """The one rule for a model id: closed charset, no leading `-` (it would become a CLI flag)."""
+    return isinstance(value, str) and bool(MODEL_ID.fullmatch(value)) and not value.startswith("-")
 
 
 def _tname(v: Any) -> str:
@@ -139,15 +146,23 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
             errors.append(f"{where}: data no formato AAAA-MM-DD, veio {value!r}")
         elif t == "gitref" and not GIT_REF.match(value):
             errors.append(f"{where}: nome de ramo Git inválido: {value!r}")
+    elif t == "model":
+        if not isinstance(value, str):
+            errors.append(f"{where}: esperado texto, veio {_tname(value)}")
+        elif not valid_model_id(value):
+            errors.append(f"{where}: modelo inválido {value}")
     elif t == "worker":
         if not isinstance(value, str):
             errors.append(f"{where}: esperado texto <cli>:<modelo>, veio {_tname(value)}")
             return
         cli, sep, model = value.partition(":")
-        if not sep or not model.strip():
+        if not sep:
             errors.append(f"{where}: formato <cli>:<modelo>, veio {value!r}")
-        elif cli not in CLIS:
+            return
+        if cli not in CLIS:
             errors.append(f"{where}: CLI {cli!r} não permitido (use: {', '.join(CLIS)})")
+        if not valid_model_id(model):
+            errors.append(f"{where}: modelo inválido {model}")
     elif t == "enum":
         if value not in spec["values"]:
             errors.append(f"{where}: valor {value!r} não permitido (use: {', '.join(spec['values'])})")
@@ -195,6 +210,8 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
                     errors.append(f"{sub_path}: obrigatório")
                 continue
             _check(sub, value[k], sub_path, errors)
+        if spec.get("require_all") and any(k not in value for k in fields):
+            errors.append(f"{where}: a entrada local precisa de cli e model juntos")
     else:  # pragma: no cover - schema bug
         raise AssertionError(f"unknown spec type {t}")
 

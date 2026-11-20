@@ -356,7 +356,8 @@
         "verificacao-1-8-0",
         "retro-fase9",
         "fecha-achado",
-        "licoes-no-brief"
+        "licoes-no-brief",
+        "config-local-worktree"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -369,11 +370,12 @@
         ".specs/features/verificacao-1-8-0/verification.md:36",
         ".specs/features/retro-fase9/verification.md:25",
         ".specs/features/fecha-achado/verification.md:achado 4",
-        ".specs/features/licoes-no-brief/verification.md:achado 2"
+        ".specs/features/licoes-no-brief/verification.md:achado 2",
+        ".specs/features/config-local-worktree/verification.md:achado 4"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-20T13:12:09Z"
+      "updated": "2026-11-20T15:46:04Z"
     },
     {
       "id": "L21",
@@ -445,18 +447,20 @@
         "despacho-media-escopo",
         "verificacao-1-8-0",
         "fecha-achado",
-        "sessions-concorrente"
+        "sessions-concorrente",
+        "config-local-worktree"
       ],
       "sources": [
         "verification.md:C2 (tests/test_coverage_rule.py:22)",
         "verification.md: achado C9",
         ".specs/features/verificacao-1-8-0/verification.md:38",
         ".specs/features/fecha-achado/verification.md:achado 3",
-        ".specs/features/sessions-concorrente/verification.md:achado 4"
+        ".specs/features/sessions-concorrente/verification.md:achado 4",
+        ".specs/features/config-local-worktree/verification.md:achado 2"
       ],
       "scope": "",
       "created": "2026-11-13T16:43:22Z",
-      "updated": "2026-11-19T18:51:35Z"
+      "updated": "2026-11-20T15:46:03Z"
     },
     {
       "id": "L26",
@@ -566,7 +570,8 @@
         "fecha-achado",
         "sessions-concorrente",
         "roteamento-worf-mccoy",
-        "licoes-no-brief"
+        "licoes-no-brief",
+        "config-local-worktree"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -581,11 +586,12 @@
         ".specs/features/fecha-achado/verification.md:achado 5",
         ".specs/features/sessions-concorrente/verification.md:achado 3",
         ".specs/features/roteamento-worf-mccoy/verification.md:achado 4",
-        ".specs/features/licoes-no-brief/verification.md:achado 3"
+        ".specs/features/licoes-no-brief/verification.md:achado 3",
+        ".specs/features/config-local-worktree/verification.md:achado 5"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-20T13:12:09Z"
+      "updated": "2026-11-20T15:46:04Z"
     },
     {
       "id": "L33",
@@ -1205,6 +1211,36 @@
       "scope": "",
       "created": "2026-11-20T13:12:09Z",
       "updated": "2026-11-20T13:12:09Z"
+    },
+    {
+      "id": "L74",
+      "text": "Quando um requisito fixa a mensagem de recusa, toda forma de entrada inválida coberta por ele (vazia, parcial) sai com essa mensagem; uma validação anterior com texto próprio passava na frente.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "config-local-worktree"
+      ],
+      "sources": [
+        ".specs/features/config-local-worktree/verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-20T15:46:03Z",
+      "updated": "2026-11-20T15:46:03Z"
+    },
+    {
+      "id": "L75",
+      "text": "Antes de escrever que uma regra vale em todas as configs, confira no schema quais têm o campo; a config do repositório não tem modelo e a lista de fleet.workers tinha modelo sem validação.",
+      "signal": "spec_precision_gap",
+      "status": "candidate",
+      "features": [
+        "config-local-worktree"
+      ],
+      "sources": [
+        ".specs/features/config-local-worktree/verification.md:achado 3"
+      ],
+      "scope": "",
+      "created": "2026-11-20T15:46:04Z",
+      "updated": "2026-11-20T15:46:04Z"
     }
   ]
 }

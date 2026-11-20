@@ -69,6 +69,8 @@ step 3 goes through `model_info.py` before it is accepted; a ⛔ verdict blocks 
 `outputLanguage` (pt-BR | en), `qStrategy` (orca-worker, self-verified),
 `fleet.maxBatch` (1–10), `fleet.timeoutMinutes`, `fleet.workers` (list of `<cli>:<model>`). The local file
 holds only `crew`.
+The local entry takes `cli` and `model` together: the validator refuses an entry with only one of them. The local
+file also applies in linked worktrees: a worktree without its own file reads the main worktree's.
 
 ## 6. Write
 1. Build the final JSON for the chosen scope:

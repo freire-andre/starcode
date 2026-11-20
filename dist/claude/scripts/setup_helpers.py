@@ -121,11 +121,14 @@ def clis_found(which=shutil.which) -> dict[str, bool]:
 def parse_model_arg(item: str) -> tuple[str, str, str | None] | None:
     """`<cli>=<id>[@<tier>]` -> (cli, id, tier or None); None when malformed."""
     cli, sep, rest = item.partition("=")
-    model, _, tier = rest.rpartition("@") if "@" in rest else (rest, "", "")
-    tier = {"gratis": "grátis"}.get(tier.strip(), tier.strip()) or None
-    if not sep or cli not in CLIS or not model.strip() or (tier is not None and tier not in TIER_RANK):
+    model, tier = rest.strip(), None
+    head, at, suffix = model.rpartition("@")
+    suffix = {"gratis": "grátis"}.get(suffix.strip(), suffix.strip())
+    if at and suffix in TIER_RANK:  # an `@` that is not a known cost tier belongs to the model id (SC-206)
+        model, tier = head.strip(), suffix
+    if not sep or cli not in CLIS or not sc.validate_config.valid_model_id(model):
         return None
-    return cli, model.strip(), tier
+    return cli, model, tier
 
 
 def model_tier(model: str, tiers: dict, declared: str | None = None) -> str:
@@ -178,14 +181,21 @@ def _family(cli: str, model: str, doc: dict) -> str:
     return dispatch.family(f"{cli}:{model}")
 
 
-def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = None) -> dict:
+def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = None,
+            current: dict[str, dict] | None = None) -> dict:
     """Model per crew member using only the CLIs in `have`. A member whose default CLI is available keeps
     its default; the others get the candidate nearest to the cost tier of their default model. Q gets
-    another family than the LaForge (like dispatch.q_cli); with none, it stays degraded (self-verified)."""
+    another family than the LaForge (like dispatch.q_cli); with none, it stays degraded (self-verified).
+    `current` (crew_at result): a member configured by the user or the repo whose CLI is in `have` stays as is
+    and is listed in `kept` (SC-206)."""
     extra = extra or {}
     have = [c for c in CLIS if c in have]
+    kept: dict[str, dict] = {k: {"cli": v["cli"], "model": v["model"]} for k, v in (current or {}).items()
+                             if v.get("source") in ("user", "local") and v.get("cli") in have}
+    have = [c for c in CLIS if c in have]
     if not have:
-        return {"rows": [], "config": {"schemaVersion": 1}, "notes": ["nenhum CLI informado: nada a sugerir"]}
+        return {"rows": [], "config": {"schemaVersion": 1}, "notes": ["nenhum CLI informado: nada a sugerir"],
+                "kept": []}
     tiers = doc.get("costTiers", {})
     crew = doc.get("crew", {})
     cands = _candidates(doc, have, extra)
@@ -195,6 +205,9 @@ def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = Non
                         for cli in extra if cli not in have]
     for key, m in crew.items():
         if key == "q":
+            continue
+        if key in kept:
+            chosen[key] = (kept[key]["cli"], kept[key]["model"])
             continue
         d = m.get("default", {})
         want = model_tier(d.get("model", ""), tiers)
@@ -206,7 +219,9 @@ def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = Non
         overrides[key] = {"cli": pick[0], "model": pick[1]}
         if pick[2] != want:
             notes.append(f"{m['name']}: pedia a faixa {want}; o mais próximo disponível é {pick[2]} ({pick[1]})")
-    if "q" in crew:
+    if "q" in kept:
+        chosen["q"] = (kept["q"]["cli"], kept["q"]["model"])
+    elif "q" in crew:
         qd = crew["q"].get("default", {})
         lf_fam = _family(*chosen.get("laforge", ("claude", "")), doc)
         q_pick = None
@@ -236,11 +251,12 @@ def suggest(doc: dict, have: list[str], extra: dict[str, list[str]] | None = Non
         rows.append({"member": key, "name": m["name"], "emoji": m.get("emoji", ""), "role": m.get("role", ""),
                      "cli": cli, "model": model,
                      "tier": "—" if cli == "—" else model_tier(model or "", tiers, given_tier.get((cli, model))),
-                     "changed": key in overrides})
+                     "changed": key in overrides, "kept": key in kept})
     cfg: dict = {"schemaVersion": 1}
-    if overrides:
-        cfg["crew"] = overrides
-    return {"rows": rows, "config": cfg, "notes": notes}
+    if overrides or kept:
+        cfg["crew"] = {**kept, **overrides}
+    return {"rows": rows, "config": cfg, "notes": notes,
+            "kept": [crew[k]["name"] for k in crew if k in kept]}
 
 
 def render_suggestion(res: dict) -> str:
@@ -248,7 +264,9 @@ def render_suggestion(res: dict) -> str:
     for r in res["rows"]:
         model = "padrão do CLI" if r["model"] == "cli-default" else r["model"]
         out.append(f"| {r['emoji']} {r['name']} | {r['role']} | {r['cli']} | {model} | {r['tier']} | "
-                   f"{'alterado' if r['changed'] else '= padrão'} |")
+                   f"{'alterado' if r['changed'] else ('mantido' if r.get('kept') else '= padrão')} |")
+    if res.get("kept"):
+        out += ["", "mantidos: " + ", ".join(res["kept"])]
     if res["notes"]:
         out.append("")
         out += [f"- {n}" for n in res["notes"]]
@@ -312,7 +330,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERRO: valor inválido: {', '.join(bad)} (CLIs: {', '.join(CLIS)}; "
                   "--model <cli>=<modelo>[@grátis|$|$$|$$$])")
             return 2
-        res = suggest(sc.load_crew(), have, extra)
+        doc = sc.load_crew()
+        res = suggest(doc, have, extra, sc.crew_at(sc.repo_root(None), doc))
         print(json.dumps(res, ensure_ascii=False, indent=2) if args.json else render_suggestion(res))
         return 0
     states = json.loads(args.states_json.read_text(encoding="utf-8"))
