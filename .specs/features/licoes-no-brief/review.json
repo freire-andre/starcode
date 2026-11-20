@@ -1,0 +1,24 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. As lições saem por recorrência e vêm antes das regras do worker; o fix-brief gera o brief da correção a partir dos achados abertos, com May change, lições e regras, e já foi usado na própria feature; o execute.md diz o que ele não cobre (telas). Um nit: em feature com vários tickets, o Refs das regras cita só o primeiro ID do Linear. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "scripts/dispatch.py",
+   "line": 1016,
+   "body": "Em feature com tasks.md e mais de um ticket, a regra fixa diz `Refs: <primeiro ID>` para todos os achados, embora cada achado possa pertencer a outro ticket; o ticket já vira `<ticket>` nesse caso (linha 1000), e o Refs poderia seguir o mesmo marcador.",
+   "evidence": "scripts/dispatch.py:1016"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: scripts internos, referência e testes"
+ ],
+ "ladder": [
+  "python tools/build.py --check: ok; python scripts/check_decisions.py: ok; claude plugin validate dist/claude --strict: ok",
+  "run_gates.py proofs e done --strict: verdes; suíte inteira 1039 testes OK no gate proofs",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}
