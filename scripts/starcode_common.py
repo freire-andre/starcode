@@ -77,8 +77,25 @@ def repo_config_path(root: Path) -> Path:
     return root / ".starcode" / "config.json"
 
 
+def main_worktree(root: Path) -> Path | None:
+    """Main worktree folder (parent of the absolute git common dir); None when git fails."""
+    out = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root)
+    if not out:
+        return None
+    return Path(out).parent
+
+
 def local_config_path(root: Path) -> Path:
-    return root / ".starcode" / validate_config.LOCAL_FILE
+    """Local config of this worktree; a linked worktree without one falls back to the main worktree's (SC-206)."""
+    own = root / ".starcode" / validate_config.LOCAL_FILE
+    if own.exists():
+        return own
+    main = main_worktree(root)
+    if main is not None:
+        shared = main / ".starcode" / validate_config.LOCAL_FILE
+        if shared.exists():
+            return shared
+    return own
 
 
 def load_local_config(root: Path | None) -> tuple[dict | None, list[str]]:
@@ -272,7 +289,8 @@ def effective_crew(crew_doc: dict, user_cfg: dict | None, local_cfg: dict | None
     for key, member in crew_doc.get("crew", {}).items():
         entry = dict(member)
         default = member.get("default", {})
-        ov = {**user_ov.get(key, {}), **local_ov.get(key, {})}
+        # the local entry replaces the user's whole: never the user's cli with the local model (SC-206)
+        ov = local_ov[key] if local_ov.get(key) else user_ov.get(key, {})
         entry["cli"] = ov.get("cli", default.get("cli"))
         entry["model"] = ov.get("model", default.get("model"))
         entry["source"] = "local" if local_ov.get(key) else ("user" if user_ov.get(key) else "default")

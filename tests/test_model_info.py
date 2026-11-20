@@ -341,8 +341,10 @@ class SuggestCatalogTests(CatalogCase):
         self.assertEqual(sh.parse_model_arg("opencode=x/y@$$"), ("opencode", "x/y", "$$"))
         self.assertEqual(sh.parse_model_arg("opencode=x/y:free@gratis"), ("opencode", "x/y:free", "grátis"))
         self.assertEqual(sh.parse_model_arg("opencode=x/y"), ("opencode", "x/y", None))
-        for bad in ("opencode=x@$$$$", "foo=x", "opencode=", "opencode"):
+        for bad in ("foo=x", "opencode=", "opencode"):
             self.assertIsNone(sh.parse_model_arg(bad), bad)
+        # an `@` that is not a known tier stays in the model id (SC-206); the validator refuses the `$`
+        self.assertEqual(sh.parse_model_arg("opencode=x@$$$$"), ("opencode", "x@$$$$", None))
         res = sh.suggest(sc.load_crew(), ["opencode"], {"opencode": [("acme/fora-do-catalogo", "$$$")]})
         self.assertEqual(next(r for r in res["rows"] if r["member"] == "picard")["tier"], "$$$")
 
@@ -387,11 +389,11 @@ class LocalConfigTests(TempRepoCase):
             default = doc["crew"][key]["default"]
             self.assertEqual((crew[key]["cli"], crew[key]["model"], crew[key]["source"], crew[key]["overridden"]),
                              (default.get("cli"), default.get("model"), "default", False), key)
-        # a member in both: local wins per field, the user fills the rest
+        # a member in both: the whole local entry wins, never the user's cli with the local model (SC-206)
         both = sc.effective_crew(doc, {"crew": {"laforge": {"cli": "codex", "model": "gpt-6-luna"}}},
-                                 {"crew": {"laforge": {"model": "zai/glm-5.3"}}})
+                                 {"crew": {"laforge": {"cli": "opencode", "model": "zai/glm-5.3"}}})
         self.assertEqual((both["laforge"]["cli"], both["laforge"]["model"], both["laforge"]["source"]),
-                         ("codex", "zai/glm-5.3", "local"))
+                         ("opencode", "zai/glm-5.3", "local"))
         # no config at all: every member is the default
         plain = sc.effective_crew(doc, None, None)
         self.assertEqual({v["source"] for v in plain.values()}, {"default"})
