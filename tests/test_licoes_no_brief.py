@@ -149,7 +149,17 @@ class LicoesNoBriefTests(TempRepoCase):
         for frase in ("`len(features)` decrescente", "`updated` decrescente", "número do ID", "limite de 10", INTRO,
                       "antes de `## Regras fixas do worker (StarCode)`", "o `q_brief` mantém a seção no fim",
                       "`dispatch.py fix-brief <slug> [--out <arquivo>]`", "`Closed` vazia", "`Achado <n>`",
-                      "`May change` da feature", "um commit por achado com `Refs:`",
+                      "R1: `lessons_section` ordena as confirmadas por", "mantém o limite de 10",
+                      "`## Lessons` entra antes de", "nos dois caminhos (tasks.md e spec sem tasks.md)", "uma vez só",
+                      "a tabela `## Findings` do `verification.md`", "o leitor de `validate_verification.py`",
+                      "gera o brief com título, issue (`**Linear**` da spec)",
+                      "cada achado com a célula `Closed` vazia numerado pela posição na tabela",
+                      "com Finding, Evidence e Fix",
+                      "(spec ou união dos tickets do tasks.md), `## Lessons` e as regras fixas",
+                      "`May change` da feature", "um commit por achado com `Refs:`", "nunca escrever `.specs/`",
+                      "suíte inteira e `run_gates.py ticket` verdes",
+                      "relatório com o commit e o teste de cada achado",
+                      "esta entrada e a linha no `CHANGELOG.md`",
                       "o `fix-brief` cobre só os achados do Q, o Picard acrescenta ao mesmo brief as linhas "
                       "`differs` do `screens.md`, quando ele existir, e com só divergências de tela o `fix-brief` "
                       "sai com 2 e o Picard escreve o brief à mão a partir do `screens.md`",
