@@ -151,29 +151,49 @@ class ConfigLocalWorktreeTests(TempRepoCase):
         valid = ["claude-opus-5-5", "zai/glm-5.3", "openrouter/meta/llama-4:free", "gpt-6-luna", "cli-default",
                  "modelo@2025", "a+b_c.d"]
         invalid = ["", " ", "com espaço", "-flag", "--dangerous", "modelo\n", "mod;elo", "mod$elo", "mód", "a|b"]
-        kinds = {
-            "user": lambda m: {"schemaVersion": 1, "crew": {"laforge": {"cli": "codex", "model": m}}},
-            "local": lambda m: {"schemaVersion": 1, "crew": {"laforge": {"cli": "codex", "model": m}}},
+        # the three model sources: user crew, local crew and the model part of each fleet.workers item
+        sources = {
+            "user crew": ("user", lambda m: {"schemaVersion": 1, "crew": {"laforge": {"cli": "codex", "model": m}}},
+                          "crew.laforge.model"),
+            "local crew": ("local", lambda m: {"schemaVersion": 1, "crew": {"laforge": {"cli": "codex", "model": m}}},
+                           "crew.laforge.model"),
+            "fleet.workers": ("user", lambda m: {"schemaVersion": 1, "fleet": {"workers": ["claude:ok", f"codex:{m}"]}},
+                              "fleet.workers[1]"),
         }
-        for kind, build in kinds.items():
+        kinds = {name: (kind, build) for name, (kind, build, _) in sources.items()}
+        for name, (kind, build, where) in sources.items():
             for m in valid:
-                self.assertEqual(vc.validate(kind, build(m)), [], (kind, m))
+                self.assertEqual(vc.validate(kind, build(m)), [], (name, m))
             for m in invalid:
-                self.assertEqual(vc.validate(kind, build(m)), [f"crew.laforge.model: modelo inválido {m}"], (kind, m))
+                self.assertEqual(vc.validate(kind, build(m)), [f"{where}: modelo inválido {m}"], (name, m))
+        # a worker with a wrong CLI and a wrong model reports both; without `:` the format error stays
+        self.assertEqual(vc.validate("user", {"schemaVersion": 1, "fleet": {"workers": ["nada:-x"]}}),
+                         ["fleet.workers[0]: CLI 'nada' não permitido (use: claude, codex, antigravity, opencode)",
+                          "fleet.workers[0]: modelo inválido -x"])
+        self.assertEqual(vc.validate("user", {"schemaVersion": 1, "fleet": {"workers": ["codex"]}}),
+                         ["fleet.workers[0]: formato <cli>:<modelo>, veio 'codex'"])
         repo_base = json.loads((ROOT / "tests" / "fixtures" / "config" / "valid" / "repo-full.json")
                                .read_text(encoding="utf-8"))
         self.assertEqual(vc.validate("repo", repo_base), [])
-        # the repo config has no model field: its schema must stay free of it
+        # the repo config has no model source (R3 names user, local and fleet.workers): its schema stays free of it
         self.assertIn("model: chave desconhecida", vc.validate("repo", {**repo_base, "model": "x"}))
         # error text carries the file path (load)
-        path = write_json(self.repo / "u.json", kinds["user"]("-flag"))
+        path = write_json(self.repo / "u.json", kinds["user crew"][1]("-flag"))
         self.assertEqual(vc.load("user", path)[1], ["crew.laforge.model: modelo inválido -flag"])
+        path = write_json(self.repo / "w.json", kinds["fleet.workers"][1]("-flag"))
+        self.assertEqual(vc.load("user", path)[1], ["fleet.workers[1]: modelo inválido -flag"])
         # parse_model_arg: `@` of a known tier is split, any other `@` stays in the id
         self.assertEqual(sh.parse_model_arg("opencode=zai/glm-5.3@$$"), ("opencode", "zai/glm-5.3", "$$"))
         self.assertEqual(sh.parse_model_arg("opencode=zai/glm-5.3@gratis"), ("opencode", "zai/glm-5.3", "grátis"))
         self.assertEqual(sh.parse_model_arg("opencode=modelo@2025"), ("opencode", "modelo@2025", None))
         self.assertEqual(sh.parse_model_arg("opencode=modelo@2025@$"), ("opencode", "modelo@2025", "$"))
         self.assertEqual(sh.parse_model_arg("opencode=modelo@"), ("opencode", "modelo@", None))
+        self.assertEqual(sh.parse_model_arg("codex=modelo@desconhecido"), ("codex", "modelo@desconhecido", None))
+        # the id left after the split passes the same rule as the validator, else None
+        self.assertEqual(sh.parse_model_arg("opencode=x@$$$$"), None)
+        self.assertEqual(sh.parse_model_arg("opencode=x@$$$$@$"), None)
+        self.assertEqual(sh.parse_model_arg("opencode=-flag@$$"), None)
+        self.assertEqual(sh.parse_model_arg("opencode=com espaço"), None)
         self.assertEqual(sh.parse_model_arg("opencode=@$$$"), None)
         self.assertEqual(sh.parse_model_arg("opencode="), None)
         self.assertEqual(sh.parse_model_arg("naoexiste=x"), None)

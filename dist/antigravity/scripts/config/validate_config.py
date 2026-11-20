@@ -104,6 +104,11 @@ def ensure_ignored(folder: Path) -> None:
     gi.write_text(text + sep + LOCAL_FILE + "\n", encoding="utf-8", newline="\n")
 
 
+def valid_model_id(value: Any) -> bool:
+    """The one rule for a model id: closed charset, no leading `-` (it would become a CLI flag)."""
+    return isinstance(value, str) and bool(MODEL_ID.fullmatch(value)) and not value.startswith("-")
+
+
 def _tname(v: Any) -> str:
     return {dict: "objeto", list: "lista", str: "texto", bool: "booleano", int: "inteiro",
             float: "número", type(None): "null"}.get(type(v), type(v).__name__)
@@ -144,17 +149,20 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
     elif t == "model":
         if not isinstance(value, str):
             errors.append(f"{where}: esperado texto, veio {_tname(value)}")
-        elif not MODEL_ID.fullmatch(value) or value.startswith("-"):
+        elif not valid_model_id(value):
             errors.append(f"{where}: modelo inválido {value}")
     elif t == "worker":
         if not isinstance(value, str):
             errors.append(f"{where}: esperado texto <cli>:<modelo>, veio {_tname(value)}")
             return
         cli, sep, model = value.partition(":")
-        if not sep or not model.strip():
+        if not sep:
             errors.append(f"{where}: formato <cli>:<modelo>, veio {value!r}")
-        elif cli not in CLIS:
+            return
+        if cli not in CLIS:
             errors.append(f"{where}: CLI {cli!r} não permitido (use: {', '.join(CLIS)})")
+        if not valid_model_id(model):
+            errors.append(f"{where}: modelo inválido {model}")
     elif t == "enum":
         if value not in spec["values"]:
             errors.append(f"{where}: valor {value!r} não permitido (use: {', '.join(spec['values'])})")

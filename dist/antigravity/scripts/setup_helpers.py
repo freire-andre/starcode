@@ -126,7 +126,7 @@ def parse_model_arg(item: str) -> tuple[str, str, str | None] | None:
     suffix = {"gratis": "grátis"}.get(suffix.strip(), suffix.strip())
     if at and suffix in TIER_RANK:  # an `@` that is not a known cost tier belongs to the model id (SC-206)
         model, tier = head.strip(), suffix
-    if not sep or cli not in CLIS or not model:
+    if not sep or cli not in CLIS or not sc.validate_config.valid_model_id(model):
         return None
     return cli, model, tier
 
