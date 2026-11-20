@@ -397,17 +397,26 @@ class ConfigLocalWorktreeTests(TempRepoCase):
         decisao = entry.split("**Decisão**")[1].split("**Motivo**")[0]
         for frase in ("R1:", "pasta-mãe de `git rev-parse --path-format=absolute --git-common-dir`",
                       "o arquivo do worktree atual quando existe", "mantém a leitura atual, sem erro",
+                      "`dispatch.py` (`batch`)", "`crew-table` e `suggest`", "o banner",
+                      "o mesmo resultado no principal e no ligado",
                       "R2:", "`<caminho>: a entrada local precisa de cli e model juntos`",
+                      "sem `cli` e `model` juntos, inclusive a entrada vazia",
                       "nunca o CLI do usuário com o modelo local",
                       "R3:", "`<caminho>: modelo inválido <valor>`", "`[A-Za-z0-9._:/+@-]`",
-                      "começando com `-`", "só quando o sufixo é um nível de custo conhecido",
+                      "no `crew` do usuário, no `crew` local e na parte do modelo de cada item de `fleet.workers`",
+                      "a config do repositório não tem modelo", "`model` vazio, com espaço, começando com `-`",
+                      "só quando o sufixo é um nível de custo conhecido", "senão o `@` fica no id do modelo",
+                      "devolve `None` quando o id resultante não passa na mesma regra do validador",
                       "R4:", "`⚠️ config local versionado ou fora do .gitignore: <caminho>`",
-                      "`git ls-files --error-unmatch`", "`git check-ignore`",
-                      "R5:", "`mantidos: <nomes>`", "o CLI lê a config atual sozinho",
-                      "R6:", "`cli` e `model` juntos e vale nos worktrees ligados", "`CHANGELOG.md`"):
+                      "`git ls-files --error-unmatch` acha o arquivo", "`git check-ignore` não o ignora",
+                      "R5:", "mantém cada membro já configurado (config do usuário ou local) com CLI entre os "
+                      "disponíveis", "`mantidos: <nomes>`",
+                      "só propõe os membros sem config ou com CLI indisponível", "o CLI lê a config atual sozinho",
+                      "R6:", "a skill `config` diz que a entrada local leva `cli` e `model` juntos e vale nos "
+                      "worktrees ligados", "esta entrada e a linha no `CHANGELOG.md`"):
             self.assertIn(frase, decisao, frase)
         nao_bug = entry.split("**Por que não é bug**")[1]
-        for name in ("test_local_no_worktree_ligado", "test_entrada_local_inteira", "test_modelo_valido",
+        for name in ("test_consumidores_no_worktree_ligado", "test_local_no_worktree_ligado", "test_entrada_local_inteira", "test_modelo_valido",
                      "test_aviso_local_versionado", "test_suggest_mantem_configurado", "test_skill_e_decisions"):
             self.assertIn(name, nao_bug, name)
         unreleased = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split("## [Unreleased]")[1].split("\n## [")[0]
