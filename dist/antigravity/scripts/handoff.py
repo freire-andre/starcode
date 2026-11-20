@@ -155,6 +155,36 @@ def entry_ticket(entry: str) -> str:
     return m.group(1) if m else ""
 
 
+LINEAR_ID_RE = re.compile(r"(?<![A-Za-z0-9-])[A-Z][A-Z0-9]*-\d+(?:\.\.[A-Z][A-Z0-9]*-\d+)?(?![A-Za-z0-9])")
+_ENTRY_KEYS = ("base", "dispatch", "model")
+
+
+def parse_dispatch_entry(entry: str) -> dict:
+    """Reads one entry of `**Dispatched:**` (R1 of SC-207), the only reader of its fields.
+
+    `start` format: `<Tn> · <issues> · base <sha> · <cli>:<model> · <UTC> [· <dispatch id>] [· blocked]`.
+    Old format: `<Tn> · <issues> · base <sha> · dispatch <id> · model <m>`.
+    Returns ticket, issues (list), base, model, at, dispatch and blocked; a missing field is None."""
+    parts = [p.strip() for p in (entry or "").split("·")]
+    out: dict = {"ticket": parts[0] if parts and parts[0] else None, "issues": [], "base": None, "model": None,
+                 "at": None, "dispatch": None, "blocked": len(parts) > 1 and parts[-1] == "blocked"}
+    if len(parts) > 1:
+        out["issues"] = list(dict.fromkeys(LINEAR_ID_RE.findall(parts[1])))
+    for part in parts[2:]:
+        for key in _ENTRY_KEYS:
+            if part.startswith(key + " ") and out[key] is None:
+                out[key] = part[len(key) + 1:].strip() or None
+    keyed = lambda p: any(p.startswith(k + " ") for k in _ENTRY_KEYS)  # noqa: E731
+    if len(parts) > 3 and parts[3] and parts[3] != "blocked" and not keyed(parts[3]):
+        if out["model"] is None:
+            out["model"] = parts[3]
+        if len(parts) > 4 and parts[4] and parts[4] != "blocked" and not keyed(parts[4]):
+            out["at"] = parts[4]
+            if out["dispatch"] is None:
+                out["dispatch"] = next((p for p in parts[5:] if p and p != "blocked" and not keyed(p)), None)
+    return out
+
+
 def dispatch_add(values: dict[str, str], entry: str) -> None:
     """Add an entry to Dispatched, replacing in place the one with the same <Tn>."""
     entry = entry.strip()

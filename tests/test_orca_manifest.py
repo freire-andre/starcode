@@ -15,7 +15,7 @@ class ManifestTests(unittest.TestCase):
         kinds = sorted(c["kind"] for c in self.m["capabilities"])
         self.assertEqual(
             kinds,
-            sorted(["workspace:read", "agent:read", "workspace:write", "agent:launch", "storage:own"]),
+            sorted(["workspace:read", "agent:read", "workspace:write", "agent:launch"]),
         )
         self.assertEqual(self.m["engines"]["orca"], ">=1.4.248")
         self.assertEqual(self.m["id"], "starcode-ponte")
