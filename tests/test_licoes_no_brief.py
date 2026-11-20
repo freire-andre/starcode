@@ -136,6 +136,10 @@ class LicoesNoBriefTests(TempRepoCase):
         execute = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
         sec5 = execute.split("## 5.")[1].split("\n## ")[0]
         self.assertIn('dispatch.py" fix-brief <slug>', sec5)
+        self.assertIn("- Screens (R28): the `fix-brief` covers only the Q findings: the Picard adds the `differs` rows "
+                      "of `screens.md`, when it exists, to the same brief; when only screen divergences remain, "
+                      "`fix-brief` exits 2 and the Picard writes the brief by hand from `screens.md`. After the",
+                      sec5)
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
         entry = next((p for p in text.split("\n### ") if p.startswith("SC-205:")), None)
         self.assertIsNotNone(entry, "falta a entrada ### SC-205:")
@@ -146,6 +150,9 @@ class LicoesNoBriefTests(TempRepoCase):
                       "antes de `## Regras fixas do worker (StarCode)`", "o `q_brief` mantém a seção no fim",
                       "`dispatch.py fix-brief <slug> [--out <arquivo>]`", "`Closed` vazia", "`Achado <n>`",
                       "`May change` da feature", "um commit por achado com `Refs:`",
+                      "o `fix-brief` cobre só os achados do Q, o Picard acrescenta ao mesmo brief as linhas "
+                      "`differs` do `screens.md`, quando ele existir, e com só divergências de tela o `fix-brief` "
+                      "sai com 2 e o Picard escreve o brief à mão a partir do `screens.md`",
                       "`git push`/`reset`/`restore`/`stash`",
                       "sai com 2 e `nada a corrigir: <slug> sem achados abertos`", "`execute.md`, seção 5"):
             self.assertIn(frase, decisao, frase)

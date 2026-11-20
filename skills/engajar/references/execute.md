@@ -176,7 +176,7 @@ before any new `batch`.
   `verification.md`, the feature's `May change`, `## Lessons` and the fixed rules; exit 2 with
   `nada a corrigir: <slug> sem achados abertos` when none is open); each fix is a commit with `Refs: <ID>` citing the finding. Then close each finding with
   `python "P/scripts/dispatch.py" close-finding <slug> <n> --commit <sha> --cover <C<n>|test_name>` (no hand-editing of the `Closed` cell; it checks the commit and the coverage).
-- Screens (R28): the `differs` rows of `screens.md` join the same single fix brief, with the Q findings. After the
+- Screens (R28): the `fix-brief` covers only the Q findings: the Picard adds the `differs` rows of `screens.md`, when it exists, to the same brief; when only screen divergences remain, `fix-brief` exits 2 and the Picard writes the brief by hand from `screens.md`. After the
   fix, dispatch the judge again with `dispatch.py screens-brief ... --round 2` (only the pictures and `differs` rows;
   there is no round 3). What still differs after round 2 goes to the user with the evidence.
 - Rerun `run_gates.py proofs <slug>` and `run_gates.py done <slug>` on the new HEAD. **There is no second
