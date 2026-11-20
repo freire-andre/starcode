@@ -59,12 +59,12 @@ Proof: run unit | test_execute_e_decisions (test_licoes_no_brief.LicoesNoBriefTe
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Q verifica (codex); depois pós-Q, Guinan, PR e Worf
+**Next:** Correção pós-Q única (LaForge, brief do fix-brief)
 **Linear:** SC-205
 **Integration branch:** feature/licoes-no-brief
 **Last integrated:** 9d86e1e
 **Dispatched:** none
 **Settled:** 2026-11-19: sim
 **Attempts:** none
-**Reports:** 2026-11-19: reclassificada para MÉDIA (4 arquivos); T1 integrado em 9d86e1e; 2026-11-19: provas verdes (4/4)
+**Reports:** 2026-11-19: reclassificada para MÉDIA (4 arquivos); T1 integrado em 9d86e1e; 2026-11-19: provas verdes (4/4); 2026-11-20: Q r1 FAIL: 3 achados (1: screens fora do fix-brief, resolvido restringindo o execute.md por decisão do dono; 2 e 3: testes frouxos)
 **Breaker:** closed
