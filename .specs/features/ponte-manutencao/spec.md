@@ -85,7 +85,7 @@ Proof: run unit | test_decisions_e_changelog (test_ponte_manutencao.PonteManuten
 **Git mode:** 3
 **Next:** LaForge implementa T1
 **Linear:** SC-207
-**Integration branch:** not created
+**Integration branch:** feature/ponte-manutencao
 **Last integrated:** none
 **Dispatched:** none
 **Settled:** none
