@@ -67,15 +67,15 @@ Proof: run unit | test_skill_e_decisions (test_config_local_worktree.ConfigLocal
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1 (SC-206)
+**Next:** Q verifica (codex); depois pós-Q com fix-brief, Guinan, PR e Worf
 **Linear:** SC-206
 **Integration branch:** feature/config-local-worktree
-**Last integrated:** none
+**Last integrated:** 7a64808
 **Dispatched:** none
 **Settled:** 2026-11-20: sim
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-20: provas verdes (6/6)
 **Breaker:** closed
