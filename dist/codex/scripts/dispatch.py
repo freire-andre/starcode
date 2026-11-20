@@ -968,10 +968,10 @@ def q_waive(slug: str, root: Path, emit=print) -> int:
 
 FIX_RULES = """## Regras fixas da correção (StarCode)
 
-- Um commit por achado, com `Refs: <ID do Linear>` no corpo, citando o achado.
+- Um commit por achado, com `Refs: {issue}` no corpo, citando o achado.
 - Nunca escreva em `.specs/`.
 - Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.
-- Antes de terminar: a suíte inteira verde e `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} <ticket> <base>..HEAD` verde.
+- Antes de terminar: a suíte inteira verde e `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde.
 - Relatório final: o commit e o teste de cada achado corrigido."""
 
 
@@ -991,10 +991,13 @@ def fix_brief(slug: str, root: Path) -> str:
         raise NothingToFix(f"nada a corrigir: {slug} sem achados abertos")
     slines = gc.read_lines(fdir / "spec.md")
     title = next((ln[2:].strip() for ln in slines if ln.startswith("# ")), fdir.name)
+    title = re.sub(r":\s*Spec$", "", title)
     ids = gc.LINEAR_ID_RE.findall(gc.field_value(slines, "Linear") or "")
+    ticket = "T1"
     if (fdir / "tasks.md").exists():
         _, tasks = load_tasks(slug, root)
         may = list(dict.fromkeys(p for t in tasks for p in effective_may_change(t)))
+        ticket = tasks[0].tid if len(tasks) == 1 else "<ticket>"
     else:
         may = gc.effective_may_change(gc.split_paths(gc.field_value(slines, "May change") or ""))
     out = [f"# Correção dos achados do Q: {title}", "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
@@ -1009,7 +1012,8 @@ def fix_brief(slug: str, root: Path) -> str:
     sec = lessons_section(root).lstrip("\n")
     if sec:
         out += [sec.rstrip("\n"), ""]
-    out.append(FIX_RULES.format(slug=fdir.name, plugin=sc.PLUGIN_ROOT.as_posix()))
+    out.append(FIX_RULES.format(slug=fdir.name, plugin=sc.PLUGIN_ROOT.as_posix(),
+                              issue=ids[0] if ids else "<ID do Linear>", ticket=ticket))
     return "\n".join(out) + "\n"
 
 

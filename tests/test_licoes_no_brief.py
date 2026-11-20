@@ -84,6 +84,19 @@ class LicoesNoBriefTests(TempRepoCase):
             code = dispatch.main(["fix-brief", "demo", "--root", str(self.repo), *extra])
         return code, out.getvalue(), err.getvalue()
 
+    def expected_fix(self, achados: str, may: str, ticket: str, issue: str = "PROJ-9") -> str:
+        plugin = dispatch.sc.PLUGIN_ROOT.as_posix()
+        return (f"# Correção dos achados do Q: Demo\n\nIssue: {issue}\n\nFeature: `demo`\n\n{achados}"
+                f"## BOUNDARIES\nMay change: {may}\n\n"
+                f"## Lessons\n\n{INTRO}\n\n- L1: texto 1\n\n"
+                "## Regras fixas da correção (StarCode)\n\n"
+                f"- Um commit por achado, com `Refs: {issue}` no corpo, citando o achado.\n"
+                "- Nunca escreva em `.specs/`.\n"
+                "- Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.\n"
+                "- Antes de terminar: a suíte inteira verde e "
+                f"`python \"{plugin}/scripts/gates/run_gates.py\" ticket demo {ticket} <base>..HEAD` verde.\n"
+                "- Relatório final: o commit e o teste de cada achado corrigido.\n")
+
     def test_fix_brief(self):
         rows = ("| C1 frouxa | `tests/t.py:4` | assert valor | abc1234 · C1 |\n"
                 "| C2 inventado | `tests/t.py:9` | troque o assert | |\n"
@@ -92,23 +105,9 @@ class LicoesNoBriefTests(TempRepoCase):
         self.store([les(1, ["a"], "2026-03-01")])
         code, out, err = self.run_fix()
         self.assertEqual(code, 0, err)
-        self.assertIn("Issue: PROJ-9", out)
-        self.assertNotIn("## Achado 1", out)
-        self.assertNotIn("C1 frouxa", out)
-        self.assertIn("## Achado 2", out)
-        self.assertIn("## Achado 3", out)
-        self.assertIn("- Finding: C2 inventado", out)
-        self.assertIn("- Evidence: `tests/t.py:12`", out)
-        self.assertIn("- Fix: cubra o caso", out)
-        self.assertIn("May change: app/a.py, tests/test_a.py", out)
-        self.assertIn("## Lessons", out)
-        self.assertIn("- L1: texto 1", out)
-        for rule in ("- Um commit por achado, com `Refs: <ID do Linear>` no corpo",
-                     "- Nunca escreva em `.specs/`.",
-                     "- Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.",
-                     "a suíte inteira verde e", "run_gates.py", "ticket demo",
-                     "- Relatório final: o commit e o teste de cada achado corrigido."):
-            self.assertIn(rule, out, rule)
+        achados = ("## Achado 2\n\n- Finding: C2 inventado\n- Evidence: `tests/t.py:9`\n- Fix: troque o assert\n\n"
+                   "## Achado 3\n\n- Finding: C3 sem teste\n- Evidence: `tests/t.py:12`\n- Fix: cubra o caso\n\n")
+        self.assertEqual(out, self.expected_fix(achados, "app/a.py, tests/test_a.py", "T1"))
         dest = self.repo / "brief.md"
         code, _, _ = self.run_fix("--out", str(dest))
         self.assertEqual(code, 0)
@@ -119,11 +118,19 @@ class LicoesNoBriefTests(TempRepoCase):
         code, out3, err3 = self.run_fix()
         self.assertEqual((code, out3, err3), (2, "", "nada a corrigir: demo sem achados abertos\n"))
 
-    def test_fix_brief_uniao_do_tasks(self):
+    def test_fix_brief_uniao_tickets(self):
         self.feature(tasks=TASKS, ver=verification("| C1 x | e | f | |\n"))
+        self.store([les(1, ["a"], "2026-03-01")])
         code, out, err = self.run_fix()
         self.assertEqual(code, 0, err)
-        self.assertIn("May change: app/model.py, app/cli.py", out)
+        achados = "## Achado 1\n\n- Finding: C1 x\n- Evidence: e\n- Fix: f\n\n"
+        self.assertEqual(out, self.expected_fix(achados, "app/model.py, app/cli.py", "<ticket>"))
+        # um só ticket no tasks.md: o ID dele
+        um = TASKS.split("### T2")[0]
+        (self.repo / ".specs" / "features" / "demo" / "tasks.md").write_text(um, encoding="utf-8", newline="\n")
+        code, out1, err = self.run_fix()
+        self.assertEqual(code, 0, err)
+        self.assertEqual(out1, self.expected_fix(achados, "app/model.py", "T1"))
 
     def test_execute_e_decisions(self):
         execute = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
