@@ -343,8 +343,9 @@ class SuggestCatalogTests(CatalogCase):
         self.assertEqual(sh.parse_model_arg("opencode=x/y"), ("opencode", "x/y", None))
         for bad in ("foo=x", "opencode=", "opencode"):
             self.assertIsNone(sh.parse_model_arg(bad), bad)
-        # an `@` that is not a known tier stays in the model id (SC-206); the validator refuses the `$`
-        self.assertEqual(sh.parse_model_arg("opencode=x@$$$$"), ("opencode", "x@$$$$", None))
+        # an `@` that is not a known tier stays in the model id (SC-206), and an id the validator refuses is None
+        self.assertEqual(sh.parse_model_arg("opencode=x@$$$$"), None)
+        self.assertEqual(sh.parse_model_arg("opencode=x@desconhecido"), ("opencode", "x@desconhecido", None))
         res = sh.suggest(sc.load_crew(), ["opencode"], {"opencode": [("acme/fora-do-catalogo", "$$$")]})
         self.assertEqual(next(r for r in res["rows"] if r["member"] == "picard")["tier"], "$$$")
 
