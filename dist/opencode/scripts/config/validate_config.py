@@ -87,7 +87,7 @@ REPO_SCHEMA = _obj({
 
 LOCAL_SCHEMA = _obj({
     "schemaVersion": {"type": "schema", "required": True},
-    "crew": {"type": "map", "keys": CREW, "value": LOCAL_CREW_ENTRY, "min_entry_keys": 1},
+    "crew": {"type": "map", "keys": CREW, "value": LOCAL_CREW_ENTRY},
 }, required=True)
 
 SCHEMAS = {"user": USER_SCHEMA, "repo": REPO_SCHEMA, "local": LOCAL_SCHEMA}
@@ -202,7 +202,7 @@ def _check(spec: dict, value: Any, path: str, errors: list[str]) -> None:
                     errors.append(f"{sub_path}: obrigatório")
                 continue
             _check(sub, value[k], sub_path, errors)
-        if spec.get("require_all") and value and any(k not in value for k in fields):
+        if spec.get("require_all") and any(k not in value for k in fields):
             errors.append(f"{where}: a entrada local precisa de cli e model juntos")
     else:  # pragma: no cover - schema bug
         raise AssertionError(f"unknown spec type {t}")

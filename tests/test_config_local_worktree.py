@@ -114,6 +114,19 @@ class ConfigLocalWorktreeTests(TempRepoCase):
             write_json(path, {"schemaVersion": 1, "crew": {"q": entry}})
             _, errors = vc.load("local", path)
             self.assertEqual(errors, ["crew.q: a entrada local precisa de cli e model juntos"], entry)
+        # an empty local entry gets the same R2 message
+        write_json(path, {"schemaVersion": 1, "crew": {"q": {}}})
+        self.assertEqual(vc.load("local", path)[1], ["crew.q: a entrada local precisa de cli e model juntos"])
+        self.assertEqual(vc.validate("local", {"schemaVersion": 1, "crew": {"q": {}}}),
+                         ["crew.q: a entrada local precisa de cli e model juntos"])
+        empty_cli = subprocess.run(["python", str(ROOT / "scripts" / "config" / "validate_config.py"), "--kind",
+                                    "local", str(path)], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(empty_cli.returncode, 1)
+        self.assertEqual(empty_cli.stdout.splitlines(), [f"INVÁLIDO (local): {path}",
+                                                         "  - crew.q: a entrada local precisa de cli e model juntos"])
+        # the user config keeps its own message for an empty entry
+        self.assertEqual(vc.validate("user", {"schemaVersion": 1, "crew": {"q": {}}}),
+                         ["crew.q: objeto vazio (remova a chave ou defina cli/model)"])
         write_json(path, {"schemaVersion": 1, "crew": {"q": {"cli": "opencode", "model": "zai/glm-5.3"}}})
         self.assertEqual(vc.load("local", path)[1], [])
         # user and repo configs keep the partial entry
