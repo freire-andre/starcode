@@ -76,10 +76,10 @@ Proof: run unit | test_decisions_e_changelog (test_catalogo_e_orca.CatalogoEOrca
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** push e PR (com confirmação), depois Worf
+**Next:** missão 7 do passo 4: N.2, N.3, N.4, N.7 e N.8
 **Linear:** SC-211
 **Integration branch:** feature/catalogo-e-orca
 **Last integrated:** T1
