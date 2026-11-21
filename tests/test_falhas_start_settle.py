@@ -262,6 +262,31 @@ class FalhasStartSettleTests(TempRepoCase):
         self.assertEqual(dispatch._git(self.repo, "rev-parse", "--abbrev-ref", "HEAD"), (0, "feature/demo\n"))
         self.assertTrue(snapshot.valid_names("demo", "t1"))
 
+    # C6 (achado 1: o diff de HEAD)
+    def test_regressao_diff_head_com_erro(self):
+        sel = mock.patch.object(impact, "select", return_value={})
+        fmt = mock.patch.object(impact, "format_text", return_value="OK")
+        for code, err in ((124, LINHA_TIMEOUT), (128, "fatal: não é um repositório"), (127, "git não encontrado")):
+            with self.subTest(code=code), sel as s, fmt as f,                     mock.patch.object(sc, "run_git", return_value=(code, "", err)):
+                texto = dispatch.regression_block(self.repo, "base", "HEAD")
+            self.assertEqual(texto, f"seleção indisponível: git diff --quiet HEAD falhou: {err}; "
+                                    "rode a suíte inteira")
+            s.assert_not_called()
+            f.assert_not_called()
+        # sem mensagem do git, o código aparece
+        with sel, fmt, mock.patch.object(sc, "run_git", return_value=(9, "", "")):
+            self.assertEqual(dispatch.regression_block(self.repo, "base", "HEAD"),
+                             "seleção indisponível: git diff --quiet HEAD falhou: código 9; rode a suíte inteira")
+        # 0: a faixa base..HEAD; 1: a árvore de trabalho contra a base
+        for code, diff in ((0, "base..HEAD"), (1, "base")):
+            with self.subTest(code=code), sel as s, fmt, mock.patch.object(sc, "run_git", return_value=(code, "", "")):
+                self.assertEqual(dispatch.regression_block(self.repo, "base", "HEAD"), "OK")
+                self.assertEqual(s.call_args.kwargs["diff"], diff)
+        # fora de HEAD o diff não é consultado
+        with sel as s, fmt, mock.patch.object(sc, "run_git", side_effect=AssertionError("não chamar")):
+            self.assertEqual(dispatch.regression_block(self.repo, "a", "b"), "OK")
+            self.assertEqual(s.call_args.kwargs["diff"], "a..b")
+
     # C7
     def test_decisions_e_changelog(self):
         e = decisions_entry("SC-208")

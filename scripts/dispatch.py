@@ -491,8 +491,12 @@ def regression_block(root: Path, base: str, head: str) -> str:
     """Impact selection for the Q brief (R32); a failure never blocks the brief."""
     try:
         diff = f"{base}..{head}"
-        if head == "HEAD" and sc.run_git(["diff", "--quiet", "HEAD"], root)[0] == 1:
-            diff = base  # modo 1: mudanças sem commit, árvore de trabalho contra a base (R14)
+        if head == "HEAD":
+            code, out, err = sc.run_git(["diff", "--quiet", "HEAD"], root)
+            if code not in (0, 1):  # 124 (tempo esgotado), 127 ou erro do git: a árvore não foi verificada
+                raise ValueError(f"git diff --quiet HEAD falhou: {_first_line(err, out) if (err or out).strip() else f'código {code}'}")
+            if code == 1:
+                diff = base  # modo 1: mudanças sem commit, árvore de trabalho contra a base (R14)
         return impact.format_text(impact.select(root, diff=diff))
     except Exception as exc:  # noqa: BLE001 - the brief is generated anyway
         return f"seleção indisponível: {exc}; rode a suíte inteira"
