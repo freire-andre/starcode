@@ -39,12 +39,12 @@ def _run(cmd: list[str], timeout: int, cwd: str | None = None) -> tuple[int, str
 
 
 def check_orca() -> str:
-    code, out = _run(["orca", "status", "--json"], ORCA_TIMEOUT)
-    if code == 127:
+    res = orca_cli.run(["status", "--json"], ORCA_TIMEOUT)
+    if res["kind"] == "missing":
         return "Orca: ❌ comando `orca` não encontrado no PATH"
-    if code == 124:
+    if res["kind"] == "timeout":
         return "Orca: ⚠️ `orca status` não respondeu a tempo"
-    if code != 0:
+    if res["code"] != 0:
         return "Orca: ⚠️ `orca status` falhou (a Orca está aberta?)"
     return "Orca: ✅ disponível"
 

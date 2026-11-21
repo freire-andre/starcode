@@ -41,6 +41,8 @@ elif mode == "stdout":
     sys.exit(3)
 elif mode == "mudo":
     sys.exit(4)
+elif mode.startswith("sai"):
+    sys.exit(int(mode[3:]))
 elif mode == "lista":
     print("[1, 2]")
 elif mode == "env":
@@ -260,6 +262,33 @@ class CatalogoEOrcaTests(unittest.TestCase):
             r = orca_cli.run(["x"], 7)
             self.assertEqual((r["code"], r["data"], r["error"]), (126, None, "Permissão negada"))
 
+    def test_saida_127_124_126_do_orca(self):
+        falhas = {
+            "timeout": subprocess.TimeoutExpired("orca", 7),
+            "oserror": OSError(13, "negado"),
+        }
+        for code in (127, 124, 126):
+            self.fake_orca(f"sai{code}")
+            r = orca_cli.run(["x"], 30)
+            self.assertEqual((r["code"], r["kind"], r["data"], r["error"]), (code, None, None, f"saiu com {code}"))
+            with self.assertRaises(screens.ScreenError) as cm:
+                screens._orca("exec", ["x"])
+            self.assertEqual(str(cm.exception), f"exec: saiu com {code}")
+            self.assertEqual(banner._run(["orca", "status"], 30), (code, ""))
+            self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` falhou (a Orca está aberta?)")
+        with mock.patch.dict(os.environ, {"PATH": str(self.tmp / "vazio")}):
+            r = orca_cli.run(["x"], 5)
+            self.assertEqual((r["code"], r["kind"]), (127, "missing"))
+            self.assertEqual(banner.check_orca(), "Orca: ❌ comando `orca` não encontrado no PATH")
+        with mock.patch.object(orca_cli.subprocess, "run", side_effect=falhas["timeout"]):
+            r = orca_cli.run(["x"], 7)
+            self.assertEqual((r["code"], r["kind"]), (124, "timeout"))
+            self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` não respondeu a tempo")
+        with mock.patch.object(orca_cli.subprocess, "run", side_effect=falhas["oserror"]):
+            r = orca_cli.run(["x"], 7)
+            self.assertEqual((r["code"], r["kind"]), (126, "oserror"))
+            self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` falhou (a Orca está aberta?)")
+
     # --- C5 ---------------------------------------------------------------------------------
     def test_um_adaptador_da_orca(self):
         pat = re.compile(r"which\(\s*[\"']orca[\"']")
@@ -350,7 +379,7 @@ class CatalogoEOrcaTests(unittest.TestCase):
                      "`orca plugin test`", "mesmo drive", "R7:", "`CHANGELOG.md`"):
             self.assertIn(term, decisao, term)
         tests = ("test_download_confere_forma", "test_texto_do_catalogo_limpo", "test_catalogo_lido_uma_vez",
-                 "test_orca_cli_run_e_env", "test_um_adaptador_da_orca", "test_stack_orca_documentada",
+                 "test_orca_cli_run_e_env", "test_saida_127_124_126_do_orca", "test_um_adaptador_da_orca", "test_stack_orca_documentada",
                  "test_decisions_e_changelog")
         for name in tests:
             self.assertIn(f"`{name}`", parts["Por que não é bug"], name)
