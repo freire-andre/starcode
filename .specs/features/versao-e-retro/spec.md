@@ -60,6 +60,7 @@ Proof: run unit | test_start_grava_plugin_no_handoff (test_versao_e_retro.Versao
 
 **C3** - Tabela: repositório do StarCode com versão diferente imprime a linha exata no stderr e sai com o mesmo código; com versão igual ou fora do repositório do StarCode, nada no stderr (R3)
 Proof: run unit | test_aviso_de_versao_diferente (test_versao_e_retro.VersaoERetroTests.test_aviso_de_versao_diferente) ... ok
+Proof: run unit | test_aviso_nao_altera_start_bem_sucedido (test_versao_e_retro.VersaoERetroTests.test_aviso_nao_altera_start_bem_sucedido) ... ok
 
 **C4** - `retro.md` da Guinan tem o cabeçalho com `Estado` por último, a regra do `aberto` e os quatro formatos (R4)
 Proof: run unit | test_retro_da_guinan_tem_estado (test_versao_e_retro.VersaoERetroTests.test_retro_da_guinan_tem_estado) ... ok
@@ -79,7 +80,7 @@ Proof: run unit | test_decisions_e_changelog (test_versao_e_retro.VersaoERetroTe
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** none yet
-**Next:** Q verifica
+**Next:** provas e done, depois Guinan
 **Linear:** SC-212
 **Integration branch:** feature/versao-e-retro
 **Last integrated:** T1
