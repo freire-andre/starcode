@@ -34,6 +34,7 @@ FIELDS = (  # (option, marker, default)
     ("phase", "Phase", "discovery"),
     ("size", "Size", "none yet"),
     ("git_mode", "Git mode", "none yet"),
+    ("plugin", "Plugin", "none yet"),
     ("next", "Next", "none yet"),
     ("linear", "Linear", "none yet"),
     ("integration_branch", "Integration branch", "not created"),

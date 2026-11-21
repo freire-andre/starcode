@@ -18,11 +18,14 @@ Output `.specs/features/<slug>/retro.md`, in PT-BR:
 ```
 # Retro: <slug>
 
-| # | Severidade | Categoria | Evidência | Ação proposta |
-|---|---|---|---|---|
-| 1 | alta | <category> | <commit, Handoff line or finding ID> | <action, not applied> |
+| # | Severidade | Categoria | Evidência | Ação proposta | Estado |
+|---|---|---|---|---|---|
+| 1 | alta | <category> | <commit, Handoff line or finding ID> | <action, not applied> | aberto |
 ```
 
 Rules: at most 7 rows; ordered by severity (alta, média, baixa); every row has evidence; at most one row per
-friction; no row for a category without friction. The suggestions are never applied and never become a lesson on
+friction; no row for a category without friction. The last column is `Estado`: Guinan writes `aberto` in every new row. Valid values: `aberto`, `aberto: <issue>`,
+`feito em <commit>` and `recusado: <motivo>`. Only the user or the Picard changes it later, through
+`python scripts/retros.py estado <slug> <n> (--feito <commit> | --recusado <motivo> | --aberto [<issue>])`;
+`python scripts/retros.py abertas` lists the open ones. The suggestions are never applied and never become a lesson on
 their own.
