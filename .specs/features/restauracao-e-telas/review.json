@@ -1,0 +1,25 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O restore passa a ler o tasks.md ou o spec.md do commit do snapshot com run_git show, num diretório temporário, e recusa com código 2 quando nenhum dos dois existe. O capture valida o host (urlsplit, minúsculas, IPv6 com colchetes, porta inválida recusada) e o --out antes de abrir a aba. Pelas sondas, userinfo e fragmento não enganam o filtro de host. O veredito do screens.md casa pelo último segmento exato. O _png percorre os chunks pelo comprimento declarado e recusa chunk truncado ou IDAT vazio. Um nit: uma falha de git que não é ausência (124 ou 127) vira 'snapshot sem tasks.md nem spec.md'. O efeito é seguro (recusa), mas a mensagem engana. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "scripts/snapshot.py",
+   "line": 174,
+   "body": "Qualquer código diferente de 0 no git show, inclusive 124 (tempo esgotado) e 127 (git ausente), é tratado como arquivo ausente. O restore então recusa com 'snapshot sem tasks.md nem spec.md de <slug>' (linha 185). A recusa é segura, mas a mensagem aponta a causa errada. Repassar o erro do run_git quando o código for 124 ou 127.",
+   "evidence": "scripts/snapshot.py:174"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa nova: só a biblioteca padrão (urllib.parse.urlsplit, struct, tempfile). O comportamento do urlsplit com userinfo, fragmento, IPv6 e porta inválida foi conferido por sonda local neste review."
+ ],
+ "ladder": [
+  "CI local em 6102416 (evidência do PR): build --check, check_decisions, claude plugin validate --strict e suíte inteira (1075 testes, 1 pulado), todos verdes",
+  "módulos tocados no head 6102416: test_restauracao_e_telas 9, test_screens 11, test_validate_verification_screens 11, test_snapshot 7, test_images 9, todos OK",
+  "sonda de url_host/host_allowed: localhost@evil.com, evil.com#@localhost e a.localhost.evil.com recusados; LOCALHOST:3000 e [::1]:80 aceitos; porta inválida dá host vazio e é recusada",
+  "scan_bypasses.py: 1 candidato (screens.py:170, noqa B018 numa expressão que existe para levantar ValueError com porta inválida), descartado"
+ ]
+}

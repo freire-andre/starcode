@@ -20,10 +20,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-14T23:53:01Z
 
 ### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
-- signal: `weak_test` · features: 7
-- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0, pequena-minima, pr-review
-- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40, verification.md: achado 2 (prova da C4 sem settle), verification.md: achado 2 (edge case sem check)
-- updated: 2026-11-19T14:18:00Z
+- signal: `weak_test` · features: 8
+- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0, pequena-minima, pr-review, restauracao-e-telas
+- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40, verification.md: achado 2 (prova da C4 sem settle), verification.md: achado 2 (edge case sem check), verification.md achado 1
+- updated: 2026-11-21T17:36:00Z
 
 ### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
 - signal: `weak_test` · features: 2
@@ -508,6 +508,12 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: falhas-start-settle
 - sources: .specs/features/falhas-start-settle/verification.md achado 6
 - updated: 2026-11-21T13:55:54Z
+
+### L84 - Ao ler formato binário por chunks, confira o comprimento declarado contra o tamanho do arquivo antes de aceitar o chunk; teste chunk truncado no cabeçalho, nos dados e no CRC, e chunk de comprimento zero.
+- signal: `weak_test` · features: 1 · scope: `leitores de formato binário`
+- features: restauracao-e-telas
+- sources: verification.md achado 2
+- updated: 2026-11-21T17:36:00Z
 
 ## Quarantined
 
