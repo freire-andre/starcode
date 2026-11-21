@@ -251,14 +251,18 @@ class FalhasStartSettleTests(TempRepoCase):
             with self.assertRaises(snapshot.GitError) as cm:
                 snapshot.run_git(self.repo, "status")
             self.assertEqual(str(cm.exception), f"status: {LINHA_TIMEOUT}")
-            self.assertFalse(snapshot.valid_names("demo", "t1"))
+            with self.assertRaises(snapshot.GitError) as cm:
+                snapshot.valid_names("demo", "t1")
+            self.assertEqual(str(cm.exception), f"check-ref-format: {LINHA_TIMEOUT}")
             with self.assertRaises(snapshot.GitError) as cm:
                 snapshot._write_blob(self.repo, "HEAD", "README.md")
             self.assertEqual(str(cm.exception), "ls-tree HEAD: " + LINHA_TIMEOUT)
             with self.assertRaises(impact.ImpactError) as cm:
                 impact.run_git(self.repo, "status")
             self.assertEqual(str(cm.exception), f"status: {LINHA_TIMEOUT}")
-            self.assertEqual(dispatch._git(self.repo, "status"), (124, ""))
+            with self.assertRaises(ValueError) as cm:
+                dispatch._git(self.repo, "status")
+            self.assertEqual(str(cm.exception), f"git status falhou em {self.repo}: {LINHA_TIMEOUT}")
             with self.assertRaises(ValueError) as cm:
                 dispatch.q_check("demo", self.repo)
             self.assertEqual(str(cm.exception), f"git status falhou em {self.repo}: {LINHA_TIMEOUT}")
@@ -272,6 +276,43 @@ class FalhasStartSettleTests(TempRepoCase):
         self.assertEqual(impact.run_git(self.repo, "rev-parse", "--abbrev-ref", "HEAD").strip(), "feature/demo")
         self.assertEqual(dispatch._git(self.repo, "rev-parse", "--abbrev-ref", "HEAD"), (0, "feature/demo\n"))
         self.assertTrue(snapshot.valid_names("demo", "t1"))
+
+    # C6 (achado 3: o tempo esgotado chega aos chamadores de valid_names e de _git)
+    def test_timeout_chega_aos_chamadores(self):
+        lento = (124, "", LINHA_TIMEOUT)
+        # valid_names: nome inválido segue False, o tempo esgotado e o git ausente levantam
+        self.assertFalse(snapshot.valid_names("demo", "t 1"))
+        self.assertFalse(snapshot.valid_names("Demo!", "t1"))
+        self.assertTrue(snapshot.valid_names("demo", "t1"))
+        with mock.patch.object(sc, "run_git", return_value=(127, "", "git não encontrado")):
+            with self.assertRaises(snapshot.GitError) as cm:
+                snapshot.valid_names("demo", "t1")
+            self.assertEqual(str(cm.exception), "check-ref-format: git não encontrado")
+        # take e restore: erro do snapshot, código 1, nada de "nome inválido"
+        for cmd, func, prefixo in (("take", snapshot.cmd_take, "snapshot falhou"),
+                                   ("restore", snapshot.cmd_restore, "restauração falhou")):
+            args = SimpleNamespace(slug="demo", ticket="t1", root=self.repo, yes=True, json=False)
+            with self.subTest(cmd), mock.patch.object(sc, "run_git", return_value=lento),                     mock.patch("sys.stdout", new_callable=io.StringIO) as so:
+                code = func(args)
+            self.assertEqual(code, 1)
+            self.assertEqual(so.getvalue(), f"{prefixo}: check-ref-format: {LINHA_TIMEOUT}\n")
+        # nome realmente inválido segue com 2 e a mensagem de sempre
+        args = SimpleNamespace(slug="demo", ticket="t 1", root=self.repo, yes=True, json=False)
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as so:
+            self.assertEqual(snapshot.cmd_take(args), 2)
+        self.assertEqual(so.getvalue(), "nome inválido para o snapshot: t 1\n")
+        # _git no dispatch: integrated e require_committed deixam o erro subir, com o stderr
+        with mock.patch.object(sc, "run_git", return_value=lento):
+            with self.assertRaises(ValueError) as cm:
+                dispatch.integrated([], self.repo, "main", "feature/demo")
+            self.assertEqual(str(cm.exception), f"git log falhou em {self.repo}: {LINHA_TIMEOUT}")
+            with self.assertRaises(ValueError) as cm:
+                dispatch.require_committed(self.fdir, ("spec.md",))
+            self.assertEqual(str(cm.exception), f"git cat-file falhou em {self.repo}: {LINHA_TIMEOUT}")
+        # código 128 do git (caminho ausente) continua sendo resposta, não erro
+        self.assertEqual(dispatch._git(self.repo, "cat-file", "-e", "HEAD:nao-existe")[0], 128)
+        with self.assertRaises(LookupError):
+            dispatch.require_committed(self.fdir, ("nao-existe.md",))
 
     # C6 (achado 1: o diff de HEAD)
     def test_regressao_diff_head_com_erro(self):

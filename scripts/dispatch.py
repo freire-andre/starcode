@@ -135,7 +135,11 @@ def with_decisions(task: vt.Task) -> vt.Task:
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
-    code, out, _ = sc.run_git(list(args), root)
+    """(código, stdout). Tempo esgotado, git ausente ou argumento inválido (124, 126, 127) levantam ValueError com o
+    stderr: o código 1 ou 128 do git segue como resposta do chamador."""
+    code, out, err = sc.run_git(list(args), root)
+    if code in (124, 126, 127):
+        raise ValueError(f"git {args[0]} falhou em {root}: {_first_line(err, out)}")
     return code, out
 
 
