@@ -352,8 +352,7 @@ def overdue(slug: str, root: Path, minutes: int | None = None, now: str | None =
             raise ValueError(f"entrada de Dispatched sem horário legível: {e}")
         elapsed = int((clock - started).total_seconds() // 60)
         if (clock - started).total_seconds() > minutes * 60:
-            issues = ", ".join(info["issues"]) or "-"
-            late.append(f"{tid} · {issues} · {elapsed} min · {info['dispatch'] or '-'}")
+            late.append(f"{tid} · {info['issues_text'] or '-'} · {elapsed} min · {info['dispatch'] or '-'}")
     return (0 if late else 1), late
 
 

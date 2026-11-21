@@ -52,28 +52,28 @@ def decisions_entry(n: str) -> str:
 
 class PonteManutencaoTests(TempRepoCase):
     def test_parse_dispatch_entry(self):  # C1
-        vazio = {"ticket": None, "issues": [], "base": None, "model": None, "at": None, "dispatch": None,
+        vazio = {"ticket": None, "issues": [], "issues_text": None, "base": None, "model": None, "at": None, "dispatch": None,
                  "blocked": False}
         tabela = [
-            (START_SEM_ID, {"ticket": "T1", "issues": ["PROJ-9"], "base": "1a2b3c4",
+            (START_SEM_ID, {"ticket": "T1", "issues": ["PROJ-9"], "issues_text": "PROJ-9", "base": "1a2b3c4",
                             "model": "claude:claude-sonnet-5-5", "at": "2026-11-13T09:08:07Z",
                             "dispatch": None, "blocked": False}),
-            (START_COM_ID, {"ticket": "T1", "issues": ["PROJ-9"], "base": "1a2b3c4",
+            (START_COM_ID, {"ticket": "T1", "issues": ["PROJ-9"], "issues_text": "PROJ-9", "base": "1a2b3c4",
                             "model": "claude:claude-sonnet-5-5", "at": "2026-11-13T09:08:07Z",
                             "dispatch": "ctx_abc", "blocked": False}),
-            (START_BLOCKED, {"ticket": "T1", "issues": ["PROJ-9"], "base": "1a2b3c4",
+            (START_BLOCKED, {"ticket": "T1", "issues": ["PROJ-9"], "issues_text": "PROJ-9", "base": "1a2b3c4",
                              "model": "claude:claude-sonnet-5-5", "at": "2026-11-13T09:08:07Z",
                              "dispatch": "ctx_abc", "blocked": True}),
-            (START_SEM_ID + " · blocked", {"ticket": "T1", "issues": ["PROJ-9"], "base": "1a2b3c4",
+            (START_SEM_ID + " · blocked", {"ticket": "T1", "issues": ["PROJ-9"], "issues_text": "PROJ-9", "base": "1a2b3c4",
                                             "model": "claude:claude-sonnet-5-5", "at": "2026-11-13T09:08:07Z",
                                             "dispatch": None, "blocked": True}),
-            (ANTIGO, {"ticket": "T2", "issues": ["SC-122"], "base": "def5678", "model": "claude-opus-5-5",
+            (ANTIGO, {"ticket": "T2", "issues": ["SC-122"], "issues_text": "SC-122", "base": "def5678", "model": "claude-opus-5-5",
                       "at": None, "dispatch": "ctx_bbb222", "blocked": False}),
             ("T3 · SC-1, SC-2 · base abc1234 · dispatch ctx_x · model m · blocked",
-             {"ticket": "T3", "issues": ["SC-1", "SC-2"], "base": "abc1234", "model": "m", "at": None,
+             {"ticket": "T3", "issues": ["SC-1", "SC-2"], "issues_text": "SC-1, SC-2", "base": "abc1234", "model": "m", "at": None,
               "dispatch": "ctx_x", "blocked": True}),
             ("T4", {**vazio, "ticket": "T4"}),
-            ("T5 · -", {**vazio, "ticket": "T5"}),
+            ("T5 · -", {**vazio, "ticket": "T5", "issues_text": "-"}),
             ("", vazio),
         ]
         for entry, esperado in tabela:
@@ -147,6 +147,18 @@ class PonteManutencaoTests(TempRepoCase):
         self.assertEqual(out[0], "gate vermelho: T1")
         self.assertEqual([c.args[0] for c in spy.call_args_list], [START_SEM_ID])
         self.assertEqual(gate.calls[gate.gates()[0]][-5:-2], ["demo", "T1", "1a2b3c4..main"])
+
+    def test_overdue_preserva_campo_de_issues(self):  # C2 (achado 1)
+        self.write_repo_config()
+        fdir = self.repo / ".specs" / "features" / "demo"
+        fdir.mkdir(parents=True)
+        (fdir / "spec.md").write_text("# Demo: Spec\n", encoding="utf-8")
+        entry = "T8 · SC-2,SC-3 · base abc1234 · claude:m · 2026-11-07T16:00:00Z · ctx_1"
+        (fdir / "tasks.md").write_text(make_tasks([{"tid": "T8"}]) + HANDOFF.format(d=entry), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "specs")
+        res = dispatch.overdue("demo", self.repo, 30, "2026-11-07T17:00:00Z")
+        self.assertEqual(res, (0, ["T8 · SC-2,SC-3 · 60 min · ctx_1"]))
 
     def test_manifesto_sem_storage(self):  # C3
         m = json.loads((ROOT / "src" / "orca" / "orca-plugin.json").read_text(encoding="utf-8"))
