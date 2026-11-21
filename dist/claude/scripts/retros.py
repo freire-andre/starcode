@@ -83,12 +83,11 @@ def abertas(root: Path, todas: bool = False) -> tuple[list[dict], int]:
     sem_coluna = 0
     for path in retro_paths(root):
         text = path.read_text(encoding="utf-8", errors="replace")
-        missing = False
-        for table in tables(_split(text)):
+        found = tables(_split(text))
+        missing = not any(t["cols"].get("estado") is not None for t in found)  # inclui retro sem tabela
+        for table in found:
             col_estado = table["cols"].get("estado")
             col_acao = table["cols"].get("ação proposta")
-            if col_estado is None:
-                missing = True
             for pos, (_line, cells) in enumerate(table["rows"]):
                 estado = _cell(cells, col_estado) if col_estado is not None else "sem estado"
                 if col_estado is not None and not _norm(estado).startswith("aberto"):
@@ -128,13 +127,11 @@ def set_estado(slug: str, n: str, value: str, root: Path) -> str | None:
                 continue
             if k >= len(cells):
                 return f"linha {n} da retro de {slug} não tem a célula Estado"
-            cells = list(cells)
-            cells[k] = f" {value} "
             s = lines[idx]
-            lead = s[:len(s) - len(s.lstrip())]
-            tail = "|" if s.rstrip().endswith("|") else ""
-            ending = pieces[idx][len(lines[idx]):]
-            pieces[idx] = lead + "|" + "|".join(cells) + tail + ending
+            bars = [m for m, ch in enumerate(s) if ch == "|"]
+            start = bars[k] + 1
+            end = bars[k + 1] if k + 1 < len(bars) else len(s.rstrip())
+            pieces[idx] = s[:start] + f" {value} " + s[end:] + pieces[idx][len(s):]
             path.write_bytes("".join(pieces).encode("utf-8"))
             return None
     return f"linha {n} não existe na retro de {slug}"

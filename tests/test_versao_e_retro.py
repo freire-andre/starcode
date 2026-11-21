@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import re
+import shutil
 import unittest
 from pathlib import Path
 
@@ -114,9 +115,13 @@ class VersaoERetroTests(TempRepoCase):
 
     def assert_plugin_line(self, name: str, text: str, version: str) -> None:
         lines = text.splitlines()
-        title = next(i for i, ln in enumerate(lines) if ln.startswith("# "))
-        self.assertEqual(lines[title + 1:title + 3], ["", f"**Plugin:** StarCode {version}"], name)
+        self.assertTrue(lines[0].startswith("# "), (name, lines[0]))  # título na primeira linha
+        self.assertEqual(lines[1:3], ["", f"**Plugin:** StarCode {version}"], name)
         self.assertEqual(text.count("**Plugin:**"), 1, name)
+        if name.endswith(("q-brief", "screens-brief")):
+            self.assertEqual(lines[3:5], ["", f"Repositório: {self.repo.as_posix()}"], name)
+        else:
+            self.assertNotIn("Repositório:", "\n".join(lines[:6]), name)
 
     def test_brief_traz_versao_do_plugin(self):
         fdir = self.feature()
@@ -212,6 +217,43 @@ class VersaoERetroTests(TempRepoCase):
             for k, a in cmds.items():
                 self.assertEqual(run_main(dispatch, a)[2], "", k)
 
+    def test_aviso_nao_altera_start_bem_sucedido(self):
+        self.write_repo_config()
+        fdir = self.repo / ".specs" / "features" / "demo"
+        fdir.mkdir(parents=True)
+        (fdir / "spec.md").write_text("# Demo: Spec\n", encoding="utf-8")
+        (fdir / "tasks.md").write_text(make_tasks([{"tid": "T1"}]) + HANDOFF.format(d="none"), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "specs")
+        run_git(self.repo, "branch", "-f", "feature/demo")
+        sem, com = self.tmp / "sem-diferenca", self.tmp / "com-diferenca"
+        for dest in (sem, com):
+            shutil.copytree(self.repo, dest)
+        (com / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+        plug = com / "dist" / "claude" / ".claude-plugin"
+        plug.mkdir(parents=True)
+        (plug / "plugin.json").write_text("{}", encoding="utf-8")
+
+        def run(root: Path) -> tuple[int, str, str, list[list[str]]]:
+            fake = FakeOrca()
+            original = dispatch.start
+            dispatch.start = lambda *a, **kw: original(*a, runner=fake, **kw)
+            try:
+                code, out, err = run_main(dispatch, ["start", "demo", "T1", "--cli", "claude",
+                                                     "--model", "claude-sonnet-5-5", "--root", str(root)])
+            finally:
+                dispatch.start = original
+            return code, re.sub(r"starcode-[A-Za-z0-9_]+", "<tmp>", out), err, fake.calls  # o briefing vai para um diretório temporário
+
+        with Plugin(fake_plugin(self.tmp, "p", manifest="0.9.0")):
+            base = run(sem)
+            warned = run(com)
+        self.assertEqual(base[0], 0, base[1])
+        self.assertEqual(base[2], "")
+        self.assertEqual(warned[2], AVISO.format(run="0.9.0", repo="1.0.0") + "\n")
+        self.assertEqual((warned[0], warned[1]), (base[0], base[1]))  # mesmo código e mesma saída
+        self.assertEqual(len(warned[3]), len(base[3]))  # as mesmas chamadas à Orca e ao git
+
     def test_retro_da_guinan_tem_estado(self):
         text = (ROOT / "skills" / "guinan" / "references" / "retro.md").read_text(encoding="utf-8")
         flat = " ".join(text.split())
@@ -232,6 +274,7 @@ class VersaoERetroTests(TempRepoCase):
                   "| aberto: SC-9 | 3 | baixa | depois |\n| recusado: não vale | 4 | baixa | nunca |\n"),
             "b": ("# Retro: b\n\n| # | Severidade | Categoria | Evidência | Ação proposta |\n|---|---|---|---|---|\n"
                   "| 1 | alta | spec | e | sem estado aqui |\n"),
+            "f": "# Retro sem tabela com ação proposta\n",  # sem tabela nenhuma conta como sem coluna Estado
             "c": "# Retro: c\n\n| # | Ação proposta | Estado |\n|---|---|---|\n| 1 | tudo feito | feito em 1234567 |\n",
         }.items():
             (feats / slug).mkdir(parents=True)
@@ -242,16 +285,16 @@ class VersaoERetroTests(TempRepoCase):
         root = self.retros_tree()
         code, out, err = run_main(retros, ["abertas", "--root", str(root)])
         self.assertEqual((code, err), (0, ""))
-        self.assertEqual(out, "a #1 aberto: faz &#124; isso\na #3 aberto: SC-9: depois\n1 retro(s) sem coluna Estado\n")
+        self.assertEqual(out, "a #1 aberto: faz &#124; isso\na #3 aberto: SC-9: depois\n2 retro(s) sem coluna Estado\n")
         code, out, err = run_main(retros, ["abertas", "--root", str(root), "--todas"])
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(out, "a #1 aberto: faz &#124; isso\na #3 aberto: SC-9: depois\n"
-                              "b #1 sem estado: sem estado aqui\n1 retro(s) sem coluna Estado\n")
+                              "b #1 sem estado: sem estado aqui\n2 retro(s) sem coluna Estado\n")
         code, out, err = run_main(retros, ["abertas", "--root", str(root), "--json"])
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(json.loads(out), {"retros": [
             {"slug": "a", "n": "1", "estado": "aberto", "acao": "faz &#124; isso"},
-            {"slug": "a", "n": "3", "estado": "aberto: SC-9", "acao": "depois"}], "sem_coluna_estado": 1})
+            {"slug": "a", "n": "3", "estado": "aberto: SC-9", "acao": "depois"}], "sem_coluna_estado": 2})
         code, out, _ = run_main(retros, ["abertas", "--root", str(self.tmp / "vazio")])
         self.assertEqual((code, out), (0, "0 retro(s) sem coluna Estado\n"))
 
@@ -278,6 +321,19 @@ class VersaoERetroTests(TempRepoCase):
         self.assertEqual((code, err), (0, ""))
         self.assertEqual((crlf / "retro.md").read_bytes(),
                          body.replace(b"| 1 | aberto | x |", b"| 1 | feito em c0ffee1 | x |"))
+        # espaços depois do último `|`, células sem espaços e CRLF: só o intervalo da célula Estado muda
+        spaced = root / ".specs" / "features" / "e"
+        spaced.mkdir()
+        body = ("# Retro: e\r\n\r\n|# |Estado|  Ação proposta |\r\n|---|---|---|\r\n"
+                "|1|aberto| y |   \r\n  | 2 |aberto|z|\t \r\n| 3 | aberto | w").encode()
+        for old, new in ((b"|1|aberto| y |   \r\n", b"|1| feito em abc | y |   \r\n"),
+                         (b"  | 2 |aberto|z|\t \r\n", b"  | 2 | feito em abc |z|\t \r\n"),
+                         (b"| 3 | aberto | w", b"| 3 | feito em abc | w")):
+            (spaced / "retro.md").write_bytes(body)
+            n = old.split(b"|")[1].strip().decode()
+            code, _, err = run_main(retros, ["estado", "e", n, "--root", str(root), "--feito", "abc"])
+            self.assertEqual((code, err), (0, ""), n)
+            self.assertEqual((spaced / "retro.md").read_bytes(), body.replace(old, new), n)
         # recusas: código 2, a linha exata e nada mudado (bytes e lista de arquivos)
         path.write_bytes(original)
         before = tree(root)
@@ -308,7 +364,7 @@ class VersaoERetroTests(TempRepoCase):
         self.assertEqual(sorted(achados), sorted(ESPERADO))
         for chave, frase in ESPERADO.items():
             self.assertEqual(achados[chave], frase, chave)
-        tests = ("test_brief_traz_versao_do_plugin", "test_start_grava_plugin_no_handoff", "test_aviso_de_versao_diferente",
+        tests = ("test_brief_traz_versao_do_plugin", "test_start_grava_plugin_no_handoff", "test_aviso_de_versao_diferente", "test_aviso_nao_altera_start_bem_sucedido",
                  "test_retro_da_guinan_tem_estado", "test_retros_abertas", "test_retros_estado", "test_decisions_e_changelog")
         for name in tests:
             self.assertIn(f"`{name}`", parts["Por que não é bug"], name)
