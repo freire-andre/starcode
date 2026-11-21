@@ -81,7 +81,7 @@ Proof: run unit | test_decisions_e_changelog (test_falhas_start_settle.FalhasSta
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** provas e done, depois Guinan
+**Next:** push e PR (confirmação)
 **Linear:** SC-208
 **Integration branch:** feature/falhas-start-settle
 **Last integrated:** T1 (247cd98)

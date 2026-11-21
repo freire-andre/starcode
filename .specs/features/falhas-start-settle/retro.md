@@ -1,0 +1,11 @@
+# Retro: falhas-start-settle
+
+Lições: L32 (recorrência, achado 7), L20 (recorrência, achado 5), L79 (achado 1), L80 (achado 2), L81 (achado 3), L82 (achado 4), L83 (achado 6).
+
+| # | Severidade | Categoria | Evidência | Ação proposta |
+|---|---|---|---|---|
+| 1 | alta | instructions without effect | Com `--phase executing`, o `handoff.py set` respondeu `ERRO: fase inválida 'executing'; use uma de: discovery, spec, spec-approved, tasks, tasks-approved, published, execute, review, pr-review, done`. Outras chamadas com fase inválida, também na SC-207 (`verifying`, `fixing`, `verified`, `done-gate`, `pr`), falharam caladas porque a saída estava redirecionada. | Listar no `execute.md` as fases válidas em cada passo (execute → review → pr-review → done) e fazer o `handoff.py set` sair com 2 numa fase inválida, para o código denunciar a falha mesmo com a saída redirecionada. |
+| 2 | alta | tool economy | Pela segunda feature seguida (SC-207 e SC-208), a correção pós-Q foi integrada à mão: gate ticket `feature/falhas-start-settle..<ramo>` e merge `a146020`, porque a entrada já tinha saído do `Dispatched`. | Fazer o `settle` aceitar `--fix` para reintegrar um ramo já integrado: gate ticket sobre `<integração>..<ramo>` e merge `--no-ff`. |
+| 3 | média | automatic checks | Achados 4 e 6: um teste injetava o resultado pronto e outro de concorrência dependia da ordem dos processos (L82, L83). Achados 5 e 7 repetem L20 e L32, que vão no brief desde a SC-205. | Fazer o Q rodar uma checagem dos testes citados que acuse `patch` da própria função testada e teste de concorrência sem sincronização explícita. |
+| 4 | média | information access | O LaForge acrescentou o código 126 no `run_git` (b0f267d), que não estava no R5, e o Picard ajustou a spec depois (949f18c). | Pôr nas regras do worker que um código de saída novo fora da spec vai para o relatório como desvio, para o Picard decidir antes da integração. |
+| 5 | baixa | information access | O fix-brief com as notas do Picard (disputa forçada, caminho do erro) fechou os 7 achados numa rodada (863f6d2 a 90dd594). | Manter. Registrar no `execute.md` que as notas do Picard dizem como o teste deve provar a falha quando o achado é de teste frouxo. |

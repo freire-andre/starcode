@@ -358,7 +358,8 @@
         "fecha-achado",
         "licoes-no-brief",
         "config-local-worktree",
-        "ponte-manutencao"
+        "ponte-manutencao",
+        "falhas-start-settle"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -373,11 +374,12 @@
         ".specs/features/fecha-achado/verification.md:achado 4",
         ".specs/features/licoes-no-brief/verification.md:achado 2",
         ".specs/features/config-local-worktree/verification.md:achado 4",
-        ".specs/features/ponte-manutencao/verification.md achado 3"
+        ".specs/features/ponte-manutencao/verification.md achado 3",
+        ".specs/features/falhas-start-settle/verification.md achado 5"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-21T00:46:37Z"
+      "updated": "2026-11-21T13:55:53Z"
     },
     {
       "id": "L21",
@@ -574,7 +576,8 @@
         "roteamento-worf-mccoy",
         "licoes-no-brief",
         "config-local-worktree",
-        "ponte-manutencao"
+        "ponte-manutencao",
+        "falhas-start-settle"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -591,11 +594,12 @@
         ".specs/features/roteamento-worf-mccoy/verification.md:achado 4",
         ".specs/features/licoes-no-brief/verification.md:achado 3",
         ".specs/features/config-local-worktree/verification.md:achado 5",
-        ".specs/features/ponte-manutencao/verification.md achado 4"
+        ".specs/features/ponte-manutencao/verification.md achado 4",
+        ".specs/features/falhas-start-settle/verification.md achado 7"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-21T00:46:37Z"
+      "updated": "2026-11-21T13:55:53Z"
     },
     {
       "id": "L33",
@@ -1290,6 +1294,81 @@
       "scope": "testes no Windows",
       "created": "2026-11-21T00:46:38Z",
       "updated": "2026-11-21T00:46:38Z"
+    },
+    {
+      "id": "L79",
+      "text": "Ao ler o código de saída de um comando que usa 0 e 1 como resposta (git diff --quiet), trate qualquer outro código como erro, porque um tempo esgotado ou falha virava resposta válida.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "falhas-start-settle"
+      ],
+      "sources": [
+        ".specs/features/falhas-start-settle/verification.md achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-21T13:55:54Z",
+      "updated": "2026-11-21T13:55:54Z"
+    },
+    {
+      "id": "L80",
+      "text": "Função que promete nunca levantar exceção deve capturar também os erros de argumento e ambiente (TypeError, ValueError), não só OSError e tempo esgotado, e o teste deve cobrir esses casos.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "falhas-start-settle"
+      ],
+      "sources": [
+        ".specs/features/falhas-start-settle/verification.md achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-21T13:55:54Z",
+      "updated": "2026-11-21T13:55:54Z"
+    },
+    {
+      "id": "L81",
+      "text": "Wrapper que devolve só bool ou só stdout não pode engolir um tempo esgotado: propague o erro com o stderr pelo caminho de erro do chamador.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "falhas-start-settle"
+      ],
+      "sources": [
+        ".specs/features/falhas-start-settle/verification.md achado 3"
+      ],
+      "scope": "",
+      "created": "2026-11-21T13:55:54Z",
+      "updated": "2026-11-21T13:55:54Z"
+    },
+    {
+      "id": "L82",
+      "text": "Teste de um modo de saída (--json) deve exercitar o fluxo inteiro com o runner falso, não injetar o resultado pronto da função interna, porque a integração errada passaria.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "falhas-start-settle"
+      ],
+      "sources": [
+        ".specs/features/falhas-start-settle/verification.md achado 4"
+      ],
+      "scope": "",
+      "created": "2026-11-21T13:55:54Z",
+      "updated": "2026-11-21T13:55:54Z"
+    },
+    {
+      "id": "L83",
+      "text": "Teste de concorrência deve forçar a disputa com sincronização explícita (sinais por arquivo ou evento) e provar que falha sem a proteção, porque processos soltos podem serializar e passar sem a trava.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "falhas-start-settle"
+      ],
+      "sources": [
+        ".specs/features/falhas-start-settle/verification.md achado 6"
+      ],
+      "scope": "",
+      "created": "2026-11-21T13:55:54Z",
+      "updated": "2026-11-21T13:55:54Z"
     }
   ]
 }
