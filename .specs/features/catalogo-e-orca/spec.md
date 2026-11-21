@@ -63,6 +63,7 @@ Proof: run unit | test_catalogo_lido_uma_vez (test_catalogo_e_orca.CatalogoEOrca
 
 **C4** - `orca_cli`: `env` tira as chaves proibidas e completa as pastas do Windows; `run` com executável falso dá sucesso com `data`, `ok:false` com `error.message`, 127, 124 e 126, sem exceção (R4)
 Proof: run unit | test_orca_cli_run_e_env (test_catalogo_e_orca.CatalogoEOrcaTests.test_orca_cli_run_e_env) ... ok
+Proof: run unit | test_saida_127_124_126_do_orca (test_catalogo_e_orca.CatalogoEOrcaTests.test_saida_127_124_126_do_orca) ... ok
 
 **C5** - Nenhum `shutil.which("orca")` fora do `orca_cli.py` em `scripts/` e `hooks/`, e `screens`, banner e `dispatch` importam o `orca_cli` (R5)
 Proof: run unit | test_um_adaptador_da_orca (test_catalogo_e_orca.CatalogoEOrcaTests.test_um_adaptador_da_orca) ... ok
@@ -78,7 +79,7 @@ Proof: run unit | test_decisions_e_changelog (test_catalogo_e_orca.CatalogoEOrca
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Q verifica
+**Next:** provas e done, depois Guinan
 **Linear:** SC-211
 **Integration branch:** feature/catalogo-e-orca
 **Last integrated:** T1
