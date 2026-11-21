@@ -75,14 +75,15 @@ Proof: run unit | test_decisions_e_changelog (test_versao_e_retro.VersaoERetroTe
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Plugin:** none yet
+**Next:** provas, depois Q
 **Linear:** SC-212
 **Integration branch:** feature/versao-e-retro
-**Last integrated:** none
-**Dispatched:** T1 · SC-212 · base dba7365 · claude:claude-sonnet-5-5 · 2026-11-21T20:54:56Z · ctx_9d7f956cf580
+**Last integrated:** T1
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
 **Reports:** none
