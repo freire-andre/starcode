@@ -80,7 +80,7 @@ Proof: run unit | test_decisions_e_changelog (test_falhas_start_settle.FalhasSta
 **Next:** LaForge implementa T1
 **Linear:** SC-208
 **Integration branch:** feature/falhas-start-settle
-**Last integrated:** none
+**Last integrated:** 247cd989e6352170728f6e46ce5df4046a21536a
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
