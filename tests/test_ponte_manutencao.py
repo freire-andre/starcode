@@ -124,7 +124,7 @@ class PonteManutencaoTests(TempRepoCase):
         grava("T1 · PROJ-7 · base abc1234")
         with self.assertRaises(ValueError) as cm:
             dispatch.overdue("demo", self.repo, 30, "2026-11-07T16:45:00Z")
-        self.assertIn("entrada de Dispatched sem horário legível: T1 · PROJ-7", str(cm.exception))
+        self.assertEqual(str(cm.exception), "entrada de Dispatched sem horário legível: T1 · PROJ-7 · base abc1234")
         # settle: a base vem do leitor; entrada sem base é recusada com saída 2, antes do gate
         run_git(self.repo, "checkout", "-q", "-b", "feature/demo")
         out: list[str] = []
@@ -143,10 +143,25 @@ class PonteManutencaoTests(TempRepoCase):
         gate = FakeGate(code=1, out="FALHA: x")
         with mock.patch.object(handoff, "parse_dispatch_entry", spy):
             code = dispatch.settle("demo", "T1", "main", self.repo, runner=gate, emit=out.append)
-        self.assertEqual(code, 1)
-        self.assertEqual(out[0], "gate vermelho: T1")
+        self.assertEqual((code, out), (1, ["gate vermelho: T1", "FALHA: x"]))
         self.assertEqual([c.args[0] for c in spy.call_args_list], [START_SEM_ID])
         self.assertEqual(gate.calls[gate.gates()[0]][-5:-2], ["demo", "T1", "1a2b3c4..main"])
+        # caminho de sucesso: gate verde, merge do ramo do ticket e a mesma saída de sempre
+        run_git(self.repo, "checkout", "-q", "-b", "ticket/t1")
+        (self.repo / "a.txt").write_text("x\n", encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "feat: T1")
+        run_git(self.repo, "checkout", "-q", "feature/demo")
+        grava(START_SEM_ID)
+        out.clear()
+        spy.reset_mock()
+        gate = FakeGate()
+        with mock.patch.object(handoff, "parse_dispatch_entry", spy):
+            code = dispatch.settle("demo", "T1", "ticket/t1", self.repo, runner=gate, emit=out.append)
+        short = run_git(self.repo, "rev-parse", "--short", "HEAD")
+        self.assertEqual((code, out), (0, [f"integrado T1 em feature/demo: {short}"]))
+        self.assertEqual([c.args[0] for c in spy.call_args_list], [START_SEM_ID])
+        self.assertEqual(gate.calls[gate.gates()[0]][2:6], ["ticket", "demo", "T1", "1a2b3c4..ticket/t1"])
 
     def test_overdue_preserva_campo_de_issues(self):  # C2 (achado 1)
         self.write_repo_config()
