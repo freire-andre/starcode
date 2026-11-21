@@ -29,7 +29,7 @@ Proof: run unit | test_decisions_covers_portavel (test_coverage_rule.CoverageRul
 **Phase:** review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** provas, q-waive e done
+**Next:** push e PR (confirmação)
 **Linear:** SC-209
 **Integration branch:** feature/covers-portavel
 **Last integrated:** T1 (67ef1fa)
