@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-210
-**May change**: scripts/snapshot.py, scripts/gates/check_scope.py, scripts/screens.py, scripts/gates/validate_verification.py, scripts/gates/images.py, tests/test_restauracao_e_telas.py, tests/test_snapshot.py, tests/test_screens.py, tests/test_images.py, tests/test_validate_verification.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/snapshot.py, scripts/gates/check_scope.py, scripts/screens.py, scripts/gates/validate_verification.py, scripts/gates/images.py, tests/test_restauracao_e_telas.py, tests/test_snapshot.py, tests/test_screens.py, tests/test_images.py, tests/test_validate_verification.py, tests/test_validate_verification_screens.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Itens R.5 e R.10 da triagem v2 (seção 10), missão 5 do passo 4. Discovery em `.specs/features/restauracao-e-telas/context.md`. Hoje:
@@ -79,7 +79,7 @@ Proof: run unit | test_decisions_e_changelog (test_restauracao_e_telas.Restaurac
 **Linear:** SC-210
 **Integration branch:** feature/restauracao-e-telas
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-210 · base c5da9a6 · claude:claude-sonnet-5-5 · 2026-11-21T15:57:52Z · ctx_a90d65c5fbe5
 **Settled:** none
 **Attempts:** none
 **Reports:** none
