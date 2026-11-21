@@ -70,6 +70,13 @@ class FalhasStartSettleTests(TempRepoCase):
                                    emit=out.append)
         return code, res, out
 
+    def start_json(self, runner):
+        real = dispatch.start
+        with mock.patch.object(dispatch, "start", side_effect=lambda *a, **k: real(*a, runner=runner, **k)),                 mock.patch("sys.stdout", new_callable=io.StringIO) as so,                 mock.patch("sys.stderr", new_callable=io.StringIO) as se:
+            code = dispatch.main(["start", "demo", "T1", "--cli", "claude", "--model", "claude-sonnet-5-5",
+                                  "--json", "--root", str(self.repo)])
+        return code, so.getvalue(), se.getvalue()
+
     def ticket_branch(self, fname: str, text: str = "x\n") -> None:
         run_git(self.repo, "checkout", "-q", "-b", "ticket/t1")
         (self.repo / fname).write_text(text, encoding="utf-8")
@@ -116,17 +123,36 @@ class FalhasStartSettleTests(TempRepoCase):
         code2, _, out2 = self.start(FakeOrca(receipt={"model": "m"}))
         self.assertEqual(code2, 3)
         self.assertIn("worker ativo sem id de despacho: T1 · -: confira com orca orchestration list", out2)
-        # --json: o mesmo objeto de recibo, no stdout, com código 3
-        with mock.patch.object(dispatch, "start", return_value=(3, res)), \
-                mock.patch("sys.stdout", new_callable=io.StringIO) as so:
-            code3 = dispatch.main(["start", "demo", "T1", "--cli", "claude", "--model", "m", "--json",
-                                   "--root", str(self.repo)])
+        # --json: o main roda o start de verdade, com o runner falso, e imprime o recibo com código 3
+        base3 = self.publish("none")
+        code3, so, se = self.start_json(FakeOrca(receipt={"model": "claude-sonnet-5-5", "worktree": {"id": "wt-123"}}))
         self.assertEqual(code3, 3)
-        self.assertEqual(json.loads(so.getvalue()), res)
+        self.assertEqual(json.loads(so), {"ticket": "T1", "issue": "PROJ-1", "base": base3, "dispatch": "",
+                                          "worktree": "wt-123", "model": "claude-sonnet-5-5"})
+        self.assertEqual(so.count("\n"), 1)  # uma só linha de JSON no stdout
+        brief, *resto = se.splitlines()
+        self.assertRegex(brief, r"^briefing: .+demo-T1.md$")
+        self.assertEqual(resto, [f"Dispatched: T1 registrado (base {base3})", "status In Progress: PROJ-1",
+                                 "label crew:laforge: PROJ-1",
+                                 "worker ativo sem id de despacho: T1 · wt-123: confira com orca orchestration list",
+                                 "worktree wt-123 ligado a PROJ-1"])
         # com id, o caminho de sempre segue com 0
         self.publish("none")
         code4, _, _ = self.start(FakeOrca(receipt=RECEIPT))
         self.assertEqual(code4, 0)
+        # com id e --json: código 0 e o objeto de recibo completo
+        base5 = self.publish("none")
+        code5, so5, se5 = self.start_json(FakeOrca(receipt=RECEIPT))
+        self.assertEqual(code5, 0)
+        self.assertEqual(json.loads(so5), {"ticket": "T1", "issue": "PROJ-1", "base": base5,
+                                           "dispatch": "ctx_abc", "worktree": "wt-123",
+                                           "model": "claude-sonnet-5-5"})
+        brief5, *resto5 = se5.splitlines()
+        self.assertRegex(brief5, r"^briefing: .+demo-T1.md$")
+        self.assertEqual(resto5, [f"Dispatched: T1 registrado (base {base5})", "status In Progress: PROJ-1",
+                                  "label crew:laforge: PROJ-1",
+                                  "worker iniciado: T1 · claude:claude-sonnet-5-5 · ctx_abc",
+                                  "worktree wt-123 ligado a PROJ-1"])
 
     # C3
     def test_merge_falha_sem_conflito(self):
