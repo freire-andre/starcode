@@ -184,7 +184,8 @@
         "opencode-copia-instalada",
         "verificacao-1-8-0",
         "pequena-minima",
-        "pr-review"
+        "pr-review",
+        "restauracao-e-telas"
       ],
       "sources": [
         ".specs/features/fase-11-telas/verification.md:achado 3",
@@ -193,11 +194,12 @@
         ".specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check)",
         ".specs/features/verificacao-1-8-0/verification.md:40",
         "verification.md: achado 2 (prova da C4 sem settle)",
-        "verification.md: achado 2 (edge case sem check)"
+        "verification.md: achado 2 (edge case sem check)",
+        "verification.md achado 1"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-19T14:18:00Z"
+      "updated": "2026-11-21T17:36:00Z"
     },
     {
       "id": "L11",
@@ -1369,6 +1371,21 @@
       "scope": "",
       "created": "2026-11-21T13:55:54Z",
       "updated": "2026-11-21T13:55:54Z"
+    },
+    {
+      "id": "L84",
+      "text": "Ao ler formato binário por chunks, confira o comprimento declarado contra o tamanho do arquivo antes de aceitar o chunk; teste chunk truncado no cabeçalho, nos dados e no CRC, e chunk de comprimento zero.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "restauracao-e-telas"
+      ],
+      "sources": [
+        "verification.md achado 2"
+      ],
+      "scope": "leitores de formato binário",
+      "created": "2026-11-21T17:36:00Z",
+      "updated": "2026-11-21T17:36:00Z"
     }
   ]
 }
