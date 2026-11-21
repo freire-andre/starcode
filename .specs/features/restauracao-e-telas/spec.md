@@ -74,10 +74,10 @@ Proof: run unit | test_decisions_e_changelog (test_restauracao_e_telas.Restaurac
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** push e PR (com confirmação), depois Worf
+**Next:** missão 6 do passo 4: C.6 e N.5
 **Linear:** SC-210
 **Integration branch:** feature/restauracao-e-telas
 **Last integrated:** T1 (82be556)

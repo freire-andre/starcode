@@ -14,7 +14,6 @@ import argparse
 import json
 import re
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -24,6 +23,7 @@ sys.path.insert(0, str(HERE / "gates"))
 
 import gates_common as gc  # noqa: E402
 import images  # noqa: E402
+import orca_cli  # noqa: E402
 import validate_verification as vv  # noqa: E402
 
 TIMEOUT = 60
@@ -40,29 +40,19 @@ def _one_line(text: str) -> str:
 
 
 def _orca(step: str, args: list[str]) -> dict:
-    exe = shutil.which("orca")
-    if not exe:
+    res = orca_cli.run(args, TIMEOUT)
+    kind = res["kind"]
+    if kind == "missing":
         raise ScreenError(f"{step}: o CLI `orca` não está no PATH")
-    try:
-        res = subprocess.run([exe, *args], stdin=subprocess.DEVNULL, capture_output=True,
-                             text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT)
-    except subprocess.TimeoutExpired:
-        raise ScreenError(f"{step}: tempo esgotado ({TIMEOUT} s)") from None
-    except OSError as exc:
-        raise ScreenError(f"{step}: não foi possível rodar o `orca` ({exc.strerror or exc})") from None
-    stdout = (res.stdout or "").strip()
-    try:
-        data = json.loads(stdout) if stdout else {}
-    except ValueError:
-        data = None
-    failed = res.returncode != 0 or (isinstance(data, dict) and data.get("ok") is False)
-    if failed:
-        reason = ""
-        if isinstance(data, dict):
-            err = data.get("error")
-            reason = err.get("message", "") if isinstance(err, dict) else (err or "")
-        reason = reason or (res.stderr or "").strip() or stdout or f"saiu com {res.returncode}"
-        raise ScreenError(f"{step}: {_one_line(reason)}")
+    if kind == "timeout":
+        raise ScreenError(f"{step}: tempo esgotado ({TIMEOUT} s)")
+    if kind == "oserror":
+        raise ScreenError(f"{step}: não foi possível rodar o `orca` ({res['error']})")
+    if res["error"] is not None:
+        raise ScreenError(f"{step}: {_one_line(res['error'])}")
+    data = res["data"]
+    if data is None and not res["stdout"].strip():
+        data = {}
     if not isinstance(data, dict):
         raise ScreenError(f"{step}: resposta do `orca` não é JSON")
     return data

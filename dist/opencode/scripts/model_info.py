@@ -23,6 +23,7 @@ import os
 import sys
 import tempfile
 import time
+import unicodedata
 import urllib.request
 from pathlib import Path
 
@@ -75,6 +76,21 @@ def _read(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _valid_shape(data: dict) -> bool:
+    """Ao menos um provedor cujo valor é objeto com `models` objeto."""
+    return any(isinstance(p, dict) and isinstance(p.get("models"), dict) for p in data.values())
+
+
+def _clean(text, limit: int) -> str:
+    """Sem caracteres de controle (categoria C*), espaços seguidos num só, cortado em `limit`."""
+    text = "" if text is None else str(text)
+    text = "".join(" " if ch.isspace() else ch for ch in text if ch.isspace() or unicodedata.category(ch)[0] != "C")
+    return " ".join(text.split())[:limit]
+
+
+_CATALOG: dict = {}  # origem (str) -> catálogo já interpretado (ou None se inválido)
+
+
 def download(dest: Path | None = None, timeout: int = 20) -> dict | None:
     dest = dest or cache_path()
     try:
@@ -84,32 +100,41 @@ def download(dest: Path | None = None, timeout: int = 20) -> dict | None:
         data = json.loads(raw)
     except Exception:  # noqa: BLE001 - offline, DNS, bad JSON: the caller falls back
         return None
-    if not isinstance(data, dict):
+    if not isinstance(data, dict) or not _valid_shape(data):
         return None
     dest.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".models-dev.", suffix=".tmp", dir=dest.parent)
     with os.fdopen(fd, "wb") as fh:
         fh.write(raw)
     os.replace(tmp, dest)
+    _CATALOG[str(dest)] = data
     return data
 
 
+def _read_once(path: Path) -> dict | None:
+    key = str(path)
+    if key not in _CATALOG:
+        _CATALOG[key] = _read(path)  # None (ausente ou inválido) também fica memorizado
+    return _CATALOG[key]
+
+
 def load_catalog(fetch: bool = True) -> dict | None:
-    """Local file override, else a fresh cache, else a download (fetch=True), else a stale cache."""
+    """Local file override, else a fresh cache, else a download (fetch=True), else a stale cache.
+    O arquivo é interpretado uma vez por processo e por origem."""
     override = os.environ.get("STARCODE_MODELS_DEV_FILE")
     if override:
-        return _read(Path(override))
+        return _read_once(Path(override))
     path = cache_path()
     fresh = path.exists() and time.time() - path.stat().st_mtime < MAX_AGE_S
     if fresh:
-        data = _read(path)
+        data = _read_once(path)
         if data is not None:
             return data
     if fetch:
         data = download(path)
         if data is not None:
             return data
-    return _read(path) if path.exists() else None
+    return _read_once(path) if path.exists() else None
 
 
 # --- lookup and analysis --------------------------------------------------------------------
@@ -209,12 +234,12 @@ def info(catalog: dict, model_id: str, cli: str | None = None) -> dict:
     t = tier(entry, model_id)
     cost = entry.get("cost") or {}
     return {
-        "id": model_id, "found": True, "name": entry.get("name", model_id), "provider": provider,
+        "id": model_id, "found": True, "name": _clean(entry.get("name", model_id), 80), "provider": provider,
         "family": vendor(provider, entry, model_id), "tier": t,
         "costInput": cost.get("input"), "costOutput": cost.get("output"),
         "context": (entry.get("limit") or {}).get("context"),
         "toolCall": entry.get("tool_call") is True, "reasoning": entry.get("reasoning") is True,
-        "description": (entry.get("description") or "").strip(), "fit": fit(entry, t),
+        "description": _clean(entry.get("description"), 200), "fit": fit(entry, t),
     }
 
 
@@ -247,12 +272,12 @@ def render(card: dict) -> str:
         return (f"❔ {card['id']}: não está no catálogo do models.dev. Confira o ID com `opencode models` e "
                 "informe a faixa de custo à mão (grátis, $, $$ ou $$$).")
     ctx = f"{card['context'] // 1000}k" if card.get("context") else "?"
-    lines = [f"🔎 {card['name']} ({card['id']})",
+    lines = [f"🔎 {_clean(card['name'], 80)} ({card['id']})",
              f"   Família: {card['family']} · faixa {card['tier']} · US$ {_money(card['costInput'])} entrada / "
              f"{_money(card['costOutput'])} saída por 1M tokens · contexto {ctx} · ferramentas "
              f"{'sim' if card['toolCall'] else 'NÃO'} · raciocínio {'sim' if card['reasoning'] else 'não'}"]
     if card["description"]:
-        lines.append(f"   {card['description'][:200]}")
+        lines.append(f"   {_clean(card['description'], 200)}")
     for group, verdict in card["fit"].items():
         mark = "✅" if verdict == "ok" else ("⛔" if verdict.startswith("vetado") else "⚠️")
         lines.append(f"   {mark} {GROUP_LABEL[group]}: {verdict}")
