@@ -439,18 +439,51 @@ class CatalogoEOrcaTests(unittest.TestCase):
             self.assertIsNotNone(pm, label)
             parts[label] = pm.group(1)
         decisao = parts["Decisão"]
-        for term in ("R1:", "`model_info.download`", "`models` objeto", "`None`", "`mtime`",
-                     "R2:", "`model_info.info`", "`name`", "`description`", "`C*`", "80", "200", "`--json`",
-                     "`render`", "R3:", "`load_catalog`", "`STARCODE_MODELS_DEV_FILE`", "`cached_family`",
-                     "`cached_tier`", "uma vez por processo",
-                     "R4:", "`resolve()`", "`env()`", "`run(args, timeout, cwd=None)`", "`NODE_*`",
-                     "`ELECTRON_RUN_AS_NODE`", "`ORCA_NODE_OPTIONS`", "`ORCA_CLI_COMMAND`", "`USERPROFILE`",
-                     "`APPDATA`", "`LOCALAPPDATA`", "`error.message`", "`saiu com <código>`", "127", "124", "126",
-                     "R5:", "`screens.py`", "`hooks/scripts/banner.py`", "`dispatch.default_runner`",
-                     "`orca_cli.run`", "`orca_cli.resolve`", "`orca_cli.env`", "`shutil.which(\"orca\")`",
-                     "R6:", "`.specs/stack/orca.md`", "`stack_cache.py write`", "1.4.268", "F10-14", "F10-8",
-                     "`orca plugin test`", "mesmo drive", "R7:", "`CHANGELOG.md`"):
-            self.assertIn(term, decisao, term)
+        esperado = {
+            "R1": (
+                "`model_info.download` só aceita JSON com ao menos um provedor cujo valor é objeto com `models` objeto; "
+                "senão devolve `None` e não toca o cache (bytes e `mtime` iguais)."
+            ),
+            "R2": (
+                "`model_info.info` limpa `name` e `description`: tira os caracteres de controle da categoria Unicode `C*` "
+                "(ESC e quebras de linha inclusive), junta espaços seguidos num só e corta o `name` em 80 e a "
+                "`description` em 200; a saída `--json` e o `render` usam o mesmo texto."
+            ),
+            "R3": (
+                "`load_catalog` interpreta o arquivo (de `STARCODE_MODELS_DEV_FILE` ou do cache) no máximo uma vez por "
+                "processo para a mesma origem; `cached_family` e `cached_tier` reutilizam o resultado e um `download` "
+                "bem-sucedido atualiza o guardado."
+            ),
+            "R4": (
+                "`scripts/orca_cli.py` oferece `resolve()` (`shutil.which`, `None` sem executável), `env()` (cópia do "
+                "ambiente sem `NODE_*`, `ELECTRON_RUN_AS_NODE`, `ORCA_NODE_OPTIONS` e `ORCA_CLI_COMMAND`; no Windows "
+                "completa `USERPROFILE`, `APPDATA` e `LOCALAPPDATA`) e `run(args, timeout, cwd=None)`, que devolve `code`, "
+                "`stdout`, `stderr`, `data` (objeto JSON do stdout ou `None`) e `error` (`None` em sucesso; em falha a "
+                "primeira mensagem não vazia entre `error.message`, `error` texto, stderr, stdout e `saiu com <código>`), "
+                "sem levantar exceção: 127 sem executável, 124 com tempo esgotado e 126 com `OSError`, e o campo `kind` "
+                "(`missing`, `timeout`, `oserror` ou `None`) diz se a falha foi de execução, de modo que o código de saída "
+                "de um `orca` que rodou e saiu com 127, 124 ou 126 não é confundido com falha de execução."
+            ),
+            "R5": (
+                "`screens.py` e `hooks/scripts/banner.py` chamam a Orca por `orca_cli.run` e `dispatch.default_runner` usa "
+                "`orca_cli.resolve` e `orca_cli.env`; nenhum `.py` fora do `orca_cli.py` chama `shutil.which(\"orca\")`, e "
+                "as mensagens e os códigos de saída dos três não mudam: `screens.py` e o banner escolhem a mensagem pelo "
+                "`kind`, então um `orca` que sai com 127, 124 ou 126 de verdade segue como falha comum do passo (`saiu com "
+                "<código>` ou a mensagem do JSON, do stderr ou do stdout)."
+            ),
+            "R6": (
+                "`.specs/stack/orca.md` (gravado por `stack_cache.py write`, versão 1.4.268) resume a resolução do CLI "
+                "(Electron, `ELECTRON_RUN_AS_NODE`, F10-14), o env, o `--current` do terminal que chama (F10-8), a "
+                "resposta `ok:false` com `error.message` e o `orca plugin test` que só roda no mesmo drive da instalação."
+            ),
+            "R7": (
+                "esta entrada e a linha no `CHANGELOG.md`."
+            ),
+        }
+        achados = dict(re.findall(r"(R\d): (.*?)(?= R\d: |$)", decisao))
+        self.assertEqual(sorted(achados), sorted(esperado))
+        for chave, frase in esperado.items():
+            self.assertEqual(achados[chave], frase, chave)  # afirmação completa de cada requisito, sem negar nem omitir
         tests = ("test_download_confere_forma", "test_texto_do_catalogo_limpo", "test_catalogo_lido_uma_vez",
                  "test_orca_cli_run_e_env", "test_saida_127_124_126_do_orca", "test_um_adaptador_da_orca", "test_stack_orca_documentada",
                  "test_decisions_e_changelog")
