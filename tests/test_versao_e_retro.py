@@ -274,6 +274,7 @@ class VersaoERetroTests(TempRepoCase):
                   "| aberto: SC-9 | 3 | baixa | depois |\n| recusado: não vale | 4 | baixa | nunca |\n"),
             "b": ("# Retro: b\n\n| # | Severidade | Categoria | Evidência | Ação proposta |\n|---|---|---|---|---|\n"
                   "| 1 | alta | spec | e | sem estado aqui |\n"),
+            "f": "# Retro sem tabela com ação proposta\n",  # sem tabela nenhuma conta como sem coluna Estado
             "c": "# Retro: c\n\n| # | Ação proposta | Estado |\n|---|---|---|\n| 1 | tudo feito | feito em 1234567 |\n",
         }.items():
             (feats / slug).mkdir(parents=True)
@@ -284,16 +285,16 @@ class VersaoERetroTests(TempRepoCase):
         root = self.retros_tree()
         code, out, err = run_main(retros, ["abertas", "--root", str(root)])
         self.assertEqual((code, err), (0, ""))
-        self.assertEqual(out, "a #1 aberto: faz &#124; isso\na #3 aberto: SC-9: depois\n1 retro(s) sem coluna Estado\n")
+        self.assertEqual(out, "a #1 aberto: faz &#124; isso\na #3 aberto: SC-9: depois\n2 retro(s) sem coluna Estado\n")
         code, out, err = run_main(retros, ["abertas", "--root", str(root), "--todas"])
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(out, "a #1 aberto: faz &#124; isso\na #3 aberto: SC-9: depois\n"
-                              "b #1 sem estado: sem estado aqui\n1 retro(s) sem coluna Estado\n")
+                              "b #1 sem estado: sem estado aqui\n2 retro(s) sem coluna Estado\n")
         code, out, err = run_main(retros, ["abertas", "--root", str(root), "--json"])
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(json.loads(out), {"retros": [
             {"slug": "a", "n": "1", "estado": "aberto", "acao": "faz &#124; isso"},
-            {"slug": "a", "n": "3", "estado": "aberto: SC-9", "acao": "depois"}], "sem_coluna_estado": 1})
+            {"slug": "a", "n": "3", "estado": "aberto: SC-9", "acao": "depois"}], "sem_coluna_estado": 2})
         code, out, _ = run_main(retros, ["abertas", "--root", str(self.tmp / "vazio")])
         self.assertEqual((code, out), (0, "0 retro(s) sem coluna Estado\n"))
 
@@ -363,7 +364,7 @@ class VersaoERetroTests(TempRepoCase):
         self.assertEqual(sorted(achados), sorted(ESPERADO))
         for chave, frase in ESPERADO.items():
             self.assertEqual(achados[chave], frase, chave)
-        tests = ("test_brief_traz_versao_do_plugin", "test_start_grava_plugin_no_handoff", "test_aviso_de_versao_diferente",
+        tests = ("test_brief_traz_versao_do_plugin", "test_start_grava_plugin_no_handoff", "test_aviso_de_versao_diferente", "test_aviso_nao_altera_start_bem_sucedido",
                  "test_retro_da_guinan_tem_estado", "test_retros_abertas", "test_retros_estado", "test_decisions_e_changelog")
         for name in tests:
             self.assertIn(f"`{name}`", parts["Por que não é bug"], name)

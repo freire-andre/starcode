@@ -83,12 +83,11 @@ def abertas(root: Path, todas: bool = False) -> tuple[list[dict], int]:
     sem_coluna = 0
     for path in retro_paths(root):
         text = path.read_text(encoding="utf-8", errors="replace")
-        missing = False
-        for table in tables(_split(text)):
+        found = tables(_split(text))
+        missing = not any(t["cols"].get("estado") is not None for t in found)  # inclui retro sem tabela
+        for table in found:
             col_estado = table["cols"].get("estado")
             col_acao = table["cols"].get("ação proposta")
-            if col_estado is None:
-                missing = True
             for pos, (_line, cells) in enumerate(table["rows"]):
                 estado = _cell(cells, col_estado) if col_estado is not None else "sem estado"
                 if col_estado is not None and not _norm(estado).startswith("aberto"):
