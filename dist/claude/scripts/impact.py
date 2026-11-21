@@ -14,10 +14,13 @@ import ast
 import json
 import posixpath
 import re
-import subprocess
 import sys
 from collections import deque
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import starcode_common as sc  # noqa: E402
 
 MAX_BYTES = 1024 * 1024  # R21: acima de 1 MiB o arquivo não entra no grafo
 TS_JS_EXTS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts")
@@ -36,15 +39,11 @@ class GraphError(Exception):
 
 def run_git(root, *args: str) -> str:
     step = " ".join(args[:2])
-    try:
-        res = subprocess.run(["git", "-c", "core.quotepath=off", *args], cwd=str(root), capture_output=True,
-                             text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
-    except OSError as exc:
-        raise ImpactError(step, str(exc)) from exc
-    if res.returncode != 0:
-        lines = (res.stderr or res.stdout).strip().splitlines()
-        raise ImpactError(step, lines[-1] if lines else f"código {res.returncode}")
-    return res.stdout
+    code, out, err = sc.run_git(["-c", "core.quotepath=off", *args], root)
+    if code != 0:
+        lines = (err or out).strip().splitlines()
+        raise ImpactError(step, lines[-1] if lines else f"código {code}")
+    return out
 
 
 def split_z(out: str) -> list[str]:
