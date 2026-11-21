@@ -1,0 +1,24 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O orca_cli.run concentra resolução, env (sem NODE_*, ELECTRON_RUN_AS_NODE, ORCA_NODE_OPTIONS e ORCA_CLI_COMMAND), tempo limite e leitura do JSON, e nunca levanta exceção. O campo kind separa a falha de execução do código devolvido pelo orca. screens.py e banner decidem a mensagem pelo kind e mantêm os textos anteriores. O dispatch.default_runner só acrescenta o env quando o comando é orca. O model_info confere a forma antes de gravar o cache e memoriza por origem, inclusive o None, e o download atualiza o valor memorizado. O _clean tira a categoria C*, junta espaços e corta. Um nit: o _run do banner ignora cmd[0]. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "hooks/scripts/banner.py",
+   "line": 36,
+   "body": "O _run(cmd, ...) agora repassa só cmd[1:] ao orca_cli.run e descarta cmd[0] sem conferir se ele é 'orca'. Os dois chamadores (linhas 63 e 70) passam 'orca', mas a assinatura promete um comando genérico. Trocar por _run(args, ...) sem o 'orca' na frente ou conferir cmd[0].",
+   "evidence": "hooks/scripts/banner.py:36"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa nova: só a biblioteca padrão (subprocess, shutil.which, json, unicodedata). O comportamento do CLI da Orca segue o registrado em DECISIONS.md F10-14 e em .specs/stack/orca.md, sem sonda real, por regra deste review."
+ ],
+ "ladder": [
+  "CI local em 0f8c670 (evidência do PR): build --check, check_decisions, claude plugin validate --strict e suíte inteira (1083 testes, 1 pulado), todos verdes",
+  "módulos tocados no head: test_catalogo_e_orca 8, test_model_info 27, test_banner 24, test_screens 11, test_screens_flow 4, test_dispatch_start 17, todos OK",
+  "scan_bypasses.py: 3 candidatos (noqa E402 nos imports de orca_cli depois do sys.path.insert em banner.py:29, dispatch.py:80 e screens.py:26), descartados, porque seguem o padrão dos imports vizinhos"
+ ]
+}
