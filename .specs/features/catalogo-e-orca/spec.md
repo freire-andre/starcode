@@ -78,7 +78,7 @@ Proof: run unit | test_decisions_e_changelog (test_catalogo_e_orca.CatalogoEOrca
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** provas, depois Q
+**Next:** Q verifica
 **Linear:** SC-211
 **Integration branch:** feature/catalogo-e-orca
 **Last integrated:** T1
