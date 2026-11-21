@@ -49,7 +49,7 @@ def git(args: list[str], cwd: str | Path | None) -> str | None:
 def run_git(args: list[str], cwd: str | Path | None, timeout: float = 30, binary: bool = False,
             env: dict | None = None) -> tuple[int, Any, Any]:
     """Run git with a time limit: (code, stdout, stderr), bytes with `binary`. 124 on timeout, 127 if git is
-    missing; never raises."""
+    missing, 126 for invalid arguments or environment; never raises."""
     empty: Any = b"" if binary else ""
     kw: dict[str, Any] = {} if binary else {"text": True, "encoding": "utf-8", "errors": "replace"}
     try:
@@ -62,6 +62,9 @@ def run_git(args: list[str], cwd: str | Path | None, timeout: float = 30, binary
     except OSError:
         msg = "git não encontrado"
         return 127, empty, msg.encode("utf-8") if binary else msg
+    except (TypeError, ValueError) as exc:  # argumento ou ambiente inválido (valor não str, byte nulo)
+        msg = f"argumentos inválidos para o git: {exc}"
+        return 126, empty, msg.encode("utf-8") if binary else msg
     return res.returncode, res.stdout or empty, res.stderr or empty
 
 

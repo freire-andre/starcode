@@ -61,7 +61,11 @@ def run_git(root, *args: str, env: dict | None = None) -> str:
 def valid_names(slug: str, ticket: str) -> bool:
     if not SLUG_RE.match(slug) or not TICKET_RE.match(ticket):
         return False
-    return sc.run_git(["check-ref-format", ref_name(slug, ticket)], None)[0] == 0
+    code, out, err = sc.run_git(["check-ref-format", ref_name(slug, ticket)], None)
+    if code in (124, 126, 127):  # tempo esgotado, git ausente ou argumento inválido: não é nome inválido
+        lines = (err or out).strip().splitlines()
+        raise GitError("check-ref-format", lines[-1] if lines else f"código {code}")
+    return code == 0
 
 
 def _existing(root, ref: str) -> str | None:
@@ -99,7 +103,12 @@ def _short(root, commit: str) -> str:
 
 
 def cmd_take(args) -> int:
-    if not valid_names(args.slug, args.ticket):
+    try:
+        valid = valid_names(args.slug, args.ticket)
+    except GitError as exc:
+        print(f"snapshot falhou: {exc}")
+        return 1
+    if not valid:
         bad = args.slug if not SLUG_RE.match(args.slug) else args.ticket
         print(f"nome inválido para o snapshot: {bad}")
         return 2
@@ -268,7 +277,12 @@ def _write_pre_restore(root, slug: str, ticket: str) -> str:
 
 def cmd_restore(args) -> int:
     root = args.root
-    if not valid_names(args.slug, args.ticket):
+    try:
+        valid = valid_names(args.slug, args.ticket)
+    except GitError as exc:
+        print(f"restauração falhou: {exc}")
+        return 1
+    if not valid:
         bad = args.slug if not SLUG_RE.match(args.slug) else args.ticket
         print(f"nome inválido para o snapshot: {bad}")
         return 2
