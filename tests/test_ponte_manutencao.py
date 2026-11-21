@@ -35,6 +35,21 @@ ANTIGO = "T2 · SC-122 · base def5678 · dispatch ctx_bbb222 · model claude-op
 HANDOFF = "\n## Handoff\n**Phase:** execute\n**Integration branch:** feature/demo\n**Dispatched:** {d}\n"
 
 
+def find_bash() -> str | None:
+    """Um bash que enxerga caminhos do Windows: no Windows, o do Git (o `bash.exe` do system32 é o WSL)."""
+    if os.name != "nt":
+        return shutil.which("bash")
+    git = shutil.which("git")
+    if git is None:
+        return None
+    base = Path(git).resolve().parent
+    for root in (base.parent, base.parent.parent):
+        for rel in ("bin/bash.exe", "usr/bin/bash.exe"):
+            if (root / rel).is_file():
+                return str(root / rel)
+    return None
+
+
 def run_step() -> str:
     """O `run` do passo `orca plugin validate` do CI, lido do ci.yml."""
     for line in CI.read_text(encoding="utf-8").splitlines():
@@ -182,9 +197,9 @@ class PonteManutencaoTests(TempRepoCase):
         self.assertNotIn("storage:own", json.dumps(m))
 
     def test_ci_pulo_visivel(self):  # C7
-        bash = shutil.which("bash")
+        bash = find_bash()
         if bash is None:
-            self.skipTest("sem bash")
+            self.skipTest("sem bash compatível com caminhos do Windows (bash do Git ausente)")
         script = run_step()
         self.assertEqual(script.count("orca plugin validate src/orca --json"), 1)
         work = Path(tempfile.mkdtemp(prefix="starcode-ci-"))
@@ -197,7 +212,7 @@ class PonteManutencaoTests(TempRepoCase):
             if found:
                 shutil.copy(found, sem_orca / Path(found).name)
         summary = work / "summary.md"
-        env = {**os.environ, "GITHUB_STEP_SUMMARY": str(summary), "PATH": str(sem_orca)}
+        env = {**os.environ, "GITHUB_STEP_SUMMARY": summary.as_posix(), "PATH": str(sem_orca)}
         res = subprocess.run([bash, "-c", script], env=env, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertEqual(res.stdout.splitlines(), ["orca ausente: validação do plugin pulada", AVISO])
@@ -209,7 +224,7 @@ class PonteManutencaoTests(TempRepoCase):
         (fake / "orca").write_text(f'#!/bin/sh\necho "$@" > "{log.as_posix()}"\n', encoding="utf-8", newline="\n")
         (fake / "orca").chmod((fake / "orca").stat().st_mode | stat.S_IXUSR)
         summary2 = work / "summary2.md"
-        env2 = {**env, "GITHUB_STEP_SUMMARY": str(summary2), "PATH": f"{fake}{os.pathsep}{sem_orca}"}
+        env2 = {**env, "GITHUB_STEP_SUMMARY": summary2.as_posix(), "PATH": f"{fake}{os.pathsep}{sem_orca}"}
         res = subprocess.run([bash, "-c", script], env=env2, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertEqual(log.read_text(encoding="utf-8"), "plugin validate src/orca --json\n")
