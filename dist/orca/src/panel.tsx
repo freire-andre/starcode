@@ -100,10 +100,10 @@ function Section(props: { title: string; children?: unknown }) {
   )
 }
 
-/** `key` como token inteiro de `title`: delimitado por início, fim ou caractere não alfanumérico. */
+/** `key` como token inteiro de `title`: delimitado por início, fim ou caractere que não seja letra nem número Unicode. */
 function hasToken(title: string, key: string): boolean {
   const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`(^|[^A-Za-z0-9])${esc}($|[^A-Za-z0-9])`).test(title)
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${esc}($|[^\\p{L}\\p{N}])`, 'u').test(title)
 }
 
 function agentFor(w: PonteWorker, agents: PonteAgent[]): PonteAgent | null {
