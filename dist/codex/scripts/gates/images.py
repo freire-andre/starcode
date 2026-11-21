@@ -66,7 +66,10 @@ def _png(data: bytes) -> tuple[int, int]:
     while i + 8 <= n:
         length = struct.unpack(">I", data[i:i + 4])[0]
         tag = data[i + 4:i + 8]
-        if tag == b"IDAT":
+        if i + 12 + length > n:  # dados + CRC de 4 bytes precisam caber no arquivo
+            nome = tag.decode("latin-1")
+            raise ImageError(f"PNG truncado (chunk {nome} incompleto)")
+        if tag == b"IDAT" and length > 0:
             return struct.unpack(">II", data[16:24])
         if tag == b"IEND":
             break
