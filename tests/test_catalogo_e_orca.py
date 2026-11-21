@@ -1,6 +1,7 @@
 """SC-211: catálogo conferido (model_info) e adaptador único da Orca (orca_cli)."""
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
 import json
@@ -47,6 +48,13 @@ elif mode == "lista":
     print("[1, 2]")
 elif mode == "env":
     print(json.dumps({"ok": True, "env": sorted(os.environ), "cwd": os.getcwd()}))
+"""
+
+PROBE = """\
+import shutil
+x = shutil.which ( "orca")  # which("orca") em comentário
+y = "shutil.which('orca')"
+z = which("orca.cmd")
 """
 
 FORBIDDEN = ("NODE_OPTIONS", "NODE_PATH", "ELECTRON_RUN_AS_NODE", "ORCA_NODE_OPTIONS", "ORCA_CLI_COMMAND")
@@ -290,21 +298,63 @@ class CatalogoEOrcaTests(unittest.TestCase):
             self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` falhou (a Orca está aberta?)")
 
     # --- C5 ---------------------------------------------------------------------------------
+    @staticmethod
+    def _which_orca_calls(path: Path) -> list[int]:
+        """Linhas das chamadas efetivas (AST) de `which("orca")` ou `shutil.which ("orca")`."""
+        found = []
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            f = node.func
+            name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
+            arg = node.args[0]
+            if (name == "which" and isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+                    and arg.value.startswith("orca")):
+                found.append(node.lineno)
+        return found
+
     def test_um_adaptador_da_orca(self):
-        pat = re.compile(r"which\(\s*[\"']orca[\"']")
+        probe = self.tmp / "probe.py"
+        probe.write_text(PROBE, encoding="utf-8")
+        self.assertEqual(self._which_orca_calls(probe), [2, 4])  # acha chamada com espaço; ignora comentário e string
         offenders = []
         for folder in ("scripts", "hooks"):
             for p in (ROOT / folder).rglob("*.py"):
-                if p.name != "orca_cli.py" and pat.search(p.read_text(encoding="utf-8")):
+                if p.name != "orca_cli.py" and self._which_orca_calls(p):
                     offenders.append(p.relative_to(ROOT).as_posix())
         self.assertEqual(offenders, [])
-        for mod, needs in ((screens, ("orca_cli.run",)), (banner, ("orca_cli.run",)),
-                           (dispatch, ("orca_cli.resolve", "orca_cli.env"))):
-            src = Path(mod.__file__).read_text(encoding="utf-8")
-            self.assertIn("import orca_cli", src, mod.__name__)
-            self.assertIs(mod.orca_cli, orca_cli)
-            for n in needs:
-                self.assertIn(n, src, mod.__name__)
+        self.assertEqual(len(self._which_orca_calls(ROOT / "scripts" / "orca_cli.py")), 1)
+        for mod in (screens, banner, dispatch):
+            self.assertIs(mod.orca_cli, orca_cli, mod.__name__)
+        # os três consumidores chamam o adaptador (espionado), não o executável
+        calls = []
+
+        def fake_run(args, timeout, cwd=None):
+            calls.append(("run", list(args), timeout, cwd))
+            return {"code": 0, "stdout": "{}", "stderr": "", "data": {}, "kind": None, "error": None}
+
+        def fake_resolve():
+            calls.append(("resolve",))
+            return "/x/orca-falso"
+
+        def fake_env():
+            calls.append(("env",))
+            return {"MARCA": "1"}
+
+        with mock.patch.object(orca_cli, "run", side_effect=fake_run),                 mock.patch.object(orca_cli, "resolve", side_effect=fake_resolve),                 mock.patch.object(orca_cli, "env", side_effect=fake_env),                 mock.patch.object(shutil, "which", side_effect=AssertionError("which direto")),                 mock.patch.object(subprocess, "run") as sub:
+            screens._orca("exec", ["a", "--json"])
+            self.assertEqual(calls, [("run", ["a", "--json"], screens.TIMEOUT, None)])
+            calls.clear()
+            self.assertEqual(banner._run(["orca", "status", "--json"], 30, cwd="/c"), (0, "{}"))
+            self.assertEqual(calls, [("run", ["status", "--json"], 30, "/c")])
+            calls.clear()
+            banner.check_orca()
+            self.assertEqual(calls, [("run", ["status", "--json"], banner.ORCA_TIMEOUT, None)])
+            calls.clear()
+            dispatch.default_runner(["orca", "x"], capture_output=True)
+            self.assertEqual(calls, [("resolve",), ("env",)])
+            self.assertEqual(sub.call_args.args[0], ["/x/orca-falso", "x"])
+            self.assertEqual(sub.call_args.kwargs["env"], {"MARCA": "1"})
         self.fake_orca("okfalse")
         with self.assertRaises(screens.ScreenError) as cm:
             screens._orca("exec", ["x"])
