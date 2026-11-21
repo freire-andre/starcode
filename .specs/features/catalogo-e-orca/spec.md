@@ -75,13 +75,13 @@ Proof: run unit | test_decisions_e_changelog (test_catalogo_e_orca.CatalogoEOrca
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** provas, depois Q
 **Linear:** SC-211
 **Integration branch:** feature/catalogo-e-orca
-**Last integrated:** none
+**Last integrated:** T1
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
