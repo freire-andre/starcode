@@ -341,18 +341,18 @@ def overdue(slug: str, root: Path, minutes: int | None = None, now: str | None =
         tid = handoff.entry_ticket(e).upper()
         if tid in done:
             continue
-        parts = [x.strip() for x in e.split("·")]
-        if parts[-1] == "blocked":
+        info = handoff.parse_dispatch_entry(e)
+        if info["blocked"]:
             continue
         try:
-            started = _parse_utc(parts[4])
-        except (IndexError, ValueError):
+            if info["at"] is None:
+                raise ValueError("sem horário")
+            started = _parse_utc(info["at"])
+        except ValueError:
             raise ValueError(f"entrada de Dispatched sem horário legível: {e}")
         elapsed = int((clock - started).total_seconds() // 60)
         if (clock - started).total_seconds() > minutes * 60:
-            extra = parts[5:]
-            did = next((x for x in extra if x and x != "blocked" and not x.startswith("model ")), "-")
-            late.append(f"{tid} · {parts[1] if len(parts) > 1 else '-'} · {elapsed} min · {did}")
+            late.append(f"{tid} · {info['issues_text'] or '-'} · {elapsed} min · {info['dispatch'] or '-'}")
     return (0 if late else 1), late
 
 
@@ -875,11 +875,6 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
                "worktree": rec["worktree"], "model": used}
 
 
-def _entry_base(entry: str) -> str:
-    parts = [x.strip() for x in entry.split("·")]
-    return parts[2].removeprefix("base").strip() if len(parts) > 2 else ""
-
-
 def settle(slug: str, ticket: str, branch: str, root: Path, runner=default_runner,
            emit=print) -> int:
     """Integrate one ticket into feature/<slug> (R12-R17). Exit 2 refuses before the gate and the merge."""
@@ -909,7 +904,7 @@ def settle(slug: str, ticket: str, branch: str, root: Path, runner=default_runne
                   if handoff.entry_ticket(e).upper() == tid), None)
     if entry is None:
         return refuse(f"{tid} não tem entrada em Dispatched")
-    base = _entry_base(entry)
+    base = handoff.parse_dispatch_entry(entry)["base"]
     if not base:
         return refuse(f"a entrada de {tid} em Dispatched não traz a base")
     _, current, _ = _call(runner, ["git", "rev-parse", "--abbrev-ref", "HEAD"], proj)

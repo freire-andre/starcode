@@ -136,17 +136,12 @@ def linear_ids(value: str) -> list[str]:
 
 
 def parse_dispatched(value: str) -> list[dict]:
-    """`<label> · <issues> · base <hash> · dispatch <ctx> · model <m>`, entries joined by `; `."""
+    """Entries of `**Dispatched:**` (joined by `;`) read by `handoff.parse_dispatch_entry`."""
     workers = []
     for entry in handoff.dispatch_entries(value):
-        parts = [p.strip() for p in entry.split(" · ")]
-        worker = {"label": parts[0], "issues": linear_ids(parts[1]) if len(parts) > 1 else [],
-                  "base": None, "dispatch": None, "model": None}
-        for part in parts[2:]:
-            for key in ("base", "dispatch", "model"):
-                if part.startswith(key + " ") and worker[key] is None:
-                    worker[key] = part[len(key) + 1:].strip()
-        workers.append(worker)
+        e = handoff.parse_dispatch_entry(entry)
+        workers.append({"label": e["ticket"] or "", "issues": e["issues"], "base": e["base"],
+                        "dispatch": e["dispatch"], "model": e["model"]})
     return workers
 
 

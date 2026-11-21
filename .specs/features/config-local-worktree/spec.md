@@ -68,10 +68,10 @@ Proof: run unit | test_skill_e_decisions (test_config_local_worktree.ConfigLocal
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** missão 2 do passo 4: C.4, C.8 e C.9
 **Linear:** SC-206
 **Integration branch:** feature/config-local-worktree
 **Last integrated:** 41e0458

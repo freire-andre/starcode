@@ -357,7 +357,8 @@
         "retro-fase9",
         "fecha-achado",
         "licoes-no-brief",
-        "config-local-worktree"
+        "config-local-worktree",
+        "ponte-manutencao"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -371,11 +372,12 @@
         ".specs/features/retro-fase9/verification.md:25",
         ".specs/features/fecha-achado/verification.md:achado 4",
         ".specs/features/licoes-no-brief/verification.md:achado 2",
-        ".specs/features/config-local-worktree/verification.md:achado 4"
+        ".specs/features/config-local-worktree/verification.md:achado 4",
+        ".specs/features/ponte-manutencao/verification.md achado 3"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-20T15:46:04Z"
+      "updated": "2026-11-21T00:46:37Z"
     },
     {
       "id": "L21",
@@ -571,7 +573,8 @@
         "sessions-concorrente",
         "roteamento-worf-mccoy",
         "licoes-no-brief",
-        "config-local-worktree"
+        "config-local-worktree",
+        "ponte-manutencao"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -587,11 +590,12 @@
         ".specs/features/sessions-concorrente/verification.md:achado 3",
         ".specs/features/roteamento-worf-mccoy/verification.md:achado 4",
         ".specs/features/licoes-no-brief/verification.md:achado 3",
-        ".specs/features/config-local-worktree/verification.md:achado 5"
+        ".specs/features/config-local-worktree/verification.md:achado 5",
+        ".specs/features/ponte-manutencao/verification.md achado 4"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-20T15:46:04Z"
+      "updated": "2026-11-21T00:46:37Z"
     },
     {
       "id": "L33",
@@ -1241,6 +1245,51 @@
       "scope": "",
       "created": "2026-11-20T15:46:04Z",
       "updated": "2026-11-20T15:46:04Z"
+    },
+    {
+      "id": "L76",
+      "text": "Ao trocar um leitor próprio por um compartilhado, compare a saída antiga e a nova de cada chamador campo a campo, porque o leitor comum pode normalizar um valor que o chamador imprimia como estava.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "ponte-manutencao"
+      ],
+      "sources": [
+        ".specs/features/ponte-manutencao/verification.md achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-21T00:46:37Z",
+      "updated": "2026-11-21T00:46:37Z"
+    },
+    {
+      "id": "L77",
+      "text": "Delimitador de token inteiro deve tratar letras e números Unicode como parte do token (\\p{L}\\p{N} com a flag u), não só [A-Za-z0-9], e o teste deve cobrir acento nos dois limites.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "ponte-manutencao"
+      ],
+      "sources": [
+        ".specs/features/ponte-manutencao/verification.md achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-21T00:46:37Z",
+      "updated": "2026-11-21T00:46:37Z"
+    },
+    {
+      "id": "L78",
+      "text": "Teste que executa bash no Windows não deve usar shutil.which('bash'), que pode achar o bash do WSL sem acesso aos caminhos do Windows; use o bash do Git ou pule o teste com motivo.",
+      "signal": "gate_fail",
+      "status": "candidate",
+      "features": [
+        "ponte-manutencao"
+      ],
+      "sources": [
+        ".specs/features/ponte-manutencao/verification.md achado 5"
+      ],
+      "scope": "testes no Windows",
+      "created": "2026-11-21T00:46:38Z",
+      "updated": "2026-11-21T00:46:38Z"
     }
   ]
 }
