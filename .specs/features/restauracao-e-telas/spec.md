@@ -54,6 +54,7 @@ None.
 
 **C1** - Escopo ampliado na árvore depois do snapshot não entra na restauração; snapshot sem artefato dá código 2, a linha exata e nenhum arquivo mudado (R1)
 Proof: run unit | test_restore_le_escopo_do_snapshot (test_restauracao_e_telas.RestauracaoETelasTests.test_restore_le_escopo_do_snapshot) ... ok
+Proof: run unit | test_restore_snapshot_sem_artefato_sai_2 (test_restauracao_e_telas.RestauracaoETelasTests.test_restore_snapshot_sem_artefato_sai_2) ... ok
 
 **C2** - Tabela de URLs: os quatro hosts locais, o host em maiúsculas e um host liberado passam; outro host dá código 2 e a linha exata, sem chamar a Orca (R2)
 Proof: run unit | test_capture_so_host_local (test_restauracao_e_telas.RestauracaoETelasTests.test_capture_so_host_local) ... ok
