@@ -29,12 +29,12 @@ Proof: run unit | test_decisions_covers_portavel (test_coverage_rule.CoverageRul
 **Phase:** pr-review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** Worf revisa o PR #78
+**Next:** publicar r1, push do review, merge (confirmação)
 **Linear:** SC-209
 **Integration branch:** feature/covers-portavel
 **Last integrated:** T1 (67ef1fa)
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-21: Worf r1 APPROVE (sem achados)
 **Breaker:** closed
