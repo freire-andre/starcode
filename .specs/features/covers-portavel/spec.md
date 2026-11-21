@@ -26,13 +26,13 @@ Proof: run unit | test_decisions_covers_portavel (test_coverage_rule.CoverageRul
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** SMALL
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** provas, q-waive e done
 **Linear:** SC-209
 **Integration branch:** feature/covers-portavel
-**Last integrated:** none
+**Last integrated:** T1 (67ef1fa)
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
