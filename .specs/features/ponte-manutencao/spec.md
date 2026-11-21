@@ -86,12 +86,12 @@ Proof: run unit | test_decisions_e_changelog (test_ponte_manutencao.PonteManuten
 **Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Worf revisa o PR #76
+**Next:** publicar r1, push do review, merge (confirmação)
 **Linear:** SC-207
 **Integration branch:** feature/ponte-manutencao
 **Last integrated:** 2b75935cc25b5107910787d3087a1023eec79c12
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-20: Worf r1 APPROVE (1 nit, W1 regex duplicada)
 **Breaker:** closed

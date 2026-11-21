@@ -1,0 +1,25 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. parse_dispatch_entry lê o formato do start (posicional) e o antigo (campos com chave) sem confundir os dois. Campo com chave nunca vira modelo ou horário, e blocked no fim é reconhecido. O overdue e o settle trocaram o corte próprio pelo leitor e mantêm a saída, com issues_text no lugar das issues normalizadas. O painel casa token por letra e número Unicode, o issue.url exige o prefixo https://linear.app/ com a barra, e o nome do worktree separa / e a barra invertida. O passo do CI segue a sintaxe documentada de ::warning title= e de GITHUB_STEP_SUMMARY. Um nit: a regex de ID do Linear agora existe duplicada. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "scripts/handoff.py",
+   "line": 158,
+   "body": "LINEAR_ID_RE repete, caractere por caractere, a LINEAR_TOKEN_RE de scripts/ponte.py:35, que continua em uso em linear_ids (scripts/ponte.py:222). Se uma das duas mudar, o painel passa a ler as issues do Dispatched diferente do campo Linear. Sugestão: o ponte.py importar handoff.LINEAR_ID_RE.",
+   "evidence": "scripts/ponte.py:35"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "Context7 /websites/github_en_actions: workflow commands (::warning title={title}::{message}; echo ... >> $GITHUB_STEP_SUMMARY), https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands"
+ ],
+ "ladder": [
+  "python tools/build.py --check, check_decisions, claude plugin validate --strict, orca plugin validate e suíte inteira (1053 testes, 1 pulado): verdes em aff73e5 (evidência do PR)",
+  "módulos tocados no head 6d639a6: test_ponte_manutencao 7, test_ponte 21, test_handoff 13, test_dispatch 56, test_orca_manifest 2, test_ci_workflow 15, todos OK",
+  "orca plugin test src/orca no worktree do C: em 6d639a6: 74 ok, 0 falhas",
+  "scan_bypasses.py: 7 candidatos (6 noqa E731 no lambda de handoff.py e cópias em dist/; 1 as any em fixture de teste do painel), nenhum vira achado"
+ ]
+}
