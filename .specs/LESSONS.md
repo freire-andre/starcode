@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 17
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2, pequena-minima, pr-review, roteamento-worf-mccoy
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27, verification.md: achado 3 (C7 Worf sem PR), verification.md: achados 4 e 5 (asserções por trecho), .specs/features/roteamento-worf-mccoy/verification.md:achado 5
-- updated: 2026-11-19T21:20:14Z
+- signal: `weak_test` · features: 18
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2, pequena-minima, pr-review, roteamento-worf-mccoy, catalogo-e-orca
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27, verification.md: achado 3 (C7 Worf sem PR), verification.md: achados 4 e 5 (asserções por trecho), .specs/features/roteamento-worf-mccoy/verification.md:achado 5, verification.md achado 4
+- updated: 2026-11-21T20:17:26Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-20T15:46:03Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 16
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5, .specs/features/ponte-manutencao/verification.md achado 4, .specs/features/falhas-start-settle/verification.md achado 7
-- updated: 2026-11-21T13:55:53Z
+- signal: `weak_test` · features: 17
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle, catalogo-e-orca
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5, .specs/features/ponte-manutencao/verification.md achado 4, .specs/features/falhas-start-settle/verification.md achado 7, verification.md achado 5
+- updated: 2026-11-21T20:17:26Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -514,6 +514,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: restauracao-e-telas
 - sources: verification.md achado 2
 - updated: 2026-11-21T17:36:00Z
+
+### L85 - Ao memorizar o resultado de uma leitura, guarde também o resultado ausente ou inválido, e teste com espião que a segunda chamada para um arquivo inválido não relê.
+- signal: `weak_test` · features: 1 · scope: `memoização`
+- features: catalogo-e-orca
+- sources: verification.md achado 1
+- updated: 2026-11-21T20:17:26Z
+
+### L86 - Um adaptador de processo não deve sinalizar falha de execução só com códigos de saída que o processo também pode devolver (127, 124, 126); use um campo próprio e teste o processo saindo com esses códigos.
+- signal: `spec_precision_gap` · features: 1 · scope: `adaptadores de processo`
+- features: catalogo-e-orca
+- sources: verification.md achado 2
+- updated: 2026-11-21T20:17:26Z
+
+### L87 - Para provar que nenhum módulo chama algo diretamente, inspecione chamadas efetivas (AST ou espião do adaptador) e não um padrão textual, que perde variações de espaço e aceita comentários ou código inativo.
+- signal: `weak_test` · features: 1
+- features: catalogo-e-orca
+- sources: verification.md achado 3
+- updated: 2026-11-21T20:17:26Z
 
 ## Quarantined
 

@@ -39,7 +39,8 @@
         "guard-lote2",
         "pequena-minima",
         "pr-review",
-        "roteamento-worf-mccoy"
+        "roteamento-worf-mccoy",
+        "catalogo-e-orca"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -59,11 +60,12 @@
         ".specs/features/guard-lote2/verification.md:27",
         "verification.md: achado 3 (C7 Worf sem PR)",
         "verification.md: achados 4 e 5 (asserções por trecho)",
-        ".specs/features/roteamento-worf-mccoy/verification.md:achado 5"
+        ".specs/features/roteamento-worf-mccoy/verification.md:achado 5",
+        "verification.md achado 4"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-19T21:20:14Z"
+      "updated": "2026-11-21T20:17:26Z"
     },
     {
       "id": "L3",
@@ -579,7 +581,8 @@
         "licoes-no-brief",
         "config-local-worktree",
         "ponte-manutencao",
-        "falhas-start-settle"
+        "falhas-start-settle",
+        "catalogo-e-orca"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -597,11 +600,12 @@
         ".specs/features/licoes-no-brief/verification.md:achado 3",
         ".specs/features/config-local-worktree/verification.md:achado 5",
         ".specs/features/ponte-manutencao/verification.md achado 4",
-        ".specs/features/falhas-start-settle/verification.md achado 7"
+        ".specs/features/falhas-start-settle/verification.md achado 7",
+        "verification.md achado 5"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-21T13:55:53Z"
+      "updated": "2026-11-21T20:17:26Z"
     },
     {
       "id": "L33",
@@ -1386,6 +1390,51 @@
       "scope": "leitores de formato binário",
       "created": "2026-11-21T17:36:00Z",
       "updated": "2026-11-21T17:36:00Z"
+    },
+    {
+      "id": "L85",
+      "text": "Ao memorizar o resultado de uma leitura, guarde também o resultado ausente ou inválido, e teste com espião que a segunda chamada para um arquivo inválido não relê.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "catalogo-e-orca"
+      ],
+      "sources": [
+        "verification.md achado 1"
+      ],
+      "scope": "memoização",
+      "created": "2026-11-21T20:17:26Z",
+      "updated": "2026-11-21T20:17:26Z"
+    },
+    {
+      "id": "L86",
+      "text": "Um adaptador de processo não deve sinalizar falha de execução só com códigos de saída que o processo também pode devolver (127, 124, 126); use um campo próprio e teste o processo saindo com esses códigos.",
+      "signal": "spec_precision_gap",
+      "status": "candidate",
+      "features": [
+        "catalogo-e-orca"
+      ],
+      "sources": [
+        "verification.md achado 2"
+      ],
+      "scope": "adaptadores de processo",
+      "created": "2026-11-21T20:17:26Z",
+      "updated": "2026-11-21T20:17:26Z"
+    },
+    {
+      "id": "L87",
+      "text": "Para provar que nenhum módulo chama algo diretamente, inspecione chamadas efetivas (AST ou espião do adaptador) e não um padrão textual, que perde variações de espaço e aceita comentários ou código inativo.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "catalogo-e-orca"
+      ],
+      "sources": [
+        "verification.md achado 3"
+      ],
+      "scope": "",
+      "created": "2026-11-21T20:17:26Z",
+      "updated": "2026-11-21T20:17:26Z"
     }
   ]
 }
