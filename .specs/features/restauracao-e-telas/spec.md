@@ -75,7 +75,7 @@ Proof: run unit | test_decisions_e_changelog (test_restauracao_e_telas.Restaurac
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** provas, depois Q
+**Next:** Q verifica
 **Linear:** SC-210
 **Integration branch:** feature/restauracao-e-telas
 **Last integrated:** T1 (82be556)
