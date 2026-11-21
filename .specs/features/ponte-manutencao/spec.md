@@ -83,10 +83,10 @@ Proof: run unit | test_decisions_e_changelog (test_ponte_manutencao.PonteManuten
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** Worf revisa o PR #76
 **Linear:** SC-207
 **Integration branch:** feature/ponte-manutencao
 **Last integrated:** 2b75935cc25b5107910787d3087a1023eec79c12
