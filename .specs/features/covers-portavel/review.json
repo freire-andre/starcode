@@ -1,0 +1,15 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. O covers troca o fnmatch por _glob_re, uma regex montada por segmento: diferencia maiúsculas, * e ? não atravessam /, ** como segmento casa zero ou mais segmentos (inclusive no início, **/x.py cobre x.py) e [ ] são literais. A regra de pasta, a igualdade e a recusa de caminho absoluto ou com .. não mudaram. O teste de tabela força os.name e normcase do Windows, e o fnmatch antigo falharia nesse modo, porque o normcase dele baixa as maiúsculas. O is_sensitive e o paths_overlap seguem com fnmatch. Ficam fora do R.9: o paths_overlap cai no prefixo literal e só erra para o lado de acusar sobreposição. Nenhum achado. Arquivos mecânicos fora do review: dist/.",
+ "findings": [],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: só a biblioteca padrão (re, functools) já usada no repositório"
+ ],
+ "ladder": [
+  "CI local em 7141b1c (evidência do PR): build --check, check_decisions, claude plugin validate --strict e suíte inteira (1066 testes, 1 pulado) verdes",
+  "módulos tocados no head e72be9d: test_coverage_rule 9, test_check_scope* 8, test_validate_tasks* 6, todos OK; sonda manual de covers com **/x.py, maiúsculas e a/*",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}

@@ -78,10 +78,10 @@ Proof: run unit | test_decisions_e_changelog (test_falhas_start_settle.FalhasSta
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** missão 4 do passo 4: R.9
 **Linear:** SC-208
 **Integration branch:** feature/falhas-start-settle
 **Last integrated:** T1 (247cd98)

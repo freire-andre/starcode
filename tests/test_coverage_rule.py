@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import contextlib
+import ntpath
+import os
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from test_validate_tasks_citations import OLD_MAY, OLD_TASK, CitationCase
@@ -18,6 +22,59 @@ class CoverageRuleTests(unittest.TestCase):
         self.assertTrue(gates_common.covers("tests/test_x.py", "tests/test_*.py"))
         self.assertFalse(gates_common.covers("tests/other.py", "tests/test_*.py"))
         self.assertFalse(gates_common.covers("scripts/a.py", "dist/"))
+
+    def test_covers_tabela_portavel(self):
+        tabela = [
+            ("src/a.py", "src/*.py", True),
+            ("src/deep/x/a.py", "src/*.py", False),
+            ("src/a.py", "src/**/*.py", True),
+            ("src/deep/x/a.py", "src/**/*.py", True),
+            ("a/b", "a/**/b", True),
+            ("a/x/y/b", "a/**/b", True),
+            ("a/x/c", "a/**/b", False),
+            ("a/b/c/d", "a/**", True),
+            ("a", "a/**", False),
+            ("app/[id]/page.tsx", "app/[id]/*.tsx", True),
+            ("app/i/page.tsx", "app/[id]/*.tsx", False),
+            ("tests/test_x.py", "Tests/test_*.py", False),
+            ("tests/test_a.py", "tests/test_?.py", True),
+            ("tests/test_ab.py", "tests/test_?.py", False),
+            ("tests/test_/.py", "tests/test_?.py", False),
+            ("dist/a/b", "dist/", True),
+            ("scripts/a.py", "dist/", False),
+        ]
+        windows = [mock.patch.object(os, "name", "nt"),
+                   mock.patch.object(os.path, "normcase", ntpath.normcase)]
+        for modo in ("nativo", "windows"):
+            with contextlib.ExitStack() as stack:
+                if modo == "windows":
+                    for p in windows:
+                        stack.enter_context(p)
+                for path, entry, esperado in tabela:
+                    with self.subTest(modo=modo, path=path, entry=entry):
+                        self.assertIs(gates_common.covers(path, entry), esperado)
+
+    def test_decisions_covers_portavel(self):
+        raiz = Path(__file__).resolve().parent.parent
+        texto = (raiz / "DECISIONS.md").read_text(encoding="utf-8")
+        inicio = texto.index("### SC-209:")
+        proximo = texto.find("\n### ", inicio + 5)
+        entrada = texto[inicio: proximo if proximo != -1 else len(texto)]
+        campos = {}
+        for nome in ("Problema", "Decisão", "Motivo", "Por que não é bug"):
+            marca = f"- **{nome}**: "
+            self.assertEqual(entrada.count(marca), 1, nome)
+            campos[nome] = entrada.split(marca, 1)[1].split("\n- **", 1)[0]
+        decisao = campos["Decisão"]
+        for termo in ("fnmatchcase", "diferencia maiúsculas", "`*`", "`?`", "`/`", "`**`",
+                      "a/**/b", "a/**", "`[`", "`]`", "literais", "pasta", "absoluto", "`..`"):
+            self.assertIn(termo, decisao, termo)
+        self.assertIn("test_covers_tabela_portavel", campos["Por que não é bug"])
+        self.assertIn("test_decisions_covers_portavel", campos["Por que não é bug"])
+        changelog = (raiz / "CHANGELOG.md").read_text(encoding="utf-8")
+        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        self.assertEqual(sum(1 for ln in unreleased.splitlines()
+                             if ln.startswith("- ") and "(SC-209)" in ln), 1)
 
     def test_gates_usam_a_mesma_regra(self):
         calls = []

@@ -10,6 +10,7 @@ Python stdlib only.
 from __future__ import annotations
 
 import fnmatch
+import functools
 import json
 import os
 import posixpath
@@ -442,6 +443,27 @@ def normalize(path: str) -> str:
     return posixpath.normpath(path.strip().strip("`'\"").replace("\\", "/"))
 
 
+@functools.lru_cache(maxsize=512)
+def _glob_re(pattern: str) -> "re.Pattern[str]":
+    """Regra própria do covers, igual em qualquer sistema (SC-209): diferencia
+    maiúsculas, `*` e `?` não atravessam `/`, `**` como segmento inteiro casa
+    zero ou mais segmentos e `[`/`]` são literais."""
+    segs = pattern.split("/")
+    out = ""
+    for i, seg in enumerate(segs):
+        last = i == len(segs) - 1
+        if seg == "**":
+            out += r"(?:.*)" if last else r"(?:[^/]+/)*"
+            if last and i > 0:
+                out = out[: -len(r"(?:.*)")] + r"(?:.+)"
+            continue
+        for ch in seg:
+            out += "[^/]*" if ch == "*" else "[^/]" if ch == "?" else re.escape(ch)
+        if not last:
+            out += "/"
+    return re.compile(out, re.DOTALL)
+
+
 def covers(path: str, entry: str) -> bool:
     p = normalize(path)
     if p == ".." or p.startswith("../") or p.startswith("/") or re.match(r"[A-Za-z]:/", p):
@@ -451,4 +473,4 @@ def covers(path: str, entry: str) -> bool:
         e = e[2:]
     if e.endswith("/"):
         return p.startswith(e)
-    return p == e or fnmatch.fnmatch(p, e)
+    return p == e or _glob_re(e).fullmatch(p) is not None
