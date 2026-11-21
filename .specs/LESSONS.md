@@ -38,10 +38,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 11
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4
-- updated: 2026-11-20T15:46:04Z
+- signal: `weak_test` · features: 12
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3
+- updated: 2026-11-21T00:46:37Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 6
@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-20T15:46:03Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 14
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5
-- updated: 2026-11-20T15:46:04Z
+- signal: `weak_test` · features: 15
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree, ponte-manutencao
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5, .specs/features/ponte-manutencao/verification.md achado 4
+- updated: 2026-11-21T00:46:37Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -460,6 +460,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: config-local-worktree
 - sources: .specs/features/config-local-worktree/verification.md:achado 3
 - updated: 2026-11-20T15:46:04Z
+
+### L76 - Ao trocar um leitor próprio por um compartilhado, compare a saída antiga e a nova de cada chamador campo a campo, porque o leitor comum pode normalizar um valor que o chamador imprimia como estava.
+- signal: `spec_deviation` · features: 1
+- features: ponte-manutencao
+- sources: .specs/features/ponte-manutencao/verification.md achado 1
+- updated: 2026-11-21T00:46:37Z
+
+### L77 - Delimitador de token inteiro deve tratar letras e números Unicode como parte do token (\p{L}\p{N} com a flag u), não só [A-Za-z0-9], e o teste deve cobrir acento nos dois limites.
+- signal: `spec_deviation` · features: 1
+- features: ponte-manutencao
+- sources: .specs/features/ponte-manutencao/verification.md achado 2
+- updated: 2026-11-21T00:46:37Z
+
+### L78 - Teste que executa bash no Windows não deve usar shutil.which('bash'), que pode achar o bash do WSL sem acesso aos caminhos do Windows; use o bash do Git ou pule o teste com motivo.
+- signal: `gate_fail` · features: 1 · scope: `testes no Windows`
+- features: ponte-manutencao
+- sources: .specs/features/ponte-manutencao/verification.md achado 5
+- updated: 2026-11-21T00:46:38Z
 
 ## Quarantined
 
