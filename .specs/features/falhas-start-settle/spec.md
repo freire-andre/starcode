@@ -74,13 +74,13 @@ Proof: run unit | test_decisions_e_changelog (test_falhas_start_settle.FalhasSta
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** Q verifica
 **Linear:** SC-208
 **Integration branch:** feature/falhas-start-settle
-**Last integrated:** 247cd989e6352170728f6e46ce5df4046a21536a
+**Last integrated:** T1 (247cd98)
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
