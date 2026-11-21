@@ -1,6 +1,7 @@
 """SC-211: catálogo conferido (model_info) e adaptador único da Orca (orca_cli)."""
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
 import json
@@ -41,10 +42,19 @@ elif mode == "stdout":
     sys.exit(3)
 elif mode == "mudo":
     sys.exit(4)
+elif mode.startswith("sai"):
+    sys.exit(int(mode[3:]))
 elif mode == "lista":
     print("[1, 2]")
 elif mode == "env":
     print(json.dumps({"ok": True, "env": sorted(os.environ), "cwd": os.getcwd()}))
+"""
+
+PROBE = """\
+import shutil
+x = shutil.which ( "orca")  # which("orca") em comentário
+y = "shutil.which('orca')"
+z = which("orca.cmd")
 """
 
 FORBIDDEN = ("NODE_OPTIONS", "NODE_PATH", "ELECTRON_RUN_AS_NODE", "ORCA_NODE_OPTIONS", "ORCA_CLI_COMMAND")
@@ -183,6 +193,26 @@ class CatalogoEOrcaTests(unittest.TestCase):
         self.assertEqual(mi.load_catalog(fetch=False), novo)
         self.assertEqual(mi.cached_tier("acme/m2"), "$$$")
 
+        # origem inválida: também interpretada uma vez; o download ainda atualiza
+        mi._CATALOG.clear()
+        cache.write_text("{invalido", encoding="utf-8")
+        with mock.patch.object(mi, "_read", wraps=mi._read) as spy:
+            self.assertIsNone(mi.load_catalog(fetch=False))
+            self.assertIsNone(mi.load_catalog(fetch=False))
+            self.assertIsNone(mi.cached_tier("acme/m1"))
+            self.assertEqual(spy.call_count, 1)
+        with mock.patch.object(mi.urllib.request, "urlopen", return_value=fake_response(novo)):
+            self.assertEqual(mi.download(), novo)
+        self.assertEqual(mi.load_catalog(fetch=False), novo)
+        bad = self.tmp / "ruim.json"
+        bad.write_text("{invalido", encoding="utf-8")
+        os.environ["STARCODE_MODELS_DEV_FILE"] = str(bad)
+        mi._CATALOG.clear()
+        with mock.patch.object(mi, "_read", wraps=mi._read) as spy:
+            self.assertIsNone(mi.load_catalog(False))
+            self.assertIsNone(mi.load_catalog(False))
+            self.assertEqual(spy.call_count, 1)
+
     # --- C4 ---------------------------------------------------------------------------------
     def test_orca_cli_run_e_env(self):
         base = {"PATH": "p", "KEEP": "1", "NODE_OPTIONS": "x", "NODE_PATH": "y", "ELECTRON_RUN_AS_NODE": "1",
@@ -240,22 +270,91 @@ class CatalogoEOrcaTests(unittest.TestCase):
             r = orca_cli.run(["x"], 7)
             self.assertEqual((r["code"], r["data"], r["error"]), (126, None, "Permissão negada"))
 
+    def test_saida_127_124_126_do_orca(self):
+        falhas = {
+            "timeout": subprocess.TimeoutExpired("orca", 7),
+            "oserror": OSError(13, "negado"),
+        }
+        for code in (127, 124, 126):
+            self.fake_orca(f"sai{code}")
+            r = orca_cli.run(["x"], 30)
+            self.assertEqual((r["code"], r["kind"], r["data"], r["error"]), (code, None, None, f"saiu com {code}"))
+            with self.assertRaises(screens.ScreenError) as cm:
+                screens._orca("exec", ["x"])
+            self.assertEqual(str(cm.exception), f"exec: saiu com {code}")
+            self.assertEqual(banner._run(["orca", "status"], 30), (code, ""))
+            self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` falhou (a Orca está aberta?)")
+        with mock.patch.dict(os.environ, {"PATH": str(self.tmp / "vazio")}):
+            r = orca_cli.run(["x"], 5)
+            self.assertEqual((r["code"], r["kind"]), (127, "missing"))
+            self.assertEqual(banner.check_orca(), "Orca: ❌ comando `orca` não encontrado no PATH")
+        with mock.patch.object(orca_cli.subprocess, "run", side_effect=falhas["timeout"]):
+            r = orca_cli.run(["x"], 7)
+            self.assertEqual((r["code"], r["kind"]), (124, "timeout"))
+            self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` não respondeu a tempo")
+        with mock.patch.object(orca_cli.subprocess, "run", side_effect=falhas["oserror"]):
+            r = orca_cli.run(["x"], 7)
+            self.assertEqual((r["code"], r["kind"]), (126, "oserror"))
+            self.assertEqual(banner.check_orca(), "Orca: ⚠️ `orca status` falhou (a Orca está aberta?)")
+
     # --- C5 ---------------------------------------------------------------------------------
+    @staticmethod
+    def _which_orca_calls(path: Path) -> list[int]:
+        """Linhas das chamadas efetivas (AST) de `which("orca")` ou `shutil.which ("orca")`."""
+        found = []
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            f = node.func
+            name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
+            arg = node.args[0]
+            if (name == "which" and isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+                    and arg.value.startswith("orca")):
+                found.append(node.lineno)
+        return found
+
     def test_um_adaptador_da_orca(self):
-        pat = re.compile(r"which\(\s*[\"']orca[\"']")
+        probe = self.tmp / "probe.py"
+        probe.write_text(PROBE, encoding="utf-8")
+        self.assertEqual(self._which_orca_calls(probe), [2, 4])  # acha chamada com espaço; ignora comentário e string
         offenders = []
         for folder in ("scripts", "hooks"):
             for p in (ROOT / folder).rglob("*.py"):
-                if p.name != "orca_cli.py" and pat.search(p.read_text(encoding="utf-8")):
+                if p.name != "orca_cli.py" and self._which_orca_calls(p):
                     offenders.append(p.relative_to(ROOT).as_posix())
         self.assertEqual(offenders, [])
-        for mod, needs in ((screens, ("orca_cli.run",)), (banner, ("orca_cli.run",)),
-                           (dispatch, ("orca_cli.resolve", "orca_cli.env"))):
-            src = Path(mod.__file__).read_text(encoding="utf-8")
-            self.assertIn("import orca_cli", src, mod.__name__)
-            self.assertIs(mod.orca_cli, orca_cli)
-            for n in needs:
-                self.assertIn(n, src, mod.__name__)
+        self.assertEqual(len(self._which_orca_calls(ROOT / "scripts" / "orca_cli.py")), 1)
+        for mod in (screens, banner, dispatch):
+            self.assertIs(mod.orca_cli, orca_cli, mod.__name__)
+        # os três consumidores chamam o adaptador (espionado), não o executável
+        calls = []
+
+        def fake_run(args, timeout, cwd=None):
+            calls.append(("run", list(args), timeout, cwd))
+            return {"code": 0, "stdout": "{}", "stderr": "", "data": {}, "kind": None, "error": None}
+
+        def fake_resolve():
+            calls.append(("resolve",))
+            return "/x/orca-falso"
+
+        def fake_env():
+            calls.append(("env",))
+            return {"MARCA": "1"}
+
+        with mock.patch.object(orca_cli, "run", side_effect=fake_run),                 mock.patch.object(orca_cli, "resolve", side_effect=fake_resolve),                 mock.patch.object(orca_cli, "env", side_effect=fake_env),                 mock.patch.object(shutil, "which", side_effect=AssertionError("which direto")),                 mock.patch.object(subprocess, "run") as sub:
+            screens._orca("exec", ["a", "--json"])
+            self.assertEqual(calls, [("run", ["a", "--json"], screens.TIMEOUT, None)])
+            calls.clear()
+            self.assertEqual(banner._run(["orca", "status", "--json"], 30, cwd="/c"), (0, "{}"))
+            self.assertEqual(calls, [("run", ["status", "--json"], 30, "/c")])
+            calls.clear()
+            banner.check_orca()
+            self.assertEqual(calls, [("run", ["status", "--json"], banner.ORCA_TIMEOUT, None)])
+            calls.clear()
+            dispatch.default_runner(["orca", "x"], capture_output=True)
+            self.assertEqual(calls, [("resolve",), ("env",)])
+            self.assertEqual(sub.call_args.args[0], ["/x/orca-falso", "x"])
+            self.assertEqual(sub.call_args.kwargs["env"], {"MARCA": "1"})
         self.fake_orca("okfalse")
         with self.assertRaises(screens.ScreenError) as cm:
             screens._orca("exec", ["x"])
@@ -294,10 +393,33 @@ class CatalogoEOrcaTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn("**Project version**: 1.4.268\n", text)
         self.assertIn("**Doc version**: 1.4.268\n", text)
-        for term in ("ELECTRON_RUN_AS_NODE", "F10-14", "F10-8", "NODE_*", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
-                     "--current", "terminal que chama", "ok:false", "error.message", "orca plugin test",
-                     "mesmo drive da instalação", "`shutil.which`", "orca.cmd"):
-            self.assertIn(term, text, term)
+        bullets = [ln for ln in text.splitlines() if ln.startswith("- ")]
+        self.assertEqual(len(bullets), 5, bullets)
+        temas = {
+            "- Resolução do CLI (F10-14): ": (
+                "o `orca` é um aplicativo Electron; para rodar como CLI ele usa `ELECTRON_RUN_AS_NODE`.",
+                "acha o executável pelo PATH com `shutil.which` (no Windows acha o `orca.cmd`)",
+                "sem shell, sem stdin e com tempo limite (`scripts/orca_cli.py`)."),
+            "- Ambiente: ": (
+                "o filho não herda `NODE_*`, `ELECTRON_RUN_AS_NODE`, `ORCA_NODE_OPTIONS` nem `ORCA_CLI_COMMAND`",
+                "no Windows `USERPROFILE`, `APPDATA` e `LOCALAPPDATA` são completados a partir da pasta do usuário"
+                " quando faltam."),
+            "- `--current` (F10-8): ": (
+                "\"atual\" é o terminal que chama;",
+                "o resultado é o do terminal de quem chamou, não o do coordenador."),
+            "- Falha com `ok:false`: ": (
+                "com `--json` a resposta vem como `{\"ok\": false, \"error\": {\"message\": \"...\"}}`"
+                " e o código de saída é diferente de 0;",
+                "a mensagem de erro está em `error.message`"),
+            "- `orca plugin test` e `orca plugin check` só rodam com o plugin no mesmo drive da instalação da Orca;": (
+                "falham com `cannot import \"./orca-runtime.mjs\"`.",
+                "Rode o gate num worktree no mesmo drive."),
+        }
+        for prefix, frases in temas.items():
+            achadas = [b for b in bullets if b.startswith(prefix)]
+            self.assertEqual(len(achadas), 1, prefix)
+            for frase in frases:
+                self.assertIn(frase, achadas[0], prefix + frase)
         fetched = re.search(r"^\*\*Fetched\*\*: (\d{4}-\d{2}-\d{2})$", text, re.M).group(1)
         res = subprocess.run([sys.executable, str(ROOT / "scripts" / "stack_cache.py"), "check", str(ROOT),
                               "--today", fetched], capture_output=True, text=True, encoding="utf-8",
@@ -317,20 +439,53 @@ class CatalogoEOrcaTests(unittest.TestCase):
             self.assertIsNotNone(pm, label)
             parts[label] = pm.group(1)
         decisao = parts["Decisão"]
-        for term in ("R1:", "`model_info.download`", "`models` objeto", "`None`", "`mtime`",
-                     "R2:", "`model_info.info`", "`name`", "`description`", "`C*`", "80", "200", "`--json`",
-                     "`render`", "R3:", "`load_catalog`", "`STARCODE_MODELS_DEV_FILE`", "`cached_family`",
-                     "`cached_tier`", "uma vez por processo",
-                     "R4:", "`resolve()`", "`env()`", "`run(args, timeout, cwd=None)`", "`NODE_*`",
-                     "`ELECTRON_RUN_AS_NODE`", "`ORCA_NODE_OPTIONS`", "`ORCA_CLI_COMMAND`", "`USERPROFILE`",
-                     "`APPDATA`", "`LOCALAPPDATA`", "`error.message`", "`saiu com <código>`", "127", "124", "126",
-                     "R5:", "`screens.py`", "`hooks/scripts/banner.py`", "`dispatch.default_runner`",
-                     "`orca_cli.run`", "`orca_cli.resolve`", "`orca_cli.env`", "`shutil.which(\"orca\")`",
-                     "R6:", "`.specs/stack/orca.md`", "`stack_cache.py write`", "1.4.268", "F10-14", "F10-8",
-                     "`orca plugin test`", "mesmo drive", "R7:", "`CHANGELOG.md`"):
-            self.assertIn(term, decisao, term)
+        esperado = {
+            "R1": (
+                "`model_info.download` só aceita JSON com ao menos um provedor cujo valor é objeto com `models` objeto; "
+                "senão devolve `None` e não toca o cache (bytes e `mtime` iguais)."
+            ),
+            "R2": (
+                "`model_info.info` limpa `name` e `description`: tira os caracteres de controle da categoria Unicode `C*` "
+                "(ESC e quebras de linha inclusive), junta espaços seguidos num só e corta o `name` em 80 e a "
+                "`description` em 200; a saída `--json` e o `render` usam o mesmo texto."
+            ),
+            "R3": (
+                "`load_catalog` interpreta o arquivo (de `STARCODE_MODELS_DEV_FILE` ou do cache) no máximo uma vez por "
+                "processo para a mesma origem; `cached_family` e `cached_tier` reutilizam o resultado e um `download` "
+                "bem-sucedido atualiza o guardado."
+            ),
+            "R4": (
+                "`scripts/orca_cli.py` oferece `resolve()` (`shutil.which`, `None` sem executável), `env()` (cópia do "
+                "ambiente sem `NODE_*`, `ELECTRON_RUN_AS_NODE`, `ORCA_NODE_OPTIONS` e `ORCA_CLI_COMMAND`; no Windows "
+                "completa `USERPROFILE`, `APPDATA` e `LOCALAPPDATA`) e `run(args, timeout, cwd=None)`, que devolve `code`, "
+                "`stdout`, `stderr`, `data` (objeto JSON do stdout ou `None`) e `error` (`None` em sucesso; em falha a "
+                "primeira mensagem não vazia entre `error.message`, `error` texto, stderr, stdout e `saiu com <código>`), "
+                "sem levantar exceção: 127 sem executável, 124 com tempo esgotado e 126 com `OSError`, e o campo `kind` "
+                "(`missing`, `timeout`, `oserror` ou `None`) diz se a falha foi de execução, de modo que o código de saída "
+                "de um `orca` que rodou e saiu com 127, 124 ou 126 não é confundido com falha de execução."
+            ),
+            "R5": (
+                "`screens.py` e `hooks/scripts/banner.py` chamam a Orca por `orca_cli.run` e `dispatch.default_runner` usa "
+                "`orca_cli.resolve` e `orca_cli.env`; nenhum `.py` fora do `orca_cli.py` chama `shutil.which(\"orca\")`, e "
+                "as mensagens e os códigos de saída dos três não mudam: `screens.py` e o banner escolhem a mensagem pelo "
+                "`kind`, então um `orca` que sai com 127, 124 ou 126 de verdade segue como falha comum do passo (`saiu com "
+                "<código>` ou a mensagem do JSON, do stderr ou do stdout)."
+            ),
+            "R6": (
+                "`.specs/stack/orca.md` (gravado por `stack_cache.py write`, versão 1.4.268) resume a resolução do CLI "
+                "(Electron, `ELECTRON_RUN_AS_NODE`, F10-14), o env, o `--current` do terminal que chama (F10-8), a "
+                "resposta `ok:false` com `error.message` e o `orca plugin test` que só roda no mesmo drive da instalação."
+            ),
+            "R7": (
+                "esta entrada e a linha no `CHANGELOG.md`."
+            ),
+        }
+        achados = dict(re.findall(r"(R\d): (.*?)(?= R\d: |$)", decisao))
+        self.assertEqual(sorted(achados), sorted(esperado))
+        for chave, frase in esperado.items():
+            self.assertEqual(achados[chave], frase, chave)  # afirmação completa de cada requisito, sem negar nem omitir
         tests = ("test_download_confere_forma", "test_texto_do_catalogo_limpo", "test_catalogo_lido_uma_vez",
-                 "test_orca_cli_run_e_env", "test_um_adaptador_da_orca", "test_stack_orca_documentada",
+                 "test_orca_cli_run_e_env", "test_saida_127_124_126_do_orca", "test_um_adaptador_da_orca", "test_stack_orca_documentada",
                  "test_decisions_e_changelog")
         for name in tests:
             self.assertIn(f"`{name}`", parts["Por que não é bug"], name)

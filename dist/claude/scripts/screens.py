@@ -41,12 +41,12 @@ def _one_line(text: str) -> str:
 
 def _orca(step: str, args: list[str]) -> dict:
     res = orca_cli.run(args, TIMEOUT)
-    code = res["code"]
-    if code == 127:
+    kind = res["kind"]
+    if kind == "missing":
         raise ScreenError(f"{step}: o CLI `orca` não está no PATH")
-    if code == 124:
+    if kind == "timeout":
         raise ScreenError(f"{step}: tempo esgotado ({TIMEOUT} s)")
-    if code == 126:
+    if kind == "oserror":
         raise ScreenError(f"{step}: não foi possível rodar o `orca` ({res['error']})")
     if res["error"] is not None:
         raise ScreenError(f"{step}: {_one_line(res['error'])}")

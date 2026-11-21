@@ -88,7 +88,7 @@ def _clean(text, limit: int) -> str:
     return " ".join(text.split())[:limit]
 
 
-_CATALOG: dict = {}  # origem (str) -> catálogo já interpretado
+_CATALOG: dict = {}  # origem (str) -> catálogo já interpretado (ou None se inválido)
 
 
 def download(dest: Path | None = None, timeout: int = 20) -> dict | None:
@@ -114,10 +114,7 @@ def download(dest: Path | None = None, timeout: int = 20) -> dict | None:
 def _read_once(path: Path) -> dict | None:
     key = str(path)
     if key not in _CATALOG:
-        data = _read(path)
-        if data is None:
-            return None
-        _CATALOG[key] = data
+        _CATALOG[key] = _read(path)  # None (ausente ou inválido) também fica memorizado
     return _CATALOG[key]
 
 

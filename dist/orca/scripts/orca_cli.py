@@ -3,7 +3,9 @@
     import orca_cli
     res = orca_cli.run(["status", "--json"], timeout=6)   # code, stdout, stderr, data, error
 
-`run` nunca levanta exceção: 127 sem executável, 124 com tempo esgotado, 126 com `OSError`.
+`run` nunca levanta exceção: 127 sem executável, 124 com tempo esgotado, 126 com `OSError`. O campo `kind`
+diz se a falha foi de execução (`missing`, `timeout`, `oserror`) ou `None` quando o `orca` rodou e saiu
+(mesmo com 127, 124 ou 126 de verdade): quem decide a mensagem olha o `kind`, não o código.
 Usado por `screens.py`, pelo banner e pelo `dispatch.py`. Só stdlib.
 """
 from __future__ import annotations
@@ -51,15 +53,16 @@ def run(args: list[str], timeout: float, cwd: str | None = None) -> dict:
     exe = resolve()
     if not exe:
         return {"code": 127, "stdout": "", "stderr": "", "data": None,
-                "error": "o CLI `orca` não está no PATH"}
+                "kind": "missing", "error": "o CLI `orca` não está no PATH"}
     try:
         res = subprocess.run([exe, *args], stdin=subprocess.DEVNULL, capture_output=True, text=True,
                              encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd, env=env())
     except subprocess.TimeoutExpired:
-        return {"code": 124, "stdout": "", "stderr": "", "data": None, "error": f"tempo esgotado ({timeout} s)"}
+        return {"code": 124, "stdout": "", "stderr": "", "data": None, "kind": "timeout",
+                "error": f"tempo esgotado ({timeout} s)"}
     except (OSError, ValueError) as exc:
         reason = getattr(exc, "strerror", None) or str(exc)
-        return {"code": 126, "stdout": "", "stderr": "", "data": None, "error": reason}
+        return {"code": 126, "stdout": "", "stderr": "", "data": None, "kind": "oserror", "error": reason}
     stdout, stderr = res.stdout or "", res.stderr or ""
     try:
         data = json.loads(stdout)
@@ -68,4 +71,4 @@ def run(args: list[str], timeout: float, cwd: str | None = None) -> dict:
     if not isinstance(data, dict):
         data = None
     return {"code": res.returncode, "stdout": stdout, "stderr": stderr, "data": data,
-            "error": _error(res.returncode, data, stdout, stderr)}
+            "kind": None, "error": _error(res.returncode, data, stdout, stderr)}
