@@ -506,8 +506,15 @@ class FalhasStartSettleTests(TempRepoCase):
             m = re.search(rf"^- \*\*{nome}\*\*: (.+)$", e, re.M)
             self.assertIsNotNone(m, nome)
             partes[nome] = m.group(1)
-        for caso in ("Caso 1", "Caso 2", "Caso 3", "Caso 4", "já resolvido", "estava aberto"):
-            self.assertIn(caso, partes["Problema"])
+        casos = re.split(r"(?<=[.]) (?=Caso \d,|Também N\.6)", partes["Problema"])
+        self.assertEqual([c[:6] for c in casos[1:5]], ["Caso 1", "Caso 2", "Caso 3", "Caso 4"])
+        estados = {1: "já resolvido em `dcadac4`", 2: "; estava aberto.", 3: "; estava aberto.",
+                   4: "; estava aberto."}
+        for n, estado in estados.items():
+            with self.subTest(caso=n):
+                self.assertIn(estado, casos[n])
+                self.assertEqual(casos[n].count("estava aberto") + casos[n].count("já resolvido"), 1)
+        self.assertTrue(casos[5].startswith("Também N.6:"))
         trechos = [t for t in re.split(r"(?:(?<=\. )|^)(?=R[1-7]: )", partes["Decisão"]) if t]
         self.assertEqual([t[:3] for t in trechos], [f"R{n}:" for n in range(1, 8)])
         exigidos = {
@@ -518,14 +525,20 @@ class FalhasStartSettleTests(TempRepoCase):
             "R3": ["`git diff --name-only --diff-filter=U`", "`conflito no merge de <T>: <arquivos>`",
                    "`merge de <T> falhou: <primeira linha do stderr, ou do stdout, do git merge>`",
                    "`git merge --abort` só quando há merge em andamento", "sai com 1"],
-            "R4": ["`set_handoff`", "`starcode_common.locked(<pasta da feature>/.handoff)`", "5 s", "sai com 2",
-                   "`handoff ocupado: <pasta da feature>`", "`.handoff.lock`", "`.gitignore`"],
+            "R4": ["`set_handoff` lê, muda e grava os artefatos dentro de", "`starcode_common.locked(<pasta da feature>/.handoff)`",
+                   "duas mudanças simultâneas ficam as duas no artefato", "5 s", "sai com 2",
+                   "`handoff ocupado: <pasta da feature>`", "`.handoff.lock` entra no `.gitignore`"],
             "R5": ["`starcode_common.run_git(args, cwd, timeout=30, binary=False, env=None)`",
                    "`(código, stdout, stderr)`", "bytes", "124", "`git excedeu <n> s: git <args>`", "127",
-                   "`git não encontrado`", "nunca levanta exceção"],
+                   "`git não encontrado`", "126", "`argumentos inválidos para o git: <erro>`",
+                   "nunca levanta exceção"],
             "R6": ["`snapshot.py`", "`valid_names`", "`_write_blob`", "`impact.py`", "`dispatch.py`", "`_git`",
                    "`git diff --quiet`", "`q_check`", "só por `starcode_common.run_git`",
-                   "`GitError`", "`ImpactError`", "`ValueError`", "texto do stderr"],
+                   "`GitError`", "`ImpactError`", "`ValueError`", "texto do stderr",
+                   "`valid_names` devolve `False` só para nome inválido", "levanta `GitError` para 124, 126 e 127",
+                   "`take` e `restore` saem com 1", "`ValueError` com o stderr para 124, 126 e 127",
+                   "`seleção indisponível: git diff --quiet HEAD falhou: <stderr>; rode a suíte inteira`",
+                   "nunca seleção válida"],
             "R7": ["esta entrada", "`CHANGELOG.md`"],
         }
         for trecho in trechos:
@@ -534,7 +547,8 @@ class FalhasStartSettleTests(TempRepoCase):
                     self.assertIn(termo, trecho)
         for nome in ("test_recibo_com_texto_antes", "test_start_sem_id_sai_com_3", "test_merge_falha_sem_conflito",
                      "test_handoff_concorrente", "test_run_git", "test_scripts_usam_run_git",
-                     "test_decisions_e_changelog"):
+                     "test_decisions_e_changelog", "test_regressao_diff_head_com_erro", "test_run_git_argumentos_invalidos",
+                     "test_timeout_chega_aos_chamadores", "test_merge_combinacoes"):
             self.assertIn(nome, partes["Por que não é bug"])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
