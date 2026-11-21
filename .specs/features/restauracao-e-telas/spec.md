@@ -67,6 +67,7 @@ Proof: run unit | test_veredito_nome_inteiro (test_restauracao_e_telas.Restaurac
 
 **C5** - PNG só com cabeçalho recusado com a mensagem exata; PNG válido com `IDAT` lido (R5)
 Proof: run unit | test_png_sem_idat (test_restauracao_e_telas.RestauracaoETelasTests.test_png_sem_idat) ... ok
+Proof: run unit | test_png_idat_truncado_ou_vazio (test_restauracao_e_telas.RestauracaoETelasTests.test_png_idat_truncado_ou_vazio) ... ok
 
 **C6** - Entrada do SC no `DECISIONS.md` com as quatro partes e os termos de cada requisito, e linha no `CHANGELOG.md` (R6)
 Proof: run unit | test_decisions_e_changelog (test_restauracao_e_telas.RestauracaoETelasTests.test_decisions_e_changelog) ... ok
@@ -76,7 +77,7 @@ Proof: run unit | test_decisions_e_changelog (test_restauracao_e_telas.Restaurac
 **Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Q verifica
+**Next:** provas e done, depois Guinan
 **Linear:** SC-210
 **Integration branch:** feature/restauracao-e-telas
 **Last integrated:** T1 (82be556)
