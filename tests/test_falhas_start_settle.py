@@ -226,6 +226,17 @@ class FalhasStartSettleTests(TempRepoCase):
             sc.run_git(["--version"], self.repo, timeout=7)
         self.assertEqual(spy.call_args.kwargs["timeout"], 7)
 
+    # C5 (achado 2: argumentos e ambiente inválidos)
+    def test_run_git_argumentos_invalidos(self):
+        esperado = (126, "", "argumentos inválidos para o git: environment can only contain strings")
+        self.assertEqual(sc.run_git(["status"], self.repo, env={"BAD": 1}), esperado)
+        self.assertEqual(sc.run_git(["status"], self.repo, env={"BAD": 1}, binary=True),
+                         (126, b"", esperado[2].encode("utf-8")))
+        code, out, err = sc.run_git(["status", "a\0b"], self.repo)
+        self.assertEqual((code, out), (126, ""))
+        self.assertTrue(err.startswith("argumentos inválidos para o git: "), err)
+        self.assertEqual(sc.run_git(["--version"], self.repo)[0], 0)  # o caminho feliz segue igual
+
     # C6
     def test_scripts_usam_run_git(self):
         for nome in ("snapshot.py", "impact.py", "dispatch.py"):
