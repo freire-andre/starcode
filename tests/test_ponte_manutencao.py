@@ -239,17 +239,38 @@ class PonteManutencaoTests(TempRepoCase):
             self.assertIsNotNone(m, nome)
             partes[nome] = m.group(1)
         decisao = partes["Decisão"]
-        for termo in ("R1: `handoff.parse_dispatch_entry(entry)`", "`<cli>:<modelo>`", "`None`",
-                      "R2: `parse_dispatched` (`ponte.py`)", "`overdue`", "`settle`",
-                      "R3:", "`storage:own`", "R4:", "`https://linear.app/`", "`null`",
-                      "R5: o `agentFor`", "token inteiro", "`LaForge T10`",
-                      "R6:", "`/` ou `\\`",
-                      "R7:", AVISO, RESUMO, "`orca plugin validate src/orca --json`",
-                      "R8:", "`CHANGELOG.md`"):
-            self.assertIn(termo, decisao)
+        # cada requisito R1..R8, na ordem, traz as suas condições e campos no próprio trecho
+        trechos = re.split(r"(?:(?<=\. )|^)(?=R[1-8]: )", decisao)
+        trechos = [t for t in trechos if t]
+        self.assertEqual([t[:3] for t in trechos], [f"R{n}:" for n in range(1, 9)])
+        exigidos = {
+            "R1": ["`handoff.parse_dispatch_entry(entry)`", "`ticket`", "`issues` (lista)",
+                   "`issues_text` (o campo como foi gravado)", "`base`", "`model`", "`at`", "`dispatch`",
+                   "`blocked`", "formato do `start`", "`<cli>:<modelo>`", "`at` o horário",
+                   "`dispatch` o id quando houver", "formato antigo", "`dispatch` e `model` dos campos prefixados",
+                   "campo ausente vira `None`", "nunca exceção"],
+            "R2": ["`parse_dispatched` (`ponte.py`)", "o horário do `overdue`", "a base do `settle`",
+                   "(`dispatch.py`)", "esse leitor", "sem mudar a saída nem os códigos de saída",
+                   "`issues_text`", "`SC-2,SC-3`", "`_entry_base` saiu"],
+            "R3": ["`src/orca/orca-plugin.json`", "deixa de declarar `storage:own`"],
+            "R4": ["`worker.ts`", "`issue.url`", "começa com `https://linear.app/`", "o resto vira `null`"],
+            "R5": ["`agentFor`", "rótulo e issues", "título do agente", "token inteiro",
+                   "início, fim ou caractere que não seja letra nem número Unicode",
+                   "`T1` não casa com `T1é`", "`T1` casa com `LaForge T1`", "não com `LaForge T10`"],
+            "R6": ["nome do worktree no diário", "último trecho separado por `/` ou `\\`"],
+            "R7": ["sem `orca` no PATH", AVISO, RESUMO, "`$GITHUB_STEP_SUMMARY`", "com `orca`",
+                   "`orca plugin validate src/orca --json`"],
+            "R8": ["esta entrada", "`CHANGELOG.md`"],
+        }
+        for trecho in trechos:
+            req = trecho[:2]
+            for termo in exigidos[req]:
+                with self.subTest(req=req, termo=termo):
+                    self.assertIn(termo, trecho)
         prova = partes["Por que não é bug"]
         for nome in ("test_parse_dispatch_entry", "test_ponte_modelo_do_start", "test_dispatch_usa_leitor_unico",
                      "test_manifesto_sem_storage", "test_ci_pulo_visivel", "test_decisions_e_changelog",
+                     "test_overdue_preserva_campo_de_issues",
                      "issue.url fora do linear vira null", "agentFor casa por token inteiro",
                      "nome do worktree com barra invertida"):
             self.assertIn(nome, prova)
