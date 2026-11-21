@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-212
-**May change**: scripts/dispatch.py, scripts/handoff.py, scripts/starcode_common.py, scripts/retros.py, hooks/scripts/banner.py, skills/guinan/SKILL.md, skills/guinan/references/retro.md, skills/engajar/references/state-format.md, tests/test_versao_e_retro.py, tests/test_handoff.py, tests/test_banner.py, tests/test_dispatch.py, tests/test_dispatch_start.py, tests/test_support.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/dispatch.py, scripts/handoff.py, scripts/starcode_common.py, scripts/retros.py, hooks/scripts/banner.py, skills/guinan/SKILL.md, skills/guinan/references/retro.md, skills/engajar/references/state-format.md, tests/test_versao_e_retro.py, tests/test_handoff.py, tests/test_banner.py, tests/test_dispatch.py, tests/test_dispatch_start.py, tests/test_support.py, tests/test_licoes_no_brief.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Itens N.4 e N.2 da triagem v2, missão 7a do passo 4 (o usuário escolheu "Duas MÉDIAs"; a 7b leva N.3, N.7 e N.8). Discovery em `.specs/features/versao-e-retro/context.md`. Hoje:
@@ -82,7 +82,7 @@ Proof: run unit | test_decisions_e_changelog (test_versao_e_retro.VersaoERetroTe
 **Linear:** SC-212
 **Integration branch:** feature/versao-e-retro
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-212 · base dba7365 · claude:claude-sonnet-5-5 · 2026-11-21T20:54:56Z · ctx_9d7f956cf580
 **Settled:** none
 **Attempts:** none
 **Reports:** none
