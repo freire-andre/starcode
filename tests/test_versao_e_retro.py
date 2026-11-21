@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import re
+import shutil
 import unittest
 from pathlib import Path
 
@@ -215,6 +216,43 @@ class VersaoERetroTests(TempRepoCase):
         with Plugin(fake_plugin(self.tmp, "dif2", manifest="0.9.0")):  # sem VERSION
             for k, a in cmds.items():
                 self.assertEqual(run_main(dispatch, a)[2], "", k)
+
+    def test_aviso_nao_altera_start_bem_sucedido(self):
+        self.write_repo_config()
+        fdir = self.repo / ".specs" / "features" / "demo"
+        fdir.mkdir(parents=True)
+        (fdir / "spec.md").write_text("# Demo: Spec\n", encoding="utf-8")
+        (fdir / "tasks.md").write_text(make_tasks([{"tid": "T1"}]) + HANDOFF.format(d="none"), encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "specs")
+        run_git(self.repo, "branch", "-f", "feature/demo")
+        sem, com = self.tmp / "sem-diferenca", self.tmp / "com-diferenca"
+        for dest in (sem, com):
+            shutil.copytree(self.repo, dest)
+        (com / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+        plug = com / "dist" / "claude" / ".claude-plugin"
+        plug.mkdir(parents=True)
+        (plug / "plugin.json").write_text("{}", encoding="utf-8")
+
+        def run(root: Path) -> tuple[int, str, str, list[list[str]]]:
+            fake = FakeOrca()
+            original = dispatch.start
+            dispatch.start = lambda *a, **kw: original(*a, runner=fake, **kw)
+            try:
+                code, out, err = run_main(dispatch, ["start", "demo", "T1", "--cli", "claude",
+                                                     "--model", "claude-sonnet-5-5", "--root", str(root)])
+            finally:
+                dispatch.start = original
+            return code, re.sub(r"starcode-[A-Za-z0-9_]+", "<tmp>", out), err, fake.calls  # o briefing vai para um diretório temporário
+
+        with Plugin(fake_plugin(self.tmp, "p", manifest="0.9.0")):
+            base = run(sem)
+            warned = run(com)
+        self.assertEqual(base[0], 0, base[1])
+        self.assertEqual(base[2], "")
+        self.assertEqual(warned[2], AVISO.format(run="0.9.0", repo="1.0.0") + "\n")
+        self.assertEqual((warned[0], warned[1]), (base[0], base[1]))  # mesmo código e mesma saída
+        self.assertEqual(len(warned[3]), len(base[3]))  # as mesmas chamadas à Orca e ao git
 
     def test_retro_da_guinan_tem_estado(self):
         text = (ROOT / "skills" / "guinan" / "references" / "retro.md").read_text(encoding="utf-8")
