@@ -81,12 +81,12 @@ Proof: run unit | test_decisions_e_changelog (test_falhas_start_settle.FalhasSta
 **Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** Worf revisa o PR #77
+**Next:** publicar r1, push do review, merge (confirmação)
 **Linear:** SC-208
 **Integration branch:** feature/falhas-start-settle
 **Last integrated:** T1 (247cd98)
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-21: Worf r1 APPROVE (1 nit, W1 timeout do snapshot)
 **Breaker:** closed
