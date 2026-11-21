@@ -128,13 +128,11 @@ def set_estado(slug: str, n: str, value: str, root: Path) -> str | None:
                 continue
             if k >= len(cells):
                 return f"linha {n} da retro de {slug} não tem a célula Estado"
-            cells = list(cells)
-            cells[k] = f" {value} "
             s = lines[idx]
-            lead = s[:len(s) - len(s.lstrip())]
-            tail = "|" if s.rstrip().endswith("|") else ""
-            ending = pieces[idx][len(lines[idx]):]
-            pieces[idx] = lead + "|" + "|".join(cells) + tail + ending
+            bars = [m for m, ch in enumerate(s) if ch == "|"]
+            start = bars[k] + 1
+            end = bars[k + 1] if k + 1 < len(bars) else len(s.rstrip())
+            pieces[idx] = s[:start] + f" {value} " + s[end:] + pieces[idx][len(s):]
             path.write_bytes("".join(pieces).encode("utf-8"))
             return None
     return f"linha {n} não existe na retro de {slug}"

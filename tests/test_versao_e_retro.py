@@ -320,6 +320,19 @@ class VersaoERetroTests(TempRepoCase):
         self.assertEqual((code, err), (0, ""))
         self.assertEqual((crlf / "retro.md").read_bytes(),
                          body.replace(b"| 1 | aberto | x |", b"| 1 | feito em c0ffee1 | x |"))
+        # espaços depois do último `|`, células sem espaços e CRLF: só o intervalo da célula Estado muda
+        spaced = root / ".specs" / "features" / "e"
+        spaced.mkdir()
+        body = ("# Retro: e\r\n\r\n|# |Estado|  Ação proposta |\r\n|---|---|---|\r\n"
+                "|1|aberto| y |   \r\n  | 2 |aberto|z|\t \r\n| 3 | aberto | w").encode()
+        for old, new in ((b"|1|aberto| y |   \r\n", b"|1| feito em abc | y |   \r\n"),
+                         (b"  | 2 |aberto|z|\t \r\n", b"  | 2 | feito em abc |z|\t \r\n"),
+                         (b"| 3 | aberto | w", b"| 3 | feito em abc | w")):
+            (spaced / "retro.md").write_bytes(body)
+            n = old.split(b"|")[1].strip().decode()
+            code, _, err = run_main(retros, ["estado", "e", n, "--root", str(root), "--feito", "abc"])
+            self.assertEqual((code, err), (0, ""), n)
+            self.assertEqual((spaced / "retro.md").read_bytes(), body.replace(old, new), n)
         # recusas: código 2, a linha exata e nada mudado (bytes e lista de arquivos)
         path.write_bytes(original)
         before = tree(root)
