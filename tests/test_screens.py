@@ -110,7 +110,7 @@ class ScreensTests(unittest.TestCase):
         return [c[:2] if c[0] == "tab" else c[:1] for c in self.calls()]
 
     def capture(self, url="http://127.0.0.1:5173", w="800", h="600", out=None):
-        out = out or self.tmp / "sub" / "pasta" / "foto.png"
+        out = out or self.tmp / "sub" / "captures" / "foto.running.png"
         return self.run_cli("capture", "--url", url, "--width", w, "--height", h, "--out", str(out)), out
 
     def test_capture_chama_orca_na_ordem(self):
@@ -158,8 +158,8 @@ class ScreensTests(unittest.TestCase):
         os.environ["PATH"] = str(self.tmp / "vazio")
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            rc = screens.main(["capture", "--url", "http://x", "--width", "8", "--height", "6",
-                               "--out", str(self.tmp / "a.png")])
+            rc = screens.main(["capture", "--url", "http://localhost", "--width", "8", "--height", "6",
+                               "--out", str(self.tmp / "captures" / "a.running.png")])
         self.assertEqual(rc, 1)
         self.assertIn("orca", err.getvalue())
 

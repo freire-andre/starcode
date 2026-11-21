@@ -1,6 +1,6 @@
 """screens.py: fotos de tela pela Orca, tamanho de imagem e lista de capturas vinculantes (F11-4).
 
-    python screens.py capture --url <http(s)://...> --width L --height A --out <arquivo.png>
+    python screens.py capture --url <http(s)://...> --width L --height A --out captures/<nome>.running.png [--allow-host H]...
     python screens.py size <imagem>
     python screens.py list <slug> [--root DIR]
 
@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "gates"))
@@ -158,6 +159,30 @@ def list_screens(slug: str, root: Path) -> list[dict]:
     return out
 
 
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "[::1]")
+
+
+def url_host(url: str) -> str:
+    """Host da URL em minúsculas, com `[...]` nos IPv6 (vazio se ilegível)."""
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+        parts.port  # noqa: B018 (porta inválida levanta ValueError)
+    except ValueError:
+        return ""
+    return f"[{host}]" if ":" in host else host
+
+
+def host_allowed(host: str, allow: list[str]) -> bool:
+    return bool(host) and (host in LOCAL_HOSTS or host.endswith(".localhost")
+                           or host in [a.lower() for a in allow])
+
+
+def out_allowed(out: str) -> bool:
+    p = Path(out)
+    return p.name.endswith(".running.png") and p.name != ".running.png" and p.parent.name == "captures"
+
+
 def _die(msg: str, code: int) -> int:
     print(msg, file=sys.stderr)
     return code
@@ -171,6 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--width", type=int, required=True)
     c.add_argument("--height", type=int, required=True)
     c.add_argument("--out", required=True)
+    c.add_argument("--allow-host", action="append", default=[], dest="allow_host")
     s = sub.add_parser("size")
     s.add_argument("image")
     ls = sub.add_parser("list")
@@ -184,6 +210,12 @@ def main(argv: list[str] | None = None) -> int:
                 return _die("use uma URL http(s): a Orca não desenha páginas data:", 2)
             if args.width <= 0 or args.height <= 0:
                 return _die("use --width e --height positivos", 2)
+            host = url_host(args.url)
+            if not host_allowed(host, args.allow_host):
+                return _die(f"host fora do padrão local: {host or args.url} "
+                            f"(use --allow-host {host or '<host>'} para liberar)", 2)
+            if not out_allowed(args.out):
+                return _die(f"--out precisa ser captures/<nome>.running.png: {args.out}", 2)
             print(json.dumps(capture(args.url, args.width, args.height, Path(args.out)), ensure_ascii=False))
         elif args.cmd == "size":
             w, h = images.image_size(args.image)
