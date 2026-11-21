@@ -72,14 +72,14 @@ Proof: run unit | test_decisions_e_changelog (test_restauracao_e_telas.Restaurac
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** LaForge implementa T1
+**Next:** provas, depois Q
 **Linear:** SC-210
 **Integration branch:** feature/restauracao-e-telas
-**Last integrated:** none
-**Dispatched:** T1 · SC-210 · base c5da9a6 · claude:claude-sonnet-5-5 · 2026-11-21T15:57:52Z · ctx_a90d65c5fbe5
+**Last integrated:** T1 (82be556)
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
 **Reports:** none
