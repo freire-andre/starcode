@@ -114,9 +114,13 @@ class VersaoERetroTests(TempRepoCase):
 
     def assert_plugin_line(self, name: str, text: str, version: str) -> None:
         lines = text.splitlines()
-        title = next(i for i, ln in enumerate(lines) if ln.startswith("# "))
-        self.assertEqual(lines[title + 1:title + 3], ["", f"**Plugin:** StarCode {version}"], name)
+        self.assertTrue(lines[0].startswith("# "), (name, lines[0]))  # título na primeira linha
+        self.assertEqual(lines[1:3], ["", f"**Plugin:** StarCode {version}"], name)
         self.assertEqual(text.count("**Plugin:**"), 1, name)
+        if name.endswith(("q-brief", "screens-brief")):
+            self.assertEqual(lines[3:5], ["", f"Repositório: {self.repo.as_posix()}"], name)
+        else:
+            self.assertNotIn("Repositório:", "\n".join(lines[:6]), name)
 
     def test_brief_traz_versao_do_plugin(self):
         fdir = self.feature()
