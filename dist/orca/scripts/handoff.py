@@ -25,6 +25,10 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import starcode_common as sc  # noqa: E402
+
 ARTIFACTS = ("tasks.md", "spec.md", "context.md")  # most advanced first
 FIELDS = (  # (option, marker, default)
     ("phase", "Phase", "discovery"),
@@ -215,6 +219,14 @@ def set_handoff(slug: str, root: Path, updates: dict[str, str], settle: str | No
                 attempt: str | None = None, dispatch_add_entry: str | None = None,
                 dispatch_remove_ticket: str | None = None) -> tuple[Path, dict[str, str]]:
     fdir = feature_dir(slug, root)
+    with sc.locked(fdir / ".handoff", timeout=5.0):  # lê, muda e grava sob a trava da feature (SC-208)
+        return _set_handoff_locked(fdir, updates, settle, today, report, attempt, dispatch_add_entry,
+                                   dispatch_remove_ticket)
+
+
+def _set_handoff_locked(fdir: Path, updates: dict[str, str], settle: str | None, today: str | None,
+                        report: str | None, attempt: str | None, dispatch_add_entry: str | None,
+                        dispatch_remove_ticket: str | None) -> tuple[Path, dict[str, str]]:
     present = [fdir / a for a in ARTIFACTS if (fdir / a).is_file()]
     if not present:
         raise LookupError(f"nenhum artefato (tasks.md, spec.md, context.md) em {fdir}")
@@ -302,6 +314,9 @@ def main(argv: list[str] | None = None) -> int:
         target, values = set_handoff(args.feature, root, updates, args.settle, report=args.report,
                                      attempt=args.attempt, dispatch_add_entry=args.dispatch_add,
                                      dispatch_remove_ticket=args.dispatch_remove)
+    except TimeoutError:
+        print(f"handoff ocupado: {feature_dir(args.feature, root)}", file=sys.stderr)
+        return 2
     except ValueError as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2

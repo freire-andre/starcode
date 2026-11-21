@@ -21,3 +21,6 @@ dist/claude/evals/results/
 
 # Tipos gerados pela Orca (orca plugin types)
 src/orca/.orca/
+
+# Trava do handoff.py set (SC-208)
+.handoff.lock
