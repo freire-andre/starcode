@@ -187,7 +187,8 @@
         "verificacao-1-8-0",
         "pequena-minima",
         "pr-review",
-        "restauracao-e-telas"
+        "restauracao-e-telas",
+        "versao-e-retro"
       ],
       "sources": [
         ".specs/features/fase-11-telas/verification.md:achado 3",
@@ -197,11 +198,12 @@
         ".specs/features/verificacao-1-8-0/verification.md:40",
         "verification.md: achado 2 (prova da C4 sem settle)",
         "verification.md: achado 2 (edge case sem check)",
-        "verification.md achado 1"
+        "verification.md achado 1",
+        "verification.md achado 3"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-21T17:36:00Z"
+      "updated": "2026-11-21T22:56:23Z"
     },
     {
       "id": "L11",
@@ -363,7 +365,8 @@
         "licoes-no-brief",
         "config-local-worktree",
         "ponte-manutencao",
-        "falhas-start-settle"
+        "falhas-start-settle",
+        "versao-e-retro"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -379,11 +382,12 @@
         ".specs/features/licoes-no-brief/verification.md:achado 2",
         ".specs/features/config-local-worktree/verification.md:achado 4",
         ".specs/features/ponte-manutencao/verification.md achado 3",
-        ".specs/features/falhas-start-settle/verification.md achado 5"
+        ".specs/features/falhas-start-settle/verification.md achado 5",
+        "verification.md achado 1"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-21T13:55:53Z"
+      "updated": "2026-11-21T22:56:22Z"
     },
     {
       "id": "L21",
@@ -1435,6 +1439,51 @@
       "scope": "",
       "created": "2026-11-21T20:17:26Z",
       "updated": "2026-11-21T20:17:26Z"
+    },
+    {
+      "id": "L88",
+      "text": "Antes de inserir uma linha relativa ao título de um texto gerado, confira em cada gerador qual é de fato a primeira linha; um prefixo como 'Repositório:' desloca o título e a regra falha em parte dos geradores.",
+      "signal": "spec_deviation",
+      "status": "candidate",
+      "features": [
+        "versao-e-retro"
+      ],
+      "sources": [
+        "verification.md achado 2"
+      ],
+      "scope": "",
+      "created": "2026-11-21T22:56:22Z",
+      "updated": "2026-11-21T22:56:22Z"
+    },
+    {
+      "id": "L89",
+      "text": "Ao reescrever uma célula de tabela markdown, troque só o intervalo de caracteres dela; reconstruir a linha pelas células perde espaços finais e o CRLF. Teste com espaços depois do último | e com CRLF.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "versao-e-retro"
+      ],
+      "sources": [
+        "verification.md achado 4"
+      ],
+      "scope": "edição de markdown",
+      "created": "2026-11-21T22:56:23Z",
+      "updated": "2026-11-21T22:56:23Z"
+    },
+    {
+      "id": "L90",
+      "text": "Quando um comando classifica arquivos pela estrutura (ex.: 'sem coluna X'), trate o arquivo sem a estrutura nenhuma (sem tabela, vazio) como um caso da classificação e teste-o.",
+      "signal": "ac_gap",
+      "status": "candidate",
+      "features": [
+        "versao-e-retro"
+      ],
+      "sources": [
+        "verification.md achado 5"
+      ],
+      "scope": "",
+      "created": "2026-11-21T22:56:23Z",
+      "updated": "2026-11-21T22:56:23Z"
     }
   ]
 }
