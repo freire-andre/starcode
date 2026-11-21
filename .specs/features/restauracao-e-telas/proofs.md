@@ -1,17 +1,19 @@
 # restauracao-e-telas proofs
 
-**HEAD**: bd69d78
+**HEAD**: 709d778
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 9 pass, 0 fail
+**Result**: 11 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
 | C1 | `run unit / test_restore_le_escopo_do_snapshot (test_restauracao_e_telas.RestauracaoETelasTests.test_restore_le` | pass |
+| C1 | `run unit / test_restore_snapshot_sem_artefato_sai_2 (test_restauracao_e_telas.RestauracaoETelasTests.test_rest` | pass |
 | C2 | `run unit / test_capture_so_host_local (test_restauracao_e_telas.RestauracaoETelasTests.test_capture_so_host_lo` | pass |
 | C3 | `run unit / test_capture_out_restrito (test_restauracao_e_telas.RestauracaoETelasTests.test_capture_out_restrit` | pass |
 | C4 | `run unit / test_veredito_nome_inteiro (test_restauracao_e_telas.RestauracaoETelasTests.test_veredito_nome_inte` | pass |
 | C5 | `run unit / test_png_sem_idat (test_restauracao_e_telas.RestauracaoETelasTests.test_png_sem_idat) ... ok` | pass |
+| C5 | `run unit / test_png_idat_truncado_ou_vazio (test_restauracao_e_telas.RestauracaoETelasTests.test_png_idat_trun` | pass |
 | C6 | `run unit / test_decisions_e_changelog (test_restauracao_e_telas.RestauracaoETelasTests.test_decisions_e_change` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
@@ -33,7 +35,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1074 tests in 610.555s
+Ran 1075 tests in 660.576s
 
 OK (skipped=1)
 inativo
