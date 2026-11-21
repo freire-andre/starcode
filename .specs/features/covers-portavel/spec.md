@@ -26,10 +26,10 @@ Proof: run unit | test_decisions_covers_portavel (test_coverage_rule.CoverageRul
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** SMALL
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** missão 5 do passo 4: R.5 e R.10
 **Linear:** SC-209
 **Integration branch:** feature/covers-portavel
 **Last integrated:** T1 (67ef1fa)
