@@ -164,11 +164,12 @@ def parse_dispatch_entry(entry: str) -> dict:
 
     `start` format: `<Tn> · <issues> · base <sha> · <cli>:<model> · <UTC> [· <dispatch id>] [· blocked]`.
     Old format: `<Tn> · <issues> · base <sha> · dispatch <id> · model <m>`.
-    Returns ticket, issues (list), base, model, at, dispatch and blocked; a missing field is None."""
+    Returns ticket, issues (list), issues_text (the field as written), base, model, at, dispatch and blocked; a missing field is None."""
     parts = [p.strip() for p in (entry or "").split("·")]
-    out: dict = {"ticket": parts[0] if parts and parts[0] else None, "issues": [], "base": None, "model": None,
+    out: dict = {"ticket": parts[0] if parts and parts[0] else None, "issues": [], "issues_text": None, "base": None, "model": None,
                  "at": None, "dispatch": None, "blocked": len(parts) > 1 and parts[-1] == "blocked"}
     if len(parts) > 1:
+        out["issues_text"] = parts[1] or None
         out["issues"] = list(dict.fromkeys(LINEAR_ID_RE.findall(parts[1])))
     for part in parts[2:]:
         for key in _ENTRY_KEYS:
