@@ -78,10 +78,10 @@ Proof: run unit | test_decisions_e_changelog (test_falhas_start_settle.FalhasSta
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** push e PR (confirmação)
+**Next:** Worf revisa o PR #77
 **Linear:** SC-208
 **Integration branch:** feature/falhas-start-settle
 **Last integrated:** T1 (247cd98)
