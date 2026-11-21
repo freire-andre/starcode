@@ -37,6 +37,7 @@ it from the older file) in the same turn. The banner reads all three.
 **Phase:** discovery | spec | spec-approved | tasks | tasks-approved | published | execute | review | pr-review | done
 **Size:** SMALL | MEDIUM | LARGE | COMPLEX
 **Git mode:** <1-4>
+**Plugin:** <version of the StarCode plugin that wrote the dispatch | none yet>  (written by dispatch.py start)
 **Next:** <one sentence: exactly what happens next>
 **Linear:** <issue ID (MEDIUM) | project URL + issue IDs (LARGE/COMPLEX) | none yet>
 **Integration branch:** <feature/<slug> | n/a (mode 1) | not created>

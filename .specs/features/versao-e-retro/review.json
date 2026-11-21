@@ -1,0 +1,25 @@
+{
+ "round": 1,
+ "verdict": "APPROVE",
+ "summary": "TL;DR: APPROVE. Os quatro briefs passam a ter o título na primeira linha e o **Plugin:** logo abaixo; no q-brief e no screens-brief, a linha Repositório vem depois do Plugin. O start grava a versão no campo novo do Handoff. O version_warning só dispara no repositório do StarCode com versão diferente e vai para o stderr. O retros.py acha as colunas pelo nome do cabeçalho; no estado, troca só o intervalo entre os delimitadores da célula e preserva o fim de linha original. Um nit: sc.plugin_version duplica o plugin_version do banner. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "nit",
+   "path": "scripts/starcode_common.py",
+   "line": 29,
+   "body": "O sc.plugin_version repete a leitura de hooks/scripts/banner.py:128 (manifesto, crew.json, VERSION), com uma diferença: devolve 'desconhecida' em vez de None. O banner já importa o starcode_common e pode usar o sc.plugin_version, para as duas leituras não divergirem.",
+   "evidence": "hooks/scripts/banner.py:128"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: só a biblioteca padrão (json, argparse, unicodedata, pathlib)"
+ ],
+ "ladder": [
+  "CI local em c717f8b (evidência do PR): build --check, check_decisions, claude plugin validate --strict e suíte inteira (1091 testes, 1 pulado), todos verdes",
+  "módulos tocados no head: test_versao_e_retro 8, test_dispatch 56, test_licoes_no_brief 5, test_handoff 13, test_dispatch_start 17, test_banner 24, todos OK",
+  "retros.py abertas no repositório real (só leitura): 4 linhas abertas da retro desta feature, mais 1 de fase-9, e '34 retro(s) sem coluna Estado'",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}

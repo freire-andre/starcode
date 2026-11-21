@@ -237,7 +237,10 @@ class DispatchTests(TempRepoCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(dispatch.main(["q-brief", "demo", "--base", "main", "--head", "abc1234",
                                             "--out", str(out), "--root", str(self.repo)]), 0)
-        self.assertTrue(out.read_text(encoding="utf-8").startswith("Repositório:"))
+        lines = out.read_text(encoding="utf-8").splitlines()
+        self.assertTrue(lines[0].startswith("# "), lines[0])
+        self.assertTrue(lines[2].startswith("**Plugin:** StarCode "), lines[2])
+        self.assertEqual(lines[4], f"Repositório: {self.repo.as_posix()}")
 
     def test_q_brief_proibe_tocar_no_handoff(self):
         lines = dispatch.q_brief("demo", self.repo, "main", "abc1234").splitlines()

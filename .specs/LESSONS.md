@@ -20,10 +20,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-14T23:53:01Z
 
 ### L10 - Cite na prova de um check o teste de cada afirmação dele, inclusive o caso positivo, porque a prova citava só o teste do erro.
-- signal: `weak_test` · features: 8
-- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0, pequena-minima, pr-review, restauracao-e-telas
-- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40, verification.md: achado 2 (prova da C4 sem settle), verification.md: achado 2 (edge case sem check), verification.md achado 1
-- updated: 2026-11-21T17:36:00Z
+- signal: `weak_test` · features: 9
+- features: fase-11-telas, despacho-media-escopo, q-familia-revendedor, opencode-copia-instalada, verificacao-1-8-0, pequena-minima, pr-review, restauracao-e-telas, versao-e-retro
+- sources: .specs/features/fase-11-telas/verification.md:achado 3, L29 (verification.md: achado ID em minúscula; spec.md Edge Cases), L31 (verification.md achado C7 (test_model_info.py:164)), .specs/features/opencode-copia-instalada/verification.md: achado 2 (dry-run de R3 sem check), .specs/features/verificacao-1-8-0/verification.md:40, verification.md: achado 2 (prova da C4 sem settle), verification.md: achado 2 (edge case sem check), verification.md achado 1, verification.md achado 3
+- updated: 2026-11-21T22:56:23Z
 
 ### L13 - Confira exclusões de cópia em toda a árvore (rglob), não só na raiz do destino, porque o teste passaria com um filtro que ignorasse apenas o primeiro nível.
 - signal: `weak_test` · features: 2
@@ -38,10 +38,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 13
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3, .specs/features/falhas-start-settle/verification.md achado 5
-- updated: 2026-11-21T13:55:53Z
+- signal: `weak_test` · features: 14
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle, versao-e-retro
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3, .specs/features/falhas-start-settle/verification.md achado 5, verification.md achado 1
+- updated: 2026-11-21T22:56:22Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 6
@@ -532,6 +532,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: catalogo-e-orca
 - sources: verification.md achado 3
 - updated: 2026-11-21T20:17:26Z
+
+### L88 - Antes de inserir uma linha relativa ao título de um texto gerado, confira em cada gerador qual é de fato a primeira linha; um prefixo como 'Repositório:' desloca o título e a regra falha em parte dos geradores.
+- signal: `spec_deviation` · features: 1
+- features: versao-e-retro
+- sources: verification.md achado 2
+- updated: 2026-11-21T22:56:22Z
+
+### L89 - Ao reescrever uma célula de tabela markdown, troque só o intervalo de caracteres dela; reconstruir a linha pelas células perde espaços finais e o CRLF. Teste com espaços depois do último | e com CRLF.
+- signal: `weak_test` · features: 1 · scope: `edição de markdown`
+- features: versao-e-retro
+- sources: verification.md achado 4
+- updated: 2026-11-21T22:56:23Z
+
+### L90 - Quando um comando classifica arquivos pela estrutura (ex.: 'sem coluna X'), trate o arquivo sem a estrutura nenhuma (sem tabela, vazio) como um caso da classificação e teste-o.
+- signal: `ac_gap` · features: 1
+- features: versao-e-retro
+- sources: verification.md achado 5
+- updated: 2026-11-21T22:56:23Z
 
 ## Quarantined
 
