@@ -38,10 +38,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 12
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3
-- updated: 2026-11-21T00:46:37Z
+- signal: `weak_test` · features: 13
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3, .specs/features/falhas-start-settle/verification.md achado 5
+- updated: 2026-11-21T13:55:53Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 6
@@ -50,10 +50,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-20T15:46:03Z
 
 ### L32 - No teste de uma entrada de decisão, asserte na seção Decisão os termos de cada requisito descrito, não só títulos e nomes de teste, porque a entrada podia omitir requisitos e o teste passava.
-- signal: `weak_test` · features: 15
-- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree, ponte-manutencao
-- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5, .specs/features/ponte-manutencao/verification.md achado 4
-- updated: 2026-11-21T00:46:37Z
+- signal: `weak_test` · features: 16
+- features: q-familia-revendedor, setup-grava-config, impacto-seleciona-real, q-strategy, piloto-freios, lote1-correcoes, retro-fase9, scanner-lote2, guard-lote2, fecha-achado, sessions-concorrente, roteamento-worf-mccoy, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle
+- sources: verification.md achado C9 (test_model_info.py:178), L34 (verification.md:C4), L39 (verification.md:C8), .specs/features/q-strategy/verification.md:27, .specs/features/piloto-freios/verification.md:31, .specs/features/lote1-correcoes/verification.md:26, .specs/features/retro-fase9/verification.md:27, .specs/features/scanner-lote2/verification.md:29, .specs/features/guard-lote2/verification.md:28, .specs/features/fecha-achado/verification.md:achado 5, .specs/features/sessions-concorrente/verification.md:achado 3, .specs/features/roteamento-worf-mccoy/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 3, .specs/features/config-local-worktree/verification.md:achado 5, .specs/features/ponte-manutencao/verification.md achado 4, .specs/features/falhas-start-settle/verification.md achado 7
+- updated: 2026-11-21T13:55:53Z
 
 ### L41 - Diferencie opção ausente de opção presente com valor vazio (is None, não falsidade), porque --id "" caía no caminho sem --id e criava uma lição nova em vez de recusar o ID.
 - signal: `weak_test` · features: 2
@@ -478,6 +478,36 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - features: ponte-manutencao
 - sources: .specs/features/ponte-manutencao/verification.md achado 5
 - updated: 2026-11-21T00:46:38Z
+
+### L79 - Ao ler o código de saída de um comando que usa 0 e 1 como resposta (git diff --quiet), trate qualquer outro código como erro, porque um tempo esgotado ou falha virava resposta válida.
+- signal: `spec_deviation` · features: 1
+- features: falhas-start-settle
+- sources: .specs/features/falhas-start-settle/verification.md achado 1
+- updated: 2026-11-21T13:55:54Z
+
+### L80 - Função que promete nunca levantar exceção deve capturar também os erros de argumento e ambiente (TypeError, ValueError), não só OSError e tempo esgotado, e o teste deve cobrir esses casos.
+- signal: `spec_deviation` · features: 1
+- features: falhas-start-settle
+- sources: .specs/features/falhas-start-settle/verification.md achado 2
+- updated: 2026-11-21T13:55:54Z
+
+### L81 - Wrapper que devolve só bool ou só stdout não pode engolir um tempo esgotado: propague o erro com o stderr pelo caminho de erro do chamador.
+- signal: `spec_deviation` · features: 1
+- features: falhas-start-settle
+- sources: .specs/features/falhas-start-settle/verification.md achado 3
+- updated: 2026-11-21T13:55:54Z
+
+### L82 - Teste de um modo de saída (--json) deve exercitar o fluxo inteiro com o runner falso, não injetar o resultado pronto da função interna, porque a integração errada passaria.
+- signal: `weak_test` · features: 1
+- features: falhas-start-settle
+- sources: .specs/features/falhas-start-settle/verification.md achado 4
+- updated: 2026-11-21T13:55:54Z
+
+### L83 - Teste de concorrência deve forçar a disputa com sincronização explícita (sinais por arquivo ou evento) e provar que falha sem a proteção, porque processos soltos podem serializar e passar sem a trava.
+- signal: `weak_test` · features: 1
+- features: falhas-start-settle
+- sources: .specs/features/falhas-start-settle/verification.md achado 6
+- updated: 2026-11-21T13:55:54Z
 
 ## Quarantined
 

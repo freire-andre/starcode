@@ -135,9 +135,12 @@ def with_decisions(task: vt.Task) -> vt.Task:
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
-    p = subprocess.run(["git", *args], cwd=root, capture_output=True, encoding="utf-8", errors="replace",
-                       stdin=subprocess.DEVNULL)
-    return p.returncode, p.stdout
+    """(código, stdout). Tempo esgotado, git ausente ou argumento inválido (124, 126, 127) levantam ValueError com o
+    stderr: o código 1 ou 128 do git segue como resposta do chamador."""
+    code, out, err = sc.run_git(list(args), root)
+    if code in (124, 126, 127):
+        raise ValueError(f"git {args[0]} falhou em {root}: {_first_line(err, out)}")
+    return code, out
 
 
 def load_tasks(slug: str, root: Path) -> tuple[Path, list[vt.Task]]:
@@ -492,9 +495,12 @@ def regression_block(root: Path, base: str, head: str) -> str:
     """Impact selection for the Q brief (R32); a failure never blocks the brief."""
     try:
         diff = f"{base}..{head}"
-        if head == "HEAD" and subprocess.run(["git", "diff", "--quiet", "HEAD"], cwd=str(root),
-                                             stdin=subprocess.DEVNULL).returncode == 1:
-            diff = base  # modo 1: mudanças sem commit, árvore de trabalho contra a base (R14)
+        if head == "HEAD":
+            code, out, err = sc.run_git(["diff", "--quiet", "HEAD"], root)
+            if code not in (0, 1):  # 124 (tempo esgotado), 127 ou erro do git: a árvore não foi verificada
+                raise ValueError(f"git diff --quiet HEAD falhou: {_first_line(err, out) if (err or out).strip() else f'código {code}'}")
+            if code == 1:
+                diff = base  # modo 1: mudanças sem commit, árvore de trabalho contra a base (R14)
         return impact.format_text(impact.select(root, diff=diff))
     except Exception as exc:  # noqa: BLE001 - the brief is generated anyway
         return f"seleção indisponível: {exc}; rode a suíte inteira"
@@ -519,20 +525,15 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
 
 def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
     """What the Q left changed outside its allowed files (SC-181); reads `git status`, touches nothing."""
-    try:
-        res = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
-                             cwd=str(root), capture_output=True, encoding="utf-8", errors="replace",
-                             stdin=subprocess.DEVNULL)
-    except FileNotFoundError:
-        raise ValueError(f"git status falhou em {root}: git não encontrado") from None
-    if res.returncode != 0:
-        why = _first_line(res.stderr, res.stdout) if (res.stderr or res.stdout).strip() else f"código {res.returncode}"
+    code, stdout, stderr = sc.run_git(["status", "--porcelain=v1", "-z", "--untracked-files=all"], root)
+    if code != 0:
+        why = _first_line(stderr, stdout) if (stderr or stdout).strip() else f"código {code}"
         raise ValueError(f"git status falhou em {root}: {why}")
     base = f".specs/features/{slug}/"
     allowed = {base + "verification.md", base + "screens.md"}
     capture = re.compile(re.escape(base) + r"captures/[^/]+\.running\.png")
     out = []
-    records = res.stdout.split("\0")
+    records = stdout.split("\0")
     i = 0
     while i < len(records):
         rec = records[i]
@@ -739,10 +740,14 @@ def _text_of(value) -> str:
 
 
 def _receipt(out: str) -> dict:
+    empty = {"dispatch": "", "model": "", "worktree": ""}
+    start = out.find("{")
+    if start < 0:
+        return empty
     try:
-        data = json.loads(out)
+        data, _ = json.JSONDecoder().raw_decode(out[start:])
     except ValueError:
-        return {"dispatch": "", "model": "", "worktree": ""}
+        return empty
     dispatch = _find(data, "dispatchId", "dispatch_id", "dispatch")
     return {"dispatch": _text_of(dispatch), "model": _text_of(_find(data, "model")),
             "worktree": _text_of(_find(data, "workspace", "worktreeId", "worktree"))}
@@ -859,7 +864,12 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
     code = 0
     try:
         record(f"{cli}:{used}", f" · {rec['dispatch']}" if rec["dispatch"] else "")
-        emit(f"worker iniciado: {tid} · {cli}:{used} · {rec['dispatch'] or '-'}")
+        if rec["dispatch"]:
+            emit(f"worker iniciado: {tid} · {cli}:{used} · {rec['dispatch']}")
+        else:
+            code = 3
+            emit(f"worker ativo sem id de despacho: {tid} · {rec['worktree'] or '-'}: "
+                 "confira com orca orchestration list")
     except ValueError as exc:
         code = 3
         emit(f"worker ativo sem registro completo: {tid} · {rec['dispatch'] or '-'} · "
@@ -924,9 +934,13 @@ def settle(slug: str, ticket: str, branch: str, root: Path, runner=default_runne
     c, o, e = _call(runner, ["git", "merge", "--no-ff", branch, *msg], proj)
     if c != 0:
         _, files, _ = _call(runner, ["git", "diff", "--name-only", "--diff-filter=U"], proj)
-        _call(runner, ["git", "merge", "--abort"], proj)
-        names = ", ".join(f for f in files.split() if f) or _first_line(e, o)
-        emit(f"conflito no merge de {tid}: {names}")
+        names = ", ".join(f for f in files.split() if f)
+        if names:
+            emit(f"conflito no merge de {tid}: {names}")
+        else:
+            emit(f"merge de {tid} falhou: {_first_line(e, o)}")
+        if _call(runner, ["git", "rev-parse", "-q", "--verify", "MERGE_HEAD"], proj)[0] == 0:
+            _call(runner, ["git", "merge", "--abort"], proj)
         return 1
     _, sha, _ = _call(runner, ["git", "rev-parse", "HEAD"], proj)
     sha = sha.strip()

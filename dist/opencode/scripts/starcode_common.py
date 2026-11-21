@@ -46,6 +46,28 @@ def git(args: list[str], cwd: str | Path | None) -> str | None:
     return res.stdout.strip() if res.returncode == 0 else None
 
 
+def run_git(args: list[str], cwd: str | Path | None, timeout: float = 30, binary: bool = False,
+            env: dict | None = None) -> tuple[int, Any, Any]:
+    """Run git with a time limit: (code, stdout, stderr), bytes with `binary`. 124 on timeout, 127 if git is
+    missing, 126 for invalid arguments or environment; never raises."""
+    empty: Any = b"" if binary else ""
+    kw: dict[str, Any] = {} if binary else {"text": True, "encoding": "utf-8", "errors": "replace"}
+    try:
+        res = subprocess.run(["git", *args], cwd=None if cwd is None else str(cwd), capture_output=True,
+                             stdin=subprocess.DEVNULL, timeout=timeout,
+                             env={**os.environ, **env} if env else None, **kw)
+    except subprocess.TimeoutExpired:
+        msg = f"git excedeu {timeout:g} s: git {' '.join(args)}"
+        return 124, empty, msg.encode("utf-8") if binary else msg
+    except OSError:
+        msg = "git não encontrado"
+        return 127, empty, msg.encode("utf-8") if binary else msg
+    except (TypeError, ValueError) as exc:  # argumento ou ambiente inválido (valor não str, byte nulo)
+        msg = f"argumentos inválidos para o git: {exc}"
+        return 126, empty, msg.encode("utf-8") if binary else msg
+    return res.returncode, res.stdout or empty, res.stderr or empty
+
+
 def repo_root(cwd: str | Path | None) -> Path | None:
     out = git(["rev-parse", "--show-toplevel"], cwd)
     return Path(out) if out else None

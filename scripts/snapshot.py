@@ -17,15 +17,16 @@ import os
 import posixpath
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "gates"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import check_scope  # noqa: E402
 import gates_common as gc  # noqa: E402
+import starcode_common as sc  # noqa: E402
 
 REF_PREFIX = "refs/starcode/snapshots"
 PRE_PREFIX = "refs/starcode/pre-restore"
@@ -49,27 +50,22 @@ def pre_ref_name(slug: str, ticket: str) -> str:
 
 
 def run_git(root, *args: str, env: dict | None = None) -> str:
-    full_env = {**os.environ, **env} if env else None
     step = " ".join(args[:2])
-    try:
-        res = subprocess.run(["git", *args], cwd=str(root), capture_output=True, text=True,
-                             encoding="utf-8", errors="replace", env=full_env)
-    except OSError as exc:
-        raise GitError(step, str(exc)) from exc
-    if res.returncode != 0:
-        lines = (res.stderr or res.stdout).strip().splitlines()
-        raise GitError(step, lines[-1] if lines else f"código {res.returncode}")
-    return res.stdout
+    code, out, err = sc.run_git(list(args), root, env=env)
+    if code != 0:
+        lines = (err or out).strip().splitlines()
+        raise GitError(step, lines[-1] if lines else f"código {code}")
+    return out
 
 
 def valid_names(slug: str, ticket: str) -> bool:
     if not SLUG_RE.match(slug) or not TICKET_RE.match(ticket):
         return False
-    try:
-        res = subprocess.run(["git", "check-ref-format", ref_name(slug, ticket)], capture_output=True)
-    except OSError:
-        return False
-    return res.returncode == 0
+    code, out, err = sc.run_git(["check-ref-format", ref_name(slug, ticket)], None)
+    if code in (124, 126, 127):  # tempo esgotado, git ausente ou argumento inválido: não é nome inválido
+        lines = (err or out).strip().splitlines()
+        raise GitError("check-ref-format", lines[-1] if lines else f"código {code}")
+    return code == 0
 
 
 def _existing(root, ref: str) -> str | None:
@@ -107,7 +103,12 @@ def _short(root, commit: str) -> str:
 
 
 def cmd_take(args) -> int:
-    if not valid_names(args.slug, args.ticket):
+    try:
+        valid = valid_names(args.slug, args.ticket)
+    except GitError as exc:
+        print(f"snapshot falhou: {exc}")
+        return 1
+    if not valid:
         bad = args.slug if not SLUG_RE.match(args.slug) else args.ticket
         print(f"nome inválido para o snapshot: {bad}")
         return 2
@@ -214,15 +215,15 @@ def _diff(root, snapshot: str) -> list[tuple[str, str, str]]:
 
 def _write_blob(root, snapshot: str, path: str) -> None:
     mode = run_git(root, "ls-tree", snapshot, "--", path).split()[0]
-    res = subprocess.run(["git", "cat-file", "blob", f"{snapshot}:{path}"], cwd=str(root), capture_output=True)
-    if res.returncode != 0:
-        lines = res.stderr.decode("utf-8", "replace").strip().splitlines()
+    code, data, err = sc.run_git(["cat-file", "blob", f"{snapshot}:{path}"], root, binary=True)
+    if code != 0:
+        lines = err.decode("utf-8", "replace").strip().splitlines()
         raise OSError(lines[-1] if lines else "cat-file falhou")
     target = Path(root) / path
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.is_symlink() or target.is_file():
         target.unlink()
-    target.write_bytes(res.stdout)
+    target.write_bytes(data)
     if mode == "100755":
         target.chmod(target.stat().st_mode | 0o111)
     else:
@@ -276,7 +277,12 @@ def _write_pre_restore(root, slug: str, ticket: str) -> str:
 
 def cmd_restore(args) -> int:
     root = args.root
-    if not valid_names(args.slug, args.ticket):
+    try:
+        valid = valid_names(args.slug, args.ticket)
+    except GitError as exc:
+        print(f"restauração falhou: {exc}")
+        return 1
+    if not valid:
         bad = args.slug if not SLUG_RE.match(args.slug) else args.ticket
         print(f"nome inválido para o snapshot: {bad}")
         return 2

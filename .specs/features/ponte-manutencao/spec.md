@@ -83,10 +83,10 @@ Proof: run unit | test_decisions_e_changelog (test_ponte_manutencao.PonteManuten
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
-**Next:** publicar r1, push do review, merge (confirmação)
+**Next:** missão 3 do passo 4: R.8 e N.6
 **Linear:** SC-207
 **Integration branch:** feature/ponte-manutencao
 **Last integrated:** 2b75935cc25b5107910787d3087a1023eec79c12
