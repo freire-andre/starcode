@@ -61,6 +61,7 @@ Proof: run unit | test_parse_dispatch_entry (test_ponte_manutencao.PonteManutenc
 **C2** - Entrada real do `start` mostra `<cli>:<modelo>` no estado da Ponte; `overdue` e `settle` seguem com a mesma saída (R2)
 Proof: run unit | test_ponte_modelo_do_start (test_ponte_manutencao.PonteManutencaoTests.test_ponte_modelo_do_start) ... ok
 Proof: run unit | test_dispatch_usa_leitor_unico (test_ponte_manutencao.PonteManutencaoTests.test_dispatch_usa_leitor_unico) ... ok
+Proof: run unit | test_overdue_preserva_campo_de_issues (test_ponte_manutencao.PonteManutencaoTests.test_overdue_preserva_campo_de_issues) ... ok
 
 **C3** - O manifesto não declara `storage:own` (R3)
 Proof: run unit | test_manifesto_sem_storage (test_ponte_manutencao.PonteManutencaoTests.test_manifesto_sem_storage) ... ok
