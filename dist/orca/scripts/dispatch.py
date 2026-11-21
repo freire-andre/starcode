@@ -77,6 +77,7 @@ import gates_common as gc  # noqa: E402
 import handoff  # noqa: E402
 import impact  # noqa: E402
 import lessons  # noqa: E402
+import orca_cli  # noqa: E402
 import screens  # noqa: E402
 import validate_config  # noqa: E402
 import starcode_common as sc  # noqa: E402
@@ -697,7 +698,8 @@ def user_q_strategy() -> list[str] | None:
 def default_runner(cmd, **kw):
     """`subprocess.run`, resolving `orca` through PATH (`orca.cmd` on Windows)."""
     if cmd and cmd[0] == "orca":
-        cmd = [shutil.which("orca") or "orca", *cmd[1:]]
+        cmd = [orca_cli.resolve() or "orca", *cmd[1:]]
+        kw.setdefault("env", orca_cli.env())
     return subprocess.run(cmd, **kw)
 
 

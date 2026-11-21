@@ -17,8 +17,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
-import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -28,6 +26,7 @@ ROOT = HERE.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import conflicts  # noqa: E402
+import orca_cli  # noqa: E402
 import starcode_common as sc  # noqa: E402
 
 ORCA_TIMEOUT = 6
@@ -35,17 +34,8 @@ LINEAR_TIMEOUT = 20
 
 
 def _run(cmd: list[str], timeout: int, cwd: str | None = None) -> tuple[int, str]:
-    exe = shutil.which(cmd[0])
-    if not exe:
-        return 127, ""
-    try:
-        res = subprocess.run([exe, *cmd[1:]], capture_output=True, text=True, encoding="utf-8", stdin=subprocess.DEVNULL,
-                             errors="replace", timeout=timeout, cwd=cwd)
-    except subprocess.TimeoutExpired:
-        return 124, ""
-    except OSError:
-        return 126, ""
-    return res.returncode, res.stdout
+    res = orca_cli.run(cmd[1:], timeout, cwd=cwd)
+    return res["code"], res["stdout"]
 
 
 def check_orca() -> str:
