@@ -43,6 +43,29 @@ class TextoAntesOrca(FakeOrca):
         return res
 
 
+class MergeScript(FakeGate):
+    """Gate verde; o `git merge`, o diff de conflito e o MERGE_HEAD respondem o que o teste manda."""
+
+    def __init__(self, merge, unmerged: str, merge_head: bool):
+        super().__init__()
+        self.merge, self.unmerged, self.merge_head = merge, unmerged, merge_head
+
+    def __call__(self, cmd, **kw):
+        if cmd[:3] == ["git", "merge", "--no-ff"]:
+            self.calls.append(list(cmd))
+            return SimpleNamespace(returncode=1, stdout=self.merge[0], stderr=self.merge[1])
+        if cmd[:3] == ["git", "diff", "--name-only"]:
+            self.calls.append(list(cmd))
+            return SimpleNamespace(returncode=0, stdout=self.unmerged, stderr="")
+        if cmd[:4] == ["git", "rev-parse", "-q", "--verify"] and cmd[4] == "MERGE_HEAD":
+            self.calls.append(list(cmd))
+            return SimpleNamespace(returncode=0 if self.merge_head else 1, stdout="", stderr="")
+        if cmd[:3] == ["git", "merge", "--abort"]:
+            self.calls.append(list(cmd))
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        return super().__call__(cmd, **kw)
+
+
 class FalhasStartSettleTests(TempRepoCase):
     def setUp(self) -> None:
         super().setUp()
@@ -180,6 +203,42 @@ class FalhasStartSettleTests(TempRepoCase):
         self.assertEqual(out2[-1], "conflito no merge de T1: a.txt")
         self.assertEqual(fake2.calls.count(["git", "merge", "--abort"]), 1)
         self.assertEqual(run_git(self.repo, "status", "--porcelain"), "")
+
+    # C3 (achado 5: as combinações de saída do merge, MERGE_HEAD e arquivos em conflito)
+    def test_merge_combinacoes(self):
+        self.publish(entry("T1", self.base))
+        self.ticket_branch("b.txt")
+        antes = run_git(self.repo, "rev-parse", "HEAD")
+        tasks_antes = (self.fdir / "tasks.md").read_bytes()
+        abort = ["git", "merge", "--abort"]
+        casos = [
+            # (nome, (stdout, stderr), arquivos U, MERGE_HEAD, linha emitida, aborts)
+            ("stderr vazio, stdout com a causa", ("CONFLICT: sem arquivo", ""), "", False,
+             "merge de T1 falhou: CONFLICT: sem arquivo", 0),
+            ("stderr e stdout: vale o stderr", ("do stdout", "do stderr\nsegunda"), "", False,
+             "merge de T1 falhou: do stderr", 0),
+            ("só linhas em branco no stderr: vale o stdout", ("do stdout", "\n  \n"), "", False,
+             "merge de T1 falhou: do stdout", 0),
+            ("sem saída alguma", ("", ""), "", False, "merge de T1 falhou: sem mensagem", 0),
+            ("conflito sem MERGE_HEAD", ("", "CONFLICT (content)"), "a.txt\nc.txt\n", False,
+             "conflito no merge de T1: a.txt, c.txt", 0),
+            ("falha sem conflito, com MERGE_HEAD", ("", "fatal: erro no meio"), "", True,
+             "merge de T1 falhou: fatal: erro no meio", 1),
+            ("conflito com MERGE_HEAD", ("", "CONFLICT (content)"), "a.txt\n", True,
+             "conflito no merge de T1: a.txt", 1),
+        ]
+        for nome, merge, unmerged, merge_head, linha, aborts in casos:
+            with self.subTest(nome):
+                fake = MergeScript(merge, unmerged, merge_head)
+                code, out = self.settle(fake)
+                self.assertEqual(code, 1)
+                self.assertEqual(out[-1], linha)
+                self.assertEqual(fake.calls.count(abort), aborts)
+                self.assertEqual(len([c for c in fake.calls if c[:3] == ["git", "merge", "--no-ff"]]), 1)
+                if aborts:  # o abort vem depois do diff e da consulta ao MERGE_HEAD
+                    self.assertEqual(fake.calls[-1], abort)
+                self.assertEqual(run_git(self.repo, "rev-parse", "HEAD"), antes)
+                self.assertEqual((self.fdir / "tasks.md").read_bytes(), tasks_antes)
 
     # C4
     def test_handoff_concorrente(self):
