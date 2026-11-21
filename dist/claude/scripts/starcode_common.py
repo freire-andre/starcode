@@ -22,6 +22,40 @@ sys.path.insert(0, str(PLUGIN_ROOT / "scripts" / "config"))
 import validate_config  # noqa: E402
 
 GIT_TIMEOUT = 5
+UNKNOWN_VERSION = "desconhecida"
+VERSION_ROOT = PLUGIN_ROOT  # where the running plugin's version is read (tests point it elsewhere)
+
+
+def plugin_version() -> str:
+    """Version of the running plugin: its manifest, else crew.json, else VERSION; `desconhecida` without any."""
+    for rel in (".claude-plugin/plugin.json", "crew.json"):
+        try:
+            value = json.loads((VERSION_ROOT / rel).read_text(encoding="utf-8")).get("version")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    try:
+        text = (VERSION_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        return UNKNOWN_VERSION
+    return text or UNKNOWN_VERSION
+
+
+def version_warning(root: Path) -> str | None:
+    """Warning line when `root` is the StarCode repository and its VERSION differs from the running plugin."""
+    try:
+        if not ((root / "VERSION").is_file()
+                and (root / "dist" / "claude" / ".claude-plugin" / "plugin.json").is_file()):
+            return None
+        repo_v = (root / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    running = plugin_version()
+    if not repo_v or running == repo_v:
+        return None
+    return (f"aviso: plugin StarCode {running} difere do VERSION {repo_v} do repositório: "
+            "o brief segue as regras do plugin instalado")
 
 
 def utf8_stdio() -> None:

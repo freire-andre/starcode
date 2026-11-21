@@ -67,7 +67,8 @@ Follow `references/retro.md`. Write `.specs/features/<slug>/retro.md` with **at 
 severity (highest first). Each suggestion has:
 - **category**: one of the 7 in `references/retro.md`;
 - **evidence**: a commit, a line of the Handoff you read, or a finding (`verification.md`/`review.md` ID);
-- **proposed action**: one concrete change, not applied.
+- **proposed action**: one concrete change, not applied;
+- **estado**: last column of the table, `aberto` in every new row (values in `references/retro.md`).
 
 No evidence, no suggestion. Suggestions are **never applied** and **never become a lesson on their own**: the
 user decides, and a lesson only comes from a finding (section 1).

@@ -372,6 +372,19 @@ def format_batch(res: dict) -> str:
     return "\n".join(lines)
 
 
+def plugin_line() -> str:
+    return f"**Plugin:** StarCode {sc.plugin_version()}"
+
+
+def with_plugin(text: str) -> str:
+    """Put the plugin line right below the first `# ` title of a brief (SC-212)."""
+    lines = text.split(chr(10))
+    for i, line in enumerate(lines):
+        if line.startswith("# "):
+            return chr(10).join([*lines[:i + 1], "", plugin_line(), *lines[i + 1:]])
+    return plugin_line() + chr(10) * 2 + text
+
+
 def spec_brief(slug: str, ticket: str, root: Path, lessons_text: str = "") -> str:
     """MEDIUM or SMALL feature (no tasks.md): the briefing comes from spec.md (R23, R24)."""
     fdir = gc.resolve_feature(slug, root, "spec.md")
@@ -382,7 +395,7 @@ def spec_brief(slug: str, ticket: str, root: Path, lessons_text: str = "") -> st
     title = next((ln[2:].strip() for ln in lines if ln.startswith("# ")), fdir.name)
     m = re.search(r"^\*\*Linear\*\*:[ \t]*(.*)$", "\n".join(lines), re.M)
     ids = gc.LINEAR_ID_RE.findall(m.group(1)) if m else []
-    out = [f"# {title}", "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
+    out = [f"# {title}", "", plugin_line(), "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
            f"Feature: `{fdir.name}` · Ticket {ticket}", ""]
     for name in ("Scope", "Requirements", "Checks"):
         body = gc.section(lines, name) or []
@@ -480,7 +493,7 @@ def _worker_brief(slug: str, ticket: str, root: Path, lessons_text: str = "") ->
         blocks["CONTEXT"] = [*blocks.get("CONTEXT", []), *extra]
         task = dataclasses.replace(task, blocks=blocks)
     body = tasks_export.briefing(with_decisions(task), fdir.name)
-    head = f"# Ticket {task.tid}: {task.title}\n\nIssue: {linear_id(task) or 'sem issue'}\n\n"
+    head = f"# Ticket {task.tid}: {task.title}\n\n{plugin_line()}\n\nIssue: {linear_id(task) or 'sem issue'}\n\n"
     return head + body + "\n" + lessons_text + WORKER_RULES.format(
         slug=fdir.name, ticket=task.tid, plugin=sc.PLUGIN_ROOT.as_posix())
 
@@ -521,7 +534,7 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do Q: {', '.join(sorted(set(left)))}")
     text = text.replace("{{regression}}", regression_block(root, base, head))  # depois da checagem: caminhos com {{...}} são dado
-    return f"Repositório: {proj.as_posix()}\n\n" + text + lessons_section(root)
+    return f"Repositório: {proj.as_posix()}\n\n" + with_plugin(text) + lessons_section(root)
 
 
 def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
@@ -571,7 +584,7 @@ def screens_brief(slug: str, root: Path, url: str, serve: str = "", rnd: int = 1
     left = re.findall(r"\{\{[^}]+\}\}", text)
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do juiz de telas: {', '.join(sorted(set(left)))}")
-    return f"Repositório: {proj.as_posix()}\n\n" + text
+    return f"Repositório: {proj.as_posix()}\n\n" + with_plugin(text)
 
 
 def family(spec: str) -> str:
@@ -826,7 +839,8 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
     emit(f"briefing: {brief}")
     stamp = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
     head = f"{tid} · {issue} · base {sha} · "
-    handoff_cmd = [sys.executable, str(HERE / "handoff.py"), "set", fdir.name, "--root", str(root)]
+    handoff_cmd = [sys.executable, str(HERE / "handoff.py"), "set", fdir.name, "--root", str(root),
+                   "--plugin", sc.plugin_version()]
 
     def record(pair: str, tail: str = "") -> None:
         c, o, e = _call(runner, [*handoff_cmd, "--dispatch-add", f"{head}{pair} · {stamp}{tail}"], proj)
@@ -1011,7 +1025,7 @@ def fix_brief(slug: str, root: Path) -> str:
         ticket = tasks[0].tid if len(tasks) == 1 else "<ticket>"
     else:
         may = gc.effective_may_change(gc.split_paths(gc.field_value(slines, "May change") or ""))
-    out = [f"# Correção dos achados do Q: {title}", "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
+    out = [f"# Correção dos achados do Q: {title}", "", plugin_line(), "", f"Issue: {ids[0] if ids else 'sem issue'}", "",
            f"Feature: `{fdir.name}`", ""]
     for i, t, cells in opened:
         out += [f"## Achado {i}", "",
@@ -1116,6 +1130,10 @@ def main(argv: list[str] | None = None) -> int:
     po.add_argument("--base")
     po.add_argument("--root", default=".")
     a = p.parse_args(argv)
+    if a.cmd in ("brief", "start", "q-brief", "screens-brief", "fix-brief"):
+        warning = sc.version_warning(Path(a.root).resolve())
+        if warning:
+            print(warning, file=sys.stderr)
     try:
         if a.cmd == "next":
             code, msg = next_ticket(a.slug, Path(a.root).resolve(), a.branch, a.base)

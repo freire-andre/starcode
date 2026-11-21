@@ -86,7 +86,7 @@ class LicoesNoBriefTests(TempRepoCase):
 
     def expected_fix(self, achados: str, may: str, ticket: str, issue: str = "PROJ-9") -> str:
         plugin = dispatch.sc.PLUGIN_ROOT.as_posix()
-        return (f"# Correção dos achados do Q: Demo\n\nIssue: {issue}\n\nFeature: `demo`\n\n{achados}"
+        return (f"# Correção dos achados do Q: Demo\n\n**Plugin:** StarCode {dispatch.sc.plugin_version()}\n\nIssue: {issue}\n\nFeature: `demo`\n\n{achados}"
                 f"## BOUNDARIES\nMay change: {may}\n\n"
                 f"## Lessons\n\n{INTRO}\n\n- L1: texto 1\n\n"
                 "## Regras fixas da correção (StarCode)\n\n"
