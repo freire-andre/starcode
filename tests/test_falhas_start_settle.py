@@ -33,6 +33,46 @@ def decisions_entry(n: str) -> str:
     return m.group(0)
 
 
+DRIVER = """
+import contextlib, pathlib, sys, time
+scripts, root, modo, sync, papel, *resto = sys.argv[1:]
+sys.path.insert(0, scripts)
+import handoff
+import starcode_common as sc
+sync = pathlib.Path(sync)
+real_locked = sc.locked
+if modo == "nolock":
+    sc.locked = lambda *a, **k: contextlib.nullcontext()
+elif papel == "B":
+    def avisa(*a, **k):
+        (sync / "b_pediu").write_text("")
+        return real_locked(*a, **k)
+    sc.locked = avisa
+if papel == "A":
+    real_render = handoff.render
+    def render(values):
+        (sync / "a_leu").write_text("")
+        fim = time.monotonic() + 60
+        while not (sync / "liberar").exists() and time.monotonic() < fim:
+            time.sleep(0.01)
+        return real_render(values)
+    handoff.render = render
+sys.exit(handoff.main(["set", "demo", "--root", root, *resto]))
+"""
+
+
+def esperar(arquivo, proc, limite: float = 30.0) -> bool:
+    """Espera o arquivo de sinal; desiste se o processo morrer antes."""
+    fim = time.monotonic() + limite
+    while time.monotonic() < fim:
+        if arquivo.exists():
+            return True
+        if proc.poll() is not None:
+            return arquivo.exists()
+        time.sleep(0.01)
+    return False
+
+
 class TextoAntesOrca(FakeOrca):
     """O worker-start imprime uma linha de aviso antes do JSON."""
 
@@ -99,6 +139,38 @@ class FalhasStartSettleTests(TempRepoCase):
             code = dispatch.main(["start", "demo", "T1", "--cli", "claude", "--model", "claude-sonnet-5-5",
                                   "--json", "--root", str(self.repo)])
         return code, so.getvalue(), se.getvalue()
+
+    def corrida(self, modo: str):
+        """A lê e para antes de gravar; B começa nesse intervalo. Só arquivos de sinal sincronizam os processos."""
+        sync = self.tmp / ("sync-" + modo)
+        sync.mkdir()
+        driver = self.tmp / "driver.py"
+        driver.write_text(DRIVER, encoding="utf-8")
+        base = [sys.executable, str(driver), str(ROOT / "scripts"), str(self.repo), modo, str(sync)]
+        a = subprocess.Popen(base + ["A", "--next", "vA"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        b = None
+        try:
+            self.assertTrue(esperar(sync / "a_leu", a), "A não chegou a ler")
+            b = subprocess.Popen(base + ["B", "--size", "vB"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 text=True)
+            if modo == "lock":
+                self.assertTrue(esperar(sync / "b_pediu", b), "B não pediu a trava")
+                self.assertIsNone(b.poll())  # B espera a trava de A: não gravou nada ainda
+            else:
+                _, errb = b.communicate(timeout=60)  # sem trava B grava inteiro dentro da janela de A
+                self.assertEqual(b.returncode, 0, errb)
+            (sync / "liberar").write_text("", encoding="utf-8")
+            _, erra = a.communicate(timeout=60)
+            self.assertEqual(a.returncode, 0, erra)
+            if b.returncode is None:
+                _, errb = b.communicate(timeout=60)
+                self.assertEqual(b.returncode, 0, errb)
+        finally:
+            for proc in (a, b):
+                if proc is not None and proc.poll() is None:
+                    proc.kill()
+                    proc.communicate()
+        return self.fields(), (a.returncode, b.returncode)
 
     def ticket_branch(self, fname: str, text: str = "x\n") -> None:
         run_git(self.repo, "checkout", "-q", "-b", "ticket/t1")
@@ -242,15 +314,17 @@ class FalhasStartSettleTests(TempRepoCase):
 
     # C4
     def test_handoff_concorrente(self):
-        for i in range(4):
-            procs = [subprocess.Popen([sys.executable, str(HANDOFF_PY), "set", "demo", "--root", str(self.repo),
-                                       opt, f"v{i}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                     for opt in ("--next", "--size")]
-            for p in procs:
-                _, err = p.communicate(timeout=60)
-                self.assertEqual(p.returncode, 0, err)
-            campos = self.fields()
-            self.assertEqual((campos["next"], campos["size"]), (f"v{i}", f"v{i}"))
+        # com a trava: B pede a trava enquanto A já leu e ainda não gravou; as duas mudanças ficam
+        campos, rc = self.corrida("lock")
+        self.assertEqual(rc, (0, 0))
+        self.assertEqual((campos["next"], campos["size"]), ("vA", "vB"))
+        # sem a trava (mesmo driver, só `locked` trocado por um contexto nulo): a mudança de B se perde
+        self.publish("none")  # volta ao estado inicial
+        campos, rc = self.corrida("nolock")
+        self.assertEqual(rc, (0, 0))
+        self.assertEqual(campos["next"], "vA")
+        self.assertEqual(campos["size"], "none yet")  # o Size de A (o inicial) sobrescreveu o vB de B
+        self.assertNotEqual(campos.get("size"), "vB")
         fdir = handoff.feature_dir("demo", self.repo)
         held = threading.Event()
         done = threading.Event()
@@ -274,7 +348,7 @@ class FalhasStartSettleTests(TempRepoCase):
         self.assertEqual(res.returncode, 2)
         self.assertEqual(res.stderr, f"handoff ocupado: {fdir}\n")
         self.assertEqual(res.stdout, "")
-        self.assertEqual(self.fields()["next"], "v3")
+        self.assertEqual(self.fields()["next"], "vA")
         self.assertTrue((fdir / ".handoff.lock").exists())
         self.assertIn(".handoff.lock", (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines())
         ign = subprocess.run(["git", "check-ignore", "-q", "--no-index", ".handoff.lock"], cwd=ROOT)
