@@ -393,10 +393,33 @@ class CatalogoEOrcaTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn("**Project version**: 1.4.268\n", text)
         self.assertIn("**Doc version**: 1.4.268\n", text)
-        for term in ("ELECTRON_RUN_AS_NODE", "F10-14", "F10-8", "NODE_*", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
-                     "--current", "terminal que chama", "ok:false", "error.message", "orca plugin test",
-                     "mesmo drive da instalação", "`shutil.which`", "orca.cmd"):
-            self.assertIn(term, text, term)
+        bullets = [ln for ln in text.splitlines() if ln.startswith("- ")]
+        self.assertEqual(len(bullets), 5, bullets)
+        temas = {
+            "- Resolução do CLI (F10-14): ": (
+                "o `orca` é um aplicativo Electron; para rodar como CLI ele usa `ELECTRON_RUN_AS_NODE`.",
+                "acha o executável pelo PATH com `shutil.which` (no Windows acha o `orca.cmd`)",
+                "sem shell, sem stdin e com tempo limite (`scripts/orca_cli.py`)."),
+            "- Ambiente: ": (
+                "o filho não herda `NODE_*`, `ELECTRON_RUN_AS_NODE`, `ORCA_NODE_OPTIONS` nem `ORCA_CLI_COMMAND`",
+                "no Windows `USERPROFILE`, `APPDATA` e `LOCALAPPDATA` são completados a partir da pasta do usuário"
+                " quando faltam."),
+            "- `--current` (F10-8): ": (
+                "\"atual\" é o terminal que chama;",
+                "o resultado é o do terminal de quem chamou, não o do coordenador."),
+            "- Falha com `ok:false`: ": (
+                "com `--json` a resposta vem como `{\"ok\": false, \"error\": {\"message\": \"...\"}}`"
+                " e o código de saída é diferente de 0;",
+                "a mensagem de erro está em `error.message`"),
+            "- `orca plugin test` e `orca plugin check` só rodam com o plugin no mesmo drive da instalação da Orca;": (
+                "falham com `cannot import \"./orca-runtime.mjs\"`.",
+                "Rode o gate num worktree no mesmo drive."),
+        }
+        for prefix, frases in temas.items():
+            achadas = [b for b in bullets if b.startswith(prefix)]
+            self.assertEqual(len(achadas), 1, prefix)
+            for frase in frases:
+                self.assertIn(frase, achadas[0], prefix + frase)
         fetched = re.search(r"^\*\*Fetched\*\*: (\d{4}-\d{2}-\d{2})$", text, re.M).group(1)
         res = subprocess.run([sys.executable, str(ROOT / "scripts" / "stack_cache.py"), "check", str(ROOT),
                               "--today", fetched], capture_output=True, text=True, encoding="utf-8",
