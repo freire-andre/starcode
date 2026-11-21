@@ -31,6 +31,7 @@ import starcode_common as sc  # noqa: E402
 REF_PREFIX = "refs/starcode/snapshots"
 PRE_PREFIX = "refs/starcode/pre-restore"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+MISSING_SPEC = "snapshot sem tasks.md nem spec.md de {slug}"
 TICKET_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
@@ -159,21 +160,34 @@ def cmd_list(args) -> int:
 OUTSIDE_LIMIT = 50
 
 
-def _ticket_may_change(root, slug: str, ticket: str) -> tuple[list[str] | None, str]:
-    """May change do ticket (tasks.md) ou, sem tasks.md, o da spec. Devolve (lista, motivo do erro)."""
-    fdir = Path(root) / ".specs" / "features" / slug
-    if (fdir / "tasks.md").is_file():
-        task = check_scope.find_task(fdir, ticket)
-        if task is None:
-            return None, f"ticket {ticket} não está no tasks.md de {slug}"
-        paths = task.may_change
-    elif (fdir / "spec.md").is_file():
-        paths = check_scope.spec_may_change(fdir)
-    else:
-        return None, f"nem tasks.md nem spec.md em .specs/features/{slug}"
-    if not paths:
-        return None, f"ticket {ticket} sem May change"
-    return paths, ""
+def _ticket_may_change(root, snap: str, slug: str, ticket: str) -> tuple[list[str] | None, str]:
+    """May change do ticket (tasks.md) ou, sem tasks.md, o da spec, como gravado no commit do snapshot
+    (`git show <snap>:<caminho>`), nunca da árvore de trabalho. Devolve (lista, motivo do erro)."""
+    rel = f".specs/features/{slug}"
+    tmp = tempfile.mkdtemp(prefix="starcode-restore-spec-")
+    try:
+        fdir = Path(tmp) / ".specs" / "features" / slug
+        fdir.mkdir(parents=True)
+        found = {}
+        for name in ("tasks.md", "spec.md"):
+            code, out, _ = sc.run_git(["show", f"{snap}:{rel}/{name}"], root, binary=True)
+            found[name] = out if code == 0 else None
+            if code == 0:
+                (fdir / name).write_bytes(out)
+        if found["tasks.md"] is not None:
+            task = check_scope.find_task(fdir, ticket)
+            if task is None:
+                return None, f"ticket {ticket} não está no tasks.md de {slug}"
+            paths = task.may_change
+        elif found["spec.md"] is not None:
+            paths = check_scope.spec_may_change(fdir)
+        else:
+            return None, MISSING_SPEC.format(slug=slug)
+        if not paths:
+            return None, f"ticket {ticket} sem May change"
+        return paths, ""
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def _clean_patterns(paths: list[str]) -> list[str]:
@@ -292,7 +306,10 @@ def cmd_restore(args) -> int:
         if not snap:
             print(f"sem snapshot de {name}: restauração recusada")
             return 1
-        paths, why = _ticket_may_change(root, args.slug, args.ticket)
+        paths, why = _ticket_may_change(root, snap, args.slug, args.ticket)
+        if paths is None and why == MISSING_SPEC.format(slug=args.slug):
+            print(f"{why}: restauração recusada")
+            return 2
         if paths is None:
             print(f"{why}: restauração recusada")
             return 1
