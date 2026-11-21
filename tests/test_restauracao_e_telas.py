@@ -232,6 +232,33 @@ class RestauracaoETelasTests(unittest.TestCase):
         run = fdir / "captures" / "login.running.png"
         self.assertEqual(self.erros_telas(fdir), [f"{run.as_posix()}: PNG sem dados de imagem (nenhum IDAT)"])
 
+    def test_png_idat_truncado_ou_vazio(self):
+        def chunk(tag, data):
+            return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+        base = png_sem_idat(4, 4, iend=False)
+        idat = chunk(b"IDAT", zlib.compress(b"\x00" * 13))
+        tabela = (
+            ("ihdr-so.png", base, "PNG sem dados de imagem (nenhum IDAT)"),
+            ("idat-cabecalho.png", base + struct.pack(">I", 100) + b"IDAT", "PNG truncado (chunk IDAT incompleto)"),
+            ("idat-sem-crc.png", base + idat[:-4], "PNG truncado (chunk IDAT incompleto)"),
+            ("idat-meio.png", base + idat[:-6], "PNG truncado (chunk IDAT incompleto)"),
+            ("idat-zero.png", base + chunk(b"IDAT", b"") + chunk(b"IEND", b""),
+             "PNG sem dados de imagem (nenhum IDAT)"),
+            ("idat-ok.png", base + idat + chunk(b"IEND", b""), None),
+        )
+        with tempfile.TemporaryDirectory(prefix="starcode-sc210-idat-") as tmp:
+            for nome, data, msg in tabela:
+                p = Path(tmp) / nome
+                p.write_bytes(data)
+                with self.subTest(nome=nome):
+                    if msg is None:
+                        self.assertEqual(images.image_size(p), (4, 4))
+                    else:
+                        with self.assertRaises(images.ImageError) as ctx:
+                            images.image_size(p)
+                        self.assertEqual(str(ctx.exception), f"{p.as_posix()}: {msg}")
+
     # ---- R6 ----
     def test_decisions_e_changelog(self):
         text = (ROOT / "DECISIONS.md").read_text(encoding="utf-8")
@@ -247,12 +274,12 @@ class RestauracaoETelasTests(unittest.TestCase):
         termos = ["git show", "tasks.md", "spec.md", "snapshot sem tasks.md nem spec.md de", "sai com 2",
                   "localhost", "127.0.0.1", "[::1]", ".localhost", "--allow-host", "host fora do padrão local",
                   "captures/<nome>.running.png", "--out precisa ser", "nome inteiro", "admin-login.running.png",
-                  "IDAT", "PNG sem dados de imagem"]
+                  "IDAT", "PNG sem dados de imagem", "PNG truncado (chunk <tipo> incompleto)", "comprimento maior que zero"]
         for t in termos:
             self.assertIn(t, decisao, t)
         porque = partes["Por que não é bug"].group(1)
         for t in ("test_restore_le_escopo_do_snapshot", "test_capture_so_host_local", "test_capture_out_restrito",
-                  "test_veredito_nome_inteiro", "test_png_sem_idat", "test_decisions_e_changelog"):
+                  "test_veredito_nome_inteiro", "test_png_sem_idat", "test_png_idat_truncado_ou_vazio", "test_decisions_e_changelog"):
             self.assertIn(t, porque, t)
         change = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         unreleased = re.search(r"^## \[Unreleased\](.*?)(?=^## \[)", change, re.M | re.S).group(1)
