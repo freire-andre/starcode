@@ -79,7 +79,7 @@ Proof: run unit | test_decisions_e_changelog (test_versao_e_retro.VersaoERetroTe
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** none yet
-**Next:** provas, depois Q
+**Next:** Q verifica
 **Linear:** SC-212
 **Integration branch:** feature/versao-e-retro
 **Last integrated:** T1
