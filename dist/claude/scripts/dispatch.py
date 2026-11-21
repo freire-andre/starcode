@@ -376,13 +376,23 @@ def plugin_line() -> str:
     return f"**Plugin:** StarCode {sc.plugin_version()}"
 
 
-def with_plugin(text: str) -> str:
-    """Put the plugin line right below the first `# ` title of a brief (SC-212)."""
-    lines = text.split(chr(10))
+def with_plugin(text: str, repo: str = "") -> str:
+    """Title on the first line, then the plugin line and `Repositório:` when given (SC-212).
+
+    Whatever came before the `# ` title (an attribution comment) goes after that block, so the title stays first."""
+    nl = chr(10)
+    lines = text.split(nl)
     for i, line in enumerate(lines):
         if line.startswith("# "):
-            return chr(10).join([*lines[:i + 1], "", plugin_line(), *lines[i + 1:]])
-    return plugin_line() + chr(10) * 2 + text
+            before, rest = lines[:i], lines[i + 1:]
+            break
+    else:
+        before, line, rest = [], "", lines
+    extra = ["", f"Repositório: {repo}"] if repo else []
+    if (extra or before) and rest and rest[0] == "":
+        rest = rest[1:]
+    head = [line] if line else []
+    return nl.join([*head, "", plugin_line(), *extra, *([""] if extra or before else []), *before, *rest])
 
 
 def spec_brief(slug: str, ticket: str, root: Path, lessons_text: str = "") -> str:
@@ -534,7 +544,7 @@ def q_brief(slug: str, root: Path, base: str, head: str) -> str:
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do Q: {', '.join(sorted(set(left)))}")
     text = text.replace("{{regression}}", regression_block(root, base, head))  # depois da checagem: caminhos com {{...}} são dado
-    return f"Repositório: {proj.as_posix()}\n\n" + with_plugin(text) + lessons_section(root)
+    return with_plugin(text, proj.as_posix()) + lessons_section(root)
 
 
 def q_check(slug: str, root: Path) -> tuple[int, list[str]]:
@@ -584,7 +594,7 @@ def screens_brief(slug: str, root: Path, url: str, serve: str = "", rnd: int = 1
     left = re.findall(r"\{\{[^}]+\}\}", text)
     if left:
         raise ValueError(f"marcadores não preenchidos no briefing do juiz de telas: {', '.join(sorted(set(left)))}")
-    return f"Repositório: {proj.as_posix()}\n\n" + with_plugin(text)
+    return with_plugin(text, proj.as_posix())
 
 
 def family(spec: str) -> str:
