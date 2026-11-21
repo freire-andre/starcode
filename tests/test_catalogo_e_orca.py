@@ -183,6 +183,26 @@ class CatalogoEOrcaTests(unittest.TestCase):
         self.assertEqual(mi.load_catalog(fetch=False), novo)
         self.assertEqual(mi.cached_tier("acme/m2"), "$$$")
 
+        # origem inválida: também interpretada uma vez; o download ainda atualiza
+        mi._CATALOG.clear()
+        cache.write_text("{invalido", encoding="utf-8")
+        with mock.patch.object(mi, "_read", wraps=mi._read) as spy:
+            self.assertIsNone(mi.load_catalog(fetch=False))
+            self.assertIsNone(mi.load_catalog(fetch=False))
+            self.assertIsNone(mi.cached_tier("acme/m1"))
+            self.assertEqual(spy.call_count, 1)
+        with mock.patch.object(mi.urllib.request, "urlopen", return_value=fake_response(novo)):
+            self.assertEqual(mi.download(), novo)
+        self.assertEqual(mi.load_catalog(fetch=False), novo)
+        bad = self.tmp / "ruim.json"
+        bad.write_text("{invalido", encoding="utf-8")
+        os.environ["STARCODE_MODELS_DEV_FILE"] = str(bad)
+        mi._CATALOG.clear()
+        with mock.patch.object(mi, "_read", wraps=mi._read) as spy:
+            self.assertIsNone(mi.load_catalog(False))
+            self.assertIsNone(mi.load_catalog(False))
+            self.assertEqual(spy.call_count, 1)
+
     # --- C4 ---------------------------------------------------------------------------------
     def test_orca_cli_run_e_env(self):
         base = {"PATH": "p", "KEEP": "1", "NODE_OPTIONS": "x", "NODE_PATH": "y", "ELECTRON_RUN_AS_NODE": "1",
