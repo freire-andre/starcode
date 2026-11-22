@@ -77,6 +77,8 @@ export interface PonteState {
   status: 'ok' | 'sem-worktree' | 'erro'
   stale: boolean
   updatedAt: number
+  /** Horário da última atualização válida (ausente/null: ainda não houve); o painel mostra com `stale`. */
+  lastValidAt?: number | null
   snapshot: PonteSnapshot | null
   issue: PonteIssue | null
   issueNote: string | null
