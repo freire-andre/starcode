@@ -19,10 +19,10 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| O marketplace de agentes não contém a versão 1.9.0 exigida; o teste substitui a chave ausente pelo valor esperado. | `.agents/plugins/marketplace.json:7`; `tests/test_versao_1_9_0.py:30`; `tools/build.py:455` | Gerar a versão exigida e afirmar a chave explicitamente no teste. | |
-| C2 aceita a falta de um `crew.json` específico se houver cinco arquivos, sem exigir os destinos previstos. | `tests/test_versao_1_9_0.py:31` | Comparar os caminhos esperados e suas versões explicitamente. | |
-| C3 aceita alterações ou perda de conteúdo dos itens e troca entre seções se contagem e issues forem preservadas. | `tests/test_versao_1_9_0.py:43` | Comparar os itens e suas seções com o conteúdo anterior. | |
-| C5 usa somente duas versões e exclui arquivos da inspeção; uma busca de issue só em Unreleased pode passar nesses arquivos ou sem a grafia literal. | `tests/test_versao_1_9_0.py:57`; `tests/test_versao_1_9_0.py:83` | Testar três versões e verificar semanticamente todos os testes que pesquisam issues. | |
+| O marketplace de agentes não contém a versão 1.9.0 exigida; o teste substitui a chave ausente pelo valor esperado. | `.agents/plugins/marketplace.json:7`; `tests/test_versao_1_9_0.py:30`; `tools/build.py:455` | Gerar a versão exigida e afirmar a chave explicitamente no teste. | f1c0746 · test_versao_1_9_0_em_todos_os_manifestos |
+| C2 aceita a falta de um `crew.json` específico se houver cinco arquivos, sem exigir os destinos previstos. | `tests/test_versao_1_9_0.py:31` | Comparar os caminhos esperados e suas versões explicitamente. | 12b718a · test_versao_1_9_0_em_todos_os_manifestos |
+| C3 aceita alterações ou perda de conteúdo dos itens e troca entre seções se contagem e issues forem preservadas. | `tests/test_versao_1_9_0.py:43` | Comparar os itens e suas seções com o conteúdo anterior. | 8f39b7c · test_changelog_fecha_1_9_0 |
+| C5 usa somente duas versões e exclui arquivos da inspeção; uma busca de issue só em Unreleased pode passar nesses arquivos ou sem a grafia literal. | `tests/test_versao_1_9_0.py:57`; `tests/test_versao_1_9_0.py:83` | Testar três versões e verificar semanticamente todos os testes que pesquisam issues. | 39a0efd · test_nenhum_teste_le_unreleased_nem_busca_issue_fora_do_helper |
 
 ## Limits
 
