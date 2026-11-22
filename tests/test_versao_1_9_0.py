@@ -83,6 +83,117 @@ def _itens(secao: str) -> list[tuple[str, str]]:
 def _json(rel: str) -> dict:
     return json.loads((ROOT / rel).read_text(encoding="utf-8"))
 
+# Exceções da varredura C5, por (arquivo, função) e com o motivo: só testes que conferem o formato ou a
+# existência da seção [Unreleased], ou que provam o próprio helper e a própria varredura.
+EXCECOES: dict[tuple[str, str], str] = {
+    ("test_support.py", "changelog_recent"): "define o helper que recorta o [Unreleased] e a versão mais recente",
+    ("test_versao_1_9_0.py", "test_changelog_fecha_1_9_0"):
+        "confere a existência e a ordem das seções [Unreleased] (vazia), 1.9.0 e 1.8.0",
+    ("test_versao_1_9_0.py", "test_changelog_recent"):
+        "prova o helper com um CHANGELOG de fixture em diretório temporário",
+    ("test_release.py", "setUp"):
+        "grava o CHANGELOG de fixture (formato da seção [Unreleased] do release.py) em diretório temporário",
+    ("test_release_docs.py", "test_changelog_has_1_0_0_section"):
+        "confere o formato do CHANGELOG (Keep a Changelog) e a existência da seção [Unreleased]",
+}
+
+
+def _e_changelog(texto: str) -> bool:
+    """Literal que é o nome ou o caminho do arquivo (e não uma frase que o cita)."""
+    return re.fullmatch(r"(.*[/\\])?CHANGELOG\.md", texto) is not None
+
+
+def _tipos(no: ast.AST, portadores: dict[str, set[str]]) -> set[str]:
+    """Tipos tocados por uma expressão: cl (CHANGELOG.md), un (Unreleased), is (SC-<n>)."""
+    achou: set[str] = set()
+    for n in ast.walk(no):
+        if isinstance(n, ast.Constant) and isinstance(n.value, str):
+            if _e_changelog(n.value):
+                achou.add("cl")
+            if "Unreleased" in n.value:
+                achou.add("un")
+            if "SC-" in n.value:
+                achou.add("is")
+        elif isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+            achou |= portadores.get(n.id, set())
+        elif isinstance(n, ast.Attribute):
+            achou |= portadores.get("." + n.attr, set())
+    return achou
+
+
+def _corpo_proprio(fn: ast.AST):
+    """Nós do corpo da função, sem entrar nas funções aninhadas."""
+    pilha = list(ast.iter_child_nodes(fn))
+    while pilha:
+        n = pilha.pop()
+        yield n
+        if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            pilha.extend(ast.iter_child_nodes(n))
+
+
+def _violacoes(src: str, arquivo: str, excecoes: dict) -> list[str]:
+    """`arquivo::função` de cada função que lê o CHANGELOG e busca Unreleased ou issue fora do helper."""
+    arvore = ast.parse(src)
+    funcoes = [n for n in ast.walk(arvore) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    locais = {id(x) for f in funcoes for x in _corpo_proprio(f)}
+    portadores: dict[str, set[str]] = {}
+    alvos = []
+    for n in ast.walk(arvore):
+        if isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign)) and n.value is not None:
+            for t in (n.targets if isinstance(n, ast.Assign) else [n.target]):
+                for x in ast.walk(t):
+                    # Nome de módulo ou de classe, ou atributo (self.x, Classe.x); local de função já conta no corpo.
+                    if isinstance(x, ast.Attribute):
+                        alvos.append(("." + x.attr, n.value))
+                    elif isinstance(x, ast.Name) and id(n) not in locais:
+                        alvos += [(x.id, n.value), ("." + x.id, n.value)]
+
+    def da_funcao(f):
+        tipos: set[str] = set()
+        for x in _corpo_proprio(f):
+            if isinstance(x, (ast.Constant, ast.Name, ast.Attribute)):
+                tipos |= _tipos(x, portadores)
+        return tipos
+
+    def usa_changelog(f) -> bool:
+        """Lê o CHANGELOG de fato: literal fora de uma atribuição simples a nome local, carregamento desse
+        nome local, ou carregamento de um portador de fora da função (constante, atributo, helper)."""
+        corpo = list(_corpo_proprio(f))
+        soltos: set[int] = set()  # literais que só ligam um nome local (usar o nome é que conta)
+        locais_cl: set[str] = set()
+        for x in corpo:
+            if isinstance(x, ast.Assign) and all(isinstance(t, ast.Name) for t in x.targets):
+                lit = [y for y in ast.walk(x.value)
+                       if isinstance(y, ast.Constant) and isinstance(y.value, str) and _e_changelog(y.value)]
+                if lit:
+                    soltos |= {id(y) for y in lit}
+                    locais_cl |= {t.id for t in x.targets}
+        for x in corpo:
+            if (isinstance(x, ast.Constant) and isinstance(x.value, str) and _e_changelog(x.value)
+                    and id(x) not in soltos):
+                return True
+            if (isinstance(x, ast.Name) and isinstance(x.ctx, ast.Load)
+                    and (x.id in locais_cl or "cl" in portadores.get(x.id, set()))):
+                return True
+            if isinstance(x, ast.Attribute) and "cl" in portadores.get("." + x.attr, set()):
+                return True
+        return False
+
+    for _ in range(len(alvos) + len(funcoes) + 1):
+        antes = {k: set(v) for k, v in portadores.items()}
+        for nome, valor in alvos:
+            portadores.setdefault(nome, set()).update(_tipos(valor, portadores))
+        for f in funcoes:
+            portadores.setdefault(f.name, set()).update(da_funcao(f))
+        if portadores == antes:
+            break
+    achados = []
+    for f in funcoes:
+        tipos = da_funcao(f)
+        if usa_changelog(f) and ("un" in tipos or "is" in tipos) and (arquivo, f.name) not in excecoes:
+            achados.append(f"{arquivo}::{f.name}")
+    return sorted(set(achados))
+
 
 class Versao190Tests(unittest.TestCase):
     def test_versao_1_9_0_em_todos_os_manifestos(self):  # C2
@@ -166,40 +277,64 @@ class Versao190Tests(unittest.TestCase):
             self.assertNotIn(fora, got)
 
     def test_nenhum_teste_le_unreleased_nem_busca_issue_fora_do_helper(self):  # C5
-        # Exceções por nome, cada uma com o motivo:
-        livre = {
-            "test_support.py": "define o helper changelog_recent",
-            "test_versao_1_9_0.py": "este teste confere o helper e o fechamento da seção",
-            "test_release.py": "confere o formato da seção [Unreleased] do release.py (CHANGELOG de fixture)",
-            "test_release_docs.py": "confere o formato da seção [Unreleased] do CHANGELOG (Keep a Changelog)",
-        }
-        unreleased = re.compile(r"\?\[Unreleased\?\]|[\"']Unreleased[\"']|\bUnreleased\b")
-        issue = re.compile(r"SC-\d+")
         arquivos = sorted((ROOT / "tests").glob("*.py"))
         self.assertGreater(len(arquivos), 30)
+        achados = []
         for path in arquivos:
-            if path.name in livre:
-                continue
-            src = path.read_text(encoding="utf-8")
-            self.assertIsNone(unreleased.search(src), path.name)
-            for fn in ast.walk(ast.parse(src)):
-                if not isinstance(fn, ast.FunctionDef):
-                    continue
-                consts = [n.value for n in ast.walk(fn) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
-                if "CHANGELOG.md" not in consts or not any(issue.search(c) for c in consts):
-                    continue
-                onde = f"{path.name}::{fn.name}"
-                chamadas = [n.func.id for n in ast.walk(fn)
-                            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
-                self.assertIn("changelog_recent", chamadas, onde)
-                lidos = set()
-                for n in ast.walk(fn):
-                    if isinstance(n, ast.Assign) and any(isinstance(c, ast.Constant) and c.value == "CHANGELOG.md"
-                                                         for c in ast.walk(n.value)):
-                        lidos |= {t.id for t in n.targets if isinstance(t, ast.Name)}
-                usados = [n.id for n in ast.walk(fn)
-                          if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id in lidos]
-                self.assertEqual(usados, [], f"{onde}: busca no CHANGELOG inteiro")
+            achados += _violacoes(path.read_text(encoding="utf-8"), path.name, {})
+        # Toda função que lê o CHANGELOG e busca Unreleased/issue está na tabela de exceções, e só ela.
+        self.assertEqual(sorted(achados), sorted(f"{a}::{f}" for a, f in EXCECOES))
+        for motivo in EXCECOES.values():
+            self.assertTrue(motivo.strip())
+
+    def test_varredura_pega_cada_forma(self):  # C5
+        cl = '(ROOT / "CHANGELOG.md").read_text()'
+        casos = {
+            "constante de módulo com o caminho": (
+                'CL = ROOT / "CHANGELOG.md"\n'
+                'class T:\n    def test_a(self):\n        self.assertIn("SC-9", CL.read_text())\n'),
+            "atributo de classe com o caminho": (
+                'class T:\n    P = ROOT / "CHANGELOG.md"\n'
+                '    def test_a(self):\n        self.assertIn("SC-9", self.P.read_text())\n'),
+            "atributo montado no setUp": (
+                'class T:\n    def setUp(self):\n        self.p = ROOT / "CHANGELOG.md"\n'
+                '    def test_a(self):\n        self.assertIn("SC-9", self.p.read_text())\n'),
+            "helper local que lê o arquivo": (
+                f'def _texto():\n    return {cl}\n'
+                'def test_a():\n    assert "SC-9" in _texto()\n'),
+            "helper aninhado que lê o arquivo": (
+                'def test_a():\n    def ler():\n        return open("CHANGELOG.md").read()\n'
+                '    assert "SC-9" in ler()\n'),
+            "número de issue em constante de módulo": (
+                f'N = "SC-9"\ndef test_a():\n    t = {cl}\n    assert N in t\n'),
+            "número de issue em f-string": (
+                f'def test_a():\n    t = {cl}\n    for n in (1, 2):\n        assert f"SC-{{n}}" in t\n'),
+            "Unreleased em constante de módulo": (
+                f'U = "## [Unreleased]"\ndef test_a():\n    t = {cl}\n    assert U in t\n'),
+            "constante encadeada": (
+                'A = "CHANGELOG.md"\nB = ROOT / A\n'
+                'def test_a():\n    assert "Unreleased" in B.read_text()\n'),
+            "helper chama helper": (
+                'def _p():\n    return ROOT / "CHANGELOG.md"\n'
+                'def _t():\n    return _p().read_text()\n'
+                'def test_a():\n    assert "SC-9" in _t()\n'),
+        }
+        for nome, src in casos.items():
+            with self.subTest(nome):
+                self.assertTrue(_violacoes(src, "x.py", {}), nome)
+        limpos = {
+            "só o helper": 'def test_a():\n    assert "SC-9" in changelog_recent(ROOT)\n',
+            "sem CHANGELOG": 'def test_a():\n    assert "SC-9" in texto\n',
+            "CHANGELOG sem issue nem Unreleased": f'def test_a():\n    assert "1.9.0" in {cl}\n',
+        }
+        for nome, src in limpos.items():
+            with self.subTest(nome):
+                self.assertEqual(_violacoes(src, "x.py", {}), [], nome)
+        # A exceção vale só para a função citada, não para o arquivo todo.
+        dois = (f'def test_a():\n    assert "SC-9" in {cl}\n'
+                f'def test_b():\n    assert "SC-8" in {cl}\n')
+        self.assertEqual(_violacoes(dois, "x.py", {}), ["x.py::test_a", "x.py::test_b"])
+        self.assertEqual(_violacoes(dois, "x.py", {("x.py", "test_a"): "motivo"}), ["x.py::test_b"])
 
     def test_readme_estado_1_9_0(self):  # C4
         linhas = [l for l in (ROOT / "README.md").read_text(encoding="utf-8").splitlines() if l.startswith("Estado:")]
