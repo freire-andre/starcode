@@ -1,9 +1,9 @@
 # suite-e-execute proofs
 
-**HEAD**: 6134418
+**HEAD**: dc7618d
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 13 pass, 0 fail
+**Result**: 14 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -15,6 +15,7 @@
 | C6 | `run unit / test_execute_md_vira_indice (test_suite_e_execute.SuiteEExecuteTests.test_execute_md_vira_indice) .` | pass |
 | C7 | `run unit / test_cabecalhos_no_arquivo_certo (test_suite_e_execute.SuiteEExecuteTests.test_cabecalhos_no_arquiv` | pass |
 | C8 | `run unit / test_execute_md_snapshot_antes_do_ticket (test_flow_f12.FlowF12Tests.test_execute_md_snapshot_antes` | pass |
+| C8 | `run unit / test_testes_leem_o_execute_por_execute_text (test_suite_e_execute.SuiteEExecuteTests.test_testes_le` | pass |
 | C9 | `run unit / test_referencias_apontam_o_arquivo_novo (test_suite_e_execute.SuiteEExecuteTests.test_referencias_a` | pass |
 | C10 | `run unit / test_decisions_e_changelog (test_suite_e_execute.SuiteEExecuteTests.test_decisions_e_changelog) ...` | pass |
 | Build | `python tools/build.py --check` | pass |
@@ -37,7 +38,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1100 tests in 667.832s
+Ran 1101 tests in 655.841s
 
 OK (skipped=1)
 inativo
