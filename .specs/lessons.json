@@ -41,7 +41,8 @@
         "pr-review",
         "roteamento-worf-mccoy",
         "catalogo-e-orca",
-        "suite-e-execute"
+        "suite-e-execute",
+        "versao-1-9-0"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -63,11 +64,12 @@
         "verification.md: achados 4 e 5 (asserções por trecho)",
         ".specs/features/roteamento-worf-mccoy/verification.md:achado 5",
         "verification.md achado 4",
-        ".specs/features/suite-e-execute/verification.md:C6"
+        ".specs/features/suite-e-execute/verification.md:C6",
+        ".specs/features/versao-1-9-0/verification.md:achado 2"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-22T15:05:53Z"
+      "updated": "2026-11-22T20:22:54Z"
     },
     {
       "id": "L3",
@@ -371,7 +373,8 @@
         "ponte-manutencao",
         "falhas-start-settle",
         "versao-e-retro",
-        "suite-e-execute"
+        "suite-e-execute",
+        "versao-1-9-0"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -389,11 +392,13 @@
         ".specs/features/ponte-manutencao/verification.md achado 3",
         ".specs/features/falhas-start-settle/verification.md achado 5",
         "verification.md achado 1",
-        ".specs/features/suite-e-execute/verification.md:C3"
+        ".specs/features/suite-e-execute/verification.md:C3",
+        ".specs/features/versao-1-9-0/verification.md:achado 3",
+        ".specs/features/versao-1-9-0/verification.md:achado 5"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-22T15:05:53Z"
+      "updated": "2026-11-22T20:22:55Z"
     },
     {
       "id": "L21",
@@ -1527,16 +1532,49 @@
       "id": "L93",
       "text": "Ao procurar referências antigas, varra a árvore inteira sem excluir arquivos pelo nome e cubra cada forma de citação, porque a exclusão de execute* e uma regex estreita deixavam passar referência velha.",
       "signal": "weak_test",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "suite-e-execute"
+        "suite-e-execute",
+        "versao-1-9-0"
       ],
       "sources": [
-        ".specs/features/suite-e-execute/verification.md:C9"
+        ".specs/features/suite-e-execute/verification.md:C9",
+        ".specs/features/versao-1-9-0/verification.md:achado 4",
+        ".specs/features/versao-1-9-0/verification.md:achado 7"
       ],
       "scope": "",
       "created": "2026-11-22T15:05:53Z",
-      "updated": "2026-11-22T15:05:53Z"
+      "updated": "2026-11-22T20:22:55Z"
+    },
+    {
+      "id": "L94",
+      "text": "Antes de exigir um campo num arquivo gerado, confira no gerador se o formato tem esse campo, porque o requisito pediu version no marketplace do Codex, que não tem a chave, e o teste trocava a ausência pelo valor esperado.",
+      "signal": "spec_precision_gap",
+      "status": "candidate",
+      "features": [
+        "versao-1-9-0"
+      ],
+      "sources": [
+        ".specs/features/versao-1-9-0/verification.md:achado 1"
+      ],
+      "scope": "",
+      "created": "2026-11-22T20:22:54Z",
+      "updated": "2026-11-22T20:22:54Z"
+    },
+    {
+      "id": "L95",
+      "text": "Não faça a prova depender do histórico do git com skipTest quando o commit falta; congele a referência no próprio teste, porque num clone raso a comparação era pulada e nada era provado.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "versao-1-9-0"
+      ],
+      "sources": [
+        ".specs/features/versao-1-9-0/verification.md:achado 6"
+      ],
+      "scope": "",
+      "created": "2026-11-22T20:22:55Z",
+      "updated": "2026-11-22T20:22:55Z"
     }
   ]
 }

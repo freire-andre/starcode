@@ -8,10 +8,10 @@
 Vistas em features distintas. Entram nos briefs.
 
 ### L2 - Compare a linha exata e o valor esperado no teste, não só assertIn de um trecho ou um padrão genérico, porque C11 e C39 passariam com texto ou nível errados.
-- signal: `weak_test` · features: 19
-- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2, pequena-minima, pr-review, roteamento-worf-mccoy, catalogo-e-orca, suite-e-execute
-- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27, verification.md: achado 3 (C7 Worf sem PR), verification.md: achados 4 e 5 (asserções por trecho), .specs/features/roteamento-worf-mccoy/verification.md:achado 5, verification.md achado 4, .specs/features/suite-e-execute/verification.md:C6
-- updated: 2026-11-22T15:05:53Z
+- signal: `weak_test` · features: 20
+- features: fase-9-worf-guinan-diagnostico, guardas-add-commit-powershell, q-preserva-handoff, ponte-missao-ativa, fase-12-robustez, manutencao-retros-f11, ajustes-review-pr39, snapshot-restauracao-segura, impacto-seleciona-real, licoes-recorrencia-por-id, opencode-copia-instalada, verificacao-1-8-0, scanner-lote2, guard-lote2, pequena-minima, pr-review, roteamento-worf-mccoy, catalogo-e-orca, suite-e-execute, versao-1-9-0
+- sources: tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py, verification.md achado 1 (C1, C3, C4, C6), verification.md achados 2-4 (C4, C5, C6), L18 (.specs/features/ponte-missao-ativa/verification.md (rodada 2, C5)), L21 (verification.md:C33), L24 (verification.md:C32), L26 (verification.md:C8 (tests/test_skills_exec.py:18)), L37 (verification.md:achado 3), L38 (verification.md:C7), .specs/features/licoes-recorrencia-por-id/verification.md: achado 5 (C6, prefixo da fonte), .specs/features/opencode-copia-instalada/verification.md: achado 1 (C1, caminhos e plugin), .specs/features/verificacao-1-8-0/verification.md:43, .specs/features/scanner-lote2/verification.md:26, .specs/features/scanner-lote2/verification.md:27, .specs/features/guard-lote2/verification.md:27, verification.md: achado 3 (C7 Worf sem PR), verification.md: achados 4 e 5 (asserções por trecho), .specs/features/roteamento-worf-mccoy/verification.md:achado 5, verification.md achado 4, .specs/features/suite-e-execute/verification.md:C6, .specs/features/versao-1-9-0/verification.md:achado 2
+- updated: 2026-11-22T20:22:54Z
 
 ### L4 - Teste cada limite de leitura (tamanho, ilegível) em todas as fontes que o requisito cita, porque o Handoff acima de 1 MiB era ignorado em silêncio e o teste de fonte inválida só cobria os JSON.
 - signal: `weak_test` · features: 2
@@ -38,10 +38,10 @@ Vistas em features distintas. Entram nos briefs.
 - updated: 2026-11-16T17:20:28Z
 
 ### L20 - Asserte a saída integral e cada condição ou ordem exigida pelo critério, não fragmentos da mensagem, porque fragmentos passavam mesmo com condição ou ordem erradas.
-- signal: `weak_test` · features: 15
-- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle, versao-e-retro, suite-e-execute
-- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3, .specs/features/falhas-start-settle/verification.md achado 5, verification.md achado 1, .specs/features/suite-e-execute/verification.md:C3
-- updated: 2026-11-22T15:05:53Z
+- signal: `weak_test` · features: 16
+- features: fase-12-robustez, gate-d30-ci, despacho-media-escopo, piloto-decisao-citada, licoes-recorrencia-por-id, q-strategy, verificacao-1-8-0, retro-fase9, fecha-achado, licoes-no-brief, config-local-worktree, ponte-manutencao, falhas-start-settle, versao-e-retro, suite-e-execute, versao-1-9-0
+- sources: verification.md:C11,C12,C28-C31, verification.md: achados 2 a 8 (C4-C10), verification.md: achados C5 e C13, verification.md achados 2 e 3 (test_piloto.py:204, :231), .specs/features/licoes-recorrencia-por-id/verification.md: achado 4 (C5, ordem e critério), .specs/features/q-strategy/verification.md:25, .specs/features/verificacao-1-8-0/verification.md:31, .specs/features/verificacao-1-8-0/verification.md:36, .specs/features/retro-fase9/verification.md:25, .specs/features/fecha-achado/verification.md:achado 4, .specs/features/licoes-no-brief/verification.md:achado 2, .specs/features/config-local-worktree/verification.md:achado 4, .specs/features/ponte-manutencao/verification.md achado 3, .specs/features/falhas-start-settle/verification.md achado 5, verification.md achado 1, .specs/features/suite-e-execute/verification.md:C3, .specs/features/versao-1-9-0/verification.md:achado 3, .specs/features/versao-1-9-0/verification.md:achado 5
+- updated: 2026-11-22T20:22:55Z
 
 ### L25 - Teste de regra compartilhada deve exercitar cada gate que a usa, porque um teste que só cobre um chamador deixa o outro sem prova.
 - signal: `weak_test` · features: 6
@@ -60,6 +60,12 @@ Vistas em features distintas. Entram nos briefs.
 - features: licoes-recorrencia-por-id, verificacao-1-8-0
 - sources: .specs/features/licoes-recorrencia-por-id/verification.md: achado 1 (--id vazio), .specs/features/verificacao-1-8-0/verification.md:32
 - updated: 2026-11-16T17:20:27Z
+
+### L93 - Ao procurar referências antigas, varra a árvore inteira sem excluir arquivos pelo nome e cubra cada forma de citação, porque a exclusão de execute* e uma regex estreita deixavam passar referência velha.
+- signal: `weak_test` · features: 2
+- features: suite-e-execute, versao-1-9-0
+- sources: .specs/features/suite-e-execute/verification.md:C9, .specs/features/versao-1-9-0/verification.md:achado 4, .specs/features/versao-1-9-0/verification.md:achado 7
+- updated: 2026-11-22T20:22:55Z
 
 ## Candidates
 
@@ -563,11 +569,17 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: .specs/features/suite-e-execute/verification.md:C4
 - updated: 2026-11-22T15:05:53Z
 
-### L93 - Ao procurar referências antigas, varra a árvore inteira sem excluir arquivos pelo nome e cubra cada forma de citação, porque a exclusão de execute* e uma regex estreita deixavam passar referência velha.
+### L94 - Antes de exigir um campo num arquivo gerado, confira no gerador se o formato tem esse campo, porque o requisito pediu version no marketplace do Codex, que não tem a chave, e o teste trocava a ausência pelo valor esperado.
+- signal: `spec_precision_gap` · features: 1
+- features: versao-1-9-0
+- sources: .specs/features/versao-1-9-0/verification.md:achado 1
+- updated: 2026-11-22T20:22:54Z
+
+### L95 - Não faça a prova depender do histórico do git com skipTest quando o commit falta; congele a referência no próprio teste, porque num clone raso a comparação era pulada e nada era provado.
 - signal: `weak_test` · features: 1
-- features: suite-e-execute
-- sources: .specs/features/suite-e-execute/verification.md:C9
-- updated: 2026-11-22T15:05:53Z
+- features: versao-1-9-0
+- sources: .specs/features/versao-1-9-0/verification.md:achado 6
+- updated: 2026-11-22T20:22:55Z
 
 ## Quarantined
 
