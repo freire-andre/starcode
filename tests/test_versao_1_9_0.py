@@ -116,9 +116,19 @@ class Versao190Tests(unittest.TestCase):
         self.assertIn("### Corrigido", secao)
         self.assertEqual(len(ITENS_1_9_0), 24)
         self.assertEqual(_itens(secao), ITENS_1_9_0)
-        notas = release._notes(ROOT, "1.9.0")
-        self.assertIsNotNone(notas)
-        self.assertIn("SC-213", notas)
+        # Seção integral extraída de forma independente: do cabeçalho até o próximo `## [`.
+        linhas, dentro, corpo = text.splitlines(), False, []
+        for linha in linhas:
+            if linha.startswith("## ["):
+                if dentro:
+                    break
+                dentro = linha == "## [1.9.0] - 2026-11-22"
+                continue
+            if dentro:
+                corpo.append(linha)
+        esperado = chr(10).join(corpo).strip(chr(10)) + chr(10)
+        self.assertIn("SC-213", esperado)
+        self.assertEqual(release._notes(ROOT, "1.9.0"), esperado)
 
     def test_changelog_recent(self):  # C5
         fake = """# Changelog
