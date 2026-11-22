@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 from helpers import FIXTURES, ROOT, TempRepoCase, run_git
+from test_support import execute_text
 import crew_live
 
 CREW_SKILLS = {"picard": "engajar", "troi": "troi", "spock": "spock", "data": "data", "laforge": "laforge",
@@ -141,7 +142,7 @@ class CrewLiveContractTest(TempRepoCase):
             self.assertRegex(text, rf"crew_live\.py\" stop {member}\b", skill)
 
     def test_execute_marks_workers_and_progress(self):
-        text = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+        text = execute_text()
         for needle in ("set laforge 1", "set laforge 0", "set q 1", "progress <slug> --phase done"):
             self.assertIn(needle, text)
         self.assertTrue(re.search(r"crew_live\.py\" progress <slug>` \(counts", text))

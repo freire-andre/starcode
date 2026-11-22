@@ -7,6 +7,7 @@ import json
 import unittest
 
 from helpers import ROOT, TempRepoCase, run_git
+from test_support import execute_text
 
 import dispatch
 from test_dispatch import TASKS
@@ -93,7 +94,9 @@ class LicoesNoBriefTests(TempRepoCase):
                 f"- Um commit por achado, com `Refs: {issue}` no corpo, citando o achado.\n"
                 "- Nunca escreva em `.specs/`.\n"
                 "- Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.\n"
-                "- Antes de terminar: a suíte inteira verde e "
+                "- Antes de terminar: os testes escolhidos por "
+                f"`python \"{plugin}/scripts/impact.py\" select --diff <base>` verdes "
+                "(a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar) e "
                 f"`python \"{plugin}/scripts/gates/run_gates.py\" ticket demo {ticket} <base>..HEAD` verde.\n"
                 "- Relatório final: o commit e o teste de cada achado corrigido.\n")
 
@@ -133,7 +136,7 @@ class LicoesNoBriefTests(TempRepoCase):
         self.assertEqual(out1, self.expected_fix(achados, "app/model.py", "T1"))
 
     def test_execute_e_decisions(self):
-        execute = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+        execute = execute_text()
         sec5 = execute.split("## 5.")[1].split("\n## ")[0]
         self.assertIn('dispatch.py" fix-brief <slug>', sec5)
         self.assertIn("- Screens (R28): the `fix-brief` covers only the Q findings: the Picard adds the `differs` rows "

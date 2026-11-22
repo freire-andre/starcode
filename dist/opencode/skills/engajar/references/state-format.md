@@ -125,12 +125,12 @@ compaction mid-flow, continue when files and Git agree; on a conflict, stop and 
 | `context.md` only | discovery done or in progress | Troi finishes, or Spock writes the spec |
 | `spec.md` without `**Approved**` | spec written | rerun `run_gates.py spec`, present, wait for approval 1 |
 | `spec.md` approved, no `tasks.md` (LARGE) | spec-approved | Data writes the tasks |
-| `spec.md` approved, MEDIUM | spec-approved | issue + one LaForge worker (`execute.md` section 8) |
+| `spec.md` approved, MEDIUM | spec-approved | issue + one LaForge worker (`execute-media-pequena.md`, section 8) |
 | `tasks.md` without `**Approved**` | tasks written | rerun `run_gates.py tasks`, present, wait for approval 2 |
 | `tasks.md` approved, tasks without `**Linear**` | tasks-approved | if the approval answer was a yes to publishing, publish; if it was "só aprovar", ask once whether to publish now |
-| every task with `**Linear**` | published | integration branch + first ticket (`execute.md`) |
+| every task with `**Linear**` | published | integration branch + first ticket (`execute.md`, then `execute-despacho.md`) |
 | `**Dispatched:**` not integrated | execute | `orca orchestration worker-show` first; never a second worker for the same ticket |
 | all tickets integrated, no `verification.md` | execute / review | `run_gates.py proofs`, then the Q |
 | `verification.md` with open findings | review | one LaForge fix pass, then `run_gates.py done` (no second Q) |
 | PR open, Phase `pr-review` | pr-review | read `review.md` (round and verdict); continue with the LaForge fix, or the next Worf round, or the merge authorization request; PR already merged (per Git) → write `--phase done` and `python "P/scripts/crew_live.py" progress <slug> --phase done` |
-| `**Breaker:** open` | any | the two exits of `execute.md` section 6 before anything else |
+| `**Breaker:** open` | any | the two exits of `execute-retomada.md`, section 6 before anything else |

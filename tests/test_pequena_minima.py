@@ -321,7 +321,7 @@ class PequenaTests(TempRepoCase):
     def test_textos_fluxo_pequena(self):
         base = ROOT / "skills"
         files = {
-            "execute": base / "engajar" / "references" / "execute.md",
+            "execute": base / "engajar" / "references" / "execute-media-pequena.md",
             "engajar": base / "engajar" / "SKILL.md",
             "risk": base / "engajar" / "references" / "risk-sizing.md",
             "state": base / "engajar" / "references" / "state-format.md",
@@ -352,7 +352,7 @@ class PequenaTests(TempRepoCase):
         self.assertIn("**Size:** SMALL | MEDIUM | LARGE | COMPLEX", text["state"])
         pil = next(ln for ln in text["piloto"].splitlines() if ln.startswith("PEQUENA:"))
         self.assertIn("spec mínima do Picard + LaForge, Q dispensado", pil)
-        self.assertIn("execute.md", pil)
+        self.assertIn("execute-media-pequena.md", pil)
 
     # --- R8 -------------------------------------------------------------------------------------
     def test_decisions_pequena_minima(self):

@@ -357,7 +357,7 @@ class MediaStartTests(TempRepoCase):
         code, _, out = self.go(fake)
         self.assertEqual(code, 2)
         self.assertEqual(out, ["start recusado: o Handoff não tem **Integration branch:** "
-                               "(modo 1: siga a seção 7 do execute.md, sem start)"])
+                               "(modo 1: siga o execute-modo-1.md, sem start)"])
         self.assertEqual(fake.calls, [])
 
     def test_start_entrada_aberta_aponta_dispatch_remove(self):

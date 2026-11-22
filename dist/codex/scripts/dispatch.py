@@ -98,12 +98,13 @@ WORKER_RULES = """## Regras fixas do worker (StarCode)
 - Implemente só este ticket e altere só os arquivos de `May change`. Precisa de outro arquivo? Pare e
   diga qual e por quê.
 - Nunca escreva `.specs/STATE.md` nem a seção `## Handoff` de nenhum artefato: só o Picard escreve nelas.
+- Testes: rode os testes escolhidos por `python "{plugin}/scripts/impact.py" select --diff <base>` e deixe-os verdes; a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar.
 - Antes de terminar: `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde
   (base = commit de partida deste worktree).
 - Falhas: identificador estável por erro; na 2ª falha do mesmo erro, use a skill `mccoy`; na 3ª, pare.
 - Ticket com tela citada por captura (`captures/<nome>.png`): tire a foto do autor com
   `python "{plugin}/scripts/screens.py" capture` em `captures/<nome>.running.png` e commite-a, dentro do `May change`.
-- Relatório final (até 5 linhas): o que mudou, gates executados com resultado, commits, pendências,
+- Relatório final (até 5 linhas): o que mudou, a linha de veredito do `impact.py`, gates executados com resultado, commits, pendências,
   tentativas do disjuntor (`<id>=<n>` ou `none`).
 - Nunca desligue a assinatura de commits (commit.gpgsign false, --no-gpg-sign) em código de produto; só repositórios Git temporários de teste podem fazê-lo.
 """
@@ -836,7 +837,7 @@ def start(slug: str, ticket: str, cli: str, model: str, root: Path, runner=defau
                       f"(nova tentativa: handoff.py set {fdir.name} --dispatch-remove {tid})")
     if values.get("integration branch", "").strip() in ("", "not created", "none yet", "none"):
         return refuse("o Handoff não tem **Integration branch:** "
-                      "(modo 1: siga a seção 7 do execute.md, sem start)")
+                      "(modo 1: siga o execute-modo-1.md, sem start)")
     branch = f"feature/{fdir.name}"
     code, sha, _ = _call(runner, ["git", "rev-parse", "--short", branch], proj)
     sha = sha.strip()
@@ -1006,7 +1007,7 @@ FIX_RULES = """## Regras fixas da correção (StarCode)
 - Um commit por achado, com `Refs: {issue}` no corpo, citando o achado.
 - Nunca escreva em `.specs/`.
 - Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.
-- Antes de terminar: a suíte inteira verde e `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde.
+- Antes de terminar: os testes escolhidos por `python "{plugin}/scripts/impact.py" select --diff <base>` verdes (a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar) e `python "{plugin}/scripts/gates/run_gates.py" ticket {slug} {ticket} <base>..HEAD` verde.
 - Relatório final: o commit e o teste de cada achado corrigido."""
 
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from helpers import ROOT, TempRepoCase, run_git
+from test_support import execute_text
 
 import dispatch
 
@@ -119,8 +120,9 @@ class QCheckCase(TempRepoCase):
 
 class WiringCase(unittest.TestCase):
     def test_execute_commita_handoff_antes_do_q(self):
-        text = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
-        sec = text[text.index("## 4. Proofs and the Q"):text.index("## 5. Post-Q cycle")]
+        text = execute_text()
+        start = text.index("## 4. Proofs and the Q")
+        sec = text[start:text.index("\n## ", start + 1)]
         lines = sec.splitlines()
         phase = next(i for i, l in enumerate(lines) if 'python "P/scripts/handoff.py" set <slug> --phase review' in l)
         self.assertEqual(lines[phase].strip(),
