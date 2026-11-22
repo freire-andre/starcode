@@ -31,6 +31,9 @@ In Claude Code the StarCode hook already showed your header and marks you as wor
    with `Tests: none` (config, docs) still runs its gate. The checks of the ticket are the floor: an edge
    case or guard no check names is still your job.
 3. **Gates before each commit**: the ticket's `Gate` level from `## Gate Commands`, then the commit gate.
+   **Tests (SC-213):** run the tests chosen by `python "<plugin-root>/scripts/impact.py" select --diff <base>`; the whole suite
+   only when the verdict is `rodar tudo` or the selection fails. The whole suite runs at the done gate (`Run unit` of the spec) and in CI.
+   Put the `impact.py` verdict line in the report.
 4. **One commit per task** (modes 2–4), Conventional Commits with the footer `Refs: <ID>`, checked with
    `python "<plugin-root>/scripts/gates/run_gates.py" commit --message "<msg>" --expect-ref <ID>`. Mode 1:
    no commit; leave the changes in the tree.

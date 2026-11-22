@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from helpers import ROOT, TempRepoCase, run_git
+from test_support import execute_text
 
 import check_proofs
 import dispatch
@@ -211,7 +212,7 @@ class FechaAchadoTests(TempRepoCase):
     def test_textos_close_finding(self):
         q = (ROOT / "src" / "briefs" / "q-verify.md").read_text(encoding="utf-8")
         self.assertIn("Write every pipe inside a cell as `&#124;`, also inside backticks", q)
-        ex = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+        ex = execute_text()
         sec = ex.split("## 5. Post-Q cycle", 1)[1].split("\n## ", 1)[0]
         self.assertIn("close each finding with", sec)
         self.assertIn('dispatch.py" close-finding <slug> <n> --commit <sha> --cover <C<n>|test_name>', sec)

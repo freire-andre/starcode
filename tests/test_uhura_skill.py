@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from helpers import ROOT
+from test_support import execute_text
 
 CLIS = ("claude", "codex", "antigravity", "opencode")
 EXEC_HEAD = "## Text for the PR and the Linear comments (Uhura)"
@@ -49,7 +50,7 @@ class UhuraSkillTests(unittest.TestCase):
     def test_execute_uses_uhura_for_pr_and_comments(self):
         # R30
         for root in _roots():
-            text = _read(root, "skills/engajar/references/execute.md")
+            text = execute_text(root)
             self.assertIn(EXEC_HEAD, text)
             sec = text.split(EXEC_HEAD, 1)[1].split("\n## ", 1)[0]
             for needle in ("`uhura`", "subagent", "Uhura's model", "the session itself follows the skill",

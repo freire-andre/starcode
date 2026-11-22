@@ -4,10 +4,11 @@ from __future__ import annotations
 import unittest
 
 from helpers import ROOT
+from test_support import execute_text
 
 import dispatch
 
-EXECUTE = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+EXECUTE = execute_text()
 Q_SKILL = (ROOT / "skills" / "q" / "SKILL.md").read_text(encoding="utf-8")
 SPOCK = (ROOT / "skills" / "spock" / "SKILL.md").read_text(encoding="utf-8")
 TEMPLATE = (ROOT / "skills" / "spock" / "references" / "spec-template.md").read_text(encoding="utf-8")
@@ -20,7 +21,10 @@ class ScreensFlowTests(unittest.TestCase):
                        "never in the LaForge's family", "**Verifier**:", "`differs`", "--round 2",
                        "goes to the user"):
             self.assertIn(marker, EXECUTE)
-        self.assertLess(EXECUTE.index("screens-brief"), EXECUTE.index("## 5. Post-Q cycle"))
+        # o conjunto ordena os arquivos por nome: a seção 4 e a 5 moram em arquivos diferentes
+        start = EXECUTE.index("## 4. Proofs and the Q")
+        self.assertIn("screens-brief", EXECUTE[start:EXECUTE.index("\n## ", start + 1)])
+        self.assertIn("screens-brief", EXECUTE[EXECUTE.index("## 5. Post-Q cycle"):])
 
     def test_q_aponta_juiz_separado(self):
         self.assertIn("screens-verify.md", Q_SKILL)

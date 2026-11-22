@@ -35,8 +35,8 @@ and the ticket's `**May change**:`. Invoked by the user: ask for the failing com
    the ticket's gate.
 6. **Impact radius (R31).** After the regression test and the fix, run
    `python "<plugin-root>/scripts/impact.py" select --diff <base>` (base = `baseBranch` of the config).
-   Run the tests it chooses, or the whole suite when the verdict is `rodar tudo`, before the ticket's
-   gate, and put the verdict line in the report. The gates still run the whole suite.
+   Run the tests it chooses (the whole suite only when the verdict is `rodar tudo` or the selection fails), before the ticket's
+   gate, and put the verdict line in the report. The whole suite runs at the done gate (`Run unit` of the spec) and in CI.
 - **Only files in `May change`.** If the cause is outside them, stop and report the file and the cause.
 - Never weaken an assertion, skip or delete a test, or add `sleep` to make a test pass.
 - The attempts still count for the circuit breaker (D27): the 3rd failure of the same id is a stop.
