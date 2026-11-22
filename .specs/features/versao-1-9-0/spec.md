@@ -70,12 +70,12 @@ Proof: run unit | test_nenhum_teste_le_unreleased_nem_busca_issue_fora_do_helper
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** Q rodada 2 (codex)
+**Next:** correção final pós-Q (3 achados)
 **Linear:** SC-214
 **Integration branch:** feature/versao-1-9-0
 **Last integrated:** 118b5f77968b644f9d7e9f262dd462e23f1c97d4
-**Dispatched:** Q · bf19eae
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s; 2026-11-22: Q: FAIL, 4 achados (C2, C3, C5; marketplace do Codex sem versão); q-check ok; 2026-11-22: pós-Q: 4 achados fechados (f1c0746..39a0efd), merge 1d09205
+**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s; 2026-11-22: Q: FAIL, 4 achados (C2, C3, C5; marketplace do Codex sem versão); q-check ok; 2026-11-22: pós-Q: 4 achados fechados (f1c0746..39a0efd), merge 1d09205; 2026-11-22: Q r2: FAIL, 3 achados novos (C3, C5); 4 da r1 confirmados fechados
 **Breaker:** closed
