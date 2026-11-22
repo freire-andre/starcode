@@ -24,13 +24,13 @@
 
 | Finding | Evidence | Fix | Closed |
 | --- | --- | --- | --- |
-| C1 e C2 não exercitam os briefs efetivamente gerados: uma omissão das constantes na montagem continuaria passando. | `tests/test_suite_e_execute.py:45` e `tests/test_suite_e_execute.py:52` | Gerar ambos os briefs pela interface real e conferir as linhas completas e sua ordem. | |
-| C3 aceita no McCoy o fragmento do fallback fora da regra ou com condição invertida. | `tests/test_suite_e_execute.py:66` | Conferir a frase completa da seleção e do fallback em cada skill. | |
-| C4 aceita uma medição inventada que respeite a expressão regular, inclusive tempos e nomes arbitrários. | `tests/test_suite_e_execute.py:79` | Comparar os valores registrados com a saída conservada da medição real. | |
-| C6 aceita, por exemplo, uma linha de índice iniciada por `4` seguida de um número ou seção incorreta. | `tests/test_suite_e_execute.py:112` | Comparar exatamente o campo de seções de cada linha com o valor exigido. | |
-| C8 cita somente o teste da seção 7; os demais testes podem voltar a ler só o índice sem que a prova citada falhe. | `tests/test_flow_f12.py:29` | Provar que todos os testes afetados usam o helper e citar os testes que demonstram a preservação. | |
-| C9 ignora todos os arquivos `execute*` e a expressão regular não cobre todas as formas possíveis de referência; uma referência antiga pode permanecer sem falha. | `tests/test_suite_e_execute.py:136` | Examinar toda a árvore exigida e verificar cada referência alterada e seu destino. | |
-| C10 verifica rótulos R1 a R10 e termos espalhados, sem exigir os termos de cada requisito no respectivo trecho da decisão. | `tests/test_suite_e_execute.py:162` | Assegurar o conteúdo de cada requisito dentro de sua parte da decisão. | |
+| C1 e C2 não exercitam os briefs efetivamente gerados: uma omissão das constantes na montagem continuaria passando. | `tests/test_suite_e_execute.py:45` e `tests/test_suite_e_execute.py:52` | Gerar ambos os briefs pela interface real e conferir as linhas completas e sua ordem. | 0350d2f · test_fix_brief_usa_selecao_do_impact |
+| C3 aceita no McCoy o fragmento do fallback fora da regra ou com condição invertida. | `tests/test_suite_e_execute.py:66` | Conferir a frase completa da seleção e do fallback em cada skill. | e776764 · test_laforge_e_mccoy_rodam_a_selecao |
+| C4 aceita uma medição inventada que respeite a expressão regular, inclusive tempos e nomes arbitrários. | `tests/test_suite_e_execute.py:79` | Comparar os valores registrados com a saída conservada da medição real. | b63f719 · test_decisions_registra_a_medicao |
+| C6 aceita, por exemplo, uma linha de índice iniciada por `4` seguida de um número ou seção incorreta. | `tests/test_suite_e_execute.py:112` | Comparar exatamente o campo de seções de cada linha com o valor exigido. | a10b539 · test_execute_md_vira_indice |
+| C8 cita somente o teste da seção 7; os demais testes podem voltar a ler só o índice sem que a prova citada falhe. | `tests/test_flow_f12.py:29` | Provar que todos os testes afetados usam o helper e citar os testes que demonstram a preservação. | 0d76762 · test_testes_leem_o_execute_por_execute_text |
+| C9 ignora todos os arquivos `execute*` e a expressão regular não cobre todas as formas possíveis de referência; uma referência antiga pode permanecer sem falha. | `tests/test_suite_e_execute.py:136` | Examinar toda a árvore exigida e verificar cada referência alterada e seu destino. | ff609d6 · test_referencias_apontam_o_arquivo_novo |
+| C10 verifica rótulos R1 a R10 e termos espalhados, sem exigir os termos de cada requisito no respectivo trecho da decisão. | `tests/test_suite_e_execute.py:162` | Assegurar o conteúdo de cada requisito dentro de sua parte da decisão. | 45a37bd · test_decisions_e_changelog |
 
 ## Limits
 

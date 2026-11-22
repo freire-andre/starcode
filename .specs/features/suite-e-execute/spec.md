@@ -81,6 +81,7 @@ Proof: run unit | test_cabecalhos_no_arquivo_certo (test_suite_e_execute.SuiteEE
 
 **C8** - Os testes de documentação que liam o `execute.md` passam lendo `execute_text()` (R8)
 Proof: run unit | test_execute_md_snapshot_antes_do_ticket (test_flow_f12.FlowF12Tests.test_execute_md_snapshot_antes_do_ticket) ... ok
+Proof: run unit | test_testes_leem_o_execute_por_execute_text (test_suite_e_execute.SuiteEExecuteTests.test_testes_leem_o_execute_por_execute_text) ... ok
 
 **C9** - Nenhuma referência "`execute.md` section 6/7/8" ou "seção 7 do execute.md" sobra em `skills/`, `src/` e `scripts/`; cada uma aponta o arquivo novo; o aviso do modo 1 diz `siga o execute-modo-1.md, sem start` (R9)
 Proof: run unit | test_referencias_apontam_o_arquivo_novo (test_suite_e_execute.SuiteEExecuteTests.test_referencias_apontam_o_arquivo_novo) ... ok
@@ -94,12 +95,12 @@ Proof: run unit | test_decisions_e_changelog (test_suite_e_execute.SuiteEExecute
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** Q verifica (codex)
+**Next:** proofs e done no HEAD novo
 **Linear:** SC-213
 **Integration branch:** feature/suite-e-execute
 **Last integrated:** 61344181c5488f06da3cc3d69c5a626741c7588c
-**Dispatched:** Q · 457e95c
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-22: T1: R1-R10 em 844421b; gate ticket verde; suíte 1.100 OK (667,5 s no C:); disjuntor none
+**Reports:** 2026-11-22: T1: R1-R10 em 844421b; gate ticket verde; suíte 1.100 OK (667,5 s no C:); disjuntor none; 2026-11-22: Q: FAIL, 7 achados (C1-C4, C6, C8-C10); q-check ok; verifier codex effective unconfirmed; 2026-11-22: pós-Q: 7 achados fechados (0350d2f..45a37bd), merge 9e6f58c; gate ticket verde
 **Breaker:** closed
