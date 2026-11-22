@@ -1,7 +1,7 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
-import { buildScene, CORES, GRADE, linhasDoPainel } from './scene-model.ts'
-import type { Boneco, Cena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
+import { avisoDeDados, buildScene, CORES, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
+import type { Boneco, Cena, ItemRelacao, OpcoesCena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
 
 /** Contexto mínimo do canvas que a pintura usa (permite um contexto falso nos testes). */
@@ -349,7 +349,7 @@ interface OrcaFrame {
   }
 }
 
-function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
+function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement, relacao: Relacao | null): void {
   const ctx = canvas.getContext('2d') as unknown as Pincel | null
   if (!ctx) return
   let estado: PonteState | null = null
@@ -357,6 +357,13 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
   let escala = 1
   let linhas: number = GRADE.altura
   let sujo = true
+  let selecionado: string | null = null
+  const preferencia = preferenciaDeMovimento()
+  preferencia.aoMudar(() => { sujo = true })
+  relacao?.aoSelecionar(membro => {
+    selecionado = selecionado === membro ? null : membro
+    sujo = true
+  })
 
   // mede o palco (largura e altura do painel) e redesenha quando ele muda de tamanho (R54)
   const ajustar = (): void => {
@@ -387,7 +394,11 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement): void {
         status: 'sem-worktree', stale: false, updatedAt: 0, issue: null, issueNote: null,
         agents: [], log: [], error: null, snapshot: null,
       }
-      paint(ctx, buildScene(estado ?? vazio, agentes, Date.now(), linhas), escala)
+      const agora = Date.now()
+      const atual = estado ?? vazio
+      const opcoes: OpcoesCena = { reduzido: preferencia.reduzido(), selecionado }
+      paint(ctx, buildScene(atual, agentes, agora, linhas, {}, opcoes), escala)
+      relacao?.atualiza(relacaoDaTripulacao(atual, agentes, agora, {}, opcoes), avisoDeDados(atual))
     }
     requestAnimationFrame(laco)
   }
@@ -403,6 +414,108 @@ export interface Pagina {
 }
 
 type ComEstilo = { style?: Record<string, string> }
+
+// ---- movimento reduzido (R17) ----
+
+/** Preferência `prefers-reduced-motion` do sistema, lida de `matchMedia` (ausente: movimento normal). */
+export function preferenciaDeMovimento(g: { matchMedia?: (q: string) => { matches: boolean; addEventListener?: (e: string, cb: () => void) => void } } = globalThis as never): {
+  reduzido(): boolean
+  aoMudar(cb: () => void): void
+} {
+  let mq: ReturnType<NonNullable<typeof g.matchMedia>> | null = null
+  try { mq = g.matchMedia ? g.matchMedia('(prefers-reduced-motion: reduce)') : null } catch { mq = null }
+  return {
+    reduzido: () => mq?.matches === true,
+    aoMudar: cb => { mq?.addEventListener?.('change', cb) },
+  }
+}
+
+// ---- relação acessível da tripulação (R9, R10, R13, R16) ----
+
+export interface Relacao {
+  raiz: unknown
+  /** Registra quem trata a seleção de um integrante (clique, Enter ou Espaço no botão). */
+  aoSelecionar(cb: (membro: string) => void): void
+  /** Atualiza os 12 itens e o aviso; só toca o DOM do que mudou, para o foco do teclado não se perder. */
+  atualiza(itens: ItemRelacao[], aviso: string | null): void
+}
+
+/**
+ * Cria a relação num `<nav>` com um botão que abre/fecha a lista dos 12 integrantes (um `<button>` por
+ * integrante, `aria-pressed` = selecionado) e uma região `role="status"` com o aviso de dados antigos.
+ * Tudo é elemento nativo: Tab percorre, Enter/Espaço seleciona, Esc fecha e devolve o foco ao botão.
+ */
+export function criaRelacao(doc: Pagina): Relacao {
+  const raiz = doc.createElement('nav')
+  raiz.id = 'relacao'
+  raiz.setAttribute('aria-label', 'Tripulação')
+  const alterna = doc.createElement('button')
+  alterna.id = 'relacao-alterna'
+  alterna.setAttribute('type', 'button')
+  alterna.setAttribute('aria-expanded', 'false')
+  alterna.setAttribute('aria-controls', 'relacao-lista')
+  alterna.textContent = 'Tripulação'
+  const aviso = doc.createElement('p')
+  aviso.id = 'relacao-aviso'
+  aviso.setAttribute('role', 'status')
+  aviso.setAttribute('aria-live', 'polite')
+  const lista = doc.createElement('ul')
+  lista.id = 'relacao-lista'
+  lista.setAttribute('aria-label', 'Integrantes e estados')
+  lista.hidden = true
+  const botoes = new Map<string, any>()
+  let tratar: (membro: string) => void = () => undefined
+  const abre = (abrir: boolean): void => {
+    lista.hidden = !abrir
+    alterna.setAttribute('aria-expanded', String(abrir))
+  }
+  alterna.addEventListener('click', () => abre(lista.hidden))
+  raiz.addEventListener('keydown', (ev: { key?: string }) => {
+    if (ev.key === 'Escape' && !lista.hidden) { abre(false); alterna.focus?.() }
+  })
+  // colocada sobre o palco, no canto, sem ocupar espaço da cena
+  raiz.style.position = 'fixed'
+  raiz.style.top = '4px'
+  raiz.style.left = '4px'
+  raiz.style.zIndex = '2'
+  raiz.style.maxHeight = '90%'
+  raiz.style.overflow = 'auto'
+  lista.style.listStyle = 'none'
+  lista.style.margin = '4px 0 0'
+  lista.style.padding = '0'
+  raiz.appendChild(alterna)
+  raiz.appendChild(aviso)
+  raiz.appendChild(lista)
+  doc.body.appendChild(raiz)
+  return {
+    raiz,
+    aoSelecionar: cb => { tratar = cb },
+    atualiza(itens, avisoTexto) {
+      const texto = avisoTexto ?? ''
+      if (aviso.textContent !== texto) aviso.textContent = texto
+      for (const item of itens) {
+        let botao = botoes.get(item.membro)
+        if (!botao) {
+          const li = doc.createElement('li')
+          botao = doc.createElement('button')
+          botao.setAttribute('type', 'button')
+          botao.addEventListener('click', () => tratar(item.membro))
+          li.appendChild(botao)
+          lista.appendChild(li)
+          botoes.set(item.membro, botao)
+        }
+        const rotulo = `${item.emoji} ${item.nome} ${item.simbolo} ${item.textoEstado} · ${item.presente ? 'na cena' : 'fora da cena'}`
+        const chave = `${rotulo}|${item.selecionado}|${item.descricao}`
+        if (botao.__chave === chave) continue
+        botao.__chave = chave
+        botao.textContent = rotulo
+        botao.setAttribute('aria-label', item.descricao)
+        botao.setAttribute('aria-pressed', String(item.selecionado))
+        botao.setAttribute('data-membro', item.membro)
+      }
+    },
+  }
+}
 
 /** Devolve o canvas `#cena` da página; quando a Orca gera a página em volta, cria o canvas no corpo (R45). */
 export function obterCanvas(doc: Pagina): HTMLCanvasElement {
@@ -440,4 +553,7 @@ export function obterCanvas(doc: Pagina): HTMLCanvasElement {
 }
 
 const frame = (globalThis as { orca?: OrcaFrame }).orca
-if (frame && typeof document !== 'undefined') iniciar(frame, obterCanvas(document))
+if (frame && typeof document !== 'undefined') {
+  const canvas = obterCanvas(document)
+  iniciar(frame, canvas, criaRelacao(document as unknown as Pagina))
+}
