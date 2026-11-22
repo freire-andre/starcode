@@ -1,0 +1,23 @@
+{
+ "round": 1,
+ "verdict": "COMMENT",
+ "summary": "TL;DR: COMMENT. A troca para 1.9.0 está correta nos manifestos, no dist/ e no CHANGELOG, e o marketplace do Codex fica sem version como o R2 corrigido pede. Um should-fix: changelog_recent só olha [Unreleased] e a versão mais recente, então os 22 testes que procuram SC-186 a SC-213 quebram de novo na próxima versão, quando esses itens deixarem de estar na seção mais recente; isso contradiz o motivo da escolha e a frase do corpo do PR. Arquivos mecânicos fora do review: dist/.",
+ "findings": [
+  {
+   "id": "W1",
+   "severity": "should-fix",
+   "path": "tests/test_support.py",
+   "line": 28,
+   "body": "🟠 `changelog_recent` devolve só `[Unreleased]` e a versão mais recente (tests/test_support.py:28-34). Na 1.10.0 os itens SC-186 a SC-213 ficam em `[1.9.0]`, que deixa de ser a mais recente, e os 22 testes que usam o helper quebram como quebraram agora. Correção: o helper (ou um irmão, `changelog_entries`) devolve todo o texto a partir de `## [Unreleased]`, e os testes de entrada de issue passam a usá-lo; o C5 continua exigindo que ninguém leia só `[Unreleased]`.",
+   "evidence": "tests/test_support.py:28"
+  }
+ ],
+ "carryover": {},
+ "research": [
+  "nenhuma superfície externa: só a biblioteca padrão (re, json, pathlib)"
+ ],
+ "ladder": [
+  "CI local do PR (evidência do PR): build --check, check_decisions, claude plugin validate --strict e suíte inteira no gate proofs (C:, 763 s), todos verdes",
+  "scan_bypasses.py: 0 candidatos"
+ ]
+}

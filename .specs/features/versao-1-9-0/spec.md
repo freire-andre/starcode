@@ -71,12 +71,12 @@ Proof: run unit | test_varredura_pega_cada_forma (test_versao_1_9_0.Versao190Tes
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** Worf revisa o PR
+**Next:** autorização do merge na main
 **Linear:** SC-214
 **Integration branch:** feature/versao-1-9-0
 **Last integrated:** 118b5f77968b644f9d7e9f262dd462e23f1c97d4
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s; 2026-11-22: Q: FAIL, 4 achados (C2, C3, C5; marketplace do Codex sem versão); q-check ok; 2026-11-22: pós-Q: 4 achados fechados (f1c0746..39a0efd), merge 1d09205; 2026-11-22: Q r2: FAIL, 3 achados novos (C3, C5); 4 da r1 confirmados fechados; 2026-11-22: correção final: achados 5-7 fechados (aea70f3, ab9461b, 7b6cc24); 2026-11-22: done verde em 287c37e; 2026-11-22: Guinan: L94, L95 novas; L2, L20, L93 reforçadas; retro com 1 ação
+**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s; 2026-11-22: Q: FAIL, 4 achados (C2, C3, C5; marketplace do Codex sem versão); q-check ok; 2026-11-22: pós-Q: 4 achados fechados (f1c0746..39a0efd), merge 1d09205; 2026-11-22: Q r2: FAIL, 3 achados novos (C3, C5); 4 da r1 confirmados fechados; 2026-11-22: correção final: achados 5-7 fechados (aea70f3, ab9461b, 7b6cc24); 2026-11-22: done verde em 287c37e; 2026-11-22: Guinan: L94, L95 novas; L2, L20, L93 reforçadas; retro com 1 ação; 2026-11-22: Worf r1: COMMENT, W1 should-fix virou SC-215 (decisão do dono: a); review publicado
 **Breaker:** closed
