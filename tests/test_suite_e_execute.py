@@ -171,12 +171,14 @@ class SuiteEExecuteTests(TempRepoCase):
         rows = {ln.split("|")[2].strip(): ln.split("|")[1].strip() for ln in text.splitlines()
                 if ln.startswith("| ") and "`execute-" in ln}
         self.assertEqual(len(rows), 6)
-        quais = {"execute-despacho.md": "2, 2F, 3", "execute-provas-e-q.md": "4",
-                 "execute-pos-q-e-review.md": "5, Review (Worf), Text for the PR", "execute-retomada.md": "6",
-                 "execute-modo-1.md": "7", "execute-media-pequena.md": "8"}
+        quais = {"execute-despacho.md": "2, 2F, 3 (dispatch, fleet, integrate)",
+                 "execute-provas-e-q.md": "4 (proofs and the Q)",
+                 "execute-pos-q-e-review.md": "5, Review (Worf), Text for the PR",
+                 "execute-retomada.md": "6 (resume, circuit breaker)",
+                 "execute-modo-1.md": "7 (Git mode 1)",
+                 "execute-media-pequena.md": "8 (MEDIUM and SMALL)"}
+        self.assertEqual(rows, {f"`{nome}`": secoes for nome, secoes in quais.items()})
         for nome, secoes in quais.items():
-            linha = next(v for k, v in rows.items() if k == f"`{nome}`")
-            self.assertTrue(linha.startswith(secoes), (nome, linha))
             novo = (REFS / nome).read_text(encoding="utf-8").splitlines()
             self.assertTrue(novo[0].startswith("# Execute: "), nome)
             self.assertEqual(novo[1], "")
