@@ -14,7 +14,7 @@ function estado(starcode = true): PonteState {
     status: 'ok', stale: false, updatedAt: 0, issue: null, issueNote: null, agents: [], log: [], error: null,
     snapshot: {
       schemaVersion: 1, worktree: 'C:/wt', starcode,
-      crew: MEMBROS.map(m => ({ member: m, emoji: 'x', name: m, count: m === 'spock' ? 1 : 0, lastAt: null, cliModel: null })),
+      crew: MEMBROS.map(m => ({ member: m, emoji: 'x', name: m, count: 0, lastAt: null, cliModel: null })),
       gitMode: null, feature: null, errors: [],
       workers: Array.from({ length: 8 }, (_, i) => ({ label: `w${i}`, issues: [], base: null, dispatch: null, model: null })),
     },

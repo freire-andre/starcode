@@ -481,29 +481,64 @@ test('ponte viva distingue estados', () => {
 test('ponte viva não inventa atividade', () => {
   const comCount: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [5, '2026-01-01T00:00:00Z']]))
   const semTrabalho = (c: Cena) => c.personagens.every(p => p.estado !== 'trabalhando' && !p.ativo && p.brilho === null && p.pose === 'de-pe')
-  // count do snapshot é histórico, nunca trabalho
-  const historico = buildScene(estado({}, comCount), [], T(0))
-  assert.ok(semTrabalho(historico) && historico.ativos === 0)
-  assert.ok(historico.personagens.every(p => p.estado === 'ocioso'))
-  // agente trabalhando sem vínculo confiável, ou com título parecido: tudo desconhecido
+  // agente trabalhando sem vínculo confiável, ou com título parecido, e sem count que o explique: tudo desconhecido
   for (const ags of [
     [{ ...doMembro('spock'), terminalId: null }],
     [{ ...doMembro('spock'), title: 'spock implementando' }],
     [doMembro('spock')], // vínculo fora de `ids`: o mapa vazio não conhece o terminal
   ]) {
-    const cena = buildScene(estado({}, comCount), ags, T(0))
+    const cena = buildScene(estado(), ags, T(0))
     assert.ok(semTrabalho(cena))
     assert.ok(cena.personagens.every(p => p.estado === 'desconhecido' && p.simbolo === '?' && p.textoEstado === 'desconhecido'))
     assert.equal(cena.ativos, 0)
     assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === 'tripulação em repouso'))
     for (const p of cena.personagens) assert.ok(p.opacidade <= 0.4)
   }
-  // dado antigo ou com erro: desconhecido, e a cena segue mostrando o último estado bom
+  // sem agente e sem count: ocioso, não trabalho
+  assert.ok(buildScene(estado(), [], T(0)).personagens.every(p => p.estado === 'ocioso'))
+  // dado antigo ou com erro: desconhecido mesmo com count > 0, e a cena segue mostrando o último estado bom
   for (const over of [{ stale: true }, { status: 'erro' as const, error: 'falhou' }]) {
-    const cena = buildScene(estado(over), [doMembro('spock')], T(0), undefined, IDS)
+    const cena = buildScene(estado(over, comCount), [doMembro('spock')], T(0), undefined, IDS)
     assert.equal(cena.vazia, false)
     assert.ok(semTrabalho(cena) && cena.personagens.every(p => p.estado === 'desconhecido'))
+    assert.equal(cena.ativos, 0)
   }
+})
+
+test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
+  // snapshot como o ponte.py entrega: count > 0 = sessão active válida (crew_live.count_members, TTL)
+  const lastAt = new Date(T(0) - 2 * 60_000).toISOString()
+  const crew: Record<string, [number, string]> = { picard: [1, lastAt], laforge: [3, lastAt], spock: [1, lastAt] }
+  const agenteDoPicard = agente('working', 'claude') // o agente do próprio Picard, sem vínculo confiável
+  for (const ags of [[], [agenteDoPicard]]) {
+    const cena = buildScene(estado({}, crew), ags, T(0))
+    const ativos = cena.personagens.filter(p => p.ativo)
+    // pelo menos um se destaca: sentado, console aceso, símbolo de trabalho e "há 2 min"
+    assert.ok(ativos.length > 0, 'ninguém se destaca')
+    assert.deepEqual(ativos.map(p => p.membro).sort(), ['laforge', 'picard', 'spock'])
+    for (const p of ativos) {
+      assert.equal(p.estado, 'trabalhando')
+      assert.equal(p.pose, 'sentado')
+      assert.ok(p.brilho)
+      assert.equal(p.opacidade, 1)
+      assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === '⚙'))
+      assert.equal(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === p.membro)?.texto, 'há 2 min')
+    }
+    // quem não tem sessão ativa segue ocioso (não desconhecido, não trabalhando)
+    assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === 'ocioso' && p.brilho === null))
+    assert.equal(cena.ativos, 3)
+    assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === '3 tripulantes ativos'))
+  }
+  // 12 sessões ativas: seis aparecem por vez e o rodízio alcança todos
+  const todos: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
+  const vistos = new Set<string>()
+  for (let ciclo = 0; ciclo < 2; ciclo++) {
+    const cena = buildScene(estado({}, todos), [], T(ciclo))
+    assert.equal(cena.personagens.length, 6)
+    assert.ok(cena.personagens.every(p => p.ativo))
+    cena.personagens.forEach(p => vistos.add(p.membro))
+  }
+  assert.equal(vistos.size, 12)
 })
 
 test('ponte viva mantém rótulos legíveis', () => {

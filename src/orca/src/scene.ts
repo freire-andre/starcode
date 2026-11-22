@@ -37,6 +37,15 @@ const COR = {
   vaga: '#3a2a3e',
   vagaOk: '#1f4d36',
   olho: '#0b1020',
+  contorno: '#05070f',
+  mesa: '#1c2750',
+  mesaBorda: '#2f7a9c',
+  faixa: '#18214a',
+  perigo: '#d4a017',
+  holo: '#1f6f8f',
+  holoClaro: '#5fd3ff',
+  capacete: '#f1c40f',
+  caixote: '#6b5b4b',
   perna: '#2b3148',
   texto: '#e8ecff',
   tempo: '#ffd866',
@@ -104,6 +113,9 @@ function elipse(p: Pincel, cor: string, cx: number, cy: number, rx: number, ry: 
 
 /** Boneco: pernas, corpo e braços no uniforme, cabeça na cor da pele, dois olhos e as peças do perfil. */
 function desenhaBoneco(p: Pincel, b: Boneco, cor: string, op: number, e: number, pele = cor, pecas: Peca[] = []): void {
+  for (const r of [...b.pernas, b.corpo, ...b.bracos, b.cabeca]) {
+    bloco(p, alfa(COR.contorno, op), { x: r.x - 0.25, y: r.y - 0.25, largura: r.largura + 0.5, altura: r.altura + 0.5 }, e)
+  }
   for (const r of b.pernas) bloco(p, alfa(COR.perna, op), r, e)
   bloco(p, alfa(cor, op), b.corpo, e)
   for (const r of b.bracos) bloco(p, alfa(cor, op), r, e)
@@ -149,7 +161,32 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
     elipse(ctx, COR.anelBorda, cx, cy, rx, ry, e)
     elipse(ctx, COR.anel, cx, cy, rx - 0.5, ry - 0.6, e)
     elipse(ctx, COR.piso, cx, cy, rx - 10, Math.max(4, ry - 11), e)
+    // o centro não fica vazio: chapas no piso interno, corredor de faixas até o acesso e holograma sob o capitão
+    for (let y = cy - ry + 12; y < cy + ry - 11; y += 6) {
+      const meia = Math.max(0, (rx - 10) * Math.sqrt(Math.max(0, 1 - ((y - cy) / Math.max(4, ry - 11)) ** 2)))
+      if (meia > 1) ret(ctx, COR.pisoLinha, cx - meia + 1, y, meia * 2 - 2, 0.4, e)
+    }
+    const faixaTopo = picard.y + 11
+    const faixaBase = cena.porta.y
+    if (faixaBase > faixaTopo) {
+      ret(ctx, COR.faixa, cx - 4, faixaTopo, 8, faixaBase - faixaTopo, e)
+      for (let y = faixaTopo; y < faixaBase - 1; y += 2) {
+        const cor = ((y - faixaTopo) / 2) % 2 === 0 ? COR.perigo : COR.contorno
+        ret(ctx, cor, cx - 4, y, 0.8, 1.6, e)
+        ret(ctx, cor, cx + 3.2, y, 0.8, 1.6, e)
+      }
+      elipse(ctx, COR.holo, cx, faixaBase - 6, 3, 3, e)
+      elipse(ctx, COR.faixa, cx, faixaBase - 6, 2, 2, e)
+      ret(ctx, COR.holoClaro, cx - 0.3, faixaBase - 9, 0.6, 6, e)
+      ret(ctx, COR.holoClaro, cx - 3, faixaBase - 6.3, 6, 0.6, e)
+    }
     elipse(ctx, COR.plataforma, picard.x, picard.y, 7, 7, e)
+  }
+  // mesas: cada estação é uma estação de trabalho integrada ao arco, com a borda iluminada
+  for (const est of cena.estacoes) {
+    const c = est.console
+    ret(ctx, COR.mesa, c.x - 0.9, c.y - 0.5, c.largura + 1.8, c.altura + 1.6, e)
+    ret(ctx, COR.mesaBorda, c.x - 0.9, c.y - 0.5, c.largura + 1.8, 0.35, e)
   }
   // estações sem ninguém presente: console apagado e cadeira do capitão (quem está presente desenha o seu)
   const presentes = new Set(cena.personagens.map(c => c.membro))
@@ -169,10 +206,21 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
 
   // engenharia: só os workers reais, cada um um boneco no seu console
   if (cena.engenharia.altura > 0) caixa(ctx, COR.engenharia, COR.engenhariaBorda, cena.engenharia, e)
+  if (cena.engenharia.altura > 0) {
+    const g = cena.engenharia
+    for (let x = g.x + 1; x < g.x + g.largura - 2; x += 2) ret(ctx, ((x - g.x) / 2) % 2 < 1 ? COR.perigo : COR.contorno, x, g.y + g.altura - 1.2, 1.2, 0.8, e)
+    for (const dx of [1.2, g.largura - 5]) {
+      ret(ctx, COR.caixote, g.x + dx, g.y + g.altura - 4.2, 3.6, 3, e)
+      ret(ctx, COR.contorno, g.x + dx + 1.6, g.y + g.altura - 4.2, 0.4, 3, e)
+    }
+  }
   for (const w of cena.workers) {
     bloco(ctx, w.concluido ? COR.vagaOk : COR.vaga, w.caixa, e)
     if (w.pose === 'de-pe') desenhaConsole(ctx, w.console, CORES.operacoes, false, 1, e)
-    desenhaBoneco(ctx, w.boneco, CORES.operacoes, 1, e)
+    desenhaBoneco(ctx, w.boneco, CORES.operacoes, 1, e, '#e0b48a', [
+      { cor: COR.capacete, x: w.boneco.cabeca.x - 0.2, y: w.boneco.cabeca.y - 0.5, largura: w.boneco.cabeca.largura + 0.4, altura: 0.9 },
+      { cor: COR.capacete, x: w.boneco.cabeca.x + 0.2, y: w.boneco.cabeca.y - 0.9, largura: w.boneco.cabeca.largura - 0.4, altura: 0.5 },
+    ])
     if (w.pose === 'sentado') desenhaConsole(ctx, w.console, CORES.operacoes, true, 1, e)
   }
 

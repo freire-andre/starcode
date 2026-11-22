@@ -70,6 +70,8 @@ const DO_AGENTE: Readonly<Record<string, EstadoVisual>> = {
 
 const tem = (obj: object, chave: string): boolean => Object.prototype.hasOwnProperty.call(obj, chave)
 
+const comContagem = (n: unknown): boolean => typeof n === 'number' && Number.isFinite(n) && n > 0
+
 function vinculado(agente: PonteAgent, membro: string, ids: Identidades): boolean {
   return agente.terminalId !== null && tem(ids, agente.terminalId) && ids[agente.terminalId] === membro
 }
@@ -80,15 +82,18 @@ function semVinculo(agente: PonteAgent, ids: Identidades): boolean {
 
 /**
  * Estado dos 12 integrantes, sempre na ordem de `PERFIS`. Só conta o que é comprovado: agente vinculado por
- * `ids`. Dado indisponível ou antigo, integrante fora do snapshot, agente ativo sem identidade confiável,
- * vínculos conflitantes e estado fora do contrato dão `desconhecido`, nunca `trabalhando`. Ocioso exige dado
- * atual, o integrante no snapshot e nenhum agente ativo sem identidade. `count` do snapshot é histórico,
- * não atividade atual.
+ * `ids` (o estado dele vale, inclusive espera, bloqueio e conclusão) ou `count` > 0 no snapshot, que o
+ * `ponte.py` tira de `crew_live.count_members`: sessões `active` válidas, dentro do TTL (hook 15 min, cli
+ * 60 min), então `count` > 0 é trabalho atual e 0 é livre. Dado indisponível ou antigo (erro, `stale`, sem
+ * worktree, sem snapshot, sem StarCode), integrante fora do snapshot, vínculos conflitantes e estado de agente
+ * fora do contrato dão `desconhecido`, nunca `trabalhando`. Agente ativo sem identidade só impede afirmar
+ * ocioso quando nenhum `count` explica a atividade; título nunca é identidade.
  */
 export function estadosDaTripulacao(estado: PonteState, ids: Identidades): EstadoDoMembro[] {
   const snap = estado.snapshot
   const utilizavel = estado.status === 'ok' && !estado.stale && snap !== null && snap.starcode
-  const ativoSemIdentidade = utilizavel && estado.agents.some(a => a.state !== 'done' && semVinculo(a, ids))
+  const contados = utilizavel ? snap.crew.filter(c => MEMBROS.includes(c.member) && comContagem(c.count)) : []
+  const ativoSemIdentidade = utilizavel && contados.length === 0 && estado.agents.some(a => a.state !== 'done' && semVinculo(a, ids))
   return MEMBROS.map((membro): EstadoDoMembro => {
     const desconhecido = (motivo: string): EstadoDoMembro => ({ membro, estado: 'desconhecido', motivo })
     if (!utilizavel) return desconhecido('dados indisponíveis ou antigos')
@@ -99,6 +104,9 @@ export function estadosDaTripulacao(estado: PonteState, ids: Identidades): Estad
       if (estados.some(e => e === undefined)) return desconhecido('estado de agente fora do contrato')
       if (new Set(estados).size > 1) return desconhecido('mais de um agente vinculado com estados diferentes')
       return { membro, estado: estados[0], motivo: `agente vinculado ${ESTADOS[estados[0]].texto}` }
+    }
+    if (comContagem(snap.crew.find(c => c.member === membro)?.count)) {
+      return { membro, estado: 'trabalhando', motivo: 'sessão ativa no snapshot (count > 0)' }
     }
     if (ativoSemIdentidade) return desconhecido('agente ativo sem identidade confiável')
     return { membro, estado: 'ocioso', motivo: 'sem agente ativo no worktree' }
