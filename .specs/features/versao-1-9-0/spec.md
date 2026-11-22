@@ -71,9 +71,9 @@ Proof: run unit | test_changelog_recent (test_versao_1_9_0.Versao190Tests.test_c
 **Next:** LaForge T1
 **Linear:** SC-214
 **Integration branch:** feature/versao-1-9-0
-**Last integrated:** none
-**Dispatched:** T1 · SC-214 · base 8b86df0 · claude:claude-sonnet-5-5 · 2026-11-22T15:47:08Z · ctx_531c0bd08698
+**Last integrated:** 118b5f77968b644f9d7e9f262dd462e23f1c97d4
+**Dispatched:** none
 **Settled:** none
-**Attempts:** none
-**Reports:** none
+**Attempts:** proofs-timeout=1
+**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK
 **Breaker:** closed
