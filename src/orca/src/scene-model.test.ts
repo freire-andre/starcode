@@ -1,7 +1,9 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { buildScene, GRADE, LEGENDA } from './scene-model'
+import { buildScene, GRADE, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
+import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
+import type { Identidades } from './crew-visual'
 import type { PonteAgent, PonteState, PonteWorker } from './protocol'
 
 const MEMBROS = ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy', 'q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan']
@@ -24,48 +26,59 @@ function estado(
 }
 const worker = (label: string, issues: string[] = []): PonteWorker => ({ label, issues, base: null, dispatch: null, model: null })
 const agente = (state: PonteAgent['state'], title: string): PonteAgent => ({ terminalId: null, title, agent: 'claude', state, stateStartedAt: 0 })
+/** Vínculos confiáveis terminal -> integrante, como os que o despacho registra. */
+const IDS: Identidades = Object.fromEntries(MEMBROS.map(m => [`t-${m}`, m]))
+const doMembro = (m: string, state: PonteAgent['state'] = 'working'): PonteAgent =>
+  ({ terminalId: `t-${m}`, title: null, agent: 'claude', state, stateStartedAt: 0 })
+/** Instante estável (fora da troca) da rodada `ciclo`. */
+const T = (ciclo: number, extra = 2000): number => ciclo * ROTACAO_MS + extra
+const membrosDe = (c: Cena): string[] => c.personagens.map(p => p.membro)
+const NOMES_CREW = ['Picard', 'Spock', 'Troi', 'Data', 'LaForge', 'McCoy', 'Q', 'Uhura', 'Scotty', 'Kirk', 'Worf', 'Guinan']
+const tocam = (a: { x: number; y: number; largura: number; altura: number }, b: typeof a) =>
+  a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura
 
 test('cena tem uma estação por tripulante e a engenharia', () => {
-  const cena = buildScene(estado(), [], 0)
+  const cena = buildScene(estado(), [], T(0))
   assert.equal(cena.vazia, false)
   assert.equal(cena.grade.largura, 48)
   assert.equal(cena.grade.altura, GRADE.altura)
   assert.ok(cena.grade.altura > cena.grade.largura) // layout vertical
   assert.deepEqual(cena.estacoes.map(e => e.membro).sort(), [...MEMBROS].sort())
-  assert.equal(cena.personagens.length, 12)
+  assert.equal(new Set(cena.estacoes.map(e => `${e.x},${e.y}`)).size, 12)
   assert.ok(cena.telao.largura > 0 && cena.engenharia.largura > 0)
-  // telão em cima, ponte no meio, engenharia embaixo
+  // telão em cima, ponte no meio, engenharia embaixo; o acesso fica dentro da ponte
   assert.ok(cena.telao.y + cena.telao.altura <= cena.ponte.y)
   assert.ok(cena.ponte.y + cena.ponte.altura <= cena.engenharia.y)
-  // cada estação mostra o emoji e o nome do tripulante
-  for (const p of cena.personagens) {
-    assert.ok(cena.rotulos.some(r => r.tipo === 'emoji' && r.texto === p.emoji), `emoji ${p.membro}`)
-    assert.ok(cena.rotulos.some(r => r.tipo === 'nome' && r.texto === p.nome), `nome ${p.membro}`)
-  }
-  assert.equal(new Set(cena.estacoes.map(e => `${e.x},${e.y}`)).size, 12)
-  // todas as estações (LaForge incluído) ficam na ponte, e as áreas delas não se tocam
-  const tocam = (a: Cena['personagens'][number]['caixa'], b: typeof a) =>
-    a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura
-  const comWorkers = buildScene(estado({}, {}, Array.from({ length: 8 }, (_, i) => worker(`T${i}`))), [], 0)
-  for (const cs of [cena, comWorkers]) {
-    const pt = cs.ponte
-    for (const p of cs.personagens) {
-      assert.ok(p.caixa.y >= pt.y && p.caixa.y + p.caixa.altura <= pt.y + pt.altura, `fora da ponte: ${p.membro}`)
-      assert.ok(p.caixa.x >= 0 && p.caixa.x + p.caixa.largura <= cs.grade.largura, `fora da grade: ${p.membro}`)
-    }
-    for (let i = 0; i < 12; i++) {
-      for (let j = i + 1; j < 12; j++) {
-        assert.ok(!tocam(cs.personagens[i].caixa, cs.personagens[j].caixa), `${cs.personagens[i].membro} x ${cs.personagens[j].membro}`)
+  assert.ok(cena.porta.y > cena.ponte.y && cena.porta.y < cena.ponte.y + cena.ponte.altura)
+  const comWorkers = estado({}, {}, Array.from({ length: 8 }, (_, i) => worker(`T${i}`)))
+  for (const base of [estado(), comWorkers]) {
+    const vistos = new Set<string>()
+    for (let ciclo = 0; ciclo < 3; ciclo++) {
+      const cs = buildScene(base, [], T(ciclo))
+      for (const p of cs.personagens) {
+        vistos.add(p.membro)
+        // cada personagem mostra o emoji e o nome da tripulação (crew.yaml)
+        assert.ok(cs.rotulos.some(r => r.tipo === 'emoji' && r.dono === p.membro && r.texto === p.emoji), `emoji ${p.membro}`)
+        assert.ok(cs.rotulos.some(r => r.tipo === 'nome' && r.dono === p.membro && r.texto === p.nome), `nome ${p.membro}`)
+        // todas as estações (LaForge incluído) ficam na ponte, e as áreas delas não se tocam
+        assert.ok(p.caixa.y >= cs.ponte.y && p.caixa.y + p.caixa.altura <= cs.ponte.y + cs.ponte.altura, `fora da ponte: ${p.membro}`)
+        assert.ok(p.caixa.x >= 0 && p.caixa.x + p.caixa.largura <= cs.grade.largura, `fora da grade: ${p.membro}`)
+      }
+      for (let i = 0; i < cs.personagens.length; i++) {
+        for (let j = i + 1; j < cs.personagens.length; j++) {
+          assert.ok(!tocam(cs.personagens[i].caixa, cs.personagens[j].caixa), `${cs.personagens[i].membro} x ${cs.personagens[j].membro}`)
+        }
       }
     }
+    assert.equal(vistos.size, 12)
   }
 })
 
 test('cena senta tripulante ativo e anima a cada 250 ms', () => {
-  const s = estado({}, { spock: [2, '2026-01-01T00:00:00Z'] })
-  const a = buildScene(s, [], 0).personagens
-  const b = buildScene(s, [], 250).personagens
-  const c = buildScene(s, [], 500).personagens
+  const ags = [doMembro('spock')]
+  const a = buildScene(estado(), ags, T(0), undefined, IDS).personagens
+  const b = buildScene(estado(), ags, T(0, 2250), undefined, IDS).personagens
+  const c = buildScene(estado(), ags, T(0, 2500), undefined, IDS).personagens
   const spock = (p: typeof a) => p.find(x => x.membro === 'spock')!
   assert.equal(spock(a).pose, 'sentado')
   assert.equal(spock(a).quadro, 0)
@@ -74,31 +87,35 @@ test('cena senta tripulante ativo e anima a cada 250 ms', () => {
   const picard = a.find(x => x.membro === 'picard')!
   assert.equal(picard.pose, 'de-pe')
   assert.equal(picard.quadro, 0)
-  // inativo fica na própria estação (mesma posição de quando está ativo), apagado e parado
   assert.equal(spock(a).ativo, true)
   assert.equal(picard.ativo, false)
-  const ativoPicard = buildScene(estado({}, { picard: [1, null] }), [], 0).personagens.find(x => x.membro === 'picard')!
+  // trabalhar não muda a estação: o Picard trabalhando fica no mesmo lugar de quando está ocioso
+  const ativoPicard = buildScene(estado(), [doMembro('picard')], T(0), undefined, IDS).personagens.find(x => x.membro === 'picard')!
   assert.equal(`${ativoPicard.x},${ativoPicard.y}`, `${picard.x},${picard.y}`)
-  assert.equal(buildScene(s, [], 250).personagens.find(x => x.membro === 'picard')!.quadro, 0)
+  assert.equal(buildScene(estado(), [doMembro('picard')], T(0, 2250), undefined, IDS).personagens.find(x => x.membro === 'picard')!.quadro, 1)
 })
 
 test('cena põe o balão no personagem do agente bloqueado', () => {
   const ws = [worker('T3', ['SC-117']), worker('T4', ['SC-118'])]
-  // casa pelo rótulo do worker
-  let cena = buildScene(estado({}, {}, ws), [agente('blocked', 'laforge T4 implementando')], 0)
+  // worker: casa pelo rótulo
+  let cena = buildScene(estado({}, {}, ws), [agente('blocked', 'laforge T4 implementando')], T(0))
   assert.deepEqual(cena.workers.map(w => w.balao), [false, true])
-  // casa pela issue
-  cena = buildScene(estado({}, {}, ws), [agente('waiting', 'trabalho em SC-117')], 0)
+  // worker: casa pela issue
+  cena = buildScene(estado({}, {}, ws), [agente('waiting', 'trabalho em SC-117')], T(0))
   assert.deepEqual(cena.workers.map(w => w.balao), [true, false])
-  // sem casamento: tripulante ativo de lastAt mais recente
+  // tripulante: só pelo vínculo confiável (terminalId), nunca por título nem por quem trabalhou por último
   const crew: Record<string, [number, string]> = { spock: [1, '2026-01-01T00:00:00Z'], data: [1, '2026-01-02T00:00:00Z'] }
-  cena = buildScene(estado({}, crew, ws), [agente('blocked', 'outra coisa')], 0)
-  assert.deepEqual(cena.personagens.filter(p => p.balao).map(p => p.membro), ['data'])
-  // ninguém ativo: Picard
-  cena = buildScene(estado(), [agente('waiting', 'x')], 0)
-  assert.deepEqual(cena.personagens.filter(p => p.balao).map(p => p.membro), ['picard'])
+  cena = buildScene(estado({}, crew), [doMembro('worf', 'blocked'), doMembro('q', 'waiting')], T(0), undefined, IDS)
+  const por = (m: string) => cena.personagens.find(p => p.membro === m)!
+  assert.deepEqual(cena.personagens.filter(p => p.balao).map(p => p.membro), ['q', 'worf'])
+  assert.equal(por('worf').estado, 'bloqueado')
+  assert.equal(por('q').estado, 'aguardando')
+  assert.ok(cena.rotulos.some(r => r.tipo === 'balao' && r.dono === 'worf' && r.texto === '!'))
+  // agente bloqueado sem identidade confiável não escolhe um dono: ninguém recebe o balão
+  cena = buildScene(estado({}, crew), [agente('blocked', 'spock bloqueado')], T(0))
+  assert.equal(cena.personagens.some(p => p.balao), false)
   // working não gera balão
-  cena = buildScene(estado(), [agente('working', 'x')], 0)
+  cena = buildScene(estado(), [doMembro('spock')], T(0), undefined, IDS)
   assert.equal(cena.personagens.some(p => p.balao), false)
 })
 
@@ -133,20 +150,24 @@ function sobrepoe(a: Cena['rotulos'][number], b: Cena['rotulos'][number]): boole
 }
 
 test('cena sem rótulos sobrepostos', () => {
-  const crew: Record<string, [number, string]> = { spock: [1, '2026-01-01T00:00:00Z'], laforge: [1, '2026-01-02T00:00:00Z'] }
   const ws = Array.from({ length: 8 }, (_, i) => worker(i === 2 ? 'T12345678910' : `T${i + 1}`, [`SC-${i}`]))
-  const agentes = [agente('done', 'laforge T1'), agente('blocked', 'laforge T12345678910'), agente('waiting', 'laforge T8'), agente('blocked', 'outra')]
-  // todos ativos há 59 min (o rótulo de tempo mais largo), com balão
+  const agentes = [agente('done', 'laforge T1'), agente('blocked', 'laforge T12345678910'), agente('waiting', 'laforge T8')]
   const todos: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, '1970-01-01T00:00:00Z']]))
-  const cenas = [
-    buildScene(estado(), [], 0),
-    buildScene(estado({}, crew, ws, true), agentes, 250),
-    buildScene(estado({}, crew, ws.slice(0, 3)), agentes, 0),
-    buildScene(estado({}, todos, ws), [...agentes, agente('waiting', 'nada')], 59 * 60_000 + 1000),
-    buildScene(estado({}, todos, []), [agente('blocked', 'nada')], 59 * 60_000 + 1000),
-    buildScene(estado({}, todos, ws.slice(0, 4)), [agente('blocked', 'nada')], 30 * 3_600_000),
+  const trabalhando = MEMBROS.map(m => doMembro(m))
+  const mistos = [doMembro('spock'), doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('kirk', 'done')]
+  const cenas: Cena[] = []
+  for (let ciclo = 0; ciclo < 4; ciclo++) {
+    cenas.push(
+      buildScene(estado(), [], T(ciclo)),
+      buildScene(estado({}, {}, ws), [...agentes, ...mistos], T(ciclo), undefined, IDS),
+      buildScene(estado({}, todos, ws.slice(0, 3)), trabalhando, T(ciclo, 5000), undefined, IDS),
+      buildScene(estado({}, todos, []), trabalhando, T(ciclo, 59 * 60_000 + 1000), undefined, IDS),
+    )
+  }
+  cenas.push(
+    buildScene(estado({}, todos, ws.slice(0, 4)), trabalhando, 30 * 3_600_000 + 2000, undefined, IDS),
     buildScene(estado({ status: 'erro', snapshot: null, error: 'um erro bem longo que precisa quebrar em várias linhas de texto' }), [], 0),
-  ]
+  )
   for (const cena of cenas) {
     const { largura, altura } = cena.grade
     for (const r of cena.rotulos) {
@@ -157,7 +178,7 @@ test('cena sem rótulos sobrepostos', () => {
     for (let i = 0; i < cena.rotulos.length; i++) {
       for (let j = i + 1; j < cena.rotulos.length; j++) {
         const a = cena.rotulos[i], b = cena.rotulos[j]
-        assert.ok(!sobrepoe(a, b), `${a.texto} x ${b.texto}`)
+        assert.ok(!tocam(a.caixa, b.caixa), `${a.texto} x ${b.texto}`)
       }
     }
   }
@@ -206,39 +227,38 @@ test('cena compacta a engenharia sem workers', () => {
   assert.equal(seis.vagas.length, 6)
   assert.ok(seis.rotulos.some(r => r.texto === '+3'))
   assert.ok(dois.engenharia.altura < seis.engenharia.altura)
-  // a altura liberada vai para a ponte: ela cresce e as estações se espalham
-  assert.ok(sem.ponte.altura > dois.ponte.altura && dois.ponte.altura > seis.ponte.altura)
-  assert.equal(sem.engenharia.y + sem.engenharia.altura, seis.engenharia.y + seis.engenharia.altura)
-  const alturaArco = (c: Cena) => { const ys = c.personagens.map(p => p.y); return Math.max(...ys) - Math.min(...ys) }
-  assert.ok(alturaArco(sem) > alturaArco(seis))
+  // a ponte não estica: tem sempre a mesma altura e a engenharia vem logo abaixo dela
+  for (const c of [sem, dois, seis]) {
+    assert.equal(c.ponte.altura, PONTE_ALTURA)
+    assert.equal(c.engenharia.y, c.ponte.y + c.ponte.altura + 1)
+  }
+  const alturaArco = (c: Cena) => { const ys = c.estacoes.map(p => p.y); return Math.max(...ys) - Math.min(...ys) }
+  assert.equal(alturaArco(sem), alturaArco(seis))
+  // o espaço que a engenharia compacta libera vai para as atividades (placeholder claro sem atividade)
+  assert.ok(sem.atividades && sem.atividades.y >= sem.engenharia.y + sem.engenharia.altura)
+  assert.deepEqual(sem.rotulos.filter(r => r.tipo === 'atividade').map(r => r.texto), ['sem atividade registrada'])
+  assert.equal(seis.atividades, null)
 })
 
 test('cena desenha a ponte em arco com bonecos', () => {
-  const s = estado({}, { spock: [1, '2026-01-01T00:00:00Z'], worf: [2, null] })
-  const a = buildScene(s, [], 0)
-  const b = buildScene(s, [], 250)
+  const ags = [doMembro('spock'), doMembro('worf')]
+  const a = buildScene(estado(), ags, T(0), undefined, IDS)
+  const b = buildScene(estado(), ags, T(0, 2250), undefined, IDS)
   const por = (c: Cena, m: string) => c.personagens.find(p => p.membro === m)!
-  const picard = por(a, 'picard')
+  const picard = a.estacoes.find(e => e.membro === 'picard')!
+  const outros = a.estacoes.filter(e => e.membro !== 'picard')
   // Picard maior, no centro da largura e cercado pelas estações
   assert.equal(picard.x, a.grade.largura / 2)
-  const outros = a.personagens.filter(p => p.membro !== 'picard')
   for (const p of outros) assert.ok(picard.escala > p.escala, p.membro)
-  assert.ok(picard.boneco.corpo.altura > por(a, 'data').boneco.corpo.altura)
-  // arco: o anel estica com a altura do painel (R54), então ele vira elipse; desfeito o esticamento
-  // (eixos divididos pela meia largura e meia altura das estações), as estações ficam a uma distância
-  // parecida do Picard e em volta dele (sem buraco maior que 90 graus), em qualquer altura de grade
-  for (const cena of [a, buildScene(s, [], 0, 220)]) {
-    const pc = por(cena, 'picard')
-    const os = cena.personagens.filter(p => p.membro !== 'picard')
-    const meia = (v: number[]) => (Math.max(...v) - Math.min(...v)) / 2
-    const rx = meia(os.map(p => p.x)), ry = meia(os.map(p => p.y))
-    const dist = os.map(p => Math.hypot((p.x - pc.x) / rx, (p.y - pc.y) / ry))
-    const media = dist.reduce((x, y) => x + y, 0) / dist.length
-    for (const d of dist) assert.ok(d > media * 0.75 && d < media * 1.25, `fora do arco: ${d} (média ${media})`)
-    const ang = os.map(p => Math.atan2((p.y - pc.y) / ry, (p.x - pc.x) / rx)).sort((x, y) => x - y)
-    const buracos = ang.map((g, i) => g - (i === 0 ? ang[ang.length - 1] - 2 * Math.PI : ang[i - 1]))
-    assert.ok(Math.max(...buracos) <= Math.PI / 2, `buraco no arco: ${Math.max(...buracos)}`)
-  }
+  assert.ok(por(a, 'picard').boneco.corpo.altura > por(a, 'data').boneco.corpo.altura)
+  // arco agrupado ao redor do capitão: ponte de proporção fixa (a altura do painel não muda as estações) e
+  // estações nos quatro lados dele, perto o bastante para formar um conjunto
+  const alta = buildScene(estado(), ags, T(0), 220, IDS)
+  assert.deepEqual(alta.estacoes, a.estacoes)
+  for (const o of outros) assert.ok(Math.hypot(o.x - picard.x, o.y - picard.y) <= 38, `longe do capitão: ${o.membro}`)
+  const lado = (f: (e: { x: number; y: number }) => boolean) => outros.filter(f).length
+  assert.ok(lado(e => e.x < picard.x - 8) >= 4 && lado(e => e.x > picard.x + 8) >= 4)
+  assert.ok(lado(e => e.y < picard.y - 8) >= 3 && lado(e => e.y > picard.y + 8) >= 2)
   // não é grade: as estações não se alinham em poucas linhas
   assert.ok(new Set(outros.map(p => p.y)).size >= 5)
   // boneco: o emoji é a insígnia no peito
@@ -247,8 +267,10 @@ test('cena desenha a ponte em arco com bonecos', () => {
     const c = p.boneco.corpo
     assert.ok(insignia.x > c.x && insignia.x < c.x + c.largura && insignia.y > c.y && insignia.y < c.y + c.altura, `insígnia fora do peito: ${p.membro}`)
   }
-  assert.equal(por(a, 'spock').cor, por(a, 'troi').cor) // mesma divisão (ciências)
-  assert.notEqual(por(a, 'spock').cor, por(a, 'worf').cor)
+  // o uniforme é o do perfil visual: cada integrante tem a sua cor
+  const cores = a.personagens.map(p => p.cor)
+  assert.equal(new Set(cores).size, cores.length)
+  assert.equal(por(a, 'spock').cor, PERFIS.find(p => p.membro === 'spock')!.cor)
   // ativo sentado digitando (braços trocam a cada 250 ms); livre de pé, parado, com pernas
   const spock = por(a, 'spock'), data = por(a, 'data')
   assert.equal(spock.pose, 'sentado')
@@ -263,4 +285,313 @@ test('cena desenha a ponte em arco com bonecos', () => {
   assert.equal(w[0].pose, 'sentado')
   assert.equal(w[1].pose, 'de-pe')
   assert.equal(w[1].boneco.pernas.length, 2)
+})
+
+test('ponte viva identifica os 12 integrantes', async () => {
+  const vistos = new Map<string, Cena['personagens'][number]>()
+  const rotulosNome: string[] = []
+  for (let ciclo = 0; ciclo < 2; ciclo++) {
+    const cena = buildScene(crewReal(), [], T(ciclo), undefined, IDS)
+    for (const p of cena.personagens) vistos.set(p.membro, p)
+    for (const r of cena.rotulos) if (r.tipo === 'nome') rotulosNome.push(r.texto)
+  }
+  assert.deepEqual([...vistos.keys()].sort(), [...MEMBROS].sort())
+  // os nomes na cena são os de src/crew.yaml (lidos do arquivo) e da tripulação: Picard, LaForge, Scotty...
+  const { readFileSync } = await import('node:fs')
+  const { fileURLToPath } = await import('node:url')
+  const yaml = readFileSync(fileURLToPath(new URL('../../crew.yaml', import.meta.url)), 'utf8')
+  assert.deepEqual([...yaml.matchAll(/^\s+name:\s*(\S.*?)\s*$/gm)].map(m => m[1]), NOMES_CREW)
+  assert.deepEqual(NOMES_CREW.slice().sort(), rotulosNome.slice().sort())
+  const ordem = PERFIS.map(p => p.membro)
+  // identidade visual própria: uniforme, cabeça, acessório e a assinatura das peças diferem entre os 12
+  const lista = ordem.map(m => vistos.get(m)!)
+  for (const campo of ['cor', 'pele', 'acessorio'] as const) {
+    assert.equal(new Set(lista.map(p => p[campo])).size, 12, `${campo} repetido`)
+  }
+  assert.equal(new Set(lista.map(p => JSON.stringify(p.pecas.map(x => [x.cor, +(x.x - p.boneco.cabeca.x).toFixed(2), +(x.y - p.boneco.cabeca.y).toFixed(2), +x.largura.toFixed(2), +x.altura.toFixed(2)])))).size, 12)
+  for (const p of lista) {
+    assert.ok(p.pecas.length > 0, `sem peças: ${p.membro}`)
+    assert.equal(p.cor, PERFIS.find(x => x.membro === p.membro)!.cor)
+  }
+  // o modelo é só dados: as peças vêm de pecasDoPerfil, sem pintura
+  const q = lista[ordem.indexOf('q')]
+  assert.deepEqual(pecasDoPerfil(q.acessorio, q.boneco, q.escala).pecas, q.pecas)
+  assert.deepEqual(pecasDoPerfil('inexistente', q.boneco, 1).pecas, [])
+})
+
+function crewReal(): PonteState {
+  const s = estado()
+  s.snapshot!.crew = MEMBROS.map((m, i) => ({ member: m, emoji: 'x', name: NOMES_CREW[i], count: 0, lastAt: null, cliModel: null }))
+  return s
+}
+
+test('ponte viva limita a seis integrantes', () => {
+  const todos = MEMBROS.map(m => doMembro(m))
+  for (const ags of [[], todos]) {
+    for (let t = 0; t < 3 * ROTACAO_MS; t += 100) {
+      const cena = buildScene(crewReal(), ags, t, undefined, IDS)
+      assert.ok(cena.personagens.length <= 6, `${cena.personagens.length} em ${t} ms`)
+      const nomes = cena.rotulos.filter(r => r.tipo === 'nome')
+      assert.ok(nomes.length <= 6)
+      // cada presente tem o nome junto de si, legível
+      assert.deepEqual(nomes.map(r => r.dono).sort(), membrosDe(cena).sort())
+      for (const p of cena.personagens) assert.equal(cena.rotulos.find(r => r.tipo === 'nome' && r.dono === p.membro)!.texto, p.nome)
+    }
+    assert.equal(buildScene(crewReal(), ags, T(0), undefined, IDS).personagens.length, 6)
+  }
+})
+
+test('ponte viva alterna integrantes elegíveis', () => {
+  // sem prioridade: todos os 12 aparecem em duas rodadas, seis por vez
+  const vistos = new Set<string>()
+  for (let ciclo = 0; ciclo < 2; ciclo++) {
+    const m = membrosDe(buildScene(estado(), [], T(ciclo)))
+    assert.equal(m.length, 6)
+    m.forEach(x => vistos.add(x))
+  }
+  assert.equal(vistos.size, 12)
+  // alertas e trabalhando ficam sempre; a vaga que sobra gira entre todos os demais elegíveis
+  const ags = [doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('q', 'blocked'), doMembro('spock'), doMembro('kirk')]
+  const fixos = ['data', 'worf', 'q', 'spock', 'kirk']
+  const sobra = new Set<string>()
+  for (let ciclo = 0; ciclo < 7; ciclo++) {
+    const m = membrosDe(buildScene(estado(), ags, T(ciclo), undefined, IDS))
+    assert.equal(m.length, 6)
+    for (const f of fixos) assert.ok(m.includes(f), `${f} sumiu na rodada ${ciclo}`)
+    m.filter(x => !fixos.includes(x)).forEach(x => sobra.add(x))
+  }
+  assert.deepEqual([...sobra].sort(), MEMBROS.filter(m => !fixos.includes(m)).sort())
+  // oito trabalhando: seis por vez, os oito alcançados; nenhum ocioso entra
+  const oito = MEMBROS.slice(0, 8)
+  const alcance = new Set<string>()
+  for (let ciclo = 0; ciclo < 4; ciclo++) {
+    const m = membrosDe(buildScene(estado(), oito.map(x => doMembro(x)), T(ciclo), undefined, IDS))
+    assert.equal(m.length, 6)
+    m.forEach(x => { assert.ok(oito.includes(x)); alcance.add(x) })
+  }
+  assert.equal(alcance.size, 8)
+  // alerta ganha de trabalhando quando não cabem todos
+  const sete = MEMBROS.slice(0, 7).map(x => doMembro(x, 'blocked'))
+  const m = membrosDe(buildScene(estado(), [...sete, doMembro('guinan')], T(0), undefined, IDS))
+  assert.ok(m.every(x => MEMBROS.slice(0, 7).includes(x)) && !m.includes('guinan'))
+  const est = (agentes: PonteAgent[]) => estadosDaTripulacao({ ...estado(), agents: agentes }, IDS)
+  assert.deepEqual(selecionaPresentes(est([]), 0), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
+  assert.deepEqual(selecionaPresentes(est([]), 1), ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'])
+})
+
+test('ponte viva anima sem alterar estado', () => {
+  const base = estado()
+  const estaveis = estadosDaTripulacao(base, IDS)
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+  const ini = ROTACAO_MS
+  // saída (primeira metade da troca): os seis da rodada 0 andam até o acesso
+  const saindo = buildScene(base, [], ini + TRANSICAO_MS / 4, undefined, IDS)
+  assert.equal(saindo.personagens.length, 6)
+  for (const p of saindo.personagens) {
+    assert.deepEqual(p.transicao, { fase: 'saindo', progresso: 0.5 })
+    assert.ok(Math.abs(p.x - lerp(p.estacao.x, saindo.porta.x, 0.5)) < 1e-9 && Math.abs(p.y - lerp(p.estacao.y, saindo.porta.y, 0.5)) < 1e-9)
+    assert.ok(p.opacidade < OPAC_MAX)
+  }
+  // entrada (segunda metade): os seis da rodada 1 saem do acesso
+  const entrando = buildScene(base, [], ini + (TRANSICAO_MS * 3) / 4, undefined, IDS)
+  assert.equal(entrando.personagens.length, 6)
+  for (const p of entrando.personagens) {
+    assert.deepEqual(p.transicao, { fase: 'entrando', progresso: 0.5 })
+    assert.ok(Math.abs(p.x - lerp(entrando.porta.x, p.estacao.x, 0.5)) < 1e-9)
+  }
+  assert.deepEqual(membrosDe(saindo), membrosDe(buildScene(base, [], T(0))))
+  assert.deepEqual(membrosDe(entrando), membrosDe(buildScene(base, [], T(1))))
+  // o estado real não muda em nenhum ponto da troca; depois dela a transição acaba
+  for (const cena of [saindo, entrando, buildScene(base, [], ini + TRANSICAO_MS, undefined, IDS)]) {
+    for (const p of cena.personagens) assert.equal(p.estado, estaveis.find(e => e.membro === p.membro)!.estado)
+  }
+  assert.ok(buildScene(base, [], ini + TRANSICAO_MS, undefined, IDS).personagens.every(p => p.transicao === null))
+  // trabalhando que entra anda de pé, sem animar o console, e senta ao chegar; o estado segue trabalhando
+  const oito = MEMBROS.slice(0, 8).map(m => doMembro(m))
+  const chegando = buildScene(base, oito, ini + (TRANSICAO_MS * 3) / 4, undefined, IDS).personagens.find(p => p.transicao?.fase === 'entrando')!
+  assert.equal(chegando.estado, 'trabalhando')
+  assert.equal(chegando.ativo, false)
+  assert.equal(chegando.pose, 'de-pe')
+  assert.equal(chegando.brilho, null)
+  const chegou = buildScene(base, oito, ini + TRANSICAO_MS, undefined, IDS).personagens.find(p => p.membro === chegando.membro)!
+  assert.equal(chegou.estado, 'trabalhando')
+  assert.equal(chegou.ativo, true)
+  assert.equal(chegou.pose, 'sentado')
+  // não há mais de seis em nenhum quadro da troca
+  for (let t = ini; t <= ini + TRANSICAO_MS; t += 50) assert.ok(buildScene(base, [], t, undefined, IDS).personagens.length <= 6)
+})
+const OPAC_MAX = 0.4
+
+test('ponte viva representa trabalho', () => {
+  const ags = [doMembro('spock')]
+  const a = buildScene(estado(), ags, T(0), undefined, IDS)
+  const b = buildScene(estado(), ags, T(0, 2250), undefined, IDS)
+  const spock = a.personagens.find(p => p.membro === 'spock')!
+  assert.equal(spock.estado, 'trabalhando')
+  assert.equal(spock.simbolo, ESTADOS.trabalhando.simbolo)
+  assert.equal(spock.simbolo, '⚙')
+  assert.equal(spock.textoEstado, 'trabalhando')
+  assert.ok(a.rotulos.some(r => r.tipo === 'estado' && r.dono === 'spock' && r.texto === '⚙'))
+  // operação do console: aceso com brilho, sentado, braços alternando
+  assert.equal(spock.ativo, true)
+  assert.equal(spock.pose, 'sentado')
+  assert.ok(spock.brilho)
+  assert.equal(spock.opacidade, 1)
+  assert.notDeepEqual(spock.boneco.bracos, b.personagens.find(p => p.membro === 'spock')!.boneco.bracos)
+  assert.equal(a.ativos, 1)
+})
+
+test('ponte viva representa ociosidade', () => {
+  const ags = [doMembro('spock'), doMembro('kirk', 'done')]
+  const a = buildScene(estado(), ags, T(0), undefined, IDS)
+  const b = buildScene(estado(), ags, T(0, 2250), undefined, IDS)
+  const data = a.personagens.find(p => p.membro === 'data')!
+  assert.equal(data.estado, 'ocioso')
+  assert.equal(data.simbolo, '💤')
+  assert.equal(data.textoEstado, 'ocioso')
+  assert.ok(a.rotulos.some(r => r.tipo === 'estado' && r.dono === 'data' && r.texto === '💤'))
+  // sem animação de trabalho: de pé, console apagado, quadro e braços parados
+  assert.equal(data.ativo, false)
+  assert.equal(data.pose, 'de-pe')
+  assert.equal(data.brilho, null)
+  assert.equal(data.quadro, 0)
+  assert.ok(data.opacidade <= 0.4)
+  assert.equal(data.tempo, null)
+  assert.deepEqual(data.boneco, b.personagens.find(p => p.membro === 'data')!.boneco)
+})
+
+test('ponte viva distingue estados', () => {
+  const ags = [doMembro('spock'), doMembro('data', 'waiting'), doMembro('worf', 'blocked'), doMembro('picard', 'done')]
+  const cena = buildScene(estado(), ags, T(0), undefined, IDS)
+  const por = (m: string) => cena.personagens.find(p => p.membro === m)!
+  assert.equal(por('spock').estado, 'trabalhando')
+  assert.equal(por('data').estado, 'aguardando')
+  assert.equal(por('worf').estado, 'bloqueado')
+  assert.equal(por('picard').estado, 'concluido')
+  const simbolos = ['spock', 'data', 'worf', 'picard'].map(m => cena.rotulos.find(r => r.tipo === 'estado' && r.dono === m)!.texto)
+  assert.deepEqual(simbolos, ['⚙', '⏳', '⛔', '✔'])
+  assert.equal(new Set(simbolos).size, 4)
+  assert.deepEqual(['spock', 'data', 'worf', 'picard'].map(m => por(m).textoEstado), ['trabalhando', 'aguardando', 'bloqueado', 'concluído'])
+  // só espera e bloqueio levantam o balão de alerta; só quem trabalha acende o console
+  assert.deepEqual(cena.personagens.filter(p => p.balao).map(p => p.membro).sort(), ['data', 'worf'])
+  assert.deepEqual(cena.personagens.filter(p => p.ativo).map(p => p.membro), ['spock'])
+})
+
+test('ponte viva não inventa atividade', () => {
+  const comCount: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [5, '2026-01-01T00:00:00Z']]))
+  const semTrabalho = (c: Cena) => c.personagens.every(p => p.estado !== 'trabalhando' && !p.ativo && p.brilho === null && p.pose === 'de-pe')
+  // agente trabalhando sem vínculo confiável, ou com título parecido, e sem count que o explique: tudo desconhecido
+  for (const ags of [
+    [{ ...doMembro('spock'), terminalId: null }],
+    [{ ...doMembro('spock'), title: 'spock implementando' }],
+    [doMembro('spock')], // vínculo fora de `ids`: o mapa vazio não conhece o terminal
+  ]) {
+    const cena = buildScene(estado(), ags, T(0))
+    assert.ok(semTrabalho(cena))
+    assert.ok(cena.personagens.every(p => p.estado === 'desconhecido' && p.simbolo === '?' && p.textoEstado === 'desconhecido'))
+    assert.equal(cena.ativos, 0)
+    assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === 'tripulação em repouso'))
+    for (const p of cena.personagens) assert.ok(p.opacidade <= 0.4)
+  }
+  // sem agente e sem count: ocioso, não trabalho
+  assert.ok(buildScene(estado(), [], T(0)).personagens.every(p => p.estado === 'ocioso'))
+  // dado antigo ou com erro: desconhecido mesmo com count > 0, e a cena segue mostrando o último estado bom
+  for (const over of [{ stale: true }, { status: 'erro' as const, error: 'falhou' }]) {
+    const cena = buildScene(estado(over, comCount), [doMembro('spock')], T(0), undefined, IDS)
+    assert.equal(cena.vazia, false)
+    assert.ok(semTrabalho(cena) && cena.personagens.every(p => p.estado === 'desconhecido'))
+    assert.equal(cena.ativos, 0)
+  }
+})
+
+test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
+  // snapshot como o ponte.py entrega: count > 0 = sessão active válida (crew_live.count_members, TTL)
+  const lastAt = new Date(T(0) - 2 * 60_000).toISOString()
+  const crew: Record<string, [number, string]> = { picard: [1, lastAt], laforge: [3, lastAt], spock: [1, lastAt] }
+  const agenteDoPicard = agente('working', 'claude') // o agente do próprio Picard, sem vínculo confiável
+  for (const ags of [[], [agenteDoPicard]]) {
+    const cena = buildScene(estado({}, crew), ags, T(0))
+    const ativos = cena.personagens.filter(p => p.ativo)
+    // pelo menos um se destaca: sentado, console aceso, símbolo de trabalho e "há 2 min"
+    assert.ok(ativos.length > 0, 'ninguém se destaca')
+    assert.deepEqual(ativos.map(p => p.membro).sort(), ['laforge', 'picard', 'spock'])
+    for (const p of ativos) {
+      assert.equal(p.estado, 'trabalhando')
+      assert.equal(p.pose, 'sentado')
+      assert.ok(p.brilho)
+      assert.equal(p.opacidade, 1)
+      assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === '⚙'))
+      assert.equal(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === p.membro)?.texto, 'há 2 min')
+    }
+    // quem não tem sessão ativa segue ocioso (não desconhecido, não trabalhando)
+    assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === 'ocioso' && p.brilho === null))
+    assert.equal(cena.ativos, 3)
+    assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === '3 tripulantes ativos'))
+  }
+  // 12 sessões ativas: seis aparecem por vez e o rodízio alcança todos
+  const todos: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
+  const vistos = new Set<string>()
+  for (let ciclo = 0; ciclo < 2; ciclo++) {
+    const cena = buildScene(estado({}, todos), [], T(ciclo))
+    assert.equal(cena.personagens.length, 6)
+    assert.ok(cena.personagens.every(p => p.ativo))
+    cena.personagens.forEach(p => vistos.add(p.membro))
+  }
+  assert.equal(vistos.size, 12)
+})
+
+test('ponte viva mantém rótulos legíveis', () => {
+  const mistos = [doMembro('spock'), doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('kirk', 'done'), doMembro('guinan')]
+  const todos = MEMBROS.map(m => doMembro(m))
+  const lastAt = new Date(T(0) - 59 * 60_000).toISOString()
+  const crew: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
+  for (const largura of [240, 360]) {
+    const e = Math.max(5, Math.floor(largura / GRADE.largura)) // pixels por célula
+    for (const altura of [500, 900, 1400]) {
+      const linhas = linhasDoPainel(largura, altura)
+      for (let ciclo = 0; ciclo < 4; ciclo++) {
+        for (const ags of [[], mistos, todos]) {
+          const cena = buildScene(estado({}, crew, [worker('T1')]), ags, T(ciclo), linhas, IDS)
+          assert.equal(cena.grade.altura, linhas)
+          assert.equal(cena.personagens.length, 6)
+          for (const r of cena.rotulos) {
+            assert.ok(Math.round(r.tam * e) >= 10, `${largura}px: fonte pequena em ${r.texto}`)
+            assert.ok(r.caixa.x >= 0 && r.caixa.y >= 0 && r.caixa.x + r.caixa.largura <= cena.grade.largura && r.caixa.y + r.caixa.altura <= cena.grade.altura, `${largura}px: ${r.texto} cortado`)
+          }
+          for (let i = 0; i < cena.rotulos.length; i++) {
+            for (let j = i + 1; j < cena.rotulos.length; j++) {
+              assert.ok(!tocam(cena.rotulos[i].caixa, cena.rotulos[j].caixa), `${largura}px: ${cena.rotulos[i].texto} x ${cena.rotulos[j].texto}`)
+            }
+          }
+          // cada presente mostra nome e indicador de estado próprios
+          for (const p of cena.personagens) {
+            assert.ok(cena.rotulos.some(r => r.tipo === 'nome' && r.dono === p.membro))
+            assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === p.simbolo))
+          }
+        }
+      }
+    }
+  }
+})
+
+test('ponte viva preserva transição em atualização repetida', () => {
+  const ags = MEMBROS.slice(0, 8).map(m => doMembro(m))
+  const a = estado({}, {}, [worker('T1')])
+  const mesmo = (): PonteState => JSON.parse(JSON.stringify(estado({ updatedAt: 99, log: [{ at: 1, text: 'x' }] }, {}, [worker('T1')])))
+  for (const t of [ROTACAO_MS + 100, ROTACAO_MS + TRANSICAO_MS * 0.75, ROTACAO_MS + 1100, 2 * ROTACAO_MS + 800]) {
+    const um = buildScene(a, ags, t, undefined, IDS)
+    // atualização repetida (cópia nova, mesmos agentes recriados): a cena não muda, nem a transição
+    const dois = buildScene(mesmo(), ags.map(x => ({ ...x })), t, undefined, IDS)
+    assert.deepEqual(um.personagens.map(p => [p.membro, p.transicao, p.x, p.y, p.opacidade]), dois.personagens.map(p => [p.membro, p.transicao, p.x, p.y, p.opacidade]))
+  }
+  // a transição segue o relógio: o progresso só cresce enquanto o estado se repete (não volta a 0)
+  const prog = (t: number) => buildScene(mesmo(), ags, t, undefined, IDS).personagens.find(p => p.transicao?.fase === 'entrando')!.transicao!.progresso
+  const seq = [ROTACAO_MS + 700, ROTACAO_MS + 800, ROTACAO_MS + 900, ROTACAO_MS + 1000, ROTACAO_MS + 1100]
+  const ps = seq.map(prog)
+  for (let i = 1; i < ps.length; i++) assert.ok(ps[i] > ps[i - 1], `reiniciou: ${ps}`)
+  // quem fica não sai nem volta durante a troca
+  const antes = new Set(membrosDe(buildScene(a, ags, ROTACAO_MS - 100, undefined, IDS)))
+  const durante = buildScene(a, ags, ROTACAO_MS + 100, undefined, IDS).personagens
+  for (const p of durante) if (p.transicao === null) assert.ok(antes.has(p.membro))
+  assert.ok(durante.every(p => p.transicao === null || p.transicao.fase === 'saindo'))
 })

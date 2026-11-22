@@ -54,6 +54,24 @@ test('ponte viva representa trabalho', () => {
   assert.deepEqual((Object.keys(ESTADOS) as EstadoVisual[]).filter(e => ESTADOS[e].animaConsole), ['trabalhando'])
 })
 
+test('ponte viva representa trabalho pelo count do snapshot', () => {
+  // count do snapshot = sessões active válidas (crew_live.count_members, TTL): > 0 trabalha, 0 está livre
+  const e = estado()
+  for (const [m, n] of [['picard', 1], ['laforge', 3]] as const) e.snapshot!.crew.find(c => c.member === m)!.count = n
+  const res = estadosDaTripulacao(e, {})
+  assert.deepEqual(de(res, 'picard'), { membro: 'picard', estado: 'trabalhando', motivo: 'sessão ativa no snapshot (count > 0)' })
+  assert.equal(de(res, 'laforge').estado, 'trabalhando')
+  assert.equal(res.filter(r => r.estado === 'trabalhando').length, 2)
+  assert.equal(res.filter(r => r.estado === 'ocioso').length, 10)
+  // o agente do próprio Picard, sem vínculo, não derruba os outros para desconhecido quando o count explica
+  const comAgente = estadosDaTripulacao({ ...e, agents: [agente('t', 'working', 'claude')] }, {})
+  assert.equal(de(comAgente, 'spock').estado, 'ocioso')
+  assert.equal(de(comAgente, 'picard').estado, 'trabalhando')
+  // o estado do agente vinculado vence o count (esperando fica esperando)
+  const espera = estadosDaTripulacao({ ...e, agents: [agente('a', 'waiting')] }, { a: 'picard' })
+  assert.equal(de(espera, 'picard').estado, 'aguardando')
+})
+
 test('ponte viva representa ociosidade', () => {
   const res = estadosDaTripulacao(estado(), {})
   assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'ocioso', motivo: 'sem agente ativo no worktree' })
@@ -95,10 +113,18 @@ test('ponte viva não inventa atividade', () => {
   const fora = estadosDaTripulacao(estado({}, [agente('x', 'working')]), { x: 'riker' })
   assert.equal(fora.length, 12)
   assert.equal(de(fora, 'picard').estado, 'desconhecido')
-  // contagem de histórico (count > 0) não é atividade atual
-  const hist = estado()
-  hist.snapshot!.crew.find(c => c.member === 'data')!.count = 7
-  assert.equal(de(estadosDaTripulacao(hist, {}), 'data').estado, 'ocioso')
+  // count > 0 só vale com dado atual: com dado antigo ou erro o mesmo count é desconhecido, nunca trabalho
+  for (const over of [{ stale: true }, { status: 'erro' as const, error: 'x' }]) {
+    const velho = estado(over)
+    velho.snapshot!.crew.find(c => c.member === 'data')!.count = 7
+    assert.equal(de(estadosDaTripulacao(velho, {}), 'data').estado, 'desconhecido')
+  }
+  // count inválido (negativo, NaN, texto) não é atividade
+  for (const ruim of [-1, Number.NaN, '1' as unknown as number]) {
+    const e = estado()
+    e.snapshot!.crew.find(c => c.member === 'data')!.count = ruim
+    assert.equal(de(estadosDaTripulacao(e, {}), 'data').estado, 'ocioso')
+  }
   // dados antigos, erro, sem worktree, sem snapshot ou projeto sem StarCode: tudo desconhecido
   assert.ok(todos(estadosDaTripulacao(estado({ stale: true }), {}), 'desconhecido'))
   assert.ok(todos(estadosDaTripulacao(estado({ status: 'erro', error: 'x' }), {}), 'desconhecido'))
