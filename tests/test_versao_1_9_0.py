@@ -27,8 +27,12 @@ class Versao190Tests(unittest.TestCase):
         self.assertEqual(_json("dist/orca/orca-plugin.json")["version"], "1.9.0")
         self.assertEqual(_json(".claude-plugin/marketplace.json")["plugins"][0]["version"], "1.9.0")
         market = _json(".agents/plugins/marketplace.json")
-        for plugin in market["plugins"]:
-            self.assertEqual(plugin.get("version", "1.9.0"), "1.9.0")
+        self.assertEqual(len(market["plugins"]), 1)
+        plugin = market["plugins"][0]
+        self.assertEqual(plugin["name"], "starcode")
+        self.assertEqual(plugin["source"], {"source": "local", "path": "./dist/codex"})
+        self.assertNotIn("version", plugin)
+        self.assertEqual(_json("dist/codex/.codex-plugin/plugin.json")["version"], "1.9.0")
         crews = sorted((ROOT / "dist").glob("*/crew.json"))
         self.assertGreaterEqual(len(crews), 5)
         for path in crews:
