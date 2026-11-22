@@ -109,13 +109,25 @@ class SuiteEExecuteTests(TempRepoCase):
     def test_laforge_e_mccoy_rodam_a_selecao(self):  # C3, R3
         laforge = " ".join((ROOT / "skills/laforge/SKILL.md").read_text(encoding="utf-8").split())
         mccoy = " ".join((ROOT / "skills/mccoy/SKILL.md").read_text(encoding="utf-8").split())
-        for text in (laforge, mccoy):
-            self.assertIn('python "<plugin-root>/scripts/impact.py" select --diff <base>', text)
-            self.assertIn("`rodar tudo` or the selection fails", text)
-            self.assertIn("The whole suite runs at the done gate (`Run unit` of the spec) and in CI.", text)
-        self.assertIn("the whole suite only when the verdict is `rodar tudo` or the selection fails", laforge)
-        self.assertIn("Put the `impact.py` verdict line in the report.", laforge)
+        frases = {
+            "laforge": (laforge, [
+                "3. **Gates before each commit**: the ticket's `Gate` level from `## Gate Commands`, then the commit gate. "
+                '**Tests (SC-213):** run the tests chosen by `python "<plugin-root>/scripts/impact.py" select --diff <base>`; '
+                'the whole suite only when the verdict is `rodar tudo` or the selection fails. '
+                'The whole suite runs at the done gate (`Run unit` of the spec) and in CI. '
+                'Put the `impact.py` verdict line in the report.']),
+            "mccoy": (mccoy, [
+                '6. **Impact radius (R31).** After the regression test and the fix, run '
+                '`python "<plugin-root>/scripts/impact.py" select --diff <base>` (base = `baseBranch` of the config). '
+                'Run the tests it chooses (the whole suite only when the verdict is `rodar tudo` or the selection fails), '
+                "before the ticket's gate, and put the verdict line in the report. "
+                'The whole suite runs at the done gate (`Run unit` of the spec) and in CI.']),
+        }
+        for nome, (text, lista) in frases.items():
+            for frase in lista:
+                self.assertEqual(text.count(frase), 1, nome)
         self.assertNotIn("The gates still run the whole suite", mccoy)
+        self.assertNotIn("The gates still run the whole suite", laforge)
 
     def test_decisions_registra_a_medicao(self):  # C4, R4
         entry = _entry("SC-213")
