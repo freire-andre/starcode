@@ -95,12 +95,12 @@ Proof: run unit | test_decisions_e_changelog (test_suite_e_execute.SuiteEExecute
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** Guinan: retro e lições, depois PR
+**Next:** PR (confirmação) e Worf
 **Linear:** SC-213
 **Integration branch:** feature/suite-e-execute
 **Last integrated:** 61344181c5488f06da3cc3d69c5a626741c7588c
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-22: T1: R1-R10 em 844421b; gate ticket verde; suíte 1.100 OK (667,5 s no C:); disjuntor none; 2026-11-22: Q: FAIL, 7 achados (C1-C4, C6, C8-C10); q-check ok; verifier codex effective unconfirmed; 2026-11-22: pós-Q: 7 achados fechados (0350d2f..45a37bd), merge 9e6f58c; gate ticket verde; 2026-11-22: done verde em 035cdde; proofs verdes
+**Reports:** 2026-11-22: T1: R1-R10 em 844421b; gate ticket verde; suíte 1.100 OK (667,5 s no C:); disjuntor none; 2026-11-22: Q: FAIL, 7 achados (C1-C4, C6, C8-C10); q-check ok; verifier codex effective unconfirmed; 2026-11-22: pós-Q: 7 achados fechados (0350d2f..45a37bd), merge 9e6f58c; gate ticket verde; 2026-11-22: done verde em 035cdde; proofs verdes; 2026-11-22: Guinan: L91-L93 novas; L2, L10, L20, L32 reforçadas; retro com 1 ação aberta
 **Breaker:** closed
