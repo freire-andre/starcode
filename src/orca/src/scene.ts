@@ -46,6 +46,14 @@ const COR = {
   holoClaro: '#5fd3ff',
   capacete: '#f1c40f',
   caixote: '#6b5b4b',
+  casco: '#1a2246',
+  cascoLuz: '#4a5ca0',
+  cascoMeio: '#26315f',
+  janela: '#070b1c',
+  estrela: '#e8ecff',
+  planeta: '#2e5d8f',
+  luz: '#e67e22',
+  painel: '#101a30',
   perna: '#2b3148',
   texto: '#e8ecff',
   tempo: '#ffd866',
@@ -62,6 +70,7 @@ const COR_TEXTO: Record<TipoRotulo, string> = {
   nome: COR.texto,
   tempo: COR.tempo,
   estado: COR.texto,
+  atividade: COR.texto,
   worker: COR.texto,
   marca: COR.ok,
   balao: COR.balaoTexto,
@@ -136,6 +145,17 @@ function desenhaConsole(p: Pincel, r: Caixa, cor: string, aceso: boolean, op: nu
   }
 }
 
+/** Octógono (retângulo com os quatro cantos chanfrados) em degraus de 1 célula, só com fillRect. */
+function octogono(p: Pincel, cor: string, r: Caixa, ch: number, e: number): void {
+  for (let dy = 0; dy < r.altura; dy += 1) {
+    const h = Math.min(1, r.altura - dy)
+    const inset = Math.max(0, ch - Math.min(dy + 0.5, r.altura - dy - 0.5))
+    ret(p, cor, r.x + inset, r.y + dy, r.largura - inset * 2, h, e)
+  }
+}
+
+const dentro = (r: Caixa, d: number): Caixa => ({ x: r.x + d, y: r.y + d, largura: r.largura - d * 2, altura: r.altura - d * 2 })
+
 /** Desenha a cena inteira; `escala` é o número de pixels do canvas por célula da grade. */
 export function paint(ctx: Pincel, cena: Cena, escala: number): void {
   const e = escala
@@ -146,48 +166,71 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
     return
   }
 
-  // piso da ponte: chapas, anel do console em volta da cadeira e plataforma central
+  // sala da ponte: casco em octógono com bordas em volume, piso em chapas, janela com estrelas e luzes
   const pt = cena.ponte
-  bloco(ctx, COR.piso, pt, e)
-  for (let y = pt.y + 2; y < pt.y + pt.altura; y += 4) ret(ctx, COR.pisoLinha, pt.x, y, pt.largura, 0.4, e)
+  octogono(ctx, COR.casco, pt, 9, e)
+  octogono(ctx, COR.cascoLuz, dentro(pt, 0.5), 8.6, e)
+  octogono(ctx, COR.cascoMeio, dentro(pt, 1.2), 8, e)
+  octogono(ctx, COR.piso, dentro(pt, 2.2), 7.2, e)
+  const pisoR = dentro(pt, 2.2)
+  const largEm = (y: number): [number, number] => {
+    const inset = Math.max(0, 7.2 - Math.min(y - pisoR.y, pisoR.y + pisoR.altura - y)) + 0.6
+    return [pisoR.x + inset, pisoR.largura - inset * 2]
+  }
+  for (let y = pisoR.y + 9; y < pisoR.y + pisoR.altura - 1; y += 4) {
+    const [x0, w] = largEm(y)
+    ret(ctx, COR.pisoLinha, x0, y, w, 0.4, e)
+  }
+  for (let x = pisoR.x + 4; x < pisoR.x + pisoR.largura - 2; x += 6) {
+    const topo = pisoR.y + 9
+    const base = pisoR.y + pisoR.altura - 1
+    const corte = (xx: number): number => Math.max(0, 7.2 - Math.min(xx - pisoR.x, pisoR.x + pisoR.largura - xx)) * 0.9
+    ret(ctx, COR.pisoLinha, x, topo + corte(x), 0.4, base - topo - corte(x) * 2, e)
+  }
+  const janela = { x: pt.x + 9, y: pt.y + 2.6, largura: pt.largura - 18, altura: 5.2 }
+  caixa(ctx, COR.janela, COR.telaoBorda, janela, e)
+  for (let n = 0; n < 16; n++) {
+    ret(ctx, n % 3 === 0 ? COR.tempo : COR.estrela, janela.x + 1 + ((n * 7) % 26), janela.y + 0.8 + ((n * 5) % 4), 0.4, 0.4, e)
+  }
+  elipse(ctx, COR.planeta, janela.x + janela.largura - 5, janela.y + janela.altura - 2.4, 3.2, 2, e)
+  for (const y of [pt.y + 22, pt.y + 38, pt.y + 54]) {
+    ret(ctx, COR.luz, pt.x + 1.5, y, 0.8, 3, e)
+    ret(ctx, COR.luz, pt.x + pt.largura - 2.3, y, 0.8, 3, e)
+  }
   const picard = cena.estacoes.find(c => c.membro === 'picard')
   if (picard && cena.estacoes.length > 1) {
-    // o anel ocupa a caixa `anel` do modelo (toda a altura da ponte) e estica com ela
-    const a = cena.anel
-    const rx = a.largura / 2
-    const ry = a.altura / 2
-    const cx = a.x + rx
-    const cy = a.y + ry
-    elipse(ctx, COR.anelBorda, cx, cy, rx, ry, e)
-    elipse(ctx, COR.anel, cx, cy, rx - 0.5, ry - 0.6, e)
-    elipse(ctx, COR.piso, cx, cy, rx - 10, Math.max(4, ry - 11), e)
-    // o centro não fica vazio: chapas no piso interno, corredor de faixas até o acesso e holograma sob o capitão
-    for (let y = cy - ry + 12; y < cy + ry - 11; y += 6) {
-      const meia = Math.max(0, (rx - 10) * Math.sqrt(Math.max(0, 1 - ((y - cy) / Math.max(4, ry - 11)) ** 2)))
-      if (meia > 1) ret(ctx, COR.pisoLinha, cx - meia + 1, y, meia * 2 - 2, 0.4, e)
-    }
-    const faixaTopo = picard.y + 11
+    // centro: plataforma do capitão e corredor de faixas até o acesso, sem ficar vazio
+    const cx = picard.x
+    const faixaTopo = picard.y + 12
     const faixaBase = cena.porta.y
     if (faixaBase > faixaTopo) {
-      ret(ctx, COR.faixa, cx - 4, faixaTopo, 8, faixaBase - faixaTopo, e)
+      ret(ctx, COR.faixa, cx - 1.6, faixaTopo, 3.2, faixaBase - faixaTopo, e)
       for (let y = faixaTopo; y < faixaBase - 1; y += 2) {
         const cor = ((y - faixaTopo) / 2) % 2 === 0 ? COR.perigo : COR.contorno
-        ret(ctx, cor, cx - 4, y, 0.8, 1.6, e)
-        ret(ctx, cor, cx + 3.2, y, 0.8, 1.6, e)
+        ret(ctx, cor, cx - 1.6, y, 0.6, 1.6, e)
+        ret(ctx, cor, cx + 1, y, 0.6, 1.6, e)
       }
-      elipse(ctx, COR.holo, cx, faixaBase - 6, 3, 3, e)
-      elipse(ctx, COR.faixa, cx, faixaBase - 6, 2, 2, e)
-      ret(ctx, COR.holoClaro, cx - 0.3, faixaBase - 9, 0.6, 6, e)
-      ret(ctx, COR.holoClaro, cx - 3, faixaBase - 6.3, 6, 0.6, e)
     }
-    elipse(ctx, COR.plataforma, picard.x, picard.y, 7, 7, e)
+    elipse(ctx, COR.plataforma, picard.x, picard.y - 1, 9, 8, e)
+    elipse(ctx, COR.cascoMeio, picard.x, picard.y - 1, 7, 6, e)
+    elipse(ctx, COR.holo, picard.x, picard.y - 1, 5, 4.2, e)
+    elipse(ctx, COR.plataforma, picard.x, picard.y - 1, 4, 3.3, e)
+    ret(ctx, COR.holoClaro, picard.x - 5, picard.y - 1.2, 10, 0.4, e)
+    ret(ctx, COR.holoClaro, picard.x - 0.2, picard.y - 5, 0.4, 8, e)
   }
-  // mesas: cada estação é uma estação de trabalho integrada ao arco, com a borda iluminada
+  // acesso à ponte
+  ret(ctx, COR.contorno, cena.porta.x - 3, cena.porta.y - 0.6, 6, 2.2, e)
+  ret(ctx, COR.holoClaro, cena.porta.x - 3, cena.porta.y - 0.6, 6, 0.4, e)
+
+  // mesas: cada estação é uma bancada integrada ao arco, com tampo iluminado e frente escura
   for (const est of cena.estacoes) {
     const c = est.console
-    ret(ctx, COR.mesa, c.x - 0.9, c.y - 0.5, c.largura + 1.8, c.altura + 1.6, e)
-    ret(ctx, COR.mesaBorda, c.x - 0.9, c.y - 0.5, c.largura + 1.8, 0.35, e)
+    ret(ctx, COR.contorno, c.x - 1.5, c.y - 0.9, c.largura + 3, c.altura + 2.8, e)
+    ret(ctx, COR.mesa, c.x - 1.2, c.y - 0.6, c.largura + 2.4, c.altura + 2.2, e)
+    ret(ctx, COR.mesaBorda, c.x - 1.2, c.y - 0.6, c.largura + 2.4, 0.4, e)
+    ret(ctx, COR.cascoMeio, c.x - 1.2, c.y + c.altura + 1, c.largura + 2.4, 0.6, e)
   }
+
   // estações sem ninguém presente: console apagado e cadeira do capitão (quem está presente desenha o seu)
   const presentes = new Set(cena.personagens.map(c => c.membro))
   for (const est of cena.estacoes) {
@@ -206,6 +249,7 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
 
   // engenharia: só os workers reais, cada um um boneco no seu console
   if (cena.engenharia.altura > 0) caixa(ctx, COR.engenharia, COR.engenhariaBorda, cena.engenharia, e)
+  if (cena.atividades) caixa(ctx, COR.painel, COR.telaoBorda, cena.atividades, e)
   if (cena.engenharia.altura > 0) {
     const g = cena.engenharia
     for (let x = g.x + 1; x < g.x + g.largura - 2; x += 2) ret(ctx, ((x - g.x) / 2) % 2 < 1 ? COR.perigo : COR.contorno, x, g.y + g.altura - 1.2, 1.2, 0.8, e)

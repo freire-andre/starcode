@@ -1,6 +1,6 @@
 // Testes da pintura da cena (contexto de canvas falso que grava as chamadas).
 import { assert, test } from 'orca/testing'
-import { buildScene, GRADE, LARGURA_MIN_PX, ROTACAO_MS } from './scene-model.ts'
+import { buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, ROTACAO_MS } from './scene-model.ts'
 import type { Cena } from './scene-model.ts'
 import { ajustaCanvas, dimensoes, obterCanvas, paint } from './scene.ts'
 import type { Pincel } from './scene'
@@ -222,12 +222,13 @@ test('cena estica o anel e aumenta os bonecos', () => {
       const { anel, ponte } = cena
       assert.ok(anel.y - ponte.y <= 1 && ponte.y + ponte.altura - (anel.y + anel.altura) <= 1, `anel curto (${linhas})`)
       assert.ok(anel.largura >= cena.grade.largura - 2)
-      // as estações se espalham pelo anel: do topo à base da ponte, dentro dela e sem se tocar
+      // a ponte tem proporção fixa e as estações a ocupam do topo à base, dentro dela e sem se tocar
+      assert.equal(ponte.altura, PONTE_ALTURA, `ponte esticou (${linhas})`)
       const caixas = cenas.flatMap(c => c.personagens.map(p => p.caixa)).filter((c, i, l) => l.findIndex(o => o.x === c.x && o.y === c.y) === i)
       assert.equal(caixas.length, 12)
       const topo = Math.min(...caixas.map(c => c.y))
       const base = Math.max(...caixas.map(c => c.y + c.altura))
-      assert.ok(topo - ponte.y <= 1 && ponte.y + ponte.altura - base <= 1, `estações não ocupam a ponte (${linhas})`)
+      assert.ok(topo - ponte.y <= 1 && ponte.y + ponte.altura - base <= 3, `estações não ocupam a ponte (${linhas})`)
       for (let i = 0; i < caixas.length; i++) {
         for (let j = i + 1; j < caixas.length; j++) assert.ok(!tocam(caixas[i], caixas[j]), `${linhas}: ${i} x ${j}`)
       }
@@ -237,6 +238,13 @@ test('cena estica o anel e aumenta os bonecos', () => {
         }
       }
       if (nWorkers === 0) arcos.push(base - topo)
+      // o espaço vertical que sobra vira a área de atividades, abaixo da engenharia e acima da legenda
+      if (nWorkers === 0) {
+        const at = cena.atividades!
+        assert.ok(at && at.y >= cena.engenharia.y + cena.engenharia.altura && at.y + at.altura <= legenda.caixa.y, `atividades fora do lugar (${linhas})`)
+        assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === 'ATIVIDADES'))
+        assert.deepEqual(cena.rotulos.filter(r => r.tipo === 'atividade').map(r => r.texto), ['⚙ picard · trabalhando', '⚙ spock · trabalhando', '⚙ q · trabalhando'])
+      }
       // bonecos: pelo menos 16 px de altura a 240 px (5 px por célula), sentado e de pé bem diferentes
       const px = LARGURA_MIN_PX / cena.grade.largura
       const altura = (b: Cena['personagens'][number]['boneco']) => {
@@ -256,8 +264,8 @@ test('cena estica o anel e aumenta os bonecos', () => {
       assert.equal(sentado.boneco.pernas.length, 0)
     }
   }
-  // quanto mais alto o painel, mais alto o anel
-  for (let i = 1; i < arcos.length; i++) assert.ok(arcos[i] > arcos[i - 1], `anel não estica: ${arcos}`)
+  // painel mais alto não estica a ponte: o arco tem sempre a mesma altura
+  for (let i = 1; i < arcos.length; i++) assert.equal(arcos[i], arcos[0], `ponte esticou: ${arcos}`)
   // a pintura acompanha a grade da cena e o anel ocupa a ponte
   const cena = buildScene(s, ags, 0, 200, IDS)
   const g = gravador()

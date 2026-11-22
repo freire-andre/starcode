@@ -1,6 +1,6 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { buildScene, GRADE, LEGENDA, linhasDoPainel, pecasDoPerfil, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
+import { buildScene, GRADE, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
 import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
 import type { Identidades } from './crew-visual'
@@ -227,11 +227,17 @@ test('cena compacta a engenharia sem workers', () => {
   assert.equal(seis.vagas.length, 6)
   assert.ok(seis.rotulos.some(r => r.texto === '+3'))
   assert.ok(dois.engenharia.altura < seis.engenharia.altura)
-  // a altura liberada vai para a ponte: ela cresce e as estações se espalham
-  assert.ok(sem.ponte.altura > dois.ponte.altura && dois.ponte.altura > seis.ponte.altura)
-  assert.equal(sem.engenharia.y + sem.engenharia.altura, seis.engenharia.y + seis.engenharia.altura)
+  // a ponte não estica: tem sempre a mesma altura e a engenharia vem logo abaixo dela
+  for (const c of [sem, dois, seis]) {
+    assert.equal(c.ponte.altura, PONTE_ALTURA)
+    assert.equal(c.engenharia.y, c.ponte.y + c.ponte.altura + 1)
+  }
   const alturaArco = (c: Cena) => { const ys = c.estacoes.map(p => p.y); return Math.max(...ys) - Math.min(...ys) }
-  assert.ok(alturaArco(sem) > alturaArco(seis))
+  assert.equal(alturaArco(sem), alturaArco(seis))
+  // o espaço que a engenharia compacta libera vai para as atividades (placeholder claro sem atividade)
+  assert.ok(sem.atividades && sem.atividades.y >= sem.engenharia.y + sem.engenharia.altura)
+  assert.deepEqual(sem.rotulos.filter(r => r.tipo === 'atividade').map(r => r.texto), ['sem atividade registrada'])
+  assert.equal(seis.atividades, null)
 })
 
 test('cena desenha a ponte em arco com bonecos', () => {
@@ -245,21 +251,14 @@ test('cena desenha a ponte em arco com bonecos', () => {
   assert.equal(picard.x, a.grade.largura / 2)
   for (const p of outros) assert.ok(picard.escala > p.escala, p.membro)
   assert.ok(por(a, 'picard').boneco.corpo.altura > por(a, 'data').boneco.corpo.altura)
-  // arco: o anel estica com a altura do painel (R54), então ele vira elipse; desfeito o esticamento
-  // (eixos divididos pela meia largura e meia altura das estações), as estações ficam a uma distância
-  // parecida do Picard e em volta dele (sem buraco maior que 90 graus), em qualquer altura de grade
-  for (const cena of [a, buildScene(estado(), ags, T(0), 220, IDS)]) {
-    const pc = cena.estacoes.find(e => e.membro === 'picard')!
-    const os = cena.estacoes.filter(e => e.membro !== 'picard')
-    const meia = (v: number[]) => (Math.max(...v) - Math.min(...v)) / 2
-    const rx = meia(os.map(p => p.x)), ry = meia(os.map(p => p.y))
-    const dist = os.map(p => Math.hypot((p.x - pc.x) / rx, (p.y - pc.y) / ry))
-    const media = dist.reduce((x, y) => x + y, 0) / dist.length
-    for (const d of dist) assert.ok(d > media * 0.75 && d < media * 1.25, `fora do arco: ${d} (média ${media})`)
-    const ang = os.map(p => Math.atan2((p.y - pc.y) / ry, (p.x - pc.x) / rx)).sort((x, y) => x - y)
-    const buracos = ang.map((g, i) => g - (i === 0 ? ang[ang.length - 1] - 2 * Math.PI : ang[i - 1]))
-    assert.ok(Math.max(...buracos) <= Math.PI / 2, `buraco no arco: ${Math.max(...buracos)}`)
-  }
+  // arco agrupado ao redor do capitão: ponte de proporção fixa (a altura do painel não muda as estações) e
+  // estações nos quatro lados dele, perto o bastante para formar um conjunto
+  const alta = buildScene(estado(), ags, T(0), 220, IDS)
+  assert.deepEqual(alta.estacoes, a.estacoes)
+  for (const o of outros) assert.ok(Math.hypot(o.x - picard.x, o.y - picard.y) <= 38, `longe do capitão: ${o.membro}`)
+  const lado = (f: (e: { x: number; y: number }) => boolean) => outros.filter(f).length
+  assert.ok(lado(e => e.x < picard.x - 8) >= 4 && lado(e => e.x > picard.x + 8) >= 4)
+  assert.ok(lado(e => e.y < picard.y - 8) >= 3 && lado(e => e.y > picard.y + 8) >= 2)
   // não é grade: as estações não se alinham em poucas linhas
   assert.ok(new Set(outros.map(p => p.y)).size >= 5)
   // boneco: o emoji é a insígnia no peito
