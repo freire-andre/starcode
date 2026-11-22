@@ -133,13 +133,22 @@ class SuiteEExecuteTests(TempRepoCase):
         entry = _entry("SC-213")
         decisao = entry[entry.index("- **Decisão**"):entry.index("- **Motivo**")]
         self.assertIn("python -m unittest discover -s tests --durations 20", decisao)
-        self.assertIn("1.083 testes em 1.519 s (2026-11-21, F:)", decisao)
-        medida = re.search(r"Medição: (\d[\d.]*) testes em (\d[\d.,]*) s \(2026-\d\d-\d\d, ([^)]+)\)", decisao)
-        self.assertIsNotNone(medida, "falta `Medição: <n> testes em <t> s (<data>, <máquina/drive>)`")
-        self.assertNotEqual(medida.group(1), "1.083")
-        lentos = re.findall(r"`(test_\w+[^`]*)` (\d+[.,]\d+) s", decisao)
-        self.assertEqual(len(lentos), 5, lentos)
-        self.assertEqual(len({nome for nome, _ in lentos}), 5)
+        self.assertIn("linha de base 1.083 testes em 1.519 s (2026-11-21, F:)", decisao)
+        bruto = (ROOT / ".specs" / "features" / "suite-e-execute" / "medicao-durations.txt").read_text(encoding="utf-8")
+
+        def ptbr(valor: str) -> str:  # "18.128" -> "18,128"; "731.326" -> "731,326"
+            return valor.replace(".", ",")
+
+        ran = re.search(r"^Ran (\d+) tests in (\d+\.\d+)s$", bruto, re.M)
+        self.assertIsNotNone(ran, "a saída conservada não tem `Ran <n> tests in <t>s`")
+        total = f"{int(ran.group(1)):,}".replace(",", ".")
+        commit = re.search(r"commit (\w+), (\d{4}-\d\d-\d\d)", bruto)
+        self.assertIsNotNone(commit)
+        self.assertIn(f"Medição: {total} testes em {ptbr(ran.group(2))} s ({commit.group(2)}, C:, commit {commit.group(1)})", decisao)
+        lentos_brutos = re.findall(r"^(\d+\.\d+)s\s+(test_\w+)", bruto, re.M)[:5]
+        self.assertEqual(len(lentos_brutos), 5)
+        registrados = re.findall(r"`(test_\w+)` (\d+,\d+) s", decisao)
+        self.assertEqual(registrados, [(nome, ptbr(tempo)) for tempo, nome in lentos_brutos])
 
     def test_agents_tem_regra_de_estado(self):  # C5, R5
         text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
