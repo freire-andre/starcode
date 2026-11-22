@@ -1,7 +1,7 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
 import { buildScene, CORES, GRADE, linhasDoPainel } from './scene-model.ts'
-import type { Boneco, Cena, Rotulo, TipoRotulo } from './scene-model.ts'
+import type { Boneco, Cena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
 
 /** Contexto mínimo do canvas que a pintura usa (permite um contexto falso nos testes). */
@@ -52,6 +52,7 @@ const COR_TEXTO: Record<TipoRotulo, string> = {
   emoji: COR.texto,
   nome: COR.texto,
   tempo: COR.tempo,
+  estado: COR.texto,
   worker: COR.texto,
   marca: COR.ok,
   balao: COR.balaoTexto,
@@ -101,16 +102,17 @@ function elipse(p: Pincel, cor: string, cx: number, cy: number, rx: number, ry: 
   }
 }
 
-/** Boneco: pernas, corpo, braços e cabeça na cor da divisão, com dois olhos. */
-function desenhaBoneco(p: Pincel, b: Boneco, cor: string, op: number, e: number): void {
+/** Boneco: pernas, corpo e braços no uniforme, cabeça na cor da pele, dois olhos e as peças do perfil. */
+function desenhaBoneco(p: Pincel, b: Boneco, cor: string, op: number, e: number, pele = cor, pecas: Peca[] = []): void {
   for (const r of b.pernas) bloco(p, alfa(COR.perna, op), r, e)
   bloco(p, alfa(cor, op), b.corpo, e)
   for (const r of b.bracos) bloco(p, alfa(cor, op), r, e)
-  bloco(p, alfa(cor, op), b.cabeca, e)
+  bloco(p, alfa(pele, op), b.cabeca, e)
   const c = b.cabeca
   const olho = c.largura / 4
   ret(p, alfa(COR.olho, op), c.x + olho * 0.6, c.y + c.altura * 0.4, olho, olho, e)
   ret(p, alfa(COR.olho, op), c.x + c.largura - olho * 1.6, c.y + c.altura * 0.4, olho, olho, e)
+  for (const r of pecas) bloco(p, alfa(r.cor, op), r, e)
 }
 
 /** Console da estação: aceso (tela clara e brilho na cor da divisão) ou apagado. */
@@ -136,8 +138,8 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
   const pt = cena.ponte
   bloco(ctx, COR.piso, pt, e)
   for (let y = pt.y + 2; y < pt.y + pt.altura; y += 4) ret(ctx, COR.pisoLinha, pt.x, y, pt.largura, 0.4, e)
-  const picard = cena.personagens.find(c => c.membro === 'picard')
-  if (picard && cena.personagens.length > 1) {
+  const picard = cena.estacoes.find(c => c.membro === 'picard')
+  if (picard && cena.estacoes.length > 1) {
     // o anel ocupa a caixa `anel` do modelo (toda a altura da ponte) e estica com ela
     const a = cena.anel
     const rx = a.largura / 2
@@ -148,6 +150,13 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
     elipse(ctx, COR.anel, cx, cy, rx - 0.5, ry - 0.6, e)
     elipse(ctx, COR.piso, cx, cy, rx - 10, Math.max(4, ry - 11), e)
     elipse(ctx, COR.plataforma, picard.x, picard.y, 7, 7, e)
+  }
+  // estações sem ninguém presente: console apagado e cadeira do capitão (quem está presente desenha o seu)
+  const presentes = new Set(cena.personagens.map(c => c.membro))
+  for (const est of cena.estacoes) {
+    if (presentes.has(est.membro)) continue
+    if (est.membro === 'picard') ret(ctx, alfa(COR.cadeira, 0.5), est.x - 2.4 * est.escala, est.y - 3.4 * est.escala, 4.8 * est.escala, 4.2 * est.escala, e)
+    desenhaConsole(ctx, est.console, COR.console, false, 0.5, e)
   }
 
   // telão: moldura e barra de progresso
@@ -173,15 +182,16 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
     const op = c.opacidade
     if (c.membro === 'picard') {
       const s = c.escala
-      ret(ctx, alfa(COR.cadeira, op), c.x - 2.4 * s, c.y - 3.4 * s, 4.8 * s, 4.2 * s, e)
+      ret(ctx, alfa(COR.cadeira, op), c.estacao.x - 2.4 * s, c.estacao.y - 3.4 * s, 4.8 * s, 4.2 * s, e)
     }
     if (c.brilho) bloco(ctx, alfa(c.cor, 0.35), c.brilho, e)
-    if (c.pose === 'de-pe') desenhaConsole(ctx, c.console, c.cor, c.ativo, op, e)
-    desenhaBoneco(ctx, c.boneco, c.cor, op, e)
-    if (c.pose === 'sentado') desenhaConsole(ctx, c.console, c.cor, c.ativo, op, e)
+    const consoleOp = c.transicao ? 1 : op
+    if (c.pose === 'de-pe') desenhaConsole(ctx, c.console, c.cor, c.ativo, consoleOp, e)
+    desenhaBoneco(ctx, c.boneco, c.cor, op, e, c.pele, c.pecas)
+    if (c.pose === 'sentado') desenhaConsole(ctx, c.console, c.cor, c.ativo, consoleOp, e)
     for (const r of rotulosDe(c)) {
-      if (r.tipo === 'balao') bloco(ctx, COR.balao, r.caixa, e)
-      texto(ctx, r, e, r.tipo === 'balao' ? 1 : op)
+      if (r.tipo === 'balao') bloco(ctx, alfa(COR.balao, c.opacidadeTexto), r.caixa, e)
+      texto(ctx, r, e, c.opacidadeTexto)
     }
   }
 
