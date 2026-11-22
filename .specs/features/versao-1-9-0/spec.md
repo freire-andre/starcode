@@ -64,16 +64,16 @@ Proof: run unit | test_changelog_recent (test_versao_1_9_0.Versao190Tests.test_c
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** LaForge T1
+**Next:** Q verifica (codex)
 **Linear:** SC-214
 **Integration branch:** feature/versao-1-9-0
 **Last integrated:** 118b5f77968b644f9d7e9f262dd462e23f1c97d4
-**Dispatched:** none
+**Dispatched:** Q · e3951c9
 **Settled:** none
-**Attempts:** proofs-timeout=1
-**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK
+**Attempts:** none
+**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s
 **Breaker:** closed
