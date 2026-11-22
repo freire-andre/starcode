@@ -1,0 +1,33 @@
+# Medição da suíte (SC-213)
+# Comando: python -m unittest discover -s tests --durations 20
+# Onde: worktree no C: (Windows 11, Python 3.14.8), commit 844421b, 2026-11-22
+
+..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................s.............................................................................................................
+Slowest test durations
+----------------------------------------------------------------------
+18.128s    test_check_fails_when_manifest_version_diverges (test_build.BuildTests.test_check_fails_when_manifest_version_diverges)
+17.555s    test_prova_com_tempo_limite (test_check_proofs.CheckProofsTests.test_prova_com_tempo_limite)
+15.589s    test_banner_hook_mode_matches_text_per_cli (test_build.BuildTests.test_banner_hook_mode_matches_text_per_cli)
+11.734s    test_update_session_paralelo (test_sessions_concorrente.SessionsConcorrenteTests.test_update_session_paralelo)
+9.795s     test_diagnostico_failures (test_diagnostico.DiagnosticoTests.test_diagnostico_failures)
+9.778s     test_consumidores_no_worktree_ligado (test_config_local_worktree.ConfigLocalWorktreeTests.test_consumidores_no_worktree_ligado)
+9.718s     test_update_sessions_paralelo (test_sessions_concorrente.SessionsConcorrenteTests.test_update_sessions_paralelo)
+9.657s     test_set_progress_paralelo (test_sessions_concorrente.SessionsConcorrenteTests.test_set_progress_paralelo)
+9.211s     test_trava_esgotada (test_sessions_concorrente.SessionsConcorrenteTests.test_trava_esgotada)
+9.196s     test_opencode_plugin_swallows_errors (test_crew_hook_agy_opencode.OpenCodePluginCrewTest.test_opencode_plugin_swallows_errors)
+7.003s     test_require_text_tabela (test_review_gate.ReviewGateTests.test_require_text_tabela)
+6.509s     test_handoff_concorrente (test_falhas_start_settle.FalhasStartSettleTests.test_handoff_concorrente)
+6.494s     test_build_check_cobre_dist_orca (test_build.BuildTests.test_build_check_cobre_dist_orca)
+6.410s     test_check_detects_hand_edit (test_build.BuildTests.test_check_detects_hand_edit)
+5.966s     test_drop_remove_pre_restore_e_planos_da_feature (test_snapshot_restore.RestoreTest.test_drop_remove_pre_restore_e_planos_da_feature)
+5.951s     test_check_flags_stale_profile (test_build.BuildTests.test_check_flags_stale_profile)
+5.568s     test_normal_flow_commands_pass_all_payloads (test_git_guard.HookProtocolTests.test_normal_flow_commands_pass_all_payloads)
+4.503s     test_done_waived (test_pequena_minima.PequenaTests.test_done_waived)
+4.430s     test_cobertura_le_ast (test_fecha_achado.FechaAchadoTests.test_cobertura_le_ast)
+3.495s     test_done_exige_cobertura (test_fecha_achado.FechaAchadoTests.test_done_exige_cobertura)
+
+----------------------------------------------------------------------
+Ran 1100 tests in 731.326s
+
+OK (skipped=1)
+inativo
