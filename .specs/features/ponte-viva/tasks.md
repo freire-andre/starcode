@@ -72,7 +72,7 @@ Commit na branch do worktree. Relatório de até cinco linhas com alteração, t
 Criar a cena com até seis personagens identificáveis, seus estados, rodízio justo e priorização, entrada e saída animadas e nomes legíveis a 240 e 360 px. Usar pixel art gerada por código, mantendo separação entre modelo e pintura.
 
 #### CONTEXT
-Spec: `.specs/features/ponte-viva/spec.md` (R1–R8, R15, R18). Checks: C1–C8, C15, C18. Aproveitar os perfis de T1 e os dados de T2; a prancha é referência, não imagem obrigatória. Presença em cena não implica trabalho.
+Spec: `.specs/features/ponte-viva/spec.md` (R1–R8, R15, R18). Checks: C1–C8, C15, C18. Aproveitar os perfis de T1 e os dados de T2; os nomes visíveis devem corresponder aos nomes da tripulação em `src/crew.yaml` e na prancha, como Picard, LaForge e Scotty. Compare com `.specs/features/ponte-viva/referencias/ponte-conceito.png` e `tripulacao-conceito.png`: ponte espacial escura vista de cima, estações em arco, capitão ao centro, engenharia, contrastes luminosos e silhuetas e acessórios individuais reconhecíveis. São referências conceituais, adaptadas ao espaço reduzido; não exigem cópia pixel a pixel. Presença em cena não implica trabalho. Produza capturas reais em 240 e 360 px e relate diferenças visuais e legibilidade para revisão.
 
 #### BOUNDARIES
 May change: `src/orca/src/scene-model.ts`, `src/orca/src/scene-model.test.ts`, `src/orca/src/scene.ts`, `src/orca/src/scene.test.ts`, `DECISIONS.md`
@@ -174,16 +174,16 @@ Proof: run unit | ponte viva preserva transição em atualização repetida
 
 ## Handoff
 
-**Phase:** published
+**Phase:** execute
 **Size:** LARGE
 **Git mode:** 3
-**Plugin:** none yet
-**Next:** ramo de integração e primeiro ticket
+**Plugin:** 1.9.0
+**Next:** despachar T1
 **Linear:** SC-216; T1 SC-217; T2 SC-218; T3 SC-219; T4 SC-220; T5 SC-221
-**Integration branch:** not created
-**Last integrated:** none
-**Dispatched:** none
+**Integration branch:** feature/ponte-viva
+**Last integrated:** ea2bd28d4b542e43b22203d5e145310d028c677b
+**Dispatched:** T2 · SC-218 · base ea2bd28 · claude:claude-sonnet-5-5 · 2026-11-22T22:58:56Z · ctx_afdceed1d17b
 **Settled:** 2026-11-22: aprovado; 2026-11-22: sim
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5
 **Breaker:** closed
