@@ -33,9 +33,9 @@ class Versao190Tests(unittest.TestCase):
         self.assertEqual(plugin["source"], {"source": "local", "path": "./dist/codex"})
         self.assertNotIn("version", plugin)
         self.assertEqual(_json("dist/codex/.codex-plugin/plugin.json")["version"], "1.9.0")
-        crews = sorted((ROOT / "dist").glob("*/crew.json"))
-        self.assertGreaterEqual(len(crews), 5)
-        for path in crews:
+        for alvo in ("antigravity", "claude", "codex", "opencode", "orca"):
+            path = ROOT / "dist" / alvo / "crew.json"
+            self.assertTrue(path.is_file(), str(path))
             self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["version"], "1.9.0", str(path))
 
     def test_changelog_fecha_1_9_0(self):  # C3
