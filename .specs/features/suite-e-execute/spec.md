@@ -91,11 +91,11 @@ Proof: run unit | test_decisions_e_changelog (test_suite_e_execute.SuiteEExecute
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** autorização do merge na main
+**Next:** passo 5: a pausa (uso real, aceite 0.8, fases 8 e 9 no Codex)
 **Linear:** SC-213
 **Integration branch:** feature/suite-e-execute
 **Last integrated:** 61344181c5488f06da3cc3d69c5a626741c7588c
