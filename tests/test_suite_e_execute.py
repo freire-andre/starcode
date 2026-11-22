@@ -4,10 +4,14 @@ from __future__ import annotations
 import re
 import unittest
 
-from helpers import ROOT
+from helpers import ROOT, TempRepoCase, run_git
 from test_support import execute_text
 
 import dispatch
+import starcode_common as sc
+from test_dispatch import TASKS
+from test_dispatch_screens import png
+from test_versao_e_retro import SPEC, VERIFICATION, run_main
 
 REFS = ROOT / "skills" / "engajar" / "references"
 FILES = {
@@ -40,25 +44,67 @@ def _entry(slug: str) -> str:
     return text[start:start + 1 + nxt.start()] if nxt else text[start:]
 
 
-class SuiteEExecuteTests(unittest.TestCase):
+class SuiteEExecuteTests(TempRepoCase):
+    def feature(self, tasks: bool = False) -> None:
+        self.write_repo_config()
+        fdir = self.repo / ".specs" / "features" / "demo"
+        (fdir / "captures").mkdir(parents=True)
+        (fdir / "captures" / "home@2x.png").write_bytes(png(1600, 1200))
+        (fdir / "spec.md").write_text(SPEC, encoding="utf-8")
+        (fdir / "verification.md").write_text(VERIFICATION, encoding="utf-8", newline="\n")
+        if tasks:
+            (fdir / "tasks.md").write_text(TASKS, encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "specs")
+
+    def gerar(self, *args: str) -> str:
+        """Run `dispatch.py <args> --out <file>` through main() and return the file the brief was written to."""
+        out = self.tmp / "brief.md"
+        code, _, err = run_main(dispatch, [*args, "--out", str(out), "--root", str(self.repo)])
+        self.assertEqual((code, err), (0, ""), args)
+        return out.read_text(encoding="utf-8")
+
     def test_fix_brief_usa_selecao_do_impact(self):  # C1, R1
-        rules = dispatch.FIX_RULES.format(slug="demo", plugin="/p", issue="X-1", ticket="T1")
-        want = ("- Antes de terminar: " + TESTES.format(plugin="/p") + " e "
-                + f"`{GATE.format(plugin='/p', slug='demo', ticket='T1')}` verde.")
-        self.assertIn(want, _lines(rules))
-        self.assertNotIn("a suíte inteira verde", rules)
+        self.feature()
+        plugin = sc.PLUGIN_ROOT.as_posix()
+        brief = self.gerar("fix-brief", "demo")
+        want = f"""## Regras fixas da correção (StarCode)
+
+- Um commit por achado, com `Refs: PROJ-9` no corpo, citando o achado.
+- Nunca escreva em `.specs/`.
+- Nunca rode `git push`, `git reset`, `git restore` nem `git stash`.
+- Antes de terminar: os testes escolhidos por `python "{plugin}/scripts/impact.py" select --diff <base>` verdes (a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar) e `python "{plugin}/scripts/gates/run_gates.py" ticket demo T1 <base>..HEAD` verde.
+- Relatório final: o commit e o teste de cada achado corrigido.
+"""
+        self.assertTrue(brief.endswith(want), brief[-900:])
+        self.assertNotIn("a suíte inteira verde", brief)
 
     def test_brief_do_ticket_usa_selecao_do_impact(self):  # C2, R2
-        rules = dispatch.WORKER_RULES.format(plugin="/p", slug="demo", ticket="T1")
-        lines = _lines(rules)
-        regra = ('- Testes: rode os testes escolhidos por `python "/p/scripts/impact.py" select --diff <base>` e deixe-os '
-                 'verdes; a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar.')
-        self.assertIn(regra, lines)
-        gate = next(i for i, ln in enumerate(lines) if ln.startswith("- Antes de terminar: `python"))
-        self.assertIn(f"`{GATE.format(plugin='/p', slug='demo', ticket='T1')}` verde", lines[gate])
-        self.assertEqual(lines.index(regra), gate - 1)
-        report = next(ln for ln in lines if ln.startswith("- Relatório final"))
-        self.assertIn("o que mudou, a linha de veredito do `impact.py`, gates executados com resultado,", report)
+        plugin = sc.PLUGIN_ROOT.as_posix()
+        want = f"""## Regras fixas do worker (StarCode)
+
+- Você é o LaForge, um worker com contexto limpo. Se a skill `laforge` estiver disponível, siga-a.
+- Implemente só este ticket e altere só os arquivos de `May change`. Precisa de outro arquivo? Pare e
+  diga qual e por quê.
+- Nunca escreva `.specs/STATE.md` nem a seção `## Handoff` de nenhum artefato: só o Picard escreve nelas.
+- Testes: rode os testes escolhidos por `python "{plugin}/scripts/impact.py" select --diff <base>` e deixe-os verdes; a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar.
+- Antes de terminar: `python "{plugin}/scripts/gates/run_gates.py" ticket demo T1 <base>..HEAD` verde
+  (base = commit de partida deste worktree).
+- Falhas: identificador estável por erro; na 2ª falha do mesmo erro, use a skill `mccoy`; na 3ª, pare.
+- Ticket com tela citada por captura (`captures/<nome>.png`): tire a foto do autor com
+  `python "{plugin}/scripts/screens.py" capture` em `captures/<nome>.running.png` e commite-a, dentro do `May change`.
+- Relatório final (até 5 linhas): o que mudou, a linha de veredito do `impact.py`, gates executados com resultado, commits, pendências,
+  tentativas do disjuntor (`<id>=<n>` ou `none`).
+- Nunca desligue a assinatura de commits (commit.gpgsign false, --no-gpg-sign) em código de produto; só repositórios Git temporários de teste podem fazê-lo.
+"""
+        self.feature()
+        brief = self.gerar("brief", "demo", "T1")  # spec sem tasks.md (MEDIUM)
+        self.assertTrue(brief.endswith(want), brief[-1500:])
+        (self.repo / ".specs" / "features" / "demo" / "tasks.md").write_text(TASKS, encoding="utf-8")
+        run_git(self.repo, "add", ".")
+        run_git(self.repo, "commit", "-q", "-m", "tasks")
+        brief = self.gerar("brief", "demo", "T1")  # ticket de tasks.md
+        self.assertTrue(brief.endswith(want), brief[-1500:])
 
     def test_laforge_e_mccoy_rodam_a_selecao(self):  # C3, R3
         laforge = " ".join((ROOT / "skills/laforge/SKILL.md").read_text(encoding="utf-8").split())
