@@ -40,7 +40,8 @@
         "pequena-minima",
         "pr-review",
         "roteamento-worf-mccoy",
-        "catalogo-e-orca"
+        "catalogo-e-orca",
+        "suite-e-execute"
       ],
       "sources": [
         "tests/test_review_post.py:test_post_own_pr_falls_back_to_comment; tests/test_acceptance_doc_f9.py",
@@ -61,11 +62,12 @@
         "verification.md: achado 3 (C7 Worf sem PR)",
         "verification.md: achados 4 e 5 (asserções por trecho)",
         ".specs/features/roteamento-worf-mccoy/verification.md:achado 5",
-        "verification.md achado 4"
+        "verification.md achado 4",
+        ".specs/features/suite-e-execute/verification.md:C6"
       ],
       "scope": "",
       "created": "2026-11-09T18:54:53Z",
-      "updated": "2026-11-21T20:17:26Z"
+      "updated": "2026-11-22T15:05:53Z"
     },
     {
       "id": "L3",
@@ -188,7 +190,8 @@
         "pequena-minima",
         "pr-review",
         "restauracao-e-telas",
-        "versao-e-retro"
+        "versao-e-retro",
+        "suite-e-execute"
       ],
       "sources": [
         ".specs/features/fase-11-telas/verification.md:achado 3",
@@ -199,11 +202,12 @@
         "verification.md: achado 2 (prova da C4 sem settle)",
         "verification.md: achado 2 (edge case sem check)",
         "verification.md achado 1",
-        "verification.md achado 3"
+        "verification.md achado 3",
+        ".specs/features/suite-e-execute/verification.md:C8"
       ],
       "scope": "",
       "created": "2026-11-12T12:18:57Z",
-      "updated": "2026-11-21T22:56:23Z"
+      "updated": "2026-11-22T15:05:53Z"
     },
     {
       "id": "L11",
@@ -366,7 +370,8 @@
         "config-local-worktree",
         "ponte-manutencao",
         "falhas-start-settle",
-        "versao-e-retro"
+        "versao-e-retro",
+        "suite-e-execute"
       ],
       "sources": [
         "verification.md:C11,C12,C28-C31",
@@ -383,11 +388,12 @@
         ".specs/features/config-local-worktree/verification.md:achado 4",
         ".specs/features/ponte-manutencao/verification.md achado 3",
         ".specs/features/falhas-start-settle/verification.md achado 5",
-        "verification.md achado 1"
+        "verification.md achado 1",
+        ".specs/features/suite-e-execute/verification.md:C3"
       ],
       "scope": "",
       "created": "2026-11-12T20:27:15Z",
-      "updated": "2026-11-21T22:56:22Z"
+      "updated": "2026-11-22T15:05:53Z"
     },
     {
       "id": "L21",
@@ -586,7 +592,8 @@
         "config-local-worktree",
         "ponte-manutencao",
         "falhas-start-settle",
-        "catalogo-e-orca"
+        "catalogo-e-orca",
+        "suite-e-execute"
       ],
       "sources": [
         "verification.md achado C9 (test_model_info.py:178)",
@@ -605,11 +612,12 @@
         ".specs/features/config-local-worktree/verification.md:achado 5",
         ".specs/features/ponte-manutencao/verification.md achado 4",
         ".specs/features/falhas-start-settle/verification.md achado 7",
-        "verification.md achado 5"
+        "verification.md achado 5",
+        ".specs/features/suite-e-execute/verification.md:C10"
       ],
       "scope": "",
       "created": "2026-11-14T17:43:47Z",
-      "updated": "2026-11-21T20:17:26Z"
+      "updated": "2026-11-22T15:05:53Z"
     },
     {
       "id": "L33",
@@ -1484,6 +1492,51 @@
       "scope": "",
       "created": "2026-11-21T22:56:23Z",
       "updated": "2026-11-21T22:56:23Z"
+    },
+    {
+      "id": "L91",
+      "text": "Teste o texto gerado pela interface real (o brief montado), não a constante que entra nele, porque o teste passaria se a montagem deixasse a constante de fora.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "suite-e-execute"
+      ],
+      "sources": [
+        ".specs/features/suite-e-execute/verification.md:C1,C2"
+      ],
+      "scope": "",
+      "created": "2026-11-22T15:05:53Z",
+      "updated": "2026-11-22T15:05:53Z"
+    },
+    {
+      "id": "L92",
+      "text": "Confira um valor medido contra a saída bruta guardada da medição, não só o formato, porque contagem e tempos inventados no formato certo passavam.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "suite-e-execute"
+      ],
+      "sources": [
+        ".specs/features/suite-e-execute/verification.md:C4"
+      ],
+      "scope": "",
+      "created": "2026-11-22T15:05:53Z",
+      "updated": "2026-11-22T15:05:53Z"
+    },
+    {
+      "id": "L93",
+      "text": "Ao procurar referências antigas, varra a árvore inteira sem excluir arquivos pelo nome e cubra cada forma de citação, porque a exclusão de execute* e uma regex estreita deixavam passar referência velha.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "suite-e-execute"
+      ],
+      "sources": [
+        ".specs/features/suite-e-execute/verification.md:C9"
+      ],
+      "scope": "",
+      "created": "2026-11-22T15:05:53Z",
+      "updated": "2026-11-22T15:05:53Z"
     }
   ]
 }

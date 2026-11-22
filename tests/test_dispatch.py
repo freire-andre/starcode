@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest import mock
 
 from helpers import FIXTURES, ROOT, TempRepoCase, run_git
+from test_support import execute_text
 
 import dispatch
 import handoff
@@ -465,7 +466,7 @@ class FamilyAndQCliTests(TempRepoCase):
         self.assertNotIn("opencode-subagent", skill)
         schema = (root / "schemas/config.md").read_text(encoding="utf-8")
         self.assertIn("`opencode-subagent` is accepted but skipped by `q-cli` (not implemented yet)", schema)
-        execute = (root / "skills/engajar/references/execute.md").read_text(encoding="utf-8")
+        execute = execute_text(root)
         self.assertIn("When the user config has `qStrategy`, `q-cli` follows that list in order", execute)
 
     def test_q_strategy_decisions_entry_and_changelog(self):  # C8
@@ -767,7 +768,7 @@ class FrotaTravadaTests(BatchTests):
         self.assertEqual(json.loads(self.run_cli("--json")[1])["stalled"], [])
 
     def test_execute_travado(self):
-        text = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+        text = execute_text()
         sec = text.split("## 2F.", 1)[1].split("\n## ", 1)[0]
         step1 = sec.split("1. **Batch.**", 1)[1].split("2. **Start", 1)[0]
         step10 = sec.split("10. **Next.**", 1)[1]

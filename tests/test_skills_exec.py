@@ -4,8 +4,9 @@ from __future__ import annotations
 import unittest
 
 from helpers import ROOT
+from test_support import execute_text
 
-REF = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+REF = execute_text()
 SKILL = (ROOT / "skills" / "engajar" / "SKILL.md").read_text(encoding="utf-8")
 STATE = (ROOT / "skills" / "engajar" / "references" / "state-format.md").read_text(encoding="utf-8")
 

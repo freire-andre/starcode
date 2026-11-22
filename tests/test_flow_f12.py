@@ -4,10 +4,11 @@ import re
 import unittest
 
 from helpers import ROOT
+from test_support import execute_text
 
 
 def _execute() -> str:
-    return (ROOT / "skills/engajar/references/execute.md").read_text(encoding="utf-8")
+    return execute_text()
 
 
 def _section(text: str, number: str) -> str:
@@ -56,10 +57,10 @@ class FlowF12Tests(unittest.TestCase):
         sec = sec[:sec.index("- **Only files in `May change`.**")]
         self.assertRegex(sec, r"After the regression test and the fix, run\s+`python \"<plugin-root>/scripts/impact\.py\" "
                               r"select --diff <base>` \(base = `baseBranch` of the config\)")
-        self.assertRegex(sec, r"Run the tests it chooses, or the whole suite when the verdict is `rodar tudo`, before "
-                              r"the ticket's\s+gate")
+        self.assertRegex(sec, r"Run the tests it chooses \(the whole suite only when the verdict is `rodar tudo` or the selection fails\), "
+                              r"before the ticket's\s+gate")
         self.assertRegex(sec, r"put the verdict line in the report")
-        self.assertRegex(sec, r"The gates still run the whole suite")
+        self.assertRegex(sec, r"The whole suite runs at the done gate \(`Run unit` of the spec\) and in CI")
         self.assertOrdem(sec, 'impact.py" select --diff <base>', "baseBranch", "the tests it chooses",
-                         "whole suite when the verdict is `rodar tudo`", "gate", "verdict line in the report",
-                         "The gates still run the whole suite")
+                         "whole suite only when the verdict is `rodar tudo`", "gate", "verdict line in the report",
+                         "The whole suite runs at the done gate")

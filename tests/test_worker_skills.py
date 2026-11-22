@@ -4,6 +4,7 @@ from __future__ import annotations
 import unittest
 
 from helpers import ROOT
+from test_support import execute_text
 
 LAFORGE = (ROOT / "skills" / "laforge" / "SKILL.md").read_text(encoding="utf-8")
 MCCOY = (ROOT / "skills" / "mccoy" / "SKILL.md").read_text(encoding="utf-8")
@@ -38,8 +39,7 @@ class WorkerSkillTests(unittest.TestCase):
 
     def test_execute_stops_on_codex_hooks_review(self):
         for cli in ("claude", "codex", "opencode", "antigravity"):
-            text = (ROOT / "dist" / cli / "skills" / "engajar" / "references" / "execute.md").read_text(
-                encoding="utf-8")
+            text = execute_text(ROOT / "dist" / cli)
             with self.subTest(cli=cli):
                 self.assertIn("agent-hooks-review-prompt", text)
                 self.assertIn("pending\n   hooks", text)

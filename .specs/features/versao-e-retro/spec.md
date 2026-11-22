@@ -76,11 +76,11 @@ Proof: run unit | test_decisions_e_changelog (test_versao_e_retro.VersaoERetroTe
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** none yet
-**Next:** push e PR (com confirmação), depois Worf
+**Next:** missão 7.1 do passo 4: N.3, suíte rápida
 **Linear:** SC-212
 **Integration branch:** feature/versao-e-retro
 **Last integrated:** T1

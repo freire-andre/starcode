@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from helpers import ROOT
+from test_support import execute_text
 
 CLIS = ("claude", "codex", "antigravity", "opencode")
 
@@ -35,7 +36,7 @@ class FlowWorfGuinanTests(unittest.TestCase):
     def test_execute_review_worf_after_pr(self):
         # R17, R18
         for root in _roots():
-            text = _read(root, "skills/engajar/references/execute.md")
+            text = execute_text(root)
             self.assertIn("## Review (Worf)", text, root)
             sec = _section(text, "## Review (Worf)")
             self.assertRegex(sec, r"(?i)after (opening )?the PR", root)
@@ -51,7 +52,7 @@ class FlowWorfGuinanTests(unittest.TestCase):
     def test_execute_guinan_after_done(self):
         # R20
         for root in _roots():
-            text = _read(root, "skills/engajar/references/execute.md")
+            text = execute_text(root)
             sec = _section(text, "## 5.")
             self.assertIn("Guinan", sec, root)
             self.assertLess(sec.index("run_gates.py done"), sec.index("Guinan"))

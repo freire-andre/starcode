@@ -17,6 +17,13 @@ import setup_helpers
 import starcode_common as sc
 
 
+def execute_text(root: Path = ROOT) -> str:
+    """The execute.md index followed by the execute-*.md files, in alphabetical order (SC-213, R8)."""
+    refs = Path(root) / "skills" / "engajar" / "references"
+    parts = [refs / "execute.md"] + sorted(refs.glob("execute-*.md"))
+    return "\n".join(f.read_text(encoding="utf-8") for f in parts)
+
+
 def write_skill(folder: Path, name: str, description: str) -> None:
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "SKILL.md").write_text(f"---\nname: {name}\ndescription: {description}\n---\n\nbody\n",

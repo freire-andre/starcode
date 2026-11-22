@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from helpers import ROOT
+from test_support import execute_text
 import handoff
 
 CLIS = ("claude", "codex", "antigravity", "opencode")
@@ -51,7 +52,7 @@ class PrReviewTests(unittest.TestCase):
     def test_execute_fase_pr_review(self):
         # R2
         for root in _roots():
-            text = _read(root, "skills/engajar/references/execute.md")
+            text = execute_text(root)
             sec = _section(text, "## 5.")
             self.assertRegex(sec, r"\*\*Modes 3/4:\*\* right after the PR is open, `python \"P/scripts/handoff\.py\" set <slug> --phase pr-review`", root)
             self.assertRegex(sec, r"`--phase done` comes only after the merge, or after the\s+user's explicit refusal of the merge", root)
@@ -65,7 +66,7 @@ class PrReviewTests(unittest.TestCase):
     def test_execute_gates_apos_correcao_worf(self):
         # R3
         for root in _roots():
-            rev = _section(_read(root, "skills/engajar/references/execute.md"), "## Review (Worf)")
+            rev = _section(execute_text(root), "## Review (Worf)")
             self.assertRegex(rev, r"After each LaForge fix is integrated, run `python \"P/scripts/gates/run_gates\.py\" proofs <slug>` and\s+`python \"P/scripts/gates/run_gates\.py\" done <slug>` on the new HEAD \*\*before\*\* the next Worf round", root)
             self.assertRegex(rev, r"After each round record `python \"P/scripts/handoff\.py\" set <slug> --report \"Worf r<N> <verdict>\"`", root)
             self.assertLess(rev.index("one LaForge dispatch"), rev.index('run_gates.py" proofs'))
@@ -74,7 +75,7 @@ class PrReviewTests(unittest.TestCase):
     def test_guinan_licoes_do_review(self):
         # R4
         for root in _roots():
-            rev = _section(_read(root, "skills/engajar/references/execute.md"), "## Review (Worf)")
+            rev = _section(execute_text(root), "## Review (Worf)")
             self.assertRegex(rev, r"When the last Worf round ends \(APPROVE, or round 3\) and `review\.md` has a `blocker` or\s+`should-fix` finding fixed or confirmed in any round, the Picard invokes the Guinan in lessons-only mode", root)
             self.assertRegex(rev, r"records the `review_finding` lessons through `lessons\.py` and does not rewrite\s+`retro\.md`", root)
             self.assertRegex(rev, r"Without such a finding the Guinan is not invoked", root)

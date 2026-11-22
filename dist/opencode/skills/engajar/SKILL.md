@@ -86,7 +86,7 @@ if it is still open after that round; "public contract" only if someone outside 
 ### 5. Route
 | Class | Next |
 |---|---|
-| PEQUENA | spec mínima do Picard + LaForge (Q dispensado); no approval, no Guinan, Worf on the PR; ≤5 checks and ≤3 files, more than that → reclassify (`execute.md` section 8) |
+| PEQUENA | spec mínima do Picard + LaForge (Q dispensado); no approval, no Guinan, Worf on the PR; ≤5 checks and ≤3 files, more than that → reclassify (`execute-media-pequena.md`, section 8) |
 | MÉDIA | short Troi → Spock (brief spec with `## Checks`) → approval → LaForge |
 | GRANDE / COMPLEXA | Troi → Spock → approval 1 → Data → one question: approval 2 + publication → Linear writes → integration branch `feature/<slug>` (modes 2–4) → one LaForge worker per ticket → Guinan → PR → Worf → merge authorization |
 
@@ -107,13 +107,13 @@ crew member would take it and that it arrives in a later phase, record the Hando
 and stop there. Never do that member's job yourself.
 
 ### 5b. Execute (Phase 3)
-Follow `references/execute.md`: first the Fleet batch (`dispatch.py batch`, section `2F`: parallel LaForge
+Follow `references/execute.md` (index; load only the file of the step in progress, e.g. `execute-despacho.md`): first the Fleet batch (`dispatch.py batch`, section `2F`: parallel LaForge
 workers when two or more tickets are independent); integration branch `feature/<slug>`, one LaForge worker per ticket via
 `orca orchestration worker-start` (brief from `scripts/dispatch.py brief`), `orca worktree set
 --linear-issue`, wait for `worker_done`, `run_gates.py ticket` then `git merge --no-ff` into the
 integration branch, next ticket without asking; after the last one `run_gates.py proofs`, the Q worker in
-another model family (codex → antigravity → self-verified; the order follows the user config's `qStrategy` when the field exists, see `references/execute.md`), the single post-Q fix pass, `run_gates.py
-done`, Linear states and comments. Git mode 1 and the circuit breaker: same reference, sections 6–7.
+another model family (codex → antigravity → self-verified; the order follows the user config's `qStrategy` when the field exists, see `references/execute-provas-e-q.md`), the single post-Q fix pass, `run_gates.py
+done`, Linear states and comments. Git mode 1 and the circuit breaker: `references/execute-retomada.md` (section 6) and `references/execute-modo-1.md` (section 7).
 
 ### 6. Records
 You are the **single writer** of `.specs/STATE.md` and the feature `## Handoff` (D28). Format, location

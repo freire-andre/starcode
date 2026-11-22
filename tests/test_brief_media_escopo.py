@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from helpers import FIXTURES, ROOT, TempRepoCase, run_git
+from test_support import execute_text
 
 import check_scope
 import dispatch
@@ -142,7 +143,7 @@ class DocsTests(unittest.TestCase):
         self.assertLess(brief.index("**Linear**:"), brief.index("**May change**: <paths separados por vírgula>"))
 
     def test_execute_medium_runs_ticket_gate(self):
-        text = (ROOT / "skills" / "engajar" / "references" / "execute.md").read_text(encoding="utf-8")
+        text = execute_text()
         sec = text.split("## 8. MEDIUM and SMALL", 1)[1]
         self.assertIn("run_gates.py ticket", sec)
         self.assertNotIn("no `check_scope`", sec)
