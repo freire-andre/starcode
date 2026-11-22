@@ -7,7 +7,7 @@ import json
 import unittest
 
 from helpers import ROOT, TempRepoCase, run_git
-from test_support import execute_text
+from test_support import execute_text, changelog_recent
 
 import dispatch
 from test_dispatch import TASKS
@@ -173,7 +173,7 @@ class LicoesNoBriefTests(TempRepoCase):
         for name in ("test_ordem_por_recorrencia", "test_licoes_antes_das_regras", "test_fix_brief",
                      "test_execute_e_decisions"):
             self.assertIn(name, nao_bug, name)
-        unreleased = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split("## [Unreleased]")[1].split("\n## [")[0]
+        unreleased = changelog_recent()
         self.assertTrue(any("SC-205" in ln and "fix-brief" in ln for ln in unreleased.splitlines()))
 
 

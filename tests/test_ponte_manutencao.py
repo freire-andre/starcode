@@ -21,6 +21,7 @@ import handoff
 import ponte
 from test_dispatch import make_tasks
 from test_dispatch_settle import FakeGate
+from test_support import changelog_recent
 
 CI = ROOT / ".github" / "workflows" / "ci.yml"
 AVISO = "::warning title=orca ausente::validação e testes do plugin da Ponte pulados"
@@ -275,7 +276,7 @@ class PonteManutencaoTests(TempRepoCase):
                      "nome do worktree com barra invertida"):
             self.assertIn(nome, prova)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertEqual(len([ln for ln in unreleased.splitlines() if ln.startswith("- Manutenção da Ponte (SC-207):")]), 1)
 
 

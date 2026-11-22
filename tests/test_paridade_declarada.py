@@ -4,6 +4,7 @@ from __future__ import annotations
 import unittest
 
 from helpers import ROOT
+from test_support import changelog_recent
 
 L_PRINCIPAL = "- **Principal**: Claude Code. Todo recurso nasce e é aceito aqui."
 L_SECUNDARIO = "- **Secundário completo**: Codex. Paridade de recursos, com aceite em sessão real."
@@ -67,7 +68,7 @@ class ParidadeDeclaradaTests(unittest.TestCase):
         for name in ("test_readme_niveis", "test_matriz_niveis", "test_decisions_paridade"):
             self.assertIn(name, nao_bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]")[1].split("\n## [")[0]
+        unreleased = changelog_recent()
         self.assertTrue(any("SC-204" in ln and "nível" in ln.lower() or "SC-204" in ln and "níveis" in ln
                             for ln in unreleased.splitlines()))
 

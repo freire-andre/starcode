@@ -18,6 +18,7 @@ import dispatch
 import setup_helpers as sh
 import starcode_common as sc
 import validate_config as vc
+from test_support import changelog_recent
 
 _OLD = {}
 
@@ -419,7 +420,7 @@ class ConfigLocalWorktreeTests(TempRepoCase):
         for name in ("test_consumidores_no_worktree_ligado", "test_local_no_worktree_ligado", "test_entrada_local_inteira", "test_modelo_valido",
                      "test_aviso_local_versionado", "test_suggest_mantem_configurado", "test_skill_e_decisions"):
             self.assertIn(name, nao_bug, name)
-        unreleased = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split("## [Unreleased]")[1].split("\n## [")[0]
+        unreleased = changelog_recent()
         self.assertTrue(any("SC-206" in ln and "Config local nos worktrees" in ln for ln in unreleased.splitlines()))
 
 

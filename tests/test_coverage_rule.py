@@ -12,6 +12,7 @@ from test_validate_tasks_citations import OLD_MAY, OLD_TASK, CitationCase
 import check_scope
 import gates_common
 import validate_tasks
+from test_support import changelog_recent
 
 
 class CoverageRuleTests(unittest.TestCase):
@@ -72,7 +73,7 @@ class CoverageRuleTests(unittest.TestCase):
         self.assertIn("test_covers_tabela_portavel", campos["Por que não é bug"])
         self.assertIn("test_decisions_covers_portavel", campos["Por que não é bug"])
         changelog = (raiz / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertEqual(sum(1 for ln in unreleased.splitlines()
                              if ln.startswith("- ") and "(SC-209)" in ln), 1)
 

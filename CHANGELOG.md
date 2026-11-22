@@ -8,6 +8,8 @@ A versão vive no arquivo `VERSION` e `python tools/build.py` a propaga para os 
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-22
+
 ### Alterado
 
 - Suíte rápida, regra de estado e `execute.md` dividido (SC-213): o worker de ticket e a correção pós-Q rodam os testes escolhidos pelo `impact.py` (a suíte inteira só com `rodar tudo` ou seleção falha; ela segue no gate de done e no CI), o `AGENTS.md` ganha a regra de estado novo em JSON e o `execute.md` vira índice com seis arquivos `execute-*.md`; medição da suíte anotada no `DECISIONS.md`.

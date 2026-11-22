@@ -10,6 +10,7 @@ from pathlib import Path
 from helpers import ROOT
 
 import build
+from test_support import changelog_recent
 
 
 def copy_source(dest: Path) -> None:
@@ -431,7 +432,7 @@ class BuildTests(unittest.TestCase):
                      "test_timeout_do_git_diff_avisa_e_segue", "test_byte_nulo_depois_de_8000_e_binario"):
             self.assertIn(name, entry.split("**Por que não é bug**", 1)[1])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = re.split(r"\n## \[", changelog.split("## [Unreleased]", 1)[1], maxsplit=1)[0]
+        unreleased = changelog_recent()
         self.assertIn("SC-188", unreleased)
 
     def test_routing_and_decisions_cover_phase3(self):
@@ -444,13 +445,13 @@ class BuildTests(unittest.TestCase):
         self.assertIn("### F3-1:", decisions)
 
     def test_version_is_1_2_0_in_all_manifests(self):  # C6
-        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "1.8.0")
+        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "1.9.0")
         market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
-        self.assertEqual(market["plugins"][0]["version"], "1.8.0")
+        self.assertEqual(market["plugins"][0]["version"], "1.9.0")
         for rel in ("dist/claude/.claude-plugin/plugin.json", "dist/codex/.codex-plugin/plugin.json",
                     "dist/antigravity/plugin.json"):
             data = json.loads((ROOT / rel).read_text(encoding="utf-8"))
-            self.assertEqual(data["version"], "1.8.0", rel)
+            self.assertEqual(data["version"], "1.9.0", rel)
 
     def test_check_fails_when_manifest_version_diverges(self):  # C7
         script = self.src / "tools" / "build.py"

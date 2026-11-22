@@ -15,6 +15,7 @@ from helpers import ROOT, TempRepoCase
 import banner
 import gates_common as gc
 import piloto
+from test_support import changelog_recent
 
 CLIS = ("claude", "codex", "antigravity", "opencode")
 SLUG = "export-csv"
@@ -662,7 +663,7 @@ class PilotFreiosTests(PilotoCase):
             self.assertIn(f"`{name}`", bug, name)
             self.assertTrue(hasattr(PilotFreiosTests, name), name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertIn("- Freios do piloto automático (SC-187):", unreleased)
 
 

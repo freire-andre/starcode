@@ -21,6 +21,7 @@ import starcode_common as sc
 from test_dispatch import make_tasks
 from test_dispatch_settle import FakeGate, entry
 from test_dispatch_start import FakeOrca, HANDOFF, RECEIPT
+from test_support import changelog_recent
 
 HANDOFF_PY = ROOT / "scripts" / "handoff.py"
 LINHA_TIMEOUT = "git excedeu 30 s: git status"
@@ -551,5 +552,5 @@ class FalhasStartSettleTests(TempRepoCase):
                      "test_timeout_chega_aos_chamadores", "test_merge_combinacoes"):
             self.assertIn(nome, partes["Por que não é bug"])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertEqual(len([ln for ln in unreleased.splitlines() if "(SC-208)" in ln]), 1)
