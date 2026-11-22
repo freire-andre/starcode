@@ -288,17 +288,38 @@ class SuiteEExecuteTests(TempRepoCase):
         self.assertRegex(entry.splitlines()[0], r"^### SC-213: \S")
         for parte in ("- **Problema**:", "- **Decisão**:", "- **Motivo**:", "- **Por que não é bug**:"):
             self.assertEqual(entry.count(parte), 1, parte)
-        decisao = entry[entry.index("- **Decisão**"):entry.index("- **Motivo**")]
-        for termo in ("R1:", "R2:", "R3:", "R4:", "R5:", "R6:", "R7:", "R8:", "R9:", "R10:",
-                      "impact.py", "rodar tudo", "execute_text()", "execute-modo-1.md", "700 palavras",
-                      "JSON escrito por script"):
-            self.assertIn(termo, decisao)
+        decisao = entry[entry.index("- **Decisão**: ") + len("- **Decisão**: "):entry.index("- **Motivo**")]
+        pedacos = re.split(r"(?:^|(?<=\. ))(R\d+): ", decisao)
+        partes = dict(zip(pedacos[1::2], pedacos[2::2]))  # {"R1": texto de R1, ...}
+        self.assertEqual(list(partes), [f"R{i}" for i in range(1, 11)])
+        # os termos de cada requisito têm de estar no trecho dele, não espalhados pela decisão
+        exigidos = {
+            "R1": ["`FIX_RULES`", "`dispatch.py`", "a suíte inteira verde", "`impact.py select --diff <base>`", "`rodar tudo`",
+                   "a seleção falhar", "gate `ticket`"],
+            "R2": ["`WORKER_RULES`", "`- Testes:`", "logo antes da linha do gate `ticket`", "linha de veredito do `impact.py`"],
+            "R3": ["`laforge`", "`mccoy`", "`impact.py`", "`Run unit` da spec", "CI", "The gates still run the whole suite"],
+            "R4": ["python -m unittest discover -s tests --durations 20", "Medição: 1.100 testes em 731,326 s", "C:",
+                   "commit 844421b", "medicao-durations.txt", "linha de base 1.083 testes em 1.519 s", "Os 5 mais lentos",
+                   "`test_check_fails_when_manifest_version_diverges` 18,128 s", "`test_diagnostico_failures` 9,795 s",
+                   "Nada foi acelerado"],
+            "R5": ["`AGENTS.md`", "JSON escrito por script", "markdown", "o Handoff continua markdown escrito pelo `handoff.py`"],
+            "R6": ["`execute.md` vira índice", "seções 0 e 1", "a tabela dos seis arquivos", "carregar só o da etapa em curso",
+                   "700 palavras"],
+            "R7": ["`execute-*.md`", "`# Execute: <etapa>`", "`execute.md`", "cabeçalhos `## `", "uma única vez no conjunto"],
+            "R8": ["só movido", "`execute_text()`", "`tests/test_support.py`"],
+            "R9": ["`engajar`", "`state-format.md`", "`piloto-automatico`", "`STARCODE.md`", "`dispatch.py`",
+                   "`siga o execute-modo-1.md, sem start`"],
+            "R10": ["esta entrada", "`CHANGELOG.md`"],
+        }
+        for rotulo, termos in exigidos.items():
+            for termo in termos:
+                self.assertIn(termo, partes[rotulo], f"{rotulo}: {termo}")
         why = entry[entry.index("- **Por que não é bug**"):]
         for nome in ("test_fix_brief_usa_selecao_do_impact", "test_brief_do_ticket_usa_selecao_do_impact",
                      "test_laforge_e_mccoy_rodam_a_selecao", "test_decisions_registra_a_medicao",
                      "test_agents_tem_regra_de_estado", "test_execute_md_vira_indice",
-                     "test_cabecalhos_no_arquivo_certo", "test_referencias_apontam_o_arquivo_novo",
-                     "test_decisions_e_changelog"):
+                     "test_cabecalhos_no_arquivo_certo", "test_testes_leem_o_execute_por_execute_text",
+                     "test_referencias_apontam_o_arquivo_novo", "test_decisions_e_changelog"):
             self.assertIn(f"`{nome}`", why)
         log = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         unreleased = log[log.index("## [Unreleased]"):]
