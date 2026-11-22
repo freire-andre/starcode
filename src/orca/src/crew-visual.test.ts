@@ -1,0 +1,117 @@
+// Testes dos perfis visuais e do estado confiável da tripulação (módulo puro, sem host).
+import { assert, test } from 'orca/testing'
+import { ESTADOS, MEMBROS, PERFIS, estadosDaTripulacao } from './crew-visual'
+import type { EstadoVisual, Identidades } from './crew-visual'
+import type { PonteAgent, PonteState } from './protocol'
+
+const ORDEM = ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy', 'q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan']
+const NOMES = [
+  'Jean-Luc Picard', 'Spock', 'Deanna Troi', 'Data', 'Geordi La Forge', 'Leonard McCoy',
+  'Q', 'Nyota Uhura', 'Montgomery Scott', 'James T. Kirk', 'Worf', 'Guinan',
+]
+const EMOJIS = ['🛸', '🖖', '💜', '🤖', '🔧', '🧪', '✨', '📡', '⚙️', '🚀', '🛡️', '🍸']
+
+function estado(over: Partial<PonteState> = {}, agents: PonteAgent[] = []): PonteState {
+  return {
+    status: 'ok', stale: false, updatedAt: 0, issue: null, issueNote: null, agents, log: [], error: null,
+    snapshot: {
+      schemaVersion: 1, worktree: 'C:/wt', starcode: true,
+      crew: ORDEM.map(m => ({ member: m, emoji: 'x', name: m, count: 0, lastAt: null, cliModel: null })),
+      gitMode: null, feature: null, workers: [], errors: [],
+    },
+    ...over,
+  }
+}
+const agente = (terminalId: string | null, state: PonteAgent['state'], title = 'qualquer'): PonteAgent =>
+  ({ terminalId, title, agent: 'claude', state, stateStartedAt: 0 })
+type Res = ReturnType<typeof estadosDaTripulacao>
+const de = (res: Res, membro: string) => res.find(r => r.membro === membro)!
+const todos = (res: Res, e: EstadoVisual) => res.length === 12 && res.every(r => r.estado === e)
+
+test('ponte viva identifica os 12 integrantes', () => {
+  assert.deepEqual(MEMBROS, ORDEM)
+  assert.deepEqual(PERFIS.map(p => p.membro), ORDEM)
+  assert.deepEqual(PERFIS.map(p => p.nome), NOMES)
+  assert.deepEqual(PERFIS.map(p => p.emoji), EMOJIS)
+  // identidade visual própria: nenhum nome, emoji, cor de uniforme ou acessório se repete
+  for (const campo of ['nome', 'emoji', 'cor', 'acessorio'] as const) {
+    assert.equal(new Set(PERFIS.map(p => p[campo])).size, 12, `${campo} repetido`)
+  }
+  for (const p of PERFIS) {
+    assert.match(p.cor, /^#[0-9a-f]{6}$/)
+    assert.ok(p.acessorio.length > 0)
+  }
+  assert.equal(PERFIS.find(p => p.membro === 'picard')!.acessorio, 'cabeca-calva')
+  assert.equal(PERFIS.find(p => p.membro === 'spock')!.acessorio, 'orelhas-pontudas')
+})
+
+test('ponte viva representa trabalho', () => {
+  const ids: Identidades = { 'term-1': 'laforge' }
+  const res = estadosDaTripulacao(estado({}, [agente('term-1', 'working')]), ids)
+  assert.deepEqual(de(res, 'laforge'), { membro: 'laforge', estado: 'trabalhando', motivo: 'agente vinculado trabalhando' })
+  assert.deepEqual(ESTADOS.trabalhando, { estado: 'trabalhando', simbolo: '⚙', texto: 'trabalhando', animaConsole: true })
+  // só o estado "trabalhando" opera o console
+  assert.deepEqual((Object.keys(ESTADOS) as EstadoVisual[]).filter(e => ESTADOS[e].animaConsole), ['trabalhando'])
+})
+
+test('ponte viva representa ociosidade', () => {
+  const res = estadosDaTripulacao(estado(), {})
+  assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'ocioso', motivo: 'sem agente ativo no worktree' })
+  assert.deepEqual(ESTADOS.ocioso, { estado: 'ocioso', simbolo: '💤', texto: 'ocioso', animaConsole: false })
+  // agente concluído não conta como atividade: os outros seguem ociosos
+  const comConcluido = estadosDaTripulacao(estado({}, [agente('term-1', 'done')]), { 'term-1': 'data' })
+  assert.equal(de(comConcluido, 'spock').estado, 'ocioso')
+})
+
+test('ponte viva distingue estados', () => {
+  const ids: Identidades = { a: 'picard', b: 'spock', c: 'troi', d: 'data' }
+  const res = estadosDaTripulacao(
+    estado({}, [agente('a', 'working'), agente('b', 'waiting'), agente('c', 'blocked'), agente('d', 'done')]), ids,
+  )
+  assert.deepEqual(res.slice(0, 4).map(r => r.estado), ['trabalhando', 'aguardando', 'bloqueado', 'concluido'])
+  assert.deepEqual(ESTADOS.aguardando, { estado: 'aguardando', simbolo: '⏳', texto: 'aguardando', animaConsole: false })
+  assert.deepEqual(ESTADOS.bloqueado, { estado: 'bloqueado', simbolo: '⛔', texto: 'bloqueado', animaConsole: false })
+  assert.deepEqual(ESTADOS.concluido, { estado: 'concluido', simbolo: '✔', texto: 'concluído', animaConsole: false })
+  assert.deepEqual(ESTADOS.desconhecido, { estado: 'desconhecido', simbolo: '?', texto: 'desconhecido', animaConsole: false })
+  const chaves = Object.keys(ESTADOS) as EstadoVisual[]
+  assert.deepEqual(chaves, ['trabalhando', 'ocioso', 'aguardando', 'bloqueado', 'concluido', 'desconhecido'])
+  for (const campo of ['simbolo', 'texto'] as const) {
+    assert.equal(new Set(chaves.map(k => ESTADOS[k][campo])).size, 6, `${campo} repetido`)
+  }
+})
+
+test('ponte viva não inventa atividade', () => {
+  // título com o nome do integrante não é identidade
+  const porTitulo = estadosDaTripulacao(estado({}, [agente('t', 'working', 'laforge SC-217 implementando')]), {})
+  assert.deepEqual(de(porTitulo, 'laforge'), { membro: 'laforge', estado: 'desconhecido', motivo: 'agente ativo sem identidade confiável' })
+  assert.equal(de(porTitulo, 'spock').estado, 'desconhecido')
+  // agente sem terminalId nunca é vinculado, mesmo com mapa que tenha a chave "null"
+  const semId = estadosDaTripulacao(estado({}, [agente(null, 'working')]), { null: 'kirk' })
+  assert.equal(de(semId, 'kirk').estado, 'desconhecido')
+  // dois agentes vinculados ao mesmo integrante com estados diferentes: ambíguo
+  const dupla = estadosDaTripulacao(estado({}, [agente('a', 'working'), agente('b', 'done')]), { a: 'worf', b: 'worf' })
+  assert.deepEqual(de(dupla, 'worf'), { membro: 'worf', estado: 'desconhecido', motivo: 'mais de um agente vinculado com estados diferentes' })
+  // vínculo para quem não é da tripulação é ignorado
+  const fora = estadosDaTripulacao(estado({}, [agente('x', 'working')]), { x: 'riker' })
+  assert.equal(fora.length, 12)
+  assert.equal(de(fora, 'picard').estado, 'desconhecido')
+  // contagem de histórico (count > 0) não é atividade atual
+  const hist = estado()
+  hist.snapshot!.crew.find(c => c.member === 'data')!.count = 7
+  assert.equal(de(estadosDaTripulacao(hist, {}), 'data').estado, 'ocioso')
+  // dados antigos, erro, sem worktree, sem snapshot ou projeto sem StarCode: tudo desconhecido
+  assert.ok(todos(estadosDaTripulacao(estado({ stale: true }), {}), 'desconhecido'))
+  assert.ok(todos(estadosDaTripulacao(estado({ status: 'erro', error: 'x' }), {}), 'desconhecido'))
+  assert.ok(todos(estadosDaTripulacao(estado({ status: 'sem-worktree' }), {}), 'desconhecido'))
+  assert.ok(todos(estadosDaTripulacao(estado({ snapshot: null }), {}), 'desconhecido'))
+  const semStarcode = estado()
+  semStarcode.snapshot!.starcode = false
+  assert.ok(todos(estadosDaTripulacao(semStarcode, {}), 'desconhecido'))
+  // integrante ausente do snapshot: desconhecido, não ocioso
+  const faltando = estado()
+  faltando.snapshot!.crew = faltando.snapshot!.crew.filter(c => c.member !== 'guinan')
+  assert.deepEqual(de(estadosDaTripulacao(faltando, {}), 'guinan'), { membro: 'guinan', estado: 'desconhecido', motivo: 'integrante ausente do snapshot' })
+  // estado de agente fora do contrato vira desconhecido
+  const estranho = estadosDaTripulacao(estado({}, [agente('a', 'dormindo' as PonteAgent['state'])]), { a: 'q' })
+  assert.equal(de(estranho, 'q').estado, 'desconhecido')
+})
