@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import unittest
 
 from pathlib import Path
@@ -14,6 +15,17 @@ from test_support import changelog_recent
 import release
 
 ISSUES = ([186, 187, 188, 190] + list(range(195, 201)) + list(range(202, 214)))
+
+
+def _itens(secao: str) -> list[tuple[str, str]]:
+    """(seção `### ...`, linha do item `- ...`) na ordem do texto."""
+    atual, itens = "", []
+    for linha in secao.splitlines():
+        if linha.startswith("### "):
+            atual = linha
+        elif linha.startswith("- "):
+            itens.append((atual, linha))
+    return itens
 
 
 def _json(rel: str) -> dict:
@@ -50,6 +62,14 @@ class Versao190Tests(unittest.TestCase):
         self.assertEqual(len(ISSUES), 22)
         self.assertIn("### Alterado", secao)
         self.assertIn("### Corrigido", secao)
+        antes = subprocess.run(["git", "show", "8b86df0:CHANGELOG.md"], cwd=ROOT, capture_output=True)
+        if antes.returncode != 0:
+            self.skipTest("commit 8b86df0 ausente neste clone (CI raso)")
+        antigo = antes.stdout.decode("utf-8").replace("\r\n", "\n")
+        ma = re.search(r"^## \[Unreleased\]\n(.*?)^## \[1\.8\.0\]", antigo, re.M | re.S)
+        self.assertIsNotNone(ma)
+        self.assertEqual(len(_itens(ma.group(1))), 24)
+        self.assertEqual(_itens(secao), _itens(ma.group(1)))
         notas = release._notes(ROOT, "1.9.0")
         self.assertIsNotNone(notas)
         self.assertIn("SC-213", notas)
