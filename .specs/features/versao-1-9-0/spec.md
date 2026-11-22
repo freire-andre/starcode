@@ -23,7 +23,7 @@ Os agentes instalados estão na 1.8.0 de 2026-11-13 (OpenCode em 1.6.1), sem as 
 
 ## Requirements
 - **R1** - The `VERSION` SHALL conter `1.9.0`, e o `src/orca/orca-plugin.json` SHALL ter `"version": "1.9.0"`.
-- **R2** - WHEN `python tools/build.py` roda THEN the system SHALL gravar `1.9.0` em `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json`, `dist/claude/.claude-plugin/plugin.json`, `dist/codex/.codex-plugin/plugin.json`, `dist/antigravity/plugin.json`, `dist/orca/orca-plugin.json` e nos `dist/*/crew.json`; e `python tools/build.py --check` SHALL dizer `OK`.
+- **R2** - WHEN `python tools/build.py` roda THEN the system SHALL gravar `1.9.0` em `.claude-plugin/marketplace.json`, `dist/claude/.claude-plugin/plugin.json`, `dist/codex/.codex-plugin/plugin.json`, `dist/antigravity/plugin.json`, `dist/orca/orca-plugin.json` e nos `dist/*/crew.json`; o `.agents/plugins/marketplace.json` (marketplace do Codex) SHALL apontar para `./dist/codex` sem campo `version`, porque o Codex lê a versão do `dist/codex/.codex-plugin/plugin.json`; e `python tools/build.py --check` SHALL dizer `OK`.
 - **R3** - The teste de versão de `tests/test_build.py` SHALL exigir `1.9.0` no `VERSION`, no marketplace do Claude e nos três manifestos de `dist/`.
 - **R4** - The `CHANGELOG.md` SHALL ter `## [Unreleased]` vazio, seguido de `## [1.9.0] - 2026-11-22` com todos os itens que estavam em `[Unreleased]`, nas mesmas seções (`### Alterado`, `### Corrigido`), e `python tools/release.py notes` (ou a função `_notes`) SHALL achar a seção 1.9.0.
 - **R5** - The `README.md` SHALL dizer `Estado: **v1.9.0**` na linha que hoje diz `Estado: **v1.8.0**`.
@@ -34,6 +34,7 @@ Os agentes instalados estão na 1.8.0 de 2026-11-13 (OpenCode em 1.6.1), sem as 
 | Item | Options | Status |
 |---|---|---|
 | Testes que procuram a entrada em `[Unreleased]` (achado do T1) | helper + ampliar o May change · trocar para `[1.9.0]` fixo · manter os itens em `[Unreleased]` | approved - user: "Helper + ampliar (Recommended)" (2026-11-22) |
+| R2 e o marketplace do Codex (achado 1 do Q) | corrigir o R2 e repetir o Q · corrigir sem novo Q · gravar versão no marketplace | approved - user: "Corrigir R2 e repetir o Q (Recommended)" (2026-11-22) |
 
 ## Edge Cases
 - Um item de `[Unreleased]` perdido na mudança de seção: o check do R4 compara a lista de itens antes e depois.
@@ -49,7 +50,7 @@ None.
 **C1** - `VERSION`, marketplace do Claude e os três manifestos de `dist/` em 1.9.0 (R1, R2, R3)
 Proof: run unit | test_version_is_1_2_0_in_all_manifests (test_build.BuildTests.test_version_is_1_2_0_in_all_manifests) ... ok
 
-**C2** - `src/orca/orca-plugin.json`, `dist/orca/orca-plugin.json`, `.agents/plugins/marketplace.json` e os `dist/*/crew.json` em 1.9.0 (R1, R2)
+**C2** - `src/orca/orca-plugin.json`, `dist/orca/orca-plugin.json` e cada `dist/<cli>/crew.json` esperado (antigravity, claude, codex, opencode, orca) em 1.9.0; o marketplace do Codex aponta para `./dist/codex` e não tem `version` (R1, R2)
 Proof: run unit | test_versao_1_9_0_em_todos_os_manifestos (test_versao_1_9_0.Versao190Tests.test_versao_1_9_0_em_todos_os_manifestos) ... ok
 
 **C3** - `[Unreleased]` vazio; a seção `[1.9.0] - 2026-11-22` tem 24 itens (`- ` no início da linha), citando exatamente as 22 issues que estavam em `[Unreleased]` (SC-186, SC-187, SC-188, SC-190, SC-195 a SC-200, SC-202 a SC-213), e `release._notes` acha a seção (R4)
@@ -68,12 +69,12 @@ Proof: run unit | test_changelog_recent (test_versao_1_9_0.Versao190Tests.test_c
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** Q verifica (codex)
+**Next:** decisão: R2 e o marketplace do Codex
 **Linear:** SC-214
 **Integration branch:** feature/versao-1-9-0
 **Last integrated:** 118b5f77968b644f9d7e9f262dd462e23f1c97d4
-**Dispatched:** Q · e3951c9
+**Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s
+**Reports:** 2026-11-22: T1: 1.9.0 + changelog_recent em ba05d26; gate ticket verde; suíte 1105 OK; 2026-11-22: proofs: 2 estouros de tempo (suíte órfã do gate no F:); verde no C: em 784 s; 2026-11-22: Q: FAIL, 4 achados (C2, C3, C5; marketplace do Codex sem versão); q-check ok
 **Breaker:** closed
