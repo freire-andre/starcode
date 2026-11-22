@@ -240,13 +240,34 @@ class SuiteEExecuteTests(TempRepoCase):
         self.assertEqual(sorted(afetados - usam_helper), [], "teste afetado que não chama execute_text()")
 
     def test_referencias_apontam_o_arquivo_novo(self):  # C9, R9
-        for base in ("skills", "src", "scripts"):
-            for f in (ROOT / base).rglob("*"):
-                if not f.is_file() or f.suffix not in (".md", ".py") or f.name.startswith("execute"):
+        exts = {".md", ".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".txt", ".yml", ".yaml", ".sh"}
+        achadas: list[str] = []
+        for base in ("skills", "src", "scripts", "hooks"):
+            for f in sorted((ROOT / base).rglob("*")):
+                if not f.is_file() or f.suffix not in exts or "node_modules" in f.parts:
                     continue
-                for n, ln in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
-                    if re.search(r"execute\.md`?\)?,? ?\(?(?:section|seção) [678]|seção 7 do execute\.md", ln):
-                        self.fail(f"{f.relative_to(ROOT)}:{n}: {ln.strip()}")
+                rel = f.relative_to(ROOT).as_posix()
+                for n, ln in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                    # toda menção ao índice `execute.md` (não a um `execute-*.md`), em qualquer forma
+                    if re.search(r"(?<![\w-])execute\.md", ln):
+                        achadas.append(f"{rel}: {ln.strip()}")
+                    # a seção citada ao lado de um `execute-*.md` existe nesse arquivo
+                    for m in re.finditer(r"(execute-[\w-]+\.md)`\)?,? ?\(?(?:section|seção) (\d+)", ln):
+                        alvo = REFS / m.group(1)
+                        self.assertTrue(alvo.is_file(), f"{rel}:{n}: {m.group(1)} não existe")
+                        titulos = [h for h in alvo.read_text(encoding="utf-8").splitlines()
+                                   if h.startswith(f"## {m.group(2)}.")]
+                        self.assertEqual(len(titulos), 1, f"{rel}:{n}: {m.group(1)} não tem a seção {m.group(2)}")
+        permitidas = [
+            ("skills/engajar/SKILL.md", "Follow `references/execute.md` (index; load only the file of the step in progress"),
+            ("skills/engajar/references/state-format.md", "(`execute.md`, then `execute-despacho.md`)"),
+            ("src/context/STARCODE.md", "`skills/engajar/references/execute.md` (index) and the `execute-*.md` files it lists."),
+        ] + [(f"skills/engajar/references/{nome}", "Variables and preconditions: see `execute.md` (sections 0 and 1).")
+             for nome in sorted(FILES)]
+        self.assertEqual(len(achadas), len(permitidas), achadas)
+        for rel, frase in permitidas:
+            casam = [a for a in achadas if a.startswith(f"{rel}: ") and frase in a]
+            self.assertEqual(len(casam), 1, (rel, frase, achadas))
         self.assertIn("(modo 1: siga o execute-modo-1.md, sem start)",
                       (ROOT / "scripts/dispatch.py").read_text(encoding="utf-8"))
         want = {
