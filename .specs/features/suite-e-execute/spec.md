@@ -6,7 +6,7 @@
 **Risk triggers**: none
 **Status**: Approved
 **Linear**: SC-213
-**May change**: scripts/dispatch.py, skills/engajar/SKILL.md, skills/engajar/references/execute.md, skills/engajar/references/execute-despacho.md, skills/engajar/references/execute-provas-e-q.md, skills/engajar/references/execute-pos-q-e-review.md, skills/engajar/references/execute-retomada.md, skills/engajar/references/execute-modo-1.md, skills/engajar/references/execute-media-pequena.md, skills/engajar/references/state-format.md, skills/piloto-automatico/SKILL.md, skills/laforge/SKILL.md, skills/mccoy/SKILL.md, src/context/STARCODE.md, AGENTS.md, tests/test_suite_e_execute.py, tests/test_support.py, tests/test_brief_media_escopo.py, tests/test_crew_live.py, tests/test_dispatch.py, tests/test_dispatch_qcheck.py, tests/test_dispatch_decisions.py, tests/test_dispatch_start.py, tests/test_execute_doc_start_settle.py, tests/test_fecha_achado.py, tests/test_flow_f12.py, tests/test_flow_worf_guinan.py, tests/test_licoes_no_brief.py, tests/test_pequena_minima.py, DECISIONS.md, CHANGELOG.md, dist/
+**May change**: scripts/dispatch.py, skills/engajar/SKILL.md, skills/engajar/references/execute.md, skills/engajar/references/execute-despacho.md, skills/engajar/references/execute-provas-e-q.md, skills/engajar/references/execute-pos-q-e-review.md, skills/engajar/references/execute-retomada.md, skills/engajar/references/execute-modo-1.md, skills/engajar/references/execute-media-pequena.md, skills/engajar/references/state-format.md, skills/piloto-automatico/SKILL.md, skills/laforge/SKILL.md, skills/mccoy/SKILL.md, src/context/STARCODE.md, AGENTS.md, tests/test_suite_e_execute.py, tests/test_support.py, tests/test_brief_media_escopo.py, tests/test_crew_live.py, tests/test_dispatch.py, tests/test_dispatch_qcheck.py, tests/test_dispatch_decisions.py, tests/test_dispatch_start.py, tests/test_execute_doc_start_settle.py, tests/test_fecha_achado.py, tests/test_flow_f12.py, tests/test_flow_worf_guinan.py, tests/test_licoes_no_brief.py, tests/test_pequena_minima.py, tests/test_skills_exec.py, tests/test_pr_review.py, tests/test_screens_flow.py, tests/test_uhura_skill.py, tests/test_worker_skills.py, tests/test_roteamento_worf_mccoy.py, DECISIONS.md, CHANGELOG.md, dist/
 
 ## Context
 Itens N.3, N.7 e N.8 da triagem v2, missão 7b do passo 4. Discovery em `.specs/features/suite-e-execute/context.md`. Hoje:
@@ -31,6 +31,7 @@ Itens N.3, N.7 e N.8 da triagem v2, missão 7b do passo 4. Discovery em `.specs/
 | Item | Options | Status |
 |---|---|---|
 | Alcance do N.3 | só medir e trocar · também acelerar os testes lentos | approved - user: "Só medir e trocar (Recommended)" |
+| Ampliar o May change durante o T1 (6 testes que leem o `execute.md` ou exigem o `piloto-automatico/SKILL.md` igual ao da main) | ampliar os 6 · só os 5 do `execute.md` · parar | approved - user: "Ampliar e seguir (Recommended)" (2026-11-22) |
 
 ## Requirements
 - **R1** - The `FIX_RULES` do `scripts/dispatch.py` SHALL trocar "a suíte inteira verde" por: os testes escolhidos por `python "{plugin}/scripts/impact.py" select --diff <base>` verdes, e a suíte inteira só quando o veredito for `rodar tudo` ou a seleção falhar; mais o gate `ticket` verde, como hoje.
@@ -89,15 +90,15 @@ Proof: run unit | test_decisions_e_changelog (test_suite_e_execute.SuiteEExecute
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** execute
 **Size:** MEDIUM
 **Git mode:** 3
-**Plugin:** none yet
+**Plugin:** 1.8.0
 **Next:** LaForge: worker T1 (execute-media-pequena / seção 8)
 **Linear:** SC-213
-**Integration branch:** not created
+**Integration branch:** feature/suite-e-execute
 **Last integrated:** none
-**Dispatched:** none
+**Dispatched:** T1 · SC-213 · base a984bfd · claude:claude-sonnet-5-5 · 2026-11-22T13:21:05Z · ctx_c444a115b31d
 **Settled:** none
 **Attempts:** none
 **Reports:** none
