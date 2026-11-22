@@ -1,9 +1,9 @@
 # versao-1-9-0 proofs
 
-**HEAD**: 7277a80
+**HEAD**: 538a193
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
-**Result**: 9 pass, 0 fail
+**Result**: 10 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -13,6 +13,7 @@
 | C4 | `run unit / test_readme_estado_1_9_0 (test_versao_1_9_0.Versao190Tests.test_readme_estado_1_9_0) ... ok` | pass |
 | C5 | `run unit / test_changelog_recent (test_versao_1_9_0.Versao190Tests.test_changelog_recent) ... ok` | pass |
 | C5 | `run unit / test_nenhum_teste_le_unreleased_nem_busca_issue_fora_do_helper (test_versao_1_9_0.Versao190Tests.te` | pass |
+| C5 | `run unit / test_varredura_pega_cada_forma (test_versao_1_9_0.Versao190Tests.test_varredura_pega_cada_forma) ..` | pass |
 | Build | `python tools/build.py --check` | pass |
 | Build | `claude plugin validate dist/claude --strict` | pass |
 | Build | `python scripts/check_decisions.py` | pass |
@@ -33,7 +34,7 @@ test_laforge_skill_scope_tdd_commit (test_worker_skills.WorkerSkillTests.test_la
 test_mccoy_skill_regression_and_report (test_worker_skills.WorkerSkillTests.test_mccoy_skill_regression_and_report) ... ok
 
 ----------------------------------------------------------------------
-Ran 1106 tests in 704.891s
+Ran 1107 tests in 757.718s
 
 OK (skipped=1)
 inativo
