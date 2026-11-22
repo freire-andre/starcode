@@ -91,11 +91,11 @@ Proof: run unit | test_decisions_e_changelog (test_suite_e_execute.SuiteEExecute
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** PR (confirmação) e Worf
+**Next:** Worf revisa o PR #82
 **Linear:** SC-213
 **Integration branch:** feature/suite-e-execute
 **Last integrated:** 61344181c5488f06da3cc3d69c5a626741c7588c
