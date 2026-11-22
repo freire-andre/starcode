@@ -14,6 +14,7 @@ import validate_spec
 import validate_verification
 from test_dispatch_settle import FakeGate, entry
 from test_dispatch_start import FakeOrca
+from test_support import changelog_recent
 
 HANDOFF = "\n## Handoff\n**Phase:** execute\n**Integration branch:** feature/peq\n**Dispatched:** {d}\n"
 
@@ -394,8 +395,7 @@ class PequenaTests(TempRepoCase):
             with self.subTest(test=name):
                 self.assertIn(f"`{name}`", why)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog[changelog.index("## [Unreleased]"):]
-        unreleased = unreleased[:unreleased.find("\n## [", 5)] if "\n## [" in unreleased[5:] else unreleased
+        unreleased = changelog_recent()
         self.assertTrue(any("(SC-197)" in ln and "PEQUENA" in ln for ln in unreleased.splitlines()))
         gates = (ROOT / "tests" / "test_gates.py").read_text(encoding="utf-8")
         self.assertNotIn("small_rejected", gates)

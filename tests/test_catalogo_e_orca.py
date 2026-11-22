@@ -22,6 +22,7 @@ import dispatch
 import model_info as mi
 import orca_cli
 import screens
+from test_support import changelog_recent
 
 FAKE = """\
 import json, os, sys
@@ -492,7 +493,7 @@ class CatalogoEOrcaTests(unittest.TestCase):
             self.assertTrue(hasattr(type(self), name), name)
         self.assertIn("`test_catalogo_e_orca.CatalogoEOrcaTests`", parts["Por que não é bug"])
         change = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = re.search(r"^## \[Unreleased\]\n(.*?)(?=^## \[)", change, re.M | re.S).group(1)
+        unreleased = changelog_recent()
         self.assertEqual(len([ln for ln in unreleased.splitlines() if "(SC-211)" in ln]), 1)
 
 

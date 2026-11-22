@@ -17,6 +17,7 @@ from helpers import ROOT, TempRepoCase
 import crew_live
 import git_mode
 import starcode_common as sc
+from test_support import changelog_recent
 
 HOOK = ROOT / "hooks" / "scripts" / "crew_hook.py"
 PROCS, PER_PROC = 16, 4  # 64 writes in total
@@ -294,7 +295,7 @@ class SessionsConcorrenteTests(TempRepoCase):
                      "test_update_session_paralelo", "test_trava_esgotada"):
             self.assertIn(name, nao_bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]")[1].split("\n## [")[0]
+        unreleased = changelog_recent()
         self.assertTrue(any("`locked`" in ln and "SC-202" in ln for ln in unreleased.splitlines()))
 
 

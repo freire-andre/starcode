@@ -7,6 +7,7 @@ from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 
 import starcode_common as sc
 from git_guard import Guard, extract, tokenize
+from test_support import changelog_recent
 
 HINT_TEXT = ("Se o usuário pediu isso de forma explícita, peça que ele mesmo rode o comando no "
              "terminal.")
@@ -246,7 +247,7 @@ class NoModeTests(TempRepoCase):
                      "test_tokenize_inalterado"):
             self.assertIn(name, why)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertIn("(SC-196)", unreleased)
         doc = (ROOT / "hooks" / "scripts" / "git_guard.py").read_text(encoding="utf-8").split('"""')[1]
         for term in ("forced checkout (-f/--force)", "forced switch (--discard-changes/-f/--force)",

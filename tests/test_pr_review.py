@@ -11,6 +11,7 @@ from pathlib import Path
 from helpers import ROOT
 from test_support import execute_text
 import handoff
+from test_support import changelog_recent
 
 CLIS = ("claude", "codex", "antigravity", "opencode")
 
@@ -126,9 +127,7 @@ class PrReviewTests(unittest.TestCase):
                      "test_decisions_pr_review"):
             self.assertIn(f"`{name}`", porque)
         cl = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        i = cl.index("## [Unreleased]")
-        j = cl.find("\n## [", i + 1)
-        unreleased = cl[i:j if j != -1 else len(cl)]
+        unreleased = changelog_recent()
         self.assertTrue(any("(SC-198)" in ln and "`pr-review`" in ln and ln.startswith("- Fase `pr-review`")
                             for ln in unreleased.splitlines()))
 

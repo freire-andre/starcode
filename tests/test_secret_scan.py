@@ -8,6 +8,7 @@ import unittest
 from helpers import FIXTURES, ROOT, TempRepoCase, run_git
 
 import secret_scan as ss
+from test_support import changelog_recent
 
 HOOK = ROOT / "hooks" / "scripts" / "secret_scan.py"
 
@@ -144,7 +145,7 @@ class ScanTextTests(unittest.TestCase):
                       "test_url_sem_credencial_passa", "test_lookalikes_pass", "test_each_fake_secret_is_found"):
             self.assertIn(teste, porque)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("SC-195", changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0])
+        self.assertIn("SC-195", changelog_recent())
 
     def test_secret_is_masked(self):
         findings = ss.scan_text(FAKE["github"], self.allow)

@@ -14,6 +14,7 @@ from helpers import FIXTURES, ROOT
 
 sys.path.insert(0, str(ROOT / "scripts" / "review"))
 import review_gate  # noqa: E402
+from test_support import changelog_recent
 
 SCRIPT = ROOT / "scripts" / "review" / "review_gate.py"
 REVIEW = FIXTURES / "review"
@@ -334,7 +335,7 @@ class ReviewGateTests(unittest.TestCase):
                      "test_decisions_retro_fase9"):
             self.assertIn(name, proof, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertIn("(SC-190)", unreleased)
 
 

@@ -18,6 +18,7 @@ import starcode_common as sc
 from test_dispatch import TASKS, make_tasks
 from test_dispatch_screens import png
 from test_dispatch_start import HANDOFF, FakeOrca
+from test_support import changelog_recent
 
 SPEC = ("# Demo: Spec\n\n**Linear**: PROJ-9\n**May change**: `app/a.py`, `tests/test_a.py`\n\n"
         "## Scope\nAlgo.\n\n## Requirements\n\n- **R1** - WHEN abre THEN the system SHALL mostrar `captures/home@2x.png`.\n\n"
@@ -371,7 +372,7 @@ class VersaoERetroTests(TempRepoCase):
             self.assertTrue(hasattr(type(self), name), name)
         self.assertIn("`test_versao_e_retro.VersaoERetroTests`", parts["Por que não é bug"])
         change = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = re.search(r"^## \[Unreleased\]\n(.*?)(?=^## \[)", change, re.M | re.S).group(1)
+        unreleased = changelog_recent()
         self.assertEqual(len([ln for ln in unreleased.splitlines() if "(SC-212)" in ln]), 1)
 
 
