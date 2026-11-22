@@ -1,5 +1,6 @@
 """Tests for conflicts.py, banner.py, git_mode.py, setup_helpers.py and miniyaml."""
 import json
+import re
 import os
 import subprocess
 import sys
@@ -22,6 +23,15 @@ def execute_text(root: Path = ROOT) -> str:
     refs = Path(root) / "skills" / "engajar" / "references"
     parts = [refs / "execute.md"] + sorted(refs.glob("execute-*.md"))
     return "\n".join(f.read_text(encoding="utf-8") for f in parts)
+
+
+def changelog_recent(root: Path = ROOT) -> str:
+    """`## [Unreleased]` followed by the most recent version section below it, and only that one (SC-214, R6)."""
+    text = (Path(root) / "CHANGELOG.md").read_text(encoding="utf-8")
+    start = text.index("## [Unreleased]")
+    heads = [m.start() for m in re.finditer(r"^## \[", text[start + 1:], re.M)]
+    end = len(text) if not heads else (start + 1 + heads[1] if len(heads) > 1 else len(text))
+    return text[start:end]
 
 
 def write_skill(folder: Path, name: str, description: str) -> None:

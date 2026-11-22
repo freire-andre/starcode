@@ -14,6 +14,7 @@ import starcode_common as sc
 from test_dispatch import TASKS
 from test_dispatch_screens import png
 from test_versao_e_retro import SPEC, VERIFICATION, run_main
+from test_support import changelog_recent
 
 REFS = ROOT / "skills" / "engajar" / "references"
 FILES = {
@@ -322,8 +323,7 @@ class SuiteEExecuteTests(TempRepoCase):
                      "test_referencias_apontam_o_arquivo_novo", "test_decisions_e_changelog"):
             self.assertIn(f"`{nome}`", why)
         log = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = log[log.index("## [Unreleased]"):]
-        unreleased = unreleased[:unreleased.index("\n## [", 5)] if "\n## [" in unreleased[5:] else unreleased
+        unreleased = changelog_recent()
         self.assertEqual(sum(1 for ln in unreleased.splitlines() if "(SC-213)" in ln), 1)
 
 

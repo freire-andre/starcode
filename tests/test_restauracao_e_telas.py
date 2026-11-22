@@ -20,6 +20,7 @@ import screens
 import snapshot
 import validate_verification as vv
 from test_images import png_bytes
+from test_support import changelog_recent
 
 
 def git(root, *args):
@@ -282,7 +283,7 @@ class RestauracaoETelasTests(unittest.TestCase):
                   "test_veredito_nome_inteiro", "test_png_sem_idat", "test_png_idat_truncado_ou_vazio", "test_decisions_e_changelog"):
             self.assertIn(t, porque, t)
         change = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = re.search(r"^## \[Unreleased\](.*?)(?=^## \[)", change, re.M | re.S).group(1)
+        unreleased = changelog_recent()
         self.assertEqual(len([ln for ln in unreleased.splitlines() if ln.startswith("- ") and "(SC-210)" in ln]), 1)
 
 

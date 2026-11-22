@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest import mock
 
 from helpers import FIXTURES, ROOT, TempRepoCase, run_git
-from test_support import execute_text
+from test_support import execute_text, changelog_recent
 
 import dispatch
 import handoff
@@ -490,7 +490,7 @@ class FamilyAndQCliTests(TempRepoCase):
             self.assertIn(name, entry, name)
             self.assertTrue(hasattr(type(self), name), name)
         log = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = re.search(r"^## \[Unreleased\]\n(.*?)(?=^## \[|\Z)", log, re.S | re.M).group(1)
+        unreleased = changelog_recent()
         self.assertTrue([ln for ln in unreleased.splitlines() if ln.startswith("- ") and "qStrategy" in ln])
 
     def test_q_cli_differs_from_all_laforge_families(self):  # C29
@@ -798,7 +798,7 @@ class FrotaTravadaTests(BatchTests):
         for name in ("test_batch_travado", "test_batch_nao_travado", "test_execute_travado", "test_decisions_frota_travada"):
             self.assertIn(name, bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertIn("(SC-200)", unreleased)
         self.assertIn("stalled", unreleased)
         self.assertIn("travado:", unreleased)

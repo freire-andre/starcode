@@ -6,7 +6,7 @@ import subprocess
 import unittest
 
 from helpers import ROOT
-from test_support import execute_text
+from test_support import execute_text, changelog_recent
 
 ROUTING = ROOT / "evals" / "routing"
 
@@ -212,7 +212,7 @@ class RoteamentoWorfMccoyTests(unittest.TestCase):
                      "test_readme_e_contagem", "test_decisions_roteamento"):
             self.assertIn(name, nao_bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]")[1].split("\n## [")[0]
+        unreleased = changelog_recent()
         self.assertTrue(any("SC-203" in ln and "Worf" in ln for ln in unreleased.splitlines()))
 
 

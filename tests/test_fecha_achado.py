@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from helpers import ROOT, TempRepoCase, run_git
-from test_support import execute_text
+from test_support import execute_text, changelog_recent
 
 import check_proofs
 import dispatch
@@ -244,7 +244,7 @@ class FechaAchadoTests(TempRepoCase):
                      "test_decisions_fecha_achado"):
             self.assertIn(name, bug, name)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
+        unreleased = changelog_recent()
         self.assertIn("(SC-199)", unreleased)
         self.assertIn("close-finding", unreleased)
 
