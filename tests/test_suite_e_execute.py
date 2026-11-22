@@ -1,8 +1,10 @@
 """SC-213: suíte rápida para o worker, regra de estado novo e execute.md dividido (R1 a R10)."""
 from __future__ import annotations
 
+import ast
 import re
 import unittest
+from pathlib import Path
 
 from helpers import ROOT, TempRepoCase, run_git
 from test_support import execute_text
@@ -198,6 +200,44 @@ class SuiteEExecuteTests(TempRepoCase):
         ordem = [REFS / "execute.md"] + sorted(REFS.glob("execute-*.md"))
         self.assertEqual([p.name for p in ordem], ["execute.md"] + sorted(FILES))
         self.assertEqual(conjunto, "\n".join(p.read_text(encoding="utf-8") for p in ordem))
+
+    def test_testes_leem_o_execute_por_execute_text(self):  # C8, R8
+        """Nenhum teste lê `execute.md` direto (só o índice); quem confere o texto das seções usa `execute_text()`."""
+        tests_dir = ROOT / "tests"
+        diretos, usam_helper = [], set()
+        for f in sorted(tests_dir.glob("*.py")):
+            if f.name in ("test_support.py", Path(__file__).name):
+                continue
+            source = f.read_text(encoding="utf-8")
+            tree = ast.parse(source)
+            for node in ast.walk(tree):
+                for filho in ast.iter_child_nodes(node):
+                    filho.parent = node
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "execute_text":
+                    usam_helper.add(f.name)
+                if not (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                        and re.search(r"(^|/)execute\.md$", node.value)):
+                    continue
+                pai = node.parent  # só vale como leitura quando é parte de um caminho ou argumento de Path/open/join
+                caminho = isinstance(pai, ast.BinOp) or (
+                    isinstance(pai, ast.Call) and getattr(pai.func, "id", getattr(pai.func, "attr", "")) in
+                    ("Path", "open", "join", "joinpath", "read_text", "read_bytes"))
+                if not caminho:
+                    continue
+                stmt = node
+                while not isinstance(stmt, ast.stmt):
+                    stmt = stmt.parent
+                trecho = ast.get_source_segment(source, stmt) or ""
+                if ".is_file()" in trecho or ".exists()" in trecho:
+                    continue  # só confere que o arquivo existe (test_build.py)
+                diretos.append(f"{f.name}:{node.lineno}: {trecho.strip().splitlines()[0]}")
+        self.assertEqual(diretos, [], "lê o execute.md direto em vez de execute_text()")
+        afetados = {"test_brief_media_escopo.py", "test_crew_live.py", "test_dispatch.py", "test_dispatch_qcheck.py",
+                    "test_execute_doc_start_settle.py", "test_fecha_achado.py", "test_flow_f12.py",
+                    "test_flow_worf_guinan.py", "test_licoes_no_brief.py", "test_pr_review.py", "test_screens_flow.py",
+                    "test_skills_exec.py", "test_uhura_skill.py", "test_worker_skills.py"}
+        self.assertEqual(sorted(afetados - usam_helper), [], "teste afetado que não chama execute_text()")
 
     def test_referencias_apontam_o_arquivo_novo(self):  # C9, R9
         for base in ("skills", "src", "scripts"):
