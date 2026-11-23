@@ -1,8 +1,8 @@
 // Testes da pintura da cena (contexto de canvas falso que grava as chamadas).
 import { assert, test } from 'orca/testing'
-import { buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, ROTACAO_MS } from './scene-model.ts'
+import { avisoDeDados, buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, relacaoDaTripulacao, ROTACAO_MS } from './scene-model.ts'
 import type { Cena } from './scene-model.ts'
-import { ajustaCanvas, dimensoes, obterCanvas, paint } from './scene.ts'
+import { ajustaCanvas, criaRelacao, dimensoes, obterCanvas, paint, preferenciaDeMovimento } from './scene.ts'
 import type { Pincel } from './scene'
 import type { PonteAgent, PonteState } from './protocol.ts'
 import type { Identidades } from './crew-visual.ts'
@@ -307,4 +307,112 @@ test('cena cabe no palco sem rolagem', () => {
   assert.equal(raiz.style.overflow, 'hidden')
   assert.equal(canvas.style.display, 'block')
   assert.ok(canvas.style.height !== 'auto')
+})
+
+/** Elemento falso com o mínimo de DOM que a relação usa. */
+function elemento(tag: string): any {
+  const el: any = {
+    tag, style: {}, attrs: {} as Record<string, string>, filhos: [] as any[], ouvintes: {} as Record<string, (e: unknown) => void>,
+    textContent: '', hidden: false, focado: false,
+    setAttribute(k: string, v: string) { el.attrs[k] = v },
+    appendChild(n: unknown) { el.filhos.push(n); return n },
+    addEventListener(ev: string, cb: (e: unknown) => void) { el.ouvintes[ev] = cb },
+    focus() { el.focado = true },
+  }
+  return el
+}
+const todos = (el: any): any[] => [el, ...el.filhos.flatMap(todos)]
+
+test('ponte viva expõe lista acessível', () => {
+  const corpo = elemento('body')
+  const doc: any = { getElementById: () => null, createElement: elemento, body: corpo }
+  const rel = criaRelacao(doc)
+  const raiz: any = rel.raiz
+  assert.equal(raiz.tag, 'nav')
+  assert.equal(raiz.attrs['aria-label'], 'Tripulação')
+  assert.equal(corpo.filhos[0], raiz)
+  const [alterna, aviso, lista] = raiz.filhos
+  // o botão abre e fecha a lista e diz o estado; a lista começa fechada
+  assert.equal(alterna.tag, 'button')
+  assert.equal(alterna.attrs.type, 'button')
+  assert.equal(alterna.attrs['aria-expanded'], 'false')
+  assert.equal(alterna.attrs['aria-controls'], lista.id)
+  assert.equal(lista.hidden, true)
+  alterna.ouvintes.click()
+  assert.equal(lista.hidden, false)
+  assert.equal(alterna.attrs['aria-expanded'], 'true')
+  // Esc fecha e devolve o foco ao botão
+  raiz.ouvintes.keydown({ key: 'Escape' })
+  assert.equal(lista.hidden, true)
+  assert.equal(alterna.attrs['aria-expanded'], 'false')
+  assert.equal(alterna.focado, true)
+  // a região de aviso é anunciada pelo leitor de tela
+  assert.equal(aviso.attrs.role, 'status')
+  assert.equal(aviso.attrs['aria-live'], 'polite')
+
+  const base = estado()
+  const agentes = [doMembro('worf', 'blocked'), doMembro('spock')]
+  const agora = T(0)
+  const itens = relacaoDaTripulacao(base, agentes, agora, IDS)
+  rel.atualiza(itens, avisoDeDados(base))
+  const botoes = todos(lista).filter(e => e.tag === 'button')
+  assert.equal(botoes.length, 12)
+  assert.deepEqual(botoes.map(b => b.attrs['data-membro']), MEMBROS)
+  botoes.forEach((b, i) => {
+    assert.equal(b.attrs.type, 'button')
+    assert.equal(b.attrs['aria-label'], itens[i].descricao)
+    assert.equal(b.attrs['aria-pressed'], 'false')
+    assert.equal(b.textContent, `${itens[i].emoji} ${itens[i].nome} ${itens[i].simbolo} ${itens[i].textoEstado} · ${itens[i].presente ? 'na cena' : 'fora da cena'}`)
+  })
+  assert.equal(botoes.find(b => b.attrs['data-membro'] === 'worf')!.attrs['aria-label'], 'worf, bloqueado, na cena')
+  assert.equal(aviso.textContent, '')
+
+  // Enter/Espaço num botão nativo vira click: a seleção chega a quem tratou e aria-pressed acompanha
+  const escolhidos: string[] = []
+  rel.aoSelecionar(m => escolhidos.push(m))
+  botoes[11].ouvintes.click()
+  assert.deepEqual(escolhidos, ['guinan'])
+  rel.atualiza(relacaoDaTripulacao(base, agentes, agora, IDS, { selecionado: 'guinan' }), null)
+  assert.equal(botoes[11].attrs['aria-pressed'], 'true')
+  assert.equal(botoes.filter(b => b.attrs['aria-pressed'] === 'true').length, 1)
+  assert.equal(botoes[11].attrs['aria-label'], 'guinan, ocioso, na cena')
+  // os mesmos 12 botões são reaproveitados: o foco do teclado não se perde numa atualização
+  assert.equal(todos(lista).filter(e => e.tag === 'button').length, 12)
+  assert.ok(todos(lista).filter(e => e.tag === 'button').every((b, i) => b === botoes[i]))
+
+  // dados antigos: o aviso mostra o horário da última atualização válida
+  const velho = { ...base, stale: true, lastValidAt: new Date(2026, 10, 22, 9, 5, 7).getTime() }
+  rel.atualiza(relacaoDaTripulacao(velho, agentes, agora, IDS), avisoDeDados(velho))
+  assert.equal(aviso.textContent, 'Dados desatualizados; última atualização válida às 09:05:07')
+  assert.ok(botoes.every(b => / desconhecido, /.test(b.attrs['aria-label'])))
+})
+
+test('ponte viva respeita movimento reduzido', () => {
+  const mq = (matches: boolean) => {
+    const ouvintes: (() => void)[] = []
+    return { matches, addEventListener: (_: string, cb: () => void) => ouvintes.push(cb), ouvintes }
+  }
+  const consultas: string[] = []
+  const reduzida = mq(true)
+  const pref = preferenciaDeMovimento({ matchMedia: (q: string) => { consultas.push(q); return reduzida } })
+  assert.deepEqual(consultas, ['(prefers-reduced-motion: reduce)'])
+  assert.equal(pref.reduzido(), true)
+  let avisos = 0
+  pref.aoMudar(() => { avisos++ })
+  reduzida.ouvintes[0]()
+  assert.equal(avisos, 1)
+  reduzida.matches = false
+  assert.equal(pref.reduzido(), false)
+  // sem matchMedia (ou erro) o movimento é o normal
+  assert.equal(preferenciaDeMovimento({}).reduzido(), false)
+  assert.equal(preferenciaDeMovimento({ matchMedia: () => { throw new Error('x') } }).reduzido(), false)
+
+  // com a preferência ativa a cena não anda nem gira, em nenhum instante
+  const base = estado()
+  const fixo = buildScene(base, [], T(0), undefined, IDS, { reduzido: true }).personagens.map(p => p.membro)
+  for (const t of [T(1), T(5), ROTACAO_MS + 300, ROTACAO_MS + 900]) {
+    const cena = buildScene(base, [], t, undefined, IDS, { reduzido: true })
+    assert.deepEqual(cena.personagens.map(p => p.membro), fixo)
+    assert.ok(cena.personagens.every(p => p.transicao === null))
+  }
 })

@@ -87,13 +87,15 @@ function semVinculo(agente: PonteAgent, ids: Identidades): boolean {
  * 60 min), então `count` > 0 é trabalho atual e 0 é livre. Dado indisponível ou antigo (erro, `stale`, sem
  * worktree, sem snapshot, sem StarCode), integrante fora do snapshot, vínculos conflitantes e estado de agente
  * fora do contrato dão `desconhecido`, nunca `trabalhando`. Agente ativo sem identidade só impede afirmar
- * ocioso quando nenhum `count` explica a atividade; título nunca é identidade.
+ * ocioso: o `count` agrega as sessões do repositório (`sessions.json` do worktree principal), então nem um
+ * `count` positivo de outro integrante explica o agente sem vínculo; quem tem `count` > 0 segue trabalhando e
+ * os demais ficam `desconhecido`. Título nunca é identidade.
  */
 export function estadosDaTripulacao(estado: PonteState, ids: Identidades): EstadoDoMembro[] {
   const snap = estado.snapshot
   const utilizavel = estado.status === 'ok' && !estado.stale && snap !== null && snap.starcode
-  const contados = utilizavel ? snap.crew.filter(c => MEMBROS.includes(c.member) && comContagem(c.count)) : []
-  const ativoSemIdentidade = utilizavel && contados.length === 0 && estado.agents.some(a => a.state !== 'done' && semVinculo(a, ids))
+  // o count agrega as sessões do repositório: não explica um agente sem vínculo, então não prova ocioso em ninguém
+  const ativoSemIdentidade = utilizavel && estado.agents.some(a => a.state !== 'done' && semVinculo(a, ids))
   return MEMBROS.map((membro): EstadoDoMembro => {
     const desconhecido = (motivo: string): EstadoDoMembro => ({ membro, estado: 'desconhecido', motivo })
     if (!utilizavel) return desconhecido('dados indisponíveis ou antigos')
@@ -109,6 +111,6 @@ export function estadosDaTripulacao(estado: PonteState, ids: Identidades): Estad
       return { membro, estado: 'trabalhando', motivo: 'sessão ativa no snapshot (count > 0)' }
     }
     if (ativoSemIdentidade) return desconhecido('agente ativo sem identidade confiável')
-    return { membro, estado: 'ocioso', motivo: 'sem agente ativo no worktree' }
+    return { membro, estado: 'ocioso', motivo: 'sem sessão ativa no snapshot do repositório' }
   })
 }

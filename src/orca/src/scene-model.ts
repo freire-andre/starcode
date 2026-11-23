@@ -260,15 +260,18 @@ function fazConsole(x: number, y: number, s: number): Retangulo {
   return { x: x - 2.6 * k, y: y + 0.4 * k, largura: 5.2 * k, altura: 0.8 * k }
 }
 
+/** Opções de apresentação: movimento reduzido (R17) e integrante escolhido na relação (R10). */
+export interface OpcoesCena { reduzido?: boolean; selecionado?: string | null }
+
 const ALERTAS: readonly EstadoVisual[] = ['bloqueado', 'aguardando']
 
 /**
  * Quem está na ponte na rodada `ciclo` (no máximo MAX_PERSONAGENS), na ordem dos perfis (R2, R3). Todos os 12
  * são elegíveis; alertas (bloqueado, aguardando) vêm primeiro, depois quem trabalha, depois os demais. Um grupo
  * que não cabe inteiro gira em janelas contíguas e consecutivas da roda, então a rodada seguinte começa onde a
- * anterior terminou e todos aparecem.
+ * anterior terminou e todos aparecem. `selecionado` (R10) é trazido à cena mesmo fora da rodada.
  */
-export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: number): string[] {
+export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: number, selecionado: string | null = null): string[] {
   const grupos = [
     estados.filter(e => ALERTAS.includes(e.estado)),
     estados.filter(e => e.estado === 'trabalhando'),
@@ -285,6 +288,11 @@ export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: nu
     const inicio = (Math.max(0, ciclo) * livres) % grupo.length
     for (let i = 0; i < livres; i++) fica.push(grupo[(inicio + i) % grupo.length].membro)
   }
+  // seleção manual (R10): o escolhido entra na cena no lugar do de menor prioridade; o estado dele não muda
+  if (selecionado !== null && PERFIS.some(p => p.membro === selecionado) && !fica.includes(selecionado)) {
+    if (fica.length >= MAX_PERSONAGENS) fica.pop()
+    fica.push(selecionado)
+  }
   return PERFIS.map(p => p.membro).filter(m => fica.includes(m))
 }
 
@@ -295,13 +303,16 @@ interface Presenca { membro: string; transicao: Transicao | null }
  * o acesso na primeira metade da troca e quem entra anda até a estação na segunda, então nunca há mais de seis.
  * O progresso não depende de quando a atualização chegou, e estado repetido dá a mesma presença (R4, R18).
  */
-export function presencas(estados: readonly EstadoDoMembro[], agoraMs: number): Presenca[] {
+export function presencas(estados: readonly EstadoDoMembro[], agoraMs: number, opcoes: OpcoesCena = {}): Presenca[] {
+  const sel = opcoes.selecionado ?? null
+  const estavel = (lista: string[]): Presenca[] => lista.map(membro => ({ membro, transicao: null }))
+  // movimento reduzido (R17): sem rodízio automático nem deslocamento; só a seleção manual muda quem aparece
+  if (opcoes.reduzido) return estavel(selecionaPresentes(estados, 0, sel))
   const ciclo = Math.floor(Math.max(0, agoraMs) / ROTACAO_MS)
   const dt = Math.max(0, agoraMs) - ciclo * ROTACAO_MS
-  const atual = selecionaPresentes(estados, ciclo)
-  const estavel = (lista: string[]): Presenca[] => lista.map(membro => ({ membro, transicao: null }))
+  const atual = selecionaPresentes(estados, ciclo, sel)
   if (ciclo === 0 || dt >= TRANSICAO_MS) return estavel(atual)
-  const anterior = selecionaPresentes(estados, ciclo - 1)
+  const anterior = selecionaPresentes(estados, ciclo - 1, sel)
   const metade = TRANSICAO_MS / 2
   if (dt < metade) {
     return anterior.map(membro => ({
@@ -520,13 +531,13 @@ function mensagemDoEstado(estado: PonteState): string | null {
  * Monta a cena (função pura). `linhas` é a altura da grade em células, tirada da proporção do palco
  * (`linhasDoPainel`); a largura é sempre GRADE.largura e a ponte, com o anel, ocupa a altura que sobra.
  */
-export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: number, linhas?: number, ids: Identidades = {}): Cena {
+export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: number, linhas?: number, ids: Identidades = {}, opcoes: OpcoesCena = {}): Cena {
   const alturaGrade = normalizaLinhas(linhas)
   const mensagem = mensagemDoEstado(estado)
   if (mensagem !== null || !estado.snapshot) return cenaVazia(mensagem ?? MSG_SEM_WORKTREE, alturaGrade)
 
   const snap = estado.snapshot
-  const quadro = (Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
+  const quadro = (opcoes.reduzido ? 0 : Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
   const porMembro = new Map(snap.crew.map(c => [c.member, c]))
   const estados = estadosDaTripulacao({ ...estado, agents: agentes }, ids)
   const porEstado = new Map(estados.map(e => [e.membro, e.estado]))
@@ -585,7 +596,7 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
   const porta: Celula = { x: GRADE.largura / 2, y: ponte.y + ponte.altura - 1.5 }
   const lugarDe = new Map(lugares.map(l => [l.m.id, l]))
   const perfilDe = new Map(PERFIS.map(p => [p.membro, p]))
-  const personagens: Personagem[] = presencas(estados, agoraMs).map(({ membro, transicao }) => {
+  const personagens: Personagem[] = presencas(estados, agoraMs, opcoes).map(({ membro, transicao }) => {
     const { m, x: ex, y: ey, s } = lugarDe.get(membro)!
     const perfil = perfilDe.get(membro)!
     const c = porMembro.get(membro)
@@ -685,4 +696,58 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     vazia: false,
     mensagem: null,
   }
+}
+
+/** Um integrante na relação acessível: nome, estado e presença na cena (R9, R16). */
+export interface ItemRelacao {
+  membro: string
+  nome: string
+  emoji: string
+  estado: EstadoVisual
+  simbolo: string
+  textoEstado: string
+  presente: boolean
+  selecionado: boolean
+  /** Texto para leitor de tela: nome, estado e presença. */
+  descricao: string
+}
+
+/** Horário local HH:MM:SS de um instante em ms. */
+export function horario(ms: number): string {
+  const d = new Date(ms)
+  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':')
+}
+
+/**
+ * Relação dos 12 integrantes, sempre na ordem dos perfis e mesmo sem cena (sem worktree, erro). O estado vem
+ * de `estadosDaTripulacao`, o mesmo que a cena usa; só diz o que a fonte garante, sem escopo de worktree.
+ */
+export function relacaoDaTripulacao(
+  estado: PonteState, agentes: PonteAgent[], agoraMs: number, ids: Identidades = {}, opcoes: OpcoesCena = {},
+): ItemRelacao[] {
+  const estados = estadosDaTripulacao({ ...estado, agents: agentes }, ids)
+  const naCena = new Set(mensagemDoEstado(estado) === null ? presencas(estados, agoraMs, opcoes).map(p => p.membro) : [])
+  const sel = opcoes.selecionado ?? null
+  return PERFIS.map(perfil => {
+    const visual = estados.find(e => e.membro === perfil.membro)?.estado ?? 'desconhecido'
+    const apres = ESTADOS[visual]
+    const c = estado.snapshot?.crew.find(x => x.member === perfil.membro)
+    const nome = c?.name || perfil.nome
+    const presente = naCena.has(perfil.membro)
+    return {
+      membro: perfil.membro, nome, emoji: c?.emoji || perfil.emoji, estado: visual, simbolo: apres.simbolo,
+      textoEstado: apres.texto, presente, selecionado: sel === perfil.membro,
+      descricao: `${nome}, ${apres.texto}, ${presente ? 'na cena' : 'fora da cena'}`,
+    }
+  })
+}
+
+/** Aviso de falha ou de dados antigos com o horário da última atualização válida (R13); null quando está tudo em dia. */
+export function avisoDeDados(estado: PonteState): string | null {
+  const ultima = estado.lastValidAt != null
+    ? `última atualização válida às ${horario(estado.lastValidAt)}`
+    : 'ainda sem atualização válida'
+  if (estado.status === 'erro') return `Dados indisponíveis (${primeiraLinha(estado.error)}); ${ultima}`
+  if (estado.status === 'ok' && estado.stale) return `Dados desatualizados; ${ultima}`
+  return null
 }

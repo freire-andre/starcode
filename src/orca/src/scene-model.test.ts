@@ -1,6 +1,6 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { buildScene, GRADE, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
+import { avisoDeDados, buildScene, GRADE, horario, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
 import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
 import type { Identidades } from './crew-visual'
@@ -523,8 +523,10 @@ test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
       assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === '⚙'))
       assert.equal(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === p.membro)?.texto, 'há 2 min')
     }
-    // quem não tem sessão ativa segue ocioso (não desconhecido, não trabalhando)
-    assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === 'ocioso' && p.brilho === null))
+    // sem agente sem vínculo, quem não tem sessão ativa é ocioso; com ele, o count agregado não o explica e
+    // os demais ficam desconhecidos, nunca ociosos sem evidência (e nunca trabalhando)
+    const esperado = ags.length === 0 ? 'ocioso' : 'desconhecido'
+    assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === esperado && p.brilho === null))
     assert.equal(cena.ativos, 3)
     assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === '3 tripulantes ativos'))
   }
@@ -594,4 +596,113 @@ test('ponte viva preserva transição em atualização repetida', () => {
   const durante = buildScene(a, ags, ROTACAO_MS + 100, undefined, IDS).personagens
   for (const p of durante) if (p.transicao === null) assert.ok(antes.has(p.membro))
   assert.ok(durante.every(p => p.transicao === null || p.transicao.fase === 'saindo'))
+})
+
+const NOMES_COMPLETOS = ['Jean-Luc Picard', 'Spock', 'Deanna Troi', 'Data', 'Geordi La Forge', 'Leonard McCoy', 'Q', 'Nyota Uhura', 'Montgomery Scott', 'James T. Kirk', 'Worf', 'Guinan']
+
+test('ponte viva lista os 12 integrantes', () => {
+  const base = estado({}, { spock: [1, null] })
+  const agentes = [doMembro('worf', 'blocked'), doMembro('kirk', 'done')]
+  const agora = T(0)
+  const itens = relacaoDaTripulacao(base, agentes, agora, IDS)
+  assert.deepEqual(itens.map(i => i.membro), MEMBROS)
+  // com crew.name = id no snapshot, o nome exibido é o do snapshot; o texto de leitor de tela diz nome, estado e presença
+  const cena = buildScene(base, agentes, agora, undefined, IDS)
+  const naCena = new Set(membrosDe(cena))
+  const estados = estadosDaTripulacao({ ...base, agents: agentes }, IDS)
+  for (const i of itens) {
+    const e = estados.find(x => x.membro === i.membro)!
+    assert.equal(i.estado, e.estado)
+    assert.equal(i.textoEstado, ESTADOS[e.estado].texto)
+    assert.equal(i.simbolo, ESTADOS[e.estado].simbolo)
+    assert.equal(i.presente, naCena.has(i.membro))
+    assert.equal(i.descricao, `${i.nome}, ${ESTADOS[e.estado].texto}, ${i.presente ? 'na cena' : 'fora da cena'}`)
+  }
+  assert.equal(itens.find(i => i.membro === 'worf')!.descricao, 'worf, bloqueado, na cena')
+  assert.equal(itens.find(i => i.membro === 'spock')!.descricao, 'spock, trabalhando, na cena')
+  assert.equal(itens.find(i => i.membro === 'kirk')!.estado, 'concluido')
+  assert.ok(itens.some(i => !i.presente), 'há integrantes fora da cena e eles continuam na relação')
+  assert.equal(itens.filter(i => i.presente).length, 6)
+  // sem snapshot os 12 continuam listados, desconhecidos e fora da cena; nome vem dos perfis
+  const sem = relacaoDaTripulacao({ ...base, status: 'sem-worktree', snapshot: null }, [], agora, IDS)
+  assert.deepEqual(sem.map(i => i.nome), NOMES_COMPLETOS)
+  assert.ok(sem.every(i => i.estado === 'desconhecido' && !i.presente && i.descricao === `${i.nome}, desconhecido, fora da cena`))
+  // a relação não afirma escopo de worktree
+  assert.ok(itens.every(i => !/worktree/i.test(i.descricao)))
+})
+
+test('ponte viva permite selecionar integrante', () => {
+  const base = estado({}, { spock: [1, null] })
+  const agentes = [doMembro('worf', 'blocked')]
+  const agora = T(0)
+  const antes = relacaoDaTripulacao(base, agentes, agora, IDS)
+  const fora = antes.find(i => !i.presente)!
+  assert.equal(fora.estado, 'ocioso')
+  const opcoes = { selecionado: fora.membro }
+  const depois = relacaoDaTripulacao(base, agentes, agora, IDS, opcoes)
+  const item = depois.find(i => i.membro === fora.membro)!
+  assert.equal(item.presente, true)
+  assert.equal(item.selecionado, true)
+  assert.equal(item.estado, fora.estado) // estado real intacto
+  assert.equal(depois.filter(i => i.selecionado).length, 1)
+  const cena = buildScene(base, agentes, agora, undefined, IDS, opcoes)
+  assert.equal(cena.personagens.length, 6)
+  assert.ok(membrosDe(cena).includes(fora.membro))
+  assert.equal(cena.personagens.find(p => p.membro === fora.membro)!.estado, 'ocioso')
+  assert.ok(membrosDe(cena).includes('worf') && membrosDe(cena).includes('spock')) // alerta e quem trabalha seguem
+  // selecionar quem já está na cena não muda nada; id desconhecido é ignorado
+  assert.deepEqual(membrosDe(buildScene(base, agentes, agora, undefined, IDS, { selecionado: 'worf' })), membrosDe(buildScene(base, agentes, agora, undefined, IDS)))
+  assert.deepEqual(membrosDe(buildScene(base, agentes, agora, undefined, IDS, { selecionado: 'nemo' })), membrosDe(buildScene(base, agentes, agora, undefined, IDS)))
+  assert.deepEqual(selecionaPresentes(estadosDaTripulacao(base, IDS), 0, 'guinan').includes('guinan'), true)
+  // a seleção continua valendo no rodízio, durante a troca incluída
+  for (const t of [T(1), T(2), ROTACAO_MS + TRANSICAO_MS / 4, ROTACAO_MS + (TRANSICAO_MS * 3) / 4]) {
+    assert.ok(membrosDe(buildScene(base, agentes, t, undefined, IDS, opcoes)).includes(fora.membro), String(t))
+  }
+})
+
+test('ponte viva informa dados desatualizados', () => {
+  const lv = new Date(2026, 10, 22, 9, 5, 7).getTime()
+  assert.equal(horario(lv), '09:05:07')
+  assert.equal(avisoDeDados(estado()), null)
+  assert.equal(avisoDeDados(estado({ status: 'sem-worktree', snapshot: null })), null)
+  assert.equal(
+    avisoDeDados(estado({ status: 'erro', stale: true, error: 'boom' + String.fromCharCode(10) + 'segunda', lastValidAt: lv })),
+    'Dados indisponíveis (boom); última atualização válida às 09:05:07',
+  )
+  assert.equal(
+    avisoDeDados(estado({ stale: true, lastValidAt: lv })),
+    'Dados desatualizados; última atualização válida às 09:05:07',
+  )
+  assert.equal(
+    avisoDeDados(estado({ status: 'erro', stale: false, error: 'x', snapshot: null, lastValidAt: null })),
+    'Dados indisponíveis (x); ainda sem atualização válida',
+  )
+  // com dados antigos nenhum integrante afirma trabalho: todos desconhecidos, ainda listados
+  const itens = relacaoDaTripulacao(estado({ stale: true, lastValidAt: lv }, { spock: [1, null] }), [], T(0), IDS)
+  assert.equal(itens.length, 12)
+  assert.ok(itens.every(i => i.estado === 'desconhecido'))
+})
+
+test('ponte viva respeita movimento reduzido', () => {
+  const base = estado()
+  const agentes = [doMembro('worf', 'blocked')]
+  const r = { reduzido: true }
+  const fixo = membrosDe(buildScene(base, agentes, T(0), undefined, IDS, r))
+  // sem rodízio: o conjunto é o mesmo em qualquer rodada, e sem deslocamento: nenhuma transição em lugar nenhum
+  for (let t = 0; t <= ROTACAO_MS * 4; t += 250) {
+    const cena = buildScene(base, agentes, t, undefined, IDS, r)
+    assert.deepEqual(membrosDe(cena), fixo, String(t))
+    assert.ok(cena.personagens.every(p => p.transicao === null), String(t))
+    assert.ok(cena.personagens.every(p => p.quadro === 0), String(t))
+  }
+  // o rodízio normal, no mesmo instante, mudaria a cena e anima a troca
+  assert.notDeepEqual(membrosDe(buildScene(base, agentes, T(1), undefined, IDS)), fixo)
+  assert.ok(buildScene(base, agentes, ROTACAO_MS + TRANSICAO_MS / 4, undefined, IDS).personagens.some(p => p.transicao !== null))
+  // acesso manual preservado: a seleção traz o integrante mesmo com movimento reduzido
+  const fora = MEMBROS.find(m => !fixo.includes(m))!
+  const cena = buildScene(base, agentes, T(3), undefined, IDS, { ...r, selecionado: fora })
+  assert.ok(membrosDe(cena).includes(fora))
+  assert.ok(cena.personagens.every(p => p.transicao === null))
+  const item = relacaoDaTripulacao(base, agentes, T(3), IDS, { ...r, selecionado: fora }).find(i => i.membro === fora)!
+  assert.equal(item.presente, true)
 })

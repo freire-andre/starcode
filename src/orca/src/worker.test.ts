@@ -1235,6 +1235,16 @@ test('ponte viva descarta resposta obsoleta', async () => {
   assert.equal(bad.snapshot.feature.phase, 'nova')
 
   // mesmo foco, fora de ordem: a consulta mais antiga termina por último e não vence a mais nova
+  // Causa da oscilação: eventos do host disparam atualizações em segundo plano (debounce de 300 ms) que também
+  // chamam o snapshot; contar chamadas (`calls === 1`) deixava essa atualização ocupar a vaga da consulta
+  // retida. Espera o worker ficar quieto e só então arma a retenção, atribuída à consulta `first`.
+  let quieto = fake.snaps().length
+  for (let i = 0; i < 100; i++) {
+    await new Promise((r) => setTimeout(r, 100))
+    const agora = fake.snaps().length
+    if (agora === quieto) break
+    quieto = agora
+  }
   hold('old')
   let calls = 0
   fake.python = async (path) => {
@@ -1244,8 +1254,11 @@ test('ponte viva descarta resposta obsoleta', async () => {
     }
     return phased(path, 'recente')
   }
+  let firstDone = false
   const first = worker.request('ponte.state', {})
-  await waitFor(() => calls === 1)
+  void first.then(() => { firstDone = true }, () => { firstDone = true })
+  await waitFor(() => calls >= 1)
+  assert.equal(firstDone, false, 'a consulta mais antiga deve continuar retida')
   const second: any = await worker.request('ponte.state', {})
   assert.equal(second.snapshot.feature.phase, 'recente')
   const countBefore = posts(worker).length
