@@ -1,33 +1,41 @@
 # Revisão: ponte-viva
 
-**Round**: 1
-**Verdict**: COMMENT
-**Reviewer**: codex · modelo não confirmado
+**Round**: 2
+**Verdict**: APPROVE
+**Reviewer**: claude · claude-opus-5-5
 
 ## TL;DR
 
-Há três falhas reproduzíveis na seleção e na confiabilidade dos estados, além de conversões que contornam tipos sem justificativa. O PR precisa de correções antes de solicitar merge.
+Os cinco achados da rodada 1 (W1 a W5) estão resolvidos no HEAD `f51f55f`. Cada um tem teste ou justificativa vinculada a SC-216. A rodada 2 não encontrou blocker novo.
 
 | ID | Severity | Where | Finding | Evidence | State |
 |---|---|---|---|---|---|
-| W1 | should-fix | `src/orca/src/scene.ts:398` | Acionar alguém já presente substitui a seleção anterior e pode retirar quem foi trazido manualmente. | Selecionar Q e depois Picard, com seis integrantes trabalhando, inicia a saída de Q; `scene-model.ts:283`. | confirmed |
-| W2 | should-fix | `src/orca/src/crew-visual.ts:112` | Um `sessions.json` inválido produz contagens zero e pode aparecer como ociosidade, sem aviso. | `scripts/ponte.py:96` e `src/orca/src/worker.ts:489`; com erro de JSON no snapshot e sem agentes, Spock retorna `ocioso`. | confirmed |
-| W3 | should-fix | `src/orca/src/crew-visual.ts:121` | Comparar caminhos sem distinguir maiúsculas também em sistemas sensíveis a caixa pode vincular worktrees distintos. | `/repo/Foo` no registro e `/repo/foo` no foco produzem vínculo para Spock. | confirmed |
-| W4 | should-fix | `src/orca/src/scene.ts:599` | Conversão dupla de `document` contorna a verificação de tipos sem justificativa vinculada a issue. | `src/orca/src/scene.ts:599`. | confirmed |
-| W5 | should-fix | `src/orca/src/scene.test.ts:317` | Dublês de testes contornam tipos sem justificativa vinculada a issue. | `src/orca/src/scene.test.ts:317`, `src/orca/src/worker.test.ts:1051` e `src/orca/src/worker.test.ts:1079`. | confirmed |
+| W1 | should-fix | `src/orca/src/scene.ts:400` | Acionar quem já está na cena trocava a seleção. Agora o clique passa por `alternaSelecao` com os presentes do último desenho e mantém a seleção. | `src/orca/src/scene.ts:439`, `src/orca/src/scene-model.ts:304`; teste `scene-model.test.ts:768` (Q e depois Picard mantém Q). | resolvido |
+| W2 | should-fix | `scripts/ponte.py:98` | `sessions.json` inválido virava contagem zero e ocioso. Agora vira `count: null`, o integrante fica `desconhecido` e o aviso aparece mesmo com status `ok`. | `scripts/ponte.py:118`, `src/orca/src/crew-visual.ts:113`, `src/orca/src/scene-model.ts:808`; teste `scene-model.test.ts:795` e `tests/test_ponte.py`. | resolvido |
+| W3 | should-fix | `src/orca/src/crew-visual.ts:125` | A comparação de caminhos ignorava a caixa em POSIX. Agora a caixa só é ignorada com letra de unidade ou UNC. | `src/orca/src/crew-visual.ts:127`; teste `crew-visual.test.ts:220` (`/repo/Foo` x `/repo/foo` nos dois sentidos, sem vínculo; `C:/wt` x `c:\WT` vincula). | resolvido |
+| W4 | should-fix | `src/orca/src/scene.ts:603` | Conversão dupla de `document` para `Pagina`. Removida: `criaRelacao(document)`. | `src/orca/src/scene.ts:448`: `Document` satisfaz cada membro de `Pagina`. Typecheck não executado (sem `.orca/types` nem `tsc` local). | resolvido |
+| W5 | should-fix | `src/orca/src/scene.test.ts:317` | Dublês contornavam tipos sem justificativa. `filhos` passou a `unknown[]`; as duas conversões restantes têm justificativa SC-216 na linha anterior. | `src/orca/src/worker.test.ts:1051` e `src/orca/src/worker.test.ts:1080`. | resolvido |
+
+Fora do escopo desta rodada: as conversões `as unknown as` em `src/orca/src/scene.ts:385` e `:406` já existiam em `main` e não são candidatas do diff.
 
 ## Escada determinística
 
+Executada pelo coordenador no HEAD `f51f55f`; não reexecutada nesta rodada:
+
 - `python tools/build.py --check`: passou.
+- `python -m unittest discover -s tests -v`: passou, 1116 testes, 1 ignorado.
 - `python scripts/check_decisions.py`: passou.
 - `claude plugin validate dist/claude --strict`: passou.
-- `orca plugin test src/orca`: 117 passaram.
-- `scan_bypasses.py`: cinco candidatos; um em `dist/` gerado, excluído do review; os quatro restantes estão agrupados em W4 e W5.
-- `python -m unittest discover -s tests -v`: não reexecutado nesta rodada; o worker da compatibilidade relatou 1116 testes aprovados, com um ignorado.
+- `orca plugin test src/orca`: 118 de 118.
+- `run_gates.py proofs ponte-viva` e `done --strict`: verde.
+
+Executado nesta rodada:
+
+- `git diff main...HEAD | scan_bypasses.py`: 2 candidatos (`src/orca/src/worker.test.ts:1052` e `:1081`), ambos com justificativa e a issue SC-216 na linha anterior; aceitos, sem achado. Na rodada 1 eram 5.
+- `review_gate.py review.json`: saída 0.
 
 ## Pesquisa
 
-- https://github.com/stablyai/orca/blob/main/docs/reference/plugin-host-api.md — contrato de `agents.list` e eventos.
-- https://github.com/stablyai/orca/blob/main/docs/reference/plugin-authoring.md — superfície e limites da API.
+nenhuma superfície externa: as correções não tocam dependência nem API externa.
 
 Arquivos gerados em `dist/` foram excluídos da análise de código.

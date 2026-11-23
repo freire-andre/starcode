@@ -1,6 +1,6 @@
 # ponte-viva proofs
 
-**HEAD**: ada135b
+**HEAD**: f51f55f
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 25 pass, 0 fail
@@ -42,15 +42,15 @@
 [starcode-ponte] snapshot falhou: boom
 [starcode-ponte] snapshot falhou: boom
 [starcode-ponte] snapshot falhou: boom
-✔ ponte viva descarta resposta obsoleta (468.6538ms)
-✔ ponte viva preserva transição em atualização repetida (9.7177ms)
-ℹ tests 117
+✔ ponte viva descarta resposta obsoleta (465.0788ms)
+✔ ponte viva preserva transição em atualização repetida (11.2296ms)
+ℹ tests 118
 ℹ suites 0
-ℹ pass 117
+ℹ pass 118
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 4035.2567
+ℹ duration_ms 4013.9959
 5 test file(s) passed (node).
 ```

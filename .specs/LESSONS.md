@@ -599,6 +599,36 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: verification.md:C16
 - updated: 2026-11-23T15:00:07Z
 
+### L99 - Ao tratar clique em item já presente, use a mesma função de alternância de seleção e teste que a seleção se mantém, porque o clique trocava a seleção de quem já estava na cena.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W1
+- updated: 2026-11-23T16:56:34Z
+
+### L100 - Trate arquivo de estado presente mas ilegível ou inválido como desconhecido, nunca como contagem zero, e teste os três casos (ausente, válido, inválido), porque o JSON inválido virava integrante ocioso.
+- signal: `review_finding` · features: 1 · scope: `scripts`
+- features: ponte-viva
+- sources: review.md:W2
+- updated: 2026-11-23T16:56:34Z
+
+### L101 - Ignore a caixa ao comparar caminhos só quando houver letra de unidade ou UNC; em POSIX compare exato e teste os dois sentidos com nomes que diferem só na caixa, porque /repo/Foo vinculava a /repo/foo.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W3
+- updated: 2026-11-23T16:56:34Z
+
+### L102 - Remova conversões de tipo desnecessárias quando o valor já satisfaz a interface esperada, porque a conversão dupla de document para Pagina escondia a compatibilidade real.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W4
+- updated: 2026-11-23T16:56:34Z
+
+### L103 - Não suprima tipo em dublê de teste sem justificativa: tipe o dublê com a forma real ou mantenha a conversão com a justificativa e a issue na linha anterior, porque dublês contornavam tipos sem registro.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W5
+- updated: 2026-11-23T16:56:34Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
