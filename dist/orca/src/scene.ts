@@ -1,7 +1,7 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
 import { identidadesDaSessao } from './crew-visual.ts'
-import { avisoDeDados, buildScene, CORES, criaRastroPresenca, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
+import { alternaSelecao, avisoDeDados, buildScene, CORES, criaRastroPresenca, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
 import type { Boneco, Cena, ItemRelacao, OpcoesCena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { EstadoVisual } from './crew-visual.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
@@ -394,8 +394,10 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement, relacao: Relacao | 
   const rastro = criaRastroPresenca()
   const preferencia = preferenciaDeMovimento()
   preferencia.aoMudar(() => { sujo = true })
+  // quem está na cena no último desenho: acionar quem já está presente não troca a seleção (SC-216, W1)
+  let presentes: string[] = []
   relacao?.aoSelecionar(membro => {
-    selecionado = selecionado === membro ? null : membro
+    selecionado = alternaSelecao(selecionado, membro, presentes)
     sujo = true
   })
 
@@ -433,7 +435,9 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement, relacao: Relacao | 
       const opcoes: OpcoesCena = { reduzido: preferencia.reduzido(), selecionado, rastro }
       const ids = identidadesDaSessao(atual, agentes)
       paint(ctx, buildScene(atual, agentes, agora, linhas, ids, opcoes), escala)
-      relacao?.atualiza(relacaoDaTripulacao(atual, agentes, agora, ids, opcoes), avisoDeDados(atual))
+      const itens = relacaoDaTripulacao(atual, agentes, agora, ids, opcoes)
+      presentes = itens.filter(i => i.presente).map(i => i.membro)
+      relacao?.atualiza(itens, avisoDeDados(atual))
     }
     requestAnimationFrame(laco)
   }
@@ -596,5 +600,5 @@ export function obterCanvas(doc: Pagina): HTMLCanvasElement {
 const frame = (globalThis as { orca?: OrcaFrame }).orca
 if (frame && typeof document !== 'undefined') {
   const canvas = obterCanvas(document)
-  iniciar(frame, canvas, criaRelacao(document as unknown as Pagina))
+  iniciar(frame, canvas, criaRelacao(document))
 }

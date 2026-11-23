@@ -184,7 +184,8 @@ class SnapshotTests(PonteCase):
             self.assertNotIn("\n", e["message"])
             self.assertNotIn("Traceback", e["message"])
         self.assertIsNone(data["gitMode"])
-        self.assertTrue(all(c["count"] == 0 for c in data["crew"]))
+        # sessions.json inválido: a contagem é desconhecida (null), nunca zero confiável (SC-216, W2)
+        self.assertTrue(all(c["count"] is None and c["sessions"] == [] for c in data["crew"]))
         self.assertEqual(data["feature"]["slug"], "fase-x")  # other sections survive
         # repo config that is not JSON, and a feature without any artifact: errors, still exit 0
         (self.repo / ".starcode" / "config.json").write_text("{", encoding="utf-8")
@@ -206,6 +207,7 @@ class SnapshotTests(PonteCase):
         out = ponte.snapshot(self.repo)
         sources = {e["source"]: e["message"] for e in out["errors"]}
         self.assertIn("ilegível", sources[".starcode/live/sessions.json"])
+        self.assertTrue(all(c["count"] is None for c in out["crew"]))  # fonte ilegível também é desconhecida
         self.assertIn("1 MiB", sources[".specs/features/fase-x/tasks.md"])
         self.assertTrue(out["starcode"])
         self.assertEqual(run_cli(self.repo).returncode, 0)

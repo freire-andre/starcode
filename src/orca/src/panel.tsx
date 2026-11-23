@@ -127,7 +127,7 @@ function Body(props: { s: PonteState }) {
   if (!snap.starcode) return <Text>StarCode não configurado neste worktree</Text>
 
   const errs = (sec: Section) => snap.errors.filter((e) => sectionOf(e.source) === sec)
-  const active = snap.crew.filter((c) => c.count > 0)
+  const active = snap.crew.filter((c) => (c.count ?? 0) > 0)
   const el = snap.elsewhere ?? null
   const elsewhereMsg = read(elsewhereMsgAtom)
   const f = el ?? snap.feature
@@ -142,7 +142,7 @@ function Body(props: { s: PonteState }) {
           <List label="Tripulação">
             {active.map((c) => (
               <ListItem
-                title={`${c.emoji} ${c.name}${c.count > 1 ? ` ×${c.count}` : ''}`}
+                title={`${c.emoji} ${c.name}${c.count !== null && c.count > 1 ? ` ×${c.count}` : ''}`}
                 description={c.cliModel ?? undefined}
               />
             ))}

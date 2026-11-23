@@ -314,7 +314,7 @@ test('cena cabe no palco sem rolagem', () => {
 /** Elemento falso com o mínimo de DOM que a relação usa. */
 function elemento(tag: string): any {
   const el: any = {
-    tag, style: {}, attrs: {} as Record<string, string>, filhos: [] as any[], ouvintes: {} as Record<string, (e: unknown) => void>,
+    tag, style: {}, attrs: {} as Record<string, string>, filhos: [] as unknown[], ouvintes: {} as Record<string, (e: unknown) => void>,
     textContent: '', hidden: false, focado: false,
     setAttribute(k: string, v: string) { el.attrs[k] = v },
     appendChild(n: unknown) { el.filhos.push(n); return n },

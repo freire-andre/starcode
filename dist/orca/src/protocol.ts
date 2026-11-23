@@ -6,7 +6,8 @@ export interface PonteCrew {
   member: string
   emoji: string
   name: string
-  count: number
+  /** Sessões ativas; `null` quando o `sessions.json` existe mas não pôde ser lido (dado desconhecido, nunca zero). */
+  count: number | null
   lastAt: string | null
   cliModel: string | null
   /** Sessões ativas do integrante com o worktree que o hook registrou (null: registro antigo ou sem prova). Ausente em snapshot antigo. */
