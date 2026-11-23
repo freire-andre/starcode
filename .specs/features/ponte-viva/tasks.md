@@ -121,8 +121,8 @@ Gerar `dist/` com o build, registrar decisões, executar os comandos do CI e val
 Spec: `.specs/features/ponte-viva/spec.md` (R1, R2, R11, R12, R15–R17). Checks: C1, C2, C11, C12, C15–C17. O gate Orca precisa de worktree no drive da instalação conforme AGENTS.md; preservar alterações de terceiros.
 
 #### BOUNDARIES
-May change: `dist/`, `DECISIONS.md`, `docs/aceite/ponte-viva.md`, `docs/aceite/ponte-viva/`
-Do not touch: fontes do plugin e arquivos de outras features.
+May change: `dist/`, `DECISIONS.md`, `docs/aceite/ponte-viva.md`, `docs/aceite/ponte-viva/`, `src/orca/src/scene.test.ts`, `scripts/impact.py`, `tests/test_impact.py`
+Do not touch: demais fontes do plugin e arquivos de outras features.
 
 #### RULES
 Leia AGENTS.md. Nunca edite dist manualmente; execute o gerador. Modo Git: 3. Commit convencional em PT-BR com `Refs SC-<n>` no corpo; use a issue vinculada (modelo do gate: Refs: <ID-LINEAR>). Sem segredos, deploy ou push.
@@ -178,12 +178,12 @@ Proof: run unit | ponte viva preserva transição em atualização repetida
 **Size:** LARGE
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** integrar T4
+**Next:** integrar T5 e verificar aceite na Orca
 **Linear:** SC-216; T1 SC-217; T2 SC-218; T3 SC-219; T4 SC-220; T5 SC-221
 **Integration branch:** feature/ponte-viva
-**Last integrated:** 94bcbe04d5d571720b5f536f824518aec736d481
+**Last integrated:** efbe0e6d1a903b69dc5c973a4cb4e3060aa1d0e2
 **Dispatched:** none
 **Settled:** 2026-11-22: aprovado; 2026-11-22: sim
 **Attempts:** none
-**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c; 2026-11-22: T4: acessibilidade implementada e flakiness corrigida, 103 testes Orca; corrigir escopo e incerteza de atividade antes de integrar; 2026-11-22: T4: acessibilidade, flakiness e ambiguidade de estados corrigidas; 104 testes Orca; commits f3e7522 e 86faf81
+**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c; 2026-11-22: T4: acessibilidade implementada e flakiness corrigida, 103 testes Orca; corrigir escopo e incerteza de atividade antes de integrar; 2026-11-22: T4: acessibilidade, flakiness e ambiguidade de estados corrigidas; 104 testes Orca; commits f3e7522 e 86faf81; 2026-11-22: T5: dist gerado, 104 testes Orca; suíte identificou falha no analisador de impacto; correção despachada; captura real pendente; 2026-11-22: T5: dist gerado e impact corrigido em b2c3edd; 104 testes Orca, 23 impact, build, decisões e validate verdes; captura real pendente
 **Breaker:** closed
