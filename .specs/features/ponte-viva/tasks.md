@@ -2,7 +2,9 @@
 
 **Spec**: `.specs/features/ponte-viva/spec.md`
 **Status**: Approved
-**Approved**: 2026-11-22 - user: "sim"
+**Approved**: 2026-11-23 - user: "sim"
+
+As tarefas T1–T5 foram aprovadas em 2026-11-22; esta revisão acrescenta T6–T8.
 **Integration branch**: `feature/ponte-viva`
 
 ## Gate Commands
@@ -130,6 +132,72 @@ Leia AGENTS.md. Nunca edite dist manualmente; execute o gerador. Modo Git: 3. Co
 #### DELIVERY
 Commit na branch do worktree. Relatório de até cinco linhas com alteração, gates, evidências, commit, pendências e tentativas do disjuntor.
 
+### T6: Identidade da sessão no worktree
+**Depends on**: T5
+**Requirements**: R8, R11, R21, R22
+**Tests**: integration
+**Gate**: full
+
+#### TASK
+Associar integrante, sessão e worktree por identificadores comprováveis desde os registros da tripulação até o estado entregue à cena. Testar dois worktrees, sessões sem vínculo, falhas e compatibilidade com registros antigos; não inferir por título ou contagem agregada.
+
+#### CONTEXT
+Spec: `.specs/features/ponte-viva/spec.md` (R8, R11, R21, R22). Checks: C8, C11, C21, C22. `crew_live.py` e `crew_hook.py` registram sessões agregadas; `ponte.py`, `worker.ts` e `crew-visual.ts` alimentam a cena, que hoje recebe identidades vazias. Confirme quais identificadores Orca estão disponíveis antes de usar cada vínculo.
+
+#### BOUNDARIES
+May change: `scripts/crew_live.py`, `hooks/scripts/crew_hook.py`, `scripts/ponte.py`, `src/orca/src/protocol.ts`, `src/orca/src/worker.ts`, `src/orca/src/crew-visual.ts`, `src/orca/src/scene.ts`, `tests/`, `src/orca/src/worker.test.ts`, `src/orca/src/crew-visual.test.ts`, `src/orca/src/scene.test.ts`, `DECISIONS.md`, `dist/`
+Do not touch: modelo de seleção visual e Handoff.
+
+#### RULES
+Leia AGENTS.md. TDD; registre decisão e gere dist apenas pelo build. Descarregue a pasta de desenvolvimento antes do build para evitar recarga automática; não instale ou aprove plugin. Modo Git 3; commit convencional com `Refs: <ID-LINEAR>`. Sem push ou deploy.
+
+#### DELIVERY
+Commit e relatório de até cinco linhas: vínculo comprovado e limites, testes, gates, pendências e disjuntor.
+
+### T7: Presença estável e troca animada
+**Depends on**: T6
+**Requirements**: R2, R3, R4, R10, R15, R17, R18, R19, R20
+**Tests**: integration
+**Gate**: full
+
+#### TASK
+Substituir rodízio por presença estável: preservar integrantes sem mudança de estado, priorizar alertas e trabalho até seis vagas, e animar apenas entradas e saídas necessárias. A seleção manual traz quem está fora e não altera a composição ao acionar quem já está presente.
+
+#### CONTEXT
+Spec: `.specs/features/ponte-viva/spec.md` (R2–R4, R10, R15, R17–R20). Checks: C2–C4, C10, C15, C17–C20. `scene-model.ts` usa relógio de oito segundos; teste Q concluindo e Worf assumindo com identidade comprovada, prioridade, empate, dados incertos, movimento reduzido e atualizações repetidas.
+
+#### BOUNDARIES
+May change: `src/orca/src/scene-model.ts`, `src/orca/src/scene-model.test.ts`, `src/orca/src/scene.ts`, `src/orca/src/scene.test.ts`, `DECISIONS.md`, `dist/`
+Do not touch: registros de identidade e Handoff.
+
+#### RULES
+Leia AGENTS.md. TDD; registre decisão e gere dist apenas pelo build. Não instale ou aprove plugin. Modo Git 3; commit convencional com `Refs: <ID-LINEAR>`. Sem push ou deploy.
+
+#### DELIVERY
+Commit e relatório de até cinco linhas: comportamento, testes, gates, pendências e disjuntor.
+
+### T8: Aceite real e distribuição
+**Depends on**: T7
+**Requirements**: R1, R2, R4, R11, R12, R15, R16, R17, R21, R22
+**Tests**: integration
+**Gate**: build
+
+#### TASK
+Gerar dist pelo build, executar os comandos do CI e registrar o aceite real na Orca com capturas de 240 e 360 px, uma troca real comprovada e verificação de teclado e leitor de tela. Distinguir capturas reais de renderizações sintéticas.
+
+#### CONTEXT
+Spec: `.specs/features/ponte-viva/spec.md` (R1, R2, R4, R11, R12, R15–R17, R21, R22). Checks: C1, C2, C4, C11, C12, C15–C17, C21, C22. Compare com `.specs/features/ponte-viva/referencias/` e registre o que não puder ser comprovado. Carregar ou substituir plugin requer autorização do usuário aplicável ao conteúdo e às capacidades.
+
+#### BOUNDARIES
+May change: `docs/aceite/ponte-viva.md`, `docs/aceite/ponte-viva/`, `dist/`, `DECISIONS.md`
+Do not touch: fontes do plugin e Handoff.
+
+#### RULES
+Leia AGENTS.md. Nunca edite dist manualmente; execute o gerador. Não instale, carregue ou aprove plugin sem autorização aplicável. Modo Git 3; commit convencional com `Refs: <ID-LINEAR>`. Sem push ou deploy.
+
+#### DELIVERY
+Commit e relatório de até cinco linhas: evidências reais, testes, gates, limitações e disjuntor.
+
 ## Checks
 
 **Build**: `python tools/build.py --check`; `python scripts/check_decisions.py`; `claude plugin validate dist/claude --strict`
@@ -139,8 +207,8 @@ Commit na branch do worktree. Relatório de até cinco linhas com alteração, g
 Proof: run unit | ponte viva identifica os 12 integrantes
 **C2** - A cena apresenta até seis integrantes com nome (R2)
 Proof: run unit | ponte viva limita a seis integrantes
-**C3** - O rodízio alcança os elegíveis e prioriza alertas e atividade (R3)
-Proof: run unit | ponte viva alterna integrantes elegíveis
+**C3** - A presença não muda pela passagem do tempo quando os estados são iguais (R3)
+Proof: run unit | ponte viva mantém presença sem rodízio
 **C4** - A entrada e saída são transições visuais sem alterar o estado (R4)
 Proof: run unit | ponte viva anima sem alterar estado
 **C5** - Agente trabalhando mostra indicador e operação do console (R5)
@@ -153,7 +221,7 @@ Proof: run unit | ponte viva distingue estados
 Proof: run unit | ponte viva não inventa atividade
 **C9** - A lista contém os 12 nomes, estados e presença (R9)
 Proof: run unit | ponte viva lista os 12 integrantes
-**C10** - Selecionar integrante o traz à cena sem alterar seu estado (R10)
+**C10** - Selecionar integrante fora da cena o traz sem alterar seu estado (R10)
 Proof: run unit | ponte viva permite selecionar integrante
 **C11** - Eventos atualizam o estado do worktree em foco (R11)
 Proof: run unit | ponte viva atualiza por evento
@@ -167,23 +235,31 @@ Proof: run unit | ponte viva descarta resposta obsoleta
 Proof: run unit | ponte viva mantém rótulos legíveis
 **C16** - Lista e estados são acessíveis por teclado e leitor de tela (R16)
 Proof: run unit | ponte viva expõe lista acessível
-**C17** - Movimento reduzido suspende deslocamentos e rodízio automático (R17)
+**C17** - Movimento reduzido suspende deslocamentos e mantém seleção manual (R17)
 Proof: run unit | ponte viva respeita movimento reduzido
 **C18** - Estado repetido não reinicia transição (R18)
 Proof: run unit | ponte viva preserva transição em atualização repetida
+**C19** - Mais de seis integrantes comprovados respeitam prioridade e permanência em empate (R19)
+Proof: run unit | ponte viva prioriza presença estável
+**C20** - Acionar integrante presente preserva a composição e seu estado (R20)
+Proof: run unit | ponte viva mantém integrante já presente
+**C21** - O vínculo exige sessão e worktree comprovados (R21)
+Proof: run unit | ponte viva vincula sessão ao worktree
+**C22** - Vínculo incerto não cria estado ou troca de presença (R22)
+Proof: run unit | ponte viva não infere troca sem vínculo
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** tasks
 **Size:** LARGE
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** Data prepara tarefas da revisão de presença estável
+**Next:** publicar revisão aprovada no Linear sob SC-216
 **Linear:** SC-216; T1 SC-217; T2 SC-218; T3 SC-219; T4 SC-220; T5 SC-221
 **Integration branch:** feature/ponte-viva
 **Last integrated:** 1d9aa26
 **Dispatched:** nenhum
-**Settled:** 2026-11-22: aprovado; 2026-11-22: sim; 2026-11-23: sim: revisão da spec aprovada
+**Settled:** 2026-11-22: aprovado; 2026-11-22: sim; 2026-11-23: sim: revisão da spec aprovada; 2026-11-23: sim: tarefas e publicação no Linear aprovadas
 **Attempts:** none
-**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c; 2026-11-22: T4: acessibilidade implementada e flakiness corrigida, 103 testes Orca; corrigir escopo e incerteza de atividade antes de integrar; 2026-11-22: T4: acessibilidade, flakiness e ambiguidade de estados corrigidas; 104 testes Orca; commits f3e7522 e 86faf81; 2026-11-22: T5: dist gerado, 104 testes Orca; suíte identificou falha no analisador de impacto; correção despachada; captura real pendente; 2026-11-22: T5: dist gerado e impact corrigido em b2c3edd; 104 testes Orca, 23 impact, build, decisões e validate verdes; captura real pendente; 2026-11-22: Q FAIL: cinco achados; correção em andamento; 2026-11-23: Retomada após desligamento: tentativa anterior interrompida; dois commits e alterações locais preservados; 2026-11-23: Pós-Q: cinco achados associados aos commits 7543e30, a96b4e4, 8afa2c2 e 7e83f4d; provas 21/21 e done automáticos verdes; 106 testes Orca e 1108 Python relatados pelo worker; gate ticket incompatível com escopo pós-Q; aceite real pendente; 2026-11-23: Aceite real: plugin de desenvolvimento autorizado e carregado; capturas Orca em 240 e 360 px revelam legibilidade insuficiente e divergência visual; acessibilidade real e troca de estado ainda pendentes; pasta de desenvolvimento descarregada antes das alterações; 2026-11-23: Tentativa de despacho recusada: consumer_fenced; Run foi vinculada ao coordenador atual; nenhum worker novo iniciado; 2026-11-23: LaForge despachado para corrigir legibilidade e aparência verificadas nas capturas reais 240 e 360; 2026-11-23: LaForge: revisão visual 1d9aa26, 111 testes Orca; capturas reais revisadas 240 e 360; árvore de acessibilidade expõe 12 e seleção traz Picard; teste real de teclado e leitor de tela pendentes; carregamento dev gerou arquivos auxiliares em dist, regenerar pelo build após testes; 2026-11-23: Teste real: Enter abriu relação; árvore acessível lista 12 nomes, estados e presença e seleção semântica funciona; foco não exposto impediu comprovar seleção por teclado; leitor de tela pendente. Suíte 1108: única falha dist auxiliar gerado pelo dev load, um teste ignorado; build regenerou dist e check passou; 2026-11-23: Após descarregar dev e regenerar dist, build check e teste test_repo_dist_is_up_to_date passaram; provas e gate done verdes; suíte completa anterior 1108, uma falha ambiental corrigida e um ignorado; 2026-11-23: Usuário confirmou anúncio de estado e presença e seleção acessível; solicitou presença estável e entradas e saídas por mudanças reais, sem rodízio periódico
+**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c; 2026-11-22: T4: acessibilidade implementada e flakiness corrigida, 103 testes Orca; corrigir escopo e incerteza de atividade antes de integrar; 2026-11-22: T4: acessibilidade, flakiness e ambiguidade de estados corrigidas; 104 testes Orca; commits f3e7522 e 86faf81; 2026-11-22: T5: dist gerado, 104 testes Orca; suíte identificou falha no analisador de impacto; correção despachada; captura real pendente; 2026-11-22: T5: dist gerado e impact corrigido em b2c3edd; 104 testes Orca, 23 impact, build, decisões e validate verdes; captura real pendente; 2026-11-22: Q FAIL: cinco achados; correção em andamento; 2026-11-23: Retomada após desligamento: tentativa anterior interrompida; dois commits e alterações locais preservados; 2026-11-23: Pós-Q: cinco achados associados aos commits 7543e30, a96b4e4, 8afa2c2 e 7e83f4d; provas 21/21 e done automáticos verdes; 106 testes Orca e 1108 Python relatados pelo worker; gate ticket incompatível com escopo pós-Q; aceite real pendente; 2026-11-23: Aceite real: plugin de desenvolvimento autorizado e carregado; capturas Orca em 240 e 360 px revelam legibilidade insuficiente e divergência visual; acessibilidade real e troca de estado ainda pendentes; pasta de desenvolvimento descarregada antes das alterações; 2026-11-23: Tentativa de despacho recusada: consumer_fenced; Run foi vinculada ao coordenador atual; nenhum worker novo iniciado; 2026-11-23: LaForge despachado para corrigir legibilidade e aparência verificadas nas capturas reais 240 e 360; 2026-11-23: LaForge: revisão visual 1d9aa26, 111 testes Orca; capturas reais revisadas 240 e 360; árvore de acessibilidade expõe 12 e seleção traz Picard; teste real de teclado e leitor de tela pendentes; carregamento dev gerou arquivos auxiliares em dist, regenerar pelo build após testes; 2026-11-23: Teste real: Enter abriu relação; árvore acessível lista 12 nomes, estados e presença e seleção semântica funciona; foco não exposto impediu comprovar seleção por teclado; leitor de tela pendente. Suíte 1108: única falha dist auxiliar gerado pelo dev load, um teste ignorado; build regenerou dist e check passou; 2026-11-23: Após descarregar dev e regenerar dist, build check e teste test_repo_dist_is_up_to_date passaram; provas e gate done verdes; suíte completa anterior 1108, uma falha ambiental corrigida e um ignorado; 2026-11-23: Usuário confirmou anúncio de estado e presença e seleção acessível; solicitou presença estável e entradas e saídas por mudanças reais, sem rodízio periódico; 2026-11-23: T6–T8 preparados; gate tasks verde; issue mãe SC-216 e cinco tarefas existentes serão preservadas
 **Breaker:** closed
