@@ -1,6 +1,6 @@
 // Testes da pintura da cena (contexto de canvas falso que grava as chamadas).
 import { assert, test } from 'orca/testing'
-import { avisoDeDados, buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, relacaoDaTripulacao, ROTACAO_MS, TRANSICAO_MS } from './scene-model.ts'
+import { avisoDeDados, buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, criaRastroPresenca, relacaoDaTripulacao, TRANSICAO_MS } from './scene-model.ts'
 import type { Cena } from './scene-model.ts'
 import { ajustaCanvas, COR_ESTADO, criaRelacao, dimensoes, obterCanvas, paint, preferenciaDeMovimento } from './scene.ts'
 import type { Pincel } from './scene'
@@ -24,7 +24,8 @@ function estado(starcode = true): PonteState {
 const IDS: Identidades = Object.fromEntries(MEMBROS.map(m => [`t-${m}`, m]))
 const doMembro = (m: string, state: PonteAgent['state'] = 'working'): PonteAgent =>
   ({ terminalId: `t-${m}`, title: null, agent: 'claude', state, stateStartedAt: 0 })
-const T = (ciclo: number, extra = 2000): number => ciclo * ROTACAO_MS + extra
+/** Instante `extra` ms depois de `n` blocos de 10 s: o tempo sozinho não muda a presença. */
+const T = (n: number, extra = 2000): number => n * 10_000 + extra
 
 function gravador(): { ctx: Pincel; chamadas: string[]; textos: string[] } {
   const chamadas: string[] = []
@@ -57,9 +58,9 @@ test('pintura da cena só lê o modelo e não usa imagem', () => {
   // nomes completos do perfil, em até duas linhas: Spock numa, Jean-Luc Picard em duas
   for (const nome of ['Spock', 'Jean-Luc', 'Picard']) assert.ok(g.textos.includes(nome), nome)
   assert.ok(g.textos.includes('⚙'))
-  // o rodízio traz o resto da tripulação: Guinan aparece numa rodada seguinte
+  // a seleção manual traz o resto da tripulação: Guinan aparece quando é escolhida
   const g2 = gravador()
-  paint(g2.ctx, buildScene(estado(), [], T(1)), 5)
+  paint(g2.ctx, buildScene(estado(), [], T(1), undefined, IDS, { selecionado: 'guinan' }), 5)
   assert.ok(g2.textos.includes('Guinan') && g2.textos.includes('💤'))
   assert.ok(g.textos.includes('+2'))
   assert.ok(g.textos.includes('w0'))
@@ -215,7 +216,7 @@ test('cena estica o anel e aumenta os bonecos', () => {
     for (const nWorkers of [0, 8]) {
       const st: typeof s = { ...s, snapshot: { ...s.snapshot!, workers: s.snapshot!.workers.slice(0, nWorkers) } }
       const cena: Cena = buildScene(st, ags, T(0), linhas, IDS)
-      const cenas = [0, 1, 2].map(c => buildScene(st, ags, T(c), linhas, IDS))
+      const cenas = MEMBROS.map(m => buildScene(st, ags, T(0), linhas, IDS, { selecionado: m }))
       assert.equal(cena.grade.altura, linhas)
       // sem faixa vazia: a legenda encosta no fim da grade e o anel ocupa a altura da ponte
       const legenda = cena.rotulos.find(r => r.tipo === 'legenda')!
@@ -408,24 +409,32 @@ test('ponte viva respeita movimento reduzido', () => {
   assert.equal(preferenciaDeMovimento({}).reduzido(), false)
   assert.equal(preferenciaDeMovimento({ matchMedia: () => { throw new Error('x') } }).reduzido(), false)
 
-  // com a preferência ativa a cena não anda nem gira, em nenhum instante
+  // com a preferência ativa a cena não anda: a mudança de estado vale na hora, sem deslocamento, em nenhum instante
   const base = estado()
-  const fixo = buildScene(base, [], T(0), undefined, IDS, { reduzido: true }).personagens.map(p => p.membro)
-  for (const t of [T(1), T(5), ROTACAO_MS + 300, ROTACAO_MS + 900]) {
-    const cena = buildScene(base, [], t, undefined, IDS, { reduzido: true })
-    assert.deepEqual(cena.personagens.map(p => p.membro), fixo)
+  const rastro = criaRastroPresenca()
+  const fixo = buildScene(base, [], T(0), undefined, IDS, { reduzido: true, rastro }).personagens.map(p => p.membro)
+  assert.deepEqual(fixo, ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
+  const alertas = ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'].map(m => doMembro(m, 'blocked'))
+  for (const t of [T(1), T(1, 2100), T(1, 2900), T(5)]) {
+    const cena = buildScene(base, alertas, t, undefined, IDS, { reduzido: true, rastro })
+    assert.deepEqual(cena.personagens.map(p => p.membro), ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'])
     assert.ok(cena.personagens.every(p => p.transicao === null))
   }
 })
 
 test('ponte viva pinta nomes e indicadores legíveis nas transições', () => {
   const mistos = [doMembro('spock'), doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('kirk', 'done')]
+  const troca = [...mistos, ...['laforge', 'mccoy', 'q', 'uhura'].map(m => doMembro(m, 'blocked'))]
   const NOMES: Record<string, string> = { picard: 'Jean-Luc Picard', laforge: 'Geordi La Forge', scotty: 'Montgomery Scott', kirk: 'James T. Kirk' }
   const fases = new Set<string>()
   for (const [largura, e] of [[240, 5], [360, 7]] as const) {
     for (const extra of [100, 500, TRANSICAO_MS / 2, 700, 1100]) {
       for (const ciclo of [1, 2, 3]) {
-        const cena = buildScene(estado(), mistos, T(ciclo, extra), undefined, IDS)
+        // quatro alertas novos tiram quatro dos seis presentes: saídas e entradas pelo acesso
+        const rastro = criaRastroPresenca()
+        buildScene(estado(), mistos, T(ciclo, 0), undefined, IDS, { rastro })
+        buildScene(estado(), troca, T(ciclo, 10_000), undefined, IDS, { rastro }) // a mudança real começa aqui
+        const cena = buildScene(estado(), troca, T(ciclo, 10_000 + extra), undefined, IDS, { rastro })
         const pintados: { texto: string; x: number; y: number; px: number; cor: string }[] = []
         const ctx: Pincel = {
           fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '',

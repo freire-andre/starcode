@@ -136,9 +136,7 @@ export const LINHAS_MAX = 400
 export const MAX_WORKERS = 6
 /** Personagens presentes na ponte ao mesmo tempo (R2). */
 export const MAX_PERSONAGENS = 6
-/** Tempo de cada rodada do rodízio, em ms (R3). */
-export const ROTACAO_MS = 8000
-/** Duração da troca no início da rodada: metade para sair e metade para entrar, sem passar de seis (R4). */
+/** Duração da troca de um integrante: metade para sair e metade para entrar, sem passar de seis (R4). */
 export const TRANSICAO_MS = 1200
 export const FRAME_MS = 250
 /** Menor largura do painel, em px, e escala inteira mínima que decorre dela. */
@@ -265,77 +263,98 @@ function fazConsole(x: number, y: number, s: number): Retangulo {
   return { x: x - 2.6 * k, y: y + 0.4 * k, largura: 5.2 * k, altura: 0.8 * k }
 }
 
-/** Opções de apresentação: movimento reduzido (R17) e integrante escolhido na relação (R10). */
-export interface OpcoesCena { reduzido?: boolean; selecionado?: string | null }
+/** Opções de apresentação: movimento reduzido (R17), integrante escolhido na relação (R10) e a memória da presença. */
+export interface OpcoesCena { reduzido?: boolean; selecionado?: string | null; rastro?: RastroPresenca }
 
 const ALERTAS: readonly EstadoVisual[] = ['bloqueado', 'aguardando']
 
+/** Prioridade do estado comprovado: alertas (0), depois quem trabalha (1), depois os demais (2) (R19). */
+function prioridade(estado: EstadoVisual): number {
+  return ALERTAS.includes(estado) ? 0 : estado === 'trabalhando' ? 1 : 2
+}
+
 /**
- * Quem está na ponte na rodada `ciclo` (no máximo MAX_PERSONAGENS), na ordem dos perfis (R2, R3). Todos os 12
- * são elegíveis; alertas (bloqueado, aguardando) vêm primeiro, depois quem trabalha, depois os demais. Quando nem
- * todos cabem, cada grupo seguinte que tem gente reserva uma vaga, então os alertas ocupam o resto (prioridade
- * proporcional ao número deles) sem esgotar a ponte. Um grupo que não cabe inteiro gira em janelas contíguas e
- * consecutivas da roda, então a rodada seguinte começa onde a anterior terminou e todos aparecem. `selecionado` (R10) é trazido à cena mesmo fora da rodada.
+ * Quem fica na ponte (no máximo MAX_PERSONAGENS), na ordem dos perfis (R2, R19). A prioridade é alertas, depois
+ * trabalhando, depois os demais; em caso de mesma prioridade ficam os `anteriores` (já presentes) e só então vale a
+ * ordem dos perfis. Não depende do tempo (R3): os mesmos estados e a mesma presença anterior dão a mesma escolha.
+ * `selecionado` (R10) é trazido à cena no lugar do último da escolha; o estado dele não muda, e quem já está presente
+ * não altera a composição (R20).
  */
-export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: number, selecionado: string | null = null): string[] {
-  const grupos = [
-    estados.filter(e => ALERTAS.includes(e.estado)),
-    estados.filter(e => e.estado === 'trabalhando'),
-    estados.filter(e => !ALERTAS.includes(e.estado) && e.estado !== 'trabalhando'),
-  ]
-  const fica: string[] = []
-  for (let g = 0; g < grupos.length; g++) {
-    const grupo = grupos[g]
-    // cada grupo seguinte que tem gente reserva uma vaga: alertas têm prioridade, mas não esgotam a ponte
-    const reservadas = grupos.slice(g + 1).filter(x => x.length > 0).length
-    const livres = Math.min(MAX_PERSONAGENS - fica.length, Math.max(1, MAX_PERSONAGENS - fica.length - reservadas))
-    const sobra = grupos.slice(g + 1).reduce((n, x) => n + x.length, 0)
-    // cabe tudo que falta (este grupo e os seguintes): sem reserva, ocupa o que precisar
-    const vagas = grupo.length + sobra <= MAX_PERSONAGENS - fica.length ? grupo.length : livres
-    if (vagas <= 0 || grupo.length === 0) continue
-    if (grupo.length <= vagas) {
-      fica.push(...grupo.map(e => e.membro))
-      continue
-    }
-    const inicio = (Math.max(0, ciclo) * vagas) % grupo.length
-    for (let i = 0; i < vagas; i++) fica.push(grupo[(inicio + i) % grupo.length].membro)
-  }
-  // seleção manual (R10): o escolhido entra na cena no lugar do de menor prioridade; o estado dele não muda
-  if (selecionado !== null && PERFIS.some(p => p.membro === selecionado) && !fica.includes(selecionado)) {
+export function selecionaPresentes(estados: readonly EstadoDoMembro[], anteriores: readonly string[] = [], selecionado: string | null = null): string[] {
+  const ordem = PERFIS.map(p => p.membro)
+  const ranque = [...estados]
+    .filter(e => ordem.includes(e.membro))
+    .sort((a, b) =>
+      prioridade(a.estado) - prioridade(b.estado)
+      || Number(!anteriores.includes(a.membro)) - Number(!anteriores.includes(b.membro))
+      || ordem.indexOf(a.membro) - ordem.indexOf(b.membro))
+    .map(e => e.membro)
+  const fica = ranque.slice(0, MAX_PERSONAGENS)
+  if (selecionado !== null && ordem.includes(selecionado) && !fica.includes(selecionado)) {
     if (fica.length >= MAX_PERSONAGENS) fica.pop()
     fica.push(selecionado)
   }
-  return PERFIS.map(p => p.membro).filter(m => fica.includes(m))
+  return ordem.filter(m => fica.includes(m))
 }
 
-interface Presenca { membro: string; transicao: Transicao | null }
+export interface Presenca { membro: string; transicao: Transicao | null }
+
+/** Memória da presença entre atualizações: quem está, quem sai e quem entra, com o instante em que cada troca começou. */
+export interface RastroPresenca {
+  /** Presença no instante `agoraMs`; chamar de novo com os mesmos estados e o mesmo instante dá o mesmo resultado (R18). */
+  atualiza(estados: readonly EstadoDoMembro[], agoraMs: number, opcoes?: { reduzido?: boolean; selecionado?: string | null }): Presenca[]
+}
 
 /**
- * Presenças no instante `agoraMs`, só pelo relógio e pelos estados: no início de cada rodada, quem sai anda até
- * o acesso na primeira metade da troca e quem entra anda até a estação na segunda, então nunca há mais de seis.
- * O progresso não depende de quando a atualização chegou, e estado repetido dá a mesma presença (R4, R18).
+ * Cria o rastro de uma ponte. A primeira atualização povoa a cena sem animar; depois só mudanças reais de estado ou
+ * de seleção geram saída (andando até o acesso, na primeira metade) e entrada (andando até a estação, depois que quem
+ * sai terminou), então nunca há mais de seis. O progresso vem do instante em que a troca começou, não de quando a
+ * atualização chegou, e estado repetido não reinicia nada (R4, R18). Com movimento reduzido não há deslocamento (R17).
  */
-export function presencas(estados: readonly EstadoDoMembro[], agoraMs: number, opcoes: OpcoesCena = {}): Presenca[] {
-  const sel = opcoes.selecionado ?? null
-  const estavel = (lista: string[]): Presenca[] => lista.map(membro => ({ membro, transicao: null }))
-  // movimento reduzido (R17): sem rodízio automático nem deslocamento; só a seleção manual muda quem aparece
-  if (opcoes.reduzido) return estavel(selecionaPresentes(estados, 0, sel))
-  const ciclo = Math.floor(Math.max(0, agoraMs) / ROTACAO_MS)
-  const dt = Math.max(0, agoraMs) - ciclo * ROTACAO_MS
-  const atual = selecionaPresentes(estados, ciclo, sel)
-  if (ciclo === 0 || dt >= TRANSICAO_MS) return estavel(atual)
-  const anterior = selecionaPresentes(estados, ciclo - 1, sel)
+export function criaRastroPresenca(): RastroPresenca {
+  const ordem = PERFIS.map(p => p.membro)
   const metade = TRANSICAO_MS / 2
-  if (dt < metade) {
-    return anterior.map(membro => ({
-      membro,
-      transicao: atual.includes(membro) ? null : { fase: 'saindo', progresso: dt / metade },
-    }))
+  let alvo: string[] | null = null
+  const saindo = new Map<string, number>()
+  const entrando = new Map<string, number>()
+  return {
+    atualiza(estados, agoraMs, opcoes = {}) {
+      const agora = Math.max(0, Number.isFinite(agoraMs) ? agoraMs : 0)
+      const desejada = selecionaPresentes(estados, alvo ?? [], opcoes.selecionado ?? null)
+      if (alvo === null || opcoes.reduzido) {
+        alvo = desejada
+        saindo.clear()
+        entrando.clear()
+      } else {
+        for (const [m, ini] of saindo) if (agora - ini >= metade) saindo.delete(m)
+        for (const [m, ini] of entrando) if (agora - ini >= metade) entrando.delete(m)
+        for (const m of alvo.filter(x => !desejada.includes(x))) {
+          // quem ainda nem começou a entrar simplesmente deixa de ser esperado
+          if (entrando.has(m) && entrando.get(m)! > agora) entrando.delete(m)
+          else { entrando.delete(m); saindo.set(m, agora) }
+        }
+        for (const m of desejada.filter(x => !alvo!.includes(x))) {
+          if (saindo.has(m)) saindo.delete(m)
+          else entrando.set(m, agora)
+        }
+        // entradas só começam quando todas as saídas terminaram: nunca passa de seis
+        const fim = Math.max(agora, ...[...saindo.values()].map(i => i + metade))
+        for (const [m, ini] of entrando) if (ini >= agora) entrando.set(m, Math.max(ini, fim))
+        alvo = desejada
+      }
+      const visiveis = new Set<string>([...alvo.filter(m => (entrando.get(m) ?? 0) <= agora), ...saindo.keys()])
+      return ordem.filter(m => visiveis.has(m)).map(membro => {
+        if (saindo.has(membro)) return { membro, transicao: { fase: 'saindo' as const, progresso: Math.min(1, (agora - saindo.get(membro)!) / metade) } }
+        if (entrando.has(membro)) return { membro, transicao: { fase: 'entrando' as const, progresso: Math.min(1, (agora - entrando.get(membro)!) / metade) } }
+        return { membro, transicao: null }
+      })
+    },
   }
-  return atual.map(membro => ({
-    membro,
-    transicao: anterior.includes(membro) ? null : { fase: 'entrando', progresso: (dt - metade) / metade },
-  }))
+}
+
+/** Presenças no instante `agoraMs`; sem `rastro` (cena avulsa) a escolha é só a prioridade, sem transição. */
+export function presencas(estados: readonly EstadoDoMembro[], agoraMs: number, opcoes: OpcoesCena = {}): Presenca[] {
+  return (opcoes.rastro ?? criaRastroPresenca()).atualiza(estados, agoraMs, opcoes)
 }
 
 const PELE_PADRAO = '#e0b48a'

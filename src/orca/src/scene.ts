@@ -1,7 +1,7 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
 import { identidadesDaSessao } from './crew-visual.ts'
-import { avisoDeDados, buildScene, CORES, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
+import { avisoDeDados, buildScene, CORES, criaRastroPresenca, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
 import type { Boneco, Cena, ItemRelacao, OpcoesCena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { EstadoVisual } from './crew-visual.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
@@ -390,6 +390,8 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement, relacao: Relacao | 
   let linhas: number = GRADE.altura
   let sujo = true
   let selecionado: string | null = null
+  // a presença lembra quem está na ponte entre as atualizações: só mudança real de estado ou seleção troca alguém (R3, R18)
+  const rastro = criaRastroPresenca()
   const preferencia = preferenciaDeMovimento()
   preferencia.aoMudar(() => { sujo = true })
   relacao?.aoSelecionar(membro => {
@@ -428,7 +430,7 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement, relacao: Relacao | 
       }
       const agora = Date.now()
       const atual = estado ?? vazio
-      const opcoes: OpcoesCena = { reduzido: preferencia.reduzido(), selecionado }
+      const opcoes: OpcoesCena = { reduzido: preferencia.reduzido(), selecionado, rastro }
       const ids = identidadesDaSessao(atual, agentes)
       paint(ctx, buildScene(atual, agentes, agora, linhas, ids, opcoes), escala)
       relacao?.atualiza(relacaoDaTripulacao(atual, agentes, agora, ids, opcoes), avisoDeDados(atual))
