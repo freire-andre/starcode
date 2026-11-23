@@ -116,3 +116,43 @@ export function estadosDaTripulacao(estado: PonteState, ids: Identidades): Estad
     return { membro, estado: 'ocioso', motivo: 'sem sessão ativa no snapshot do repositório' }
   })
 }
+
+/** Caminho comparável: barra comum, sem barra final e sem diferença de caixa (Windows). */
+const caminho = (v: string): string => v.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
+
+/**
+ * Vínculos `terminalId -> integrante` que o estado comprova (SC-222, R21): o agente vem de `agents.list` pedido
+ * com o `workspaceId` do worktree em foco (`agentsWorktree` igual ao worktree do snapshot) e a sessão dele
+ * (`sessionId`) é a que o integrante registrou, pelo hook, naquele mesmo worktree (`crew[].sessions`). Título,
+ * `count` e ordem nunca vinculam. Sem escopo, sem worktree registrado (registro antigo), sessão ausente,
+ * reivindicada por dois integrantes ou terminal com integrantes diferentes: sem vínculo. Dado indisponível ou
+ * antigo: nenhum vínculo.
+ */
+export function identidadesDaSessao(estado: PonteState, agentes: PonteAgent[] = estado.agents): Identidades {
+  const snap = estado.snapshot
+  if (estado.status !== 'ok' || estado.stale || snap === null || !snap.starcode) return {}
+  if (typeof estado.agentsWorktree !== 'string' || caminho(estado.agentsWorktree) !== caminho(snap.worktree)) return {}
+  const foco = caminho(snap.worktree)
+  // sessão -> integrantes que a reivindicam neste worktree
+  const donos = new Map<string, Set<string>>()
+  for (const c of snap.crew) {
+    if (!MEMBROS.includes(c.member) || !Array.isArray(c.sessions)) continue
+    for (const s of c.sessions as unknown[]) {
+      const r = s as { id?: unknown; worktree?: unknown } | null
+      if (typeof r?.id !== 'string' || r.id === '' || typeof r.worktree !== 'string' || caminho(r.worktree) !== foco) continue
+      donos.set(r.id, (donos.get(r.id) ?? new Set()).add(c.member))
+    }
+  }
+  const porTerminal = new Map<string, Set<string>>()
+  for (const a of agentes) {
+    if (typeof a.terminalId !== 'string' || a.terminalId === '' || typeof a.sessionId !== 'string' || a.sessionId === '') continue
+    const quem = donos.get(a.sessionId)
+    if (!quem) continue
+    const set = porTerminal.get(a.terminalId) ?? new Set<string>()
+    quem.forEach(m => set.add(m))
+    porTerminal.set(a.terminalId, set)
+  }
+  const ids: Record<string, string> = {}
+  for (const [terminal, quem] of porTerminal) if (quem.size === 1) ids[terminal] = [...quem][0]
+  return ids
+}

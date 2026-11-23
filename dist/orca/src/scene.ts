@@ -1,5 +1,6 @@
 // Painel HTML "ponte-cena": desenha a cena da Ponte num canvas. Lê só o resultado de buildScene (R43)
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
+import { identidadesDaSessao } from './crew-visual.ts'
 import { avisoDeDados, buildScene, CORES, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
 import type { Boneco, Cena, ItemRelacao, OpcoesCena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
 import type { EstadoVisual } from './crew-visual.ts'
@@ -428,8 +429,9 @@ function iniciar(orca: OrcaFrame, canvas: HTMLCanvasElement, relacao: Relacao | 
       const agora = Date.now()
       const atual = estado ?? vazio
       const opcoes: OpcoesCena = { reduzido: preferencia.reduzido(), selecionado }
-      paint(ctx, buildScene(atual, agentes, agora, linhas, {}, opcoes), escala)
-      relacao?.atualiza(relacaoDaTripulacao(atual, agentes, agora, {}, opcoes), avisoDeDados(atual))
+      const ids = identidadesDaSessao(atual, agentes)
+      paint(ctx, buildScene(atual, agentes, agora, linhas, ids, opcoes), escala)
+      relacao?.atualiza(relacaoDaTripulacao(atual, agentes, agora, ids, opcoes), avisoDeDados(atual))
     }
     requestAnimationFrame(laco)
   }

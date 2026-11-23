@@ -46,6 +46,21 @@ SKILL_READ = re.compile(r"starcode[^\n\"']*?[\\/]skills[\\/]([\w-]+)[\\/]SKILL\.
 PROMPT_TOKEN = re.compile(r"(?:^|(?<=\s))\$(?:starcode:)?([\w-]+)")
 
 
+def new_entry(member: str, stamp: str, worktree: str | None) -> dict:
+    """A session entry; `worktree` (root of the cwd the hook saw) is what proves where the session runs (SC-222)."""
+    entry = {"member": member, "active": True, "source": "hook", "at": stamp}
+    if worktree:
+        entry["worktree"] = worktree
+    return entry
+
+
+def keep_worktree(entry: dict, worktree: str | None) -> None:
+    """A renewal never moves a session to another worktree: if the cwd no longer matches the recorded one, the
+    link stops being proven and is dropped (the session counts as unlinked until it starts a crew skill again)."""
+    if "worktree" in entry and entry["worktree"] != worktree:
+        del entry["worktree"]
+
+
 def member_for(name: object, crew: dict[str, dict], prefixed_only: bool = False) -> str | None:
     """Crew key whose skill is `name` ("starcode:<skill>" or, unless prefixed_only, "<skill>")."""
     if not isinstance(name, str):
@@ -182,6 +197,7 @@ def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: st
         return {"injectSteps": [{"ephemeralMessage": AGY_ORDER + header}]}
 
     num = payload.get("invocationNum")
+    worktree = crew_live.worktree_of(cwd)
 
     repeat = False
 
@@ -190,11 +206,13 @@ def handle_extra(payload: dict, cli: str, now: datetime | None = None, event: st
         entry = sessions.get(sid)
         if member is not None and isinstance(entry, dict) and entry.get("member") == member                 and entry.get("active") is True and crew_live.entry_valid(entry, now):
             entry["at"] = stamp  # same member already working in this session: no second header/pending (R4)
+            keep_worktree(entry, worktree)
             repeat = True
         elif member is not None:
-            sessions[sid] = {"member": member, "active": True, "source": "hook", "at": stamp}
+            sessions[sid] = new_entry(member, stamp, worktree)
         elif isinstance(entry, dict):
             entry["at"] = stamp
+            keep_worktree(entry, worktree)
             if event in ("Stop", "idle"):
                 entry["active"] = False
             elif event == "prompt" or (event == "PreInvocation" and num == 0 and not isinstance(num, bool)):
@@ -263,6 +281,7 @@ def handle(payload: dict, now: datetime | None = None, cli: str = "claude") -> s
     if d is None:
         return None
     crew, available = crew_live.crew_members()
+    worktree = crew_live.worktree_of(cwd)
 
     repeat = False
 
@@ -271,13 +290,15 @@ def handle(payload: dict, now: datetime | None = None, cli: str = "claude") -> s
         entry = sessions.get(sid)
         if member is not None and codex and isinstance(entry, dict) and entry.get("member") == member                 and entry.get("active") is True and crew_live.entry_valid(entry, now):
             entry["at"] = stamp  # same member already working in this session: no second header (R4)
+            keep_worktree(entry, worktree)
             repeat = True
         elif member is not None:
-            sessions[sid] = {"member": member, "active": True, "source": "hook", "at": stamp}
+            sessions[sid] = new_entry(member, stamp, worktree)
         elif event == "SessionEnd":
             sessions.pop(sid, None)
         elif isinstance(entry, dict):
             entry["at"] = stamp
+            keep_worktree(entry, worktree)
             if event == "Stop":
                 entry["active"] = False
             elif event == "UserPromptSubmit":

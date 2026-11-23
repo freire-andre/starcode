@@ -95,6 +95,7 @@ def build_crew(snap: Snapshot, now: datetime) -> list[dict]:
     sessions_path = main / crew_live.LIVE_DIR / crew_live.SESSIONS_FILE
     sessions = snap.read_json(sessions_path, ".starcode/live/sessions.json") or {}
     counts = crew_live.count_members(sessions, now)
+    links = crew_live.session_links(sessions, now)
     last: dict[str, tuple[datetime, str]] = {}
     for entry in sessions.values():
         if not crew_live.entry_valid(entry, now) or not isinstance(entry.get("member"), str):
@@ -113,6 +114,7 @@ def build_crew(snap: Snapshot, now: datetime) -> list[dict]:
             "name": m.get("name", key),
             "count": counts.get(key, 0),
             "lastAt": last[key][1] if key in last else None,
+            "sessions": links.get(key, []),
             "cliModel": f"{m.get('cli')} · {model}",
         })
     return items

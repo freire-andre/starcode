@@ -409,9 +409,10 @@ export default function activate(orca: OrcaWorkerApi): void {
   }
 
   /** Agentes do host; null quando a consulta falha (o estado anterior vale, em vez de esvaziar a cena). */
-  async function listAgents(): Promise<PonteAgent[] | { failed: string }> {
+  async function listAgents(workspaceId: string): Promise<PonteAgent[] | { failed: string }> {
     try {
-      const res = (await orca.host.call('agents.list', {})) as { agents?: PonteAgent[] }
+      // escopo explícito: só os agentes do worktree em foco provam que a sessão está nele (R21)
+      const res = (await orca.host.call('agents.list', { workspaceId })) as { agents?: PonteAgent[] }
       return res?.agents ?? []
     } catch (err) {
       orca.log(`agents.list falhou: ${firstLine(err)}`)
@@ -480,13 +481,14 @@ export default function activate(orca: OrcaWorkerApi): void {
           ok('snapshot')
           const [issueRes, listed] = await Promise.all([
             snap.starcode ? issueFor(path, snap, force) : Promise.resolve<IssueResult>({ issue: null, note: null }),
-            listAgents(),
+            listAgents(where!.id),
           ])
           const degraded = Array.isArray(listed) ? null : listed.failed
           const agents = Array.isArray(listed) ? listed : (goodFor(path)?.agents ?? [])
           state = {
             status: 'ok', stale: degraded !== null, snapshot: snap, issue: issueRes.issue,
             issueNote: issueRes.note, agents, error: degraded === null ? null : `agents.list: ${degraded}`,
+            agentsWorktree: degraded === null ? path : (goodFor(path)?.agentsWorktree ?? null),
             log: [], lastValidAt: degraded === null ? now : (goodFor(path)?.lastValidAt ?? null), ...base,
           }
           if (!stale()) {
@@ -500,7 +502,7 @@ export default function activate(orca: OrcaWorkerApi): void {
           state = {
             status: 'erro', stale: true, snapshot: good?.snapshot ?? null,
             issue: good?.issue ?? null, issueNote: good?.issueNote ?? null,
-            agents: good?.agents ?? [], error: msg, log: [], lastValidAt: good?.updatedAt ?? null, ...base,
+            agents: good?.agents ?? [], agentsWorktree: good?.agentsWorktree ?? null, error: msg, log: [], lastValidAt: good?.updatedAt ?? null, ...base,
           }
         }
       }
@@ -509,7 +511,7 @@ export default function activate(orca: OrcaWorkerApi): void {
       state = {
         status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
         issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
-        agents: lastGood?.agents ?? [], error: msg, log: [], lastValidAt: lastGood?.updatedAt ?? null, ...base,
+        agents: lastGood?.agents ?? [], agentsWorktree: lastGood?.agentsWorktree ?? null, error: msg, log: [], lastValidAt: lastGood?.updatedAt ?? null, ...base,
       }
     }
     state.log = [...log]
