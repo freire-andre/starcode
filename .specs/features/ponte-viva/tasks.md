@@ -174,15 +174,15 @@ Proof: run unit | ponte viva preserva transição em atualização repetida
 
 ## Handoff
 
-**Phase:** execute
+**Phase:** review
 **Size:** LARGE
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** integrar T5 e verificar aceite na Orca
+**Next:** verificação independente do Q
 **Linear:** SC-216; T1 SC-217; T2 SC-218; T3 SC-219; T4 SC-220; T5 SC-221
 **Integration branch:** feature/ponte-viva
 **Last integrated:** efbe0e6d1a903b69dc5c973a4cb4e3060aa1d0e2
-**Dispatched:** none
+**Dispatched:** Q · 1cd4a3e48efba50dd7ab040204f73020e9ee76d2
 **Settled:** 2026-11-22: aprovado; 2026-11-22: sim
 **Attempts:** none
 **Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c; 2026-11-22: T4: acessibilidade implementada e flakiness corrigida, 103 testes Orca; corrigir escopo e incerteza de atividade antes de integrar; 2026-11-22: T4: acessibilidade, flakiness e ambiguidade de estados corrigidas; 104 testes Orca; commits f3e7522 e 86faf81; 2026-11-22: T5: dist gerado, 104 testes Orca; suíte identificou falha no analisador de impacto; correção despachada; captura real pendente; 2026-11-22: T5: dist gerado e impact corrigido em b2c3edd; 104 testes Orca, 23 impact, build, decisões e validate verdes; captura real pendente
