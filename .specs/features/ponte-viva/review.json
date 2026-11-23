@@ -1,0 +1,15 @@
+{
+  "round": 1,
+  "verdict": "COMMENT",
+  "summary": "TL;DR: COMMENT — há falhas reproduzíveis na seleção, na sinalização de dados inválidos e na comparação de caminhos, além de supressões de tipos sem justificativa.",
+  "findings": [
+    {"id":"W1","severity":"should-fix","path":"src/orca/src/scene.ts","line":398,"body":"🟠 Acionar um integrante já presente substitui a seleção anterior e pode retirar quem foi trazido manualmente. Com seis integrantes trabalhando, selecionar Q e depois acionar Picard inicia a saída de Q. Ignore a ação quando o integrante já estiver presente e cubra a sequência no teste.","evidence":["src/orca/src/scene.ts:398","src/orca/src/scene-model.ts:283"],"state":"confirmed"},
+    {"id":"W2","severity":"should-fix","path":"src/orca/src/crew-visual.ts","line":112,"body":"🟠 Um sessions.json inválido vira contagens zero e é apresentado como ociosidade. O snapshot registra o erro, mas o worker mantém status ok e a cena retorna ocioso quando não há agentes. Propague a falha da fonte e mostre estado desconhecido e aviso de dados indisponíveis.","evidence":["scripts/ponte.py:96","src/orca/src/worker.ts:489","src/orca/src/crew-visual.ts:112"],"state":"confirmed"},
+    {"id":"W3","severity":"should-fix","path":"src/orca/src/crew-visual.ts","line":121,"body":"🟠 A comparação de worktrees ignora maiúsculas em todos os sistemas. Em um sistema de arquivos sensível a caixa, /repo/Foo e /repo/foo são diretórios distintos, mas um registro do primeiro é vinculado ao segundo. Preserve a caixa em plataformas sensíveis e teste os dois caminhos.","evidence":"src/orca/src/crew-visual.ts:121","state":"confirmed"},
+    {"id":"W4","severity":"should-fix","path":"src/orca/src/scene.ts","line":599,"body":"🟠 A conversão de document por unknown contorna a verificação de compatibilidade de Pagina sem justificativa ou issue. Ajuste a interface para aceitar Document ou registre a justificativa vinculada à issue.","evidence":"src/orca/src/scene.ts:599","state":"confirmed"},
+    {"id":"W5","severity":"should-fix","path":"src/orca/src/scene.test.ts","line":317,"body":"🟠 Os dublês e resultados dos testes usam any ou conversão dupla para contornar tipos sem justificativa ou issue. Isso também ocorre nos temporizadores e posts do worker. Tipifique os dublês ou documente cada exceção com sua issue.","evidence":["src/orca/src/scene.test.ts:317","src/orca/src/worker.test.ts:1051","src/orca/src/worker.test.ts:1079"],"state":"confirmed"}
+  ],
+  "carryover": {},
+  "research": ["https://github.com/stablyai/orca/blob/main/docs/reference/plugin-host-api.md", "https://github.com/stablyai/orca/blob/main/docs/reference/plugin-authoring.md"],
+  "ladder": ["python tools/build.py --check: passou", "python scripts/check_decisions.py: passou", "claude plugin validate dist/claude --strict: passou", "orca plugin test src/orca: 117 passaram", "scan_bypasses: 5 candidatos, um em dist gerado"]
+}
