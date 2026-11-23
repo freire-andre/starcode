@@ -623,14 +623,16 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     const emoji = c?.emoji || m.emoji
     const tempo = ativo ? haQuanto(c?.lastAt, agoraMs) : null
     const q: 0 | 1 = ativo ? quadro : 0
-    const yNome = y + nomeDy(s)
+    // os textos ficam na estação (e surgem ou somem com a opacidade) enquanto o corpo anda: assim nunca cruzam os dos
+    // vizinhos, que é o que garante a legibilidade também nas fases de entrada e saída
+    const yNome = ey + nomeDy(s)
     const meus = [
-      rotulo('emoji', emoji, x, y - 1.2 * s, s > 1 ? 2.6 : 2),
-      ...linhasNome.map((l, i) => rotulo('nome', l, x, yNome + i * 2.5, 2)),
-      rotulo('estado', apres.simbolo, x + 4.2 * s, y - 6.6 * s, 2),
+      rotulo('emoji', emoji, ex, ey - 1.2 * s, s > 1 ? 2.6 : 2),
+      ...linhasNome.map((l, i) => rotulo('nome', l, ex, yNome + i * 2.5, 2)),
+      rotulo('estado', apres.simbolo, ex + 4.2 * s, ey - 6.6 * s, 2),
     ]
-    if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.5 * linhasNome.length, 2)) // folga contra o arredondamento
-    if (alerta) meus.push(rotulo('balao', '!', x - 4.2 * s, y - 6.6 * s, 2))
+    if (tempo) meus.push(rotulo('tempo', tempo, ex, yNome + 2.5 * linhasNome.length, 2)) // folga contra o arredondamento
+    if (alerta) meus.push(rotulo('balao', '!', ex - 4.2 * s, ey - 6.6 * s, 2))
     for (const r of meus) rotulos.push({ ...r, dono: m.id })
     const consoleR = fazConsole(ex, ey, s)
     const acima = acimaDe(s)

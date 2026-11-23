@@ -1,6 +1,6 @@
 // Testes da pintura da cena (contexto de canvas falso que grava as chamadas).
 import { assert, test } from 'orca/testing'
-import { avisoDeDados, buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, relacaoDaTripulacao, ROTACAO_MS } from './scene-model.ts'
+import { avisoDeDados, buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, relacaoDaTripulacao, ROTACAO_MS, TRANSICAO_MS } from './scene-model.ts'
 import type { Cena } from './scene-model.ts'
 import { ajustaCanvas, criaRelacao, dimensoes, obterCanvas, paint, preferenciaDeMovimento } from './scene.ts'
 import type { Pincel } from './scene'
@@ -416,4 +416,50 @@ test('ponte viva respeita movimento reduzido', () => {
     assert.deepEqual(cena.personagens.map(p => p.membro), fixo)
     assert.ok(cena.personagens.every(p => p.transicao === null))
   }
+})
+
+test('ponte viva pinta nomes e indicadores legíveis nas transições', () => {
+  const mistos = [doMembro('spock'), doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('kirk', 'done')]
+  const NOMES: Record<string, string> = { picard: 'Jean-Luc Picard', laforge: 'Geordi La Forge', scotty: 'Montgomery Scott', kirk: 'James T. Kirk' }
+  const fases = new Set<string>()
+  for (const [largura, e] of [[240, 5], [360, 7]] as const) {
+    for (const extra of [100, 500, TRANSICAO_MS / 2, 700, 1100]) {
+      for (const ciclo of [1, 2, 3]) {
+        const cena = buildScene(estado(), mistos, T(ciclo, extra), undefined, IDS)
+        const pintados: { texto: string; x: number; y: number; px: number; cor: string }[] = []
+        const ctx: Pincel = {
+          fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '',
+          fillRect() {}, strokeRect() {},
+          fillText(t: string, x: number, y: number) { pintados.push({ texto: t, x, y, px: parseInt(ctx.font, 10), cor: ctx.fillStyle }) },
+        }
+        paint(ctx, cena, e)
+        const emTransicao = cena.personagens.filter(p => p.transicao)
+        for (const p of emTransicao) fases.add(`${largura}:${p.transicao!.fase}`)
+        for (const p of cena.personagens) {
+          const meus = cena.rotulos.filter(r => r.dono === p.membro)
+          // nome (todas as linhas) e indicador do estado de cada personagem presente são pintados, na posição e no tamanho do modelo
+          for (const r of meus.filter(r => r.tipo === 'nome' || r.tipo === 'estado')) {
+            const pintado = pintados.find(x => x.texto === r.texto && x.x === r.x * e && x.y === r.y * e)
+            assert.ok(pintado, `${largura}px: ${r.texto} não foi pintado (${p.transicao?.fase ?? 'estável'})`)
+            assert.ok(pintado.px >= 10 && pintado.px === Math.round(r.tam * e), `${largura}px: fonte de ${r.texto}`)
+            assert.ok(pintado.x >= 0 && pintado.y >= 0 && pintado.x <= cena.grade.largura * e && pintado.y <= cena.grade.altura * e, `${largura}px: ${r.texto} fora do canvas`)
+            // a opacidade acompanha a transição: de 0 a 1 entrando, de 1 a 0 saindo, nunca fora do intervalo
+            assert.ok(p.opacidadeTexto >= 0 && p.opacidadeTexto <= 1)
+            const a = pintado.cor.startsWith('rgba') ? Number(pintado.cor.replace(/.*,\s*([\d.]+)\)$/, '$1')) : 1
+            assert.equal(a, p.opacidadeTexto, `${largura}px: alfa de ${r.texto}`)
+          }
+          if (NOMES[p.membro]) assert.equal(meus.filter(r => r.tipo === 'nome').map(r => r.texto).join(' '), NOMES[p.membro])
+        }
+        // nomes e indicadores pintados nunca se cobrem: as caixas do modelo, vistas em pixels, não se tocam
+        const caixas = cena.rotulos.filter(r => r.tipo === 'nome' || r.tipo === 'estado' || r.tipo === 'emoji')
+        for (let i = 0; i < caixas.length; i++) {
+          for (let j = i + 1; j < caixas.length; j++) {
+            const a = caixas[i].caixa, b = caixas[j].caixa
+            assert.ok(!(a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura), `${largura}px: ${caixas[i].texto} x ${caixas[j].texto}`)
+          }
+        }
+      }
+    }
+  }
+  assert.deepEqual([...fases].sort(), ['240:entrando', '240:saindo', '360:entrando', '360:saindo'])
 })

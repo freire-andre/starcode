@@ -586,13 +586,17 @@ test('ponte viva mantém rótulos legíveis', () => {
   const todos = MEMBROS.map(m => doMembro(m))
   const lastAt = new Date(T(0) - 59 * 60_000).toISOString()
   const crew: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
+  const fases = new Set<string>()
   for (const largura of [240, 360]) {
     const e = Math.max(5, Math.floor(largura / GRADE.largura)) // pixels por célula
     for (const altura of [500, 900, 1400]) {
       const linhas = linhasDoPainel(largura, altura)
-      for (let ciclo = 0; ciclo < 4; ciclo++) {
+      // estável (2000 ms) e as fases da troca: saindo (100 e 500 ms), meio (TRANSICAO_MS / 2) e entrando (700 e 1100 ms)
+      const instantes = [0, 1, 2, 3, 4].flatMap(ciclo => [2000, 100, 500, TRANSICAO_MS / 2, 700, 1100].map(extra => T(ciclo, extra)))
+      for (const agora of instantes) {
         for (const ags of [[], mistos, todos]) {
-          const cena = buildScene(estado({}, crew, [worker('T1')]), ags, T(ciclo), linhas, IDS)
+          const cena = buildScene(estado({}, crew, [worker('T1')]), ags, agora, linhas, IDS)
+          for (const pe of cena.personagens) if (pe.transicao) fases.add(`${largura}:${pe.transicao.fase}`)
           assert.equal(cena.grade.altura, linhas)
           assert.equal(cena.personagens.length, 6)
           for (const r of cena.rotulos) {
@@ -606,13 +610,15 @@ test('ponte viva mantém rótulos legíveis', () => {
           }
           // cada presente mostra nome e indicador de estado próprios
           for (const p of cena.personagens) {
-            assert.ok(cena.rotulos.some(r => r.tipo === 'nome' && r.dono === p.membro))
+            assert.equal(nomeNaCena(cena, p.membro), NOMES_COMPLETOS[MEMBROS.indexOf(p.membro)], `${largura}px: nome de ${p.membro}`)
             assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === p.simbolo))
           }
         }
       }
     }
   }
+  // as fases de entrada e saída foram exercitadas nos dois tamanhos
+  assert.deepEqual([...fases].sort(), ['240:entrando', '240:saindo', '360:entrando', '360:saindo'])
 })
 
 test('ponte viva preserva transição em atualização repetida', () => {
