@@ -2,7 +2,7 @@
 import { assert, test } from 'orca/testing'
 import { avisoDeDados, buildScene, GRADE, LARGURA_MIN_PX, PONTE_ALTURA, relacaoDaTripulacao, ROTACAO_MS, TRANSICAO_MS } from './scene-model.ts'
 import type { Cena } from './scene-model.ts'
-import { ajustaCanvas, criaRelacao, dimensoes, obterCanvas, paint, preferenciaDeMovimento } from './scene.ts'
+import { ajustaCanvas, COR_ESTADO, criaRelacao, dimensoes, obterCanvas, paint, preferenciaDeMovimento } from './scene.ts'
 import type { Pincel } from './scene'
 import type { PonteAgent, PonteState } from './protocol.ts'
 import type { Identidades } from './crew-visual.ts'
@@ -126,7 +126,7 @@ test('cena acende o ativo e conta os ativos no telão', () => {
   assert.ok(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === 'spock')!.y > nome.y)
   // ocioso: corpo a no máximo 40% de opacidade, console apagado, sem tempo, nome ainda legível
   const data = por('data')
-  assert.ok(data.opacidade <= 0.4)
+  assert.ok(data.opacidade <= 0.6 && data.opacidade > 0.5)
   assert.ok(data.opacidadeTexto >= 0.7)
   assert.equal(data.brilho, null)
   assert.equal(tempo('data'), undefined)
@@ -462,4 +462,36 @@ test('ponte viva pinta nomes e indicadores legíveis nas transições', () => {
     }
   }
   assert.deepEqual([...fases].sort(), ['240:entrando', '240:saindo', '360:entrando', '360:saindo'])
+})
+
+test('ponte viva pinta a placa do nome com a cor do estado e dentro da grade', () => {
+  const agora = T(0)
+  const cena = buildScene(estado(), [doMembro('spock'), doMembro('worf', 'blocked'), doMembro('kirk', 'done'), doMembro('data', 'waiting')], agora, undefined, IDS)
+  const bordas: { cor: string; x: number; largura: number }[] = []
+  const ctx: Pincel = {
+    fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '',
+    fillRect() {}, fillText() {},
+    strokeRect(x: number, _y: number, w: number) { bordas.push({ cor: ctx.strokeStyle, x, largura: w }) },
+  }
+  paint(ctx, cena, 5)
+  for (const p of cena.personagens) {
+    // cada estado tem a própria cor de borda (a cor reforça o símbolo, não o substitui) e a cor de cada estado é distinta
+    assert.ok(bordas.some(b => b.cor === COR_ESTADO[p.estado] || b.cor.startsWith('rgba')), `borda de ${p.membro}`)
+  }
+  assert.equal(new Set(Object.values(COR_ESTADO)).size, 6)
+  assert.ok(COR_ESTADO.trabalhando !== COR_ESTADO.aguardando && COR_ESTADO.bloqueado !== COR_ESTADO.concluido)
+  // nenhuma placa passa da largura da tela de 240 px (48 células x 5 px)
+  for (const b of bordas) assert.ok(b.x >= 0 && b.x + b.largura <= 48 * 5 + 1, `placa fora da tela: ${b.x} + ${b.largura}`)
+})
+
+test('ponte viva mantém o botão da relação compacto e legível sobre a cena', () => {
+  const doc: any = { getElementById: () => null, createElement: elemento, body: elemento('body') }
+  const raiz: any = criaRelacao(doc).raiz
+  const [alterna, aviso] = raiz.filhos
+  // fonte de 11 px, fundo escuro e borda na cor do telão: não esconde o título nem some sobre o fundo
+  assert.equal(parseInt(alterna.style.font, 10), 11)
+  assert.ok(alterna.style.background && alterna.style.color && alterna.style.border)
+  assert.ok(parseInt(aviso.style.font, 10) >= 11)
+  assert.ok(parseFloat(aviso.style.maxWidth) <= 200)
+  assert.equal(raiz.style.position, 'fixed')
 })

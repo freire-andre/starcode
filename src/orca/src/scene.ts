@@ -2,6 +2,7 @@
 // e só usa fillRect/fillText/strokeRect: nenhuma imagem nem arquivo de arte (R38).
 import { avisoDeDados, buildScene, CORES, GRADE, linhasDoPainel, relacaoDaTripulacao } from './scene-model.ts'
 import type { Boneco, Cena, ItemRelacao, OpcoesCena, Peca, Rotulo, TipoRotulo } from './scene-model.ts'
+import type { EstadoVisual } from './crew-visual.ts'
 import type { PonteAgent, PonteState } from './protocol.ts'
 
 /** Contexto mínimo do canvas que a pintura usa (permite um contexto falso nos testes). */
@@ -76,6 +77,16 @@ const COR_TEXTO: Record<TipoRotulo, string> = {
   balao: COR.balaoTexto,
   legenda: COR.legenda,
   mensagem: COR.mensagem,
+}
+
+/** Cor do estado na placa do nome e no selo do símbolo, como os cartões de estado da referência (a cor reforça, não substitui, o símbolo). */
+export const COR_ESTADO: Record<EstadoVisual, string> = {
+  trabalhando: '#3ec9ff',
+  aguardando: '#f1c40f',
+  bloqueado: '#ff5a4d',
+  concluido: '#2ecc71',
+  ocioso: '#6b7699',
+  desconhecido: '#8a94b8',
 }
 
 type Caixa = { x: number; y: number; largura: number; altura: number }
@@ -281,7 +292,27 @@ export function paint(ctx: Pincel, cena: Cena, escala: number): void {
     if (c.pose === 'de-pe') desenhaConsole(ctx, c.console, c.cor, c.ativo, consoleOp, e)
     desenhaBoneco(ctx, c.boneco, c.cor, op, e, c.pele, c.pecas)
     if (c.pose === 'sentado') desenhaConsole(ctx, c.console, c.cor, c.ativo, consoleOp, e)
-    for (const r of rotulosDe(c)) {
+    const meus = rotulosDe(c)
+    const nomes = meus.filter(r => r.tipo === 'nome')
+    if (nomes.length > 0) {
+      // placa escura atrás do nome: contraste garantido sobre qualquer fundo; a borda leva a cor do estado
+      const x0 = Math.max(0, Math.min(...nomes.map(r => r.caixa.x)) - 0.3)
+      const x1 = Math.min(cena.grade.largura, Math.max(...nomes.map(r => r.caixa.x + r.caixa.largura)) + 0.3)
+      const y0 = Math.min(...nomes.map(r => r.caixa.y)) + 0.1
+      const y1 = Math.max(...nomes.map(r => r.caixa.y + r.caixa.altura)) - 0.1
+      const placa = { x: x0, y: y0, largura: x1 - x0, altura: y1 - y0 }
+      bloco(ctx, alfa(COR.painel, 0.9 * c.opacidadeTexto), placa, e)
+      ctx.strokeStyle = alfa(COR_ESTADO[c.estado], c.opacidadeTexto)
+      ctx.lineWidth = Math.max(1, e / 2)
+      ctx.strokeRect(placa.x * e, placa.y * e, placa.largura * e, placa.altura * e)
+    }
+    for (const r of meus) {
+      if (r.tipo === 'estado') {
+        // selo do símbolo de estado na cor do estado: legível mesmo com o boneco apagado
+        const lado = Math.max(r.caixa.largura, r.caixa.altura) + 0.4
+        const selo = { x: r.x - lado / 2, y: r.y - lado / 2, largura: lado, altura: lado }
+        caixa(ctx, alfa(COR.painel, 0.95 * c.opacidadeTexto), alfa(COR_ESTADO[c.estado], c.opacidadeTexto), selo, e)
+      }
       if (r.tipo === 'balao') bloco(ctx, alfa(COR.balao, c.opacidadeTexto), r.caixa, e)
       texto(ctx, r, e, c.opacidadeTexto)
     }
@@ -455,10 +486,16 @@ export function criaRelacao(doc: Pagina): Relacao {
   alterna.setAttribute('aria-expanded', 'false')
   alterna.setAttribute('aria-controls', 'relacao-lista')
   alterna.textContent = 'Tripulação'
+  // botão compacto e escuro, no tom da cena: não cobre o telão a 240 px e continua legível sobre ele
+  Object.assign(alterna.style, {
+    font: '11px system-ui, sans-serif', padding: '1px 6px', color: COR.texto, background: COR.painel,
+    border: `1px solid ${COR.telaoBorda}`, borderRadius: '3px', cursor: 'pointer',
+  })
   const aviso = doc.createElement('p')
   aviso.id = 'relacao-aviso'
   aviso.setAttribute('role', 'status')
   aviso.setAttribute('aria-live', 'polite')
+  Object.assign(aviso.style, { margin: '2px 0 0', font: '11px system-ui, sans-serif', color: COR.tempo, background: COR.painel, maxWidth: '200px' })
   const lista = doc.createElement('ul')
   lista.id = 'relacao-lista'
   lista.setAttribute('aria-label', 'Integrantes e estados')

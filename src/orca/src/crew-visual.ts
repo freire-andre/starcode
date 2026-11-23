@@ -21,7 +21,7 @@ export const PERFIS: readonly PerfilVisual[] = [
   { membro: 'data', nome: 'Data', emoji: '🤖', cor: '#c9a227', acessorio: 'pele-palida' },
   { membro: 'laforge', nome: 'Geordi La Forge', emoji: '🔧', cor: '#d9822b', acessorio: 'visor' },
   { membro: 'mccoy', nome: 'Leonard McCoy', emoji: '🧪', cor: '#3b8f9e', acessorio: 'tricorder-medico' },
-  { membro: 'q', nome: 'Q', emoji: '✨', cor: '#f2f2f2', acessorio: 'brilho' },
+  { membro: 'q', nome: 'Q', emoji: '✨', cor: '#8c1d3d', acessorio: 'brilho' },
   { membro: 'uhura', nome: 'Nyota Uhura', emoji: '📡', cor: '#e0533d', acessorio: 'fone-de-ouvido' },
   { membro: 'scotty', nome: 'Montgomery Scott', emoji: '⚙️', cor: '#8a5a2b', acessorio: 'chave-inglesa' },
   { membro: 'kirk', nome: 'James T. Kirk', emoji: '🚀', cor: '#3f9d4a', acessorio: 'comunicador' },

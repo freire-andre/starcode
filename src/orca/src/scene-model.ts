@@ -144,7 +144,8 @@ export const FRAME_MS = 250
 /** Menor largura do painel, em px, e escala inteira mínima que decorre dela. */
 export const LARGURA_MIN_PX = 240
 export const TAM_MIN_PX = 10
-export const OPACIDADE_LIVRE = 0.4
+/** Corpo de quem está ocioso ou desconhecido: apagado, mas ainda com silhueta e uniforme reconhecíveis a 240 px. */
+export const OPACIDADE_LIVRE = 0.6
 
 export const MSG_SEM_WORKTREE = 'Nenhum worktree em foco'
 export const MSG_SEM_STARCODE = 'StarCode não configurado neste worktree'
@@ -180,25 +181,28 @@ const ARCO: (Membro & { x: number; y: number })[] = [
   { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias', x: 10, y: 12 },
   { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes', x: 24, y: 8.5 },
   { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 38, y: 12 },
-  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 6.2, y: 30.5 },
-  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 41.8, y: 30.5 },
-  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 6.2, y: 49 },
-  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 41.8, y: 49 },
-  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 6.2, y: 67.5 },
-  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 41.8, y: 67.5 },
-  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 17.7, y: 57 },
-  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 30.3, y: 57 },
+  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 6.6, y: 30.5 },
+  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 41.2, y: 30.5 },
+  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 6.6, y: 49 },
+  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 41.2, y: 49 },
+  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 6.6, y: 67.5 },
+  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 41.2, y: 67.5 },
+  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 18.2, y: 57 },
+  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 29.7, y: 57 },
 ]
 const PICARD_Y = 35
 const PICARD_ESCALA = 1.5
 /** Altura fixa da ponte: ela não estica com o painel; o espaço que sobra vai para as atividades. */
 export const PONTE_ALTURA = 80.5
 /** Altura da área acima e abaixo do centro do boneco de escala `s` (cabeça e textos). */
-const acimaDe = (s: number): number => 7.9 * s
+const acimaDe = (s: number): number => 7.8 * s
 /** Nome em até duas linhas e, abaixo dele, o tempo. */
-const abaixoDe = (s: number): number => 2.72 * s + 7.8
+const abaixoDe = (s: number): number => 2.72 * s + 7.92
 /** Distância do centro do boneco ao centro do nome. */
-const nomeDy = (s: number): number => 2.72 * s + 1.6
+const nomeDy = (s: number): number => 2.72 * s + 1.2
+/** Fonte do nome (11 px a 240 px) e distância entre as linhas dele, em células: o nome é o que identifica o tripulante. */
+export const TAM_NOME = 2.2
+const NOME_LINHA = 2.7
 /** Linha e margens da área de atividades. */
 const ATIV_LINHA = 3
 const ATIV_MAX = 12
@@ -387,7 +391,9 @@ const ESTILOS: Record<string, Estilo> = {
   },
   brilho: {
     pele: '#f6e3cf',
-    pecas: c => [
+    pecas: (c, b) => [
+      peca('#d4a017', b.x, b.y, b.largura, b.altura * 0.14),
+      peca('#d4a017', b.x + b.largura * 0.44, b.y, b.largura * 0.12, b.altura),
       peca('#fff7a8', c.x - c.largura * 0.5, c.y - c.altura * 0.45, c.largura * 0.22, c.altura * 0.22),
       peca('#ffffff', c.x + c.largura * 0.4, c.y - c.altura * 0.6, c.largura * 0.2, c.altura * 0.2),
       peca('#fff7a8', c.x + c.largura * 1.25, c.y - c.altura * 0.3, c.largura * 0.22, c.altura * 0.22),
@@ -422,7 +428,8 @@ const ESTILOS: Record<string, Estilo> = {
   },
   'testa-craniana': {
     pele: '#8f6a54',
-    pecas: c => [
+    pecas: (c, b) => [
+      peca('#c9ced6', b.x + b.largura * 0.1, b.y + b.altura * 0.08, b.largura * 0.8, b.altura * 0.2),
       peca('#0e0e12', c.x - c.largura * 0.1, c.y - c.altura * 0.1, c.largura * 1.2, c.altura * 0.3),
       peca('#0e0e12', c.x - c.largura * 0.1, c.y + c.altura * 0.2, c.largura * 0.2, c.altura * 0.8),
       peca('#0e0e12', c.x + c.largura * 0.9, c.y + c.altura * 0.2, c.largura * 0.2, c.altura * 0.8),
@@ -440,11 +447,16 @@ const ESTILOS: Record<string, Estilo> = {
   },
 }
 
+const SEM_DISTINTIVO = ['brilho', 'cabelo-cacheado', 'chapeu-largo']
+
 /** Peças do perfil para um boneco; o acessório vem de `PERFIS` e cada um tem o próprio desenho. */
 export function pecasDoPerfil(acessorio: string, boneco: Boneco, escala: number): { pele: string; pecas: Peca[] } {
   const estilo = ESTILOS[acessorio]
   if (!estilo) return { pele: PELE_PADRAO, pecas: [] }
-  return { pele: estilo.pele, pecas: estilo.pecas(boneco.cabeca, boneco.corpo, escala * BONECO) }
+  const b = boneco.corpo
+  // distintivo de comunicação dourado no peito dos oficiais da Frota; Q, Troi e Guinan não vestem o uniforme
+  const distintivo = SEM_DISTINTIVO.includes(acessorio) ? [] : [peca('#ffd24a', b.x + b.largura * 0.14, b.y + b.altura * 0.16, b.largura * 0.2, b.altura * 0.18)]
+  return { pele: estilo.pele, pecas: [...estilo.pecas(boneco.cabeca, b, escala * BONECO), ...distintivo] }
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -628,10 +640,10 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     const yNome = ey + nomeDy(s)
     const meus = [
       rotulo('emoji', emoji, ex, ey - 1.2 * s, s > 1 ? 2.6 : 2),
-      ...linhasNome.map((l, i) => rotulo('nome', l, ex, yNome + i * 2.5, 2)),
+      ...linhasNome.map((l, i) => rotulo('nome', l, ex, yNome + i * NOME_LINHA, TAM_NOME)),
       rotulo('estado', apres.simbolo, ex + 4.2 * s, ey - 6.6 * s, 2),
     ]
-    if (tempo) meus.push(rotulo('tempo', tempo, ex, yNome + 2.5 * linhasNome.length, 2)) // folga contra o arredondamento
+    if (tempo) meus.push(rotulo('tempo', tempo, ex, yNome + NOME_LINHA * linhasNome.length, 2)) // folga contra o arredondamento
     if (alerta) meus.push(rotulo('balao', '!', ex - 4.2 * s, ey - 6.6 * s, 2))
     for (const r of meus) rotulos.push({ ...r, dono: m.id })
     const consoleR = fazConsole(ex, ey, s)
@@ -677,12 +689,15 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
   const espaco = alturaGrade - 3.5 - topoAtiv
   let atividades: Retangulo | null = null
   if (espaco >= ATIV_LINHA * 2 + 3.5) {
+    // só quem tem estado comprovado e relevante ganha linha própria; os sem prova entram numa linha de resumo
     const itens = estados
-      .filter(e => e.estado !== 'ocioso')
+      .filter(e => e.estado !== 'ocioso' && e.estado !== 'desconhecido')
       .map(e => `${ESTADOS[e.estado].simbolo} ${corta(porMembro.get(e.membro)?.name || e.membro, 8)} · ${ESTADOS[e.estado].texto}`)
-    const vazias = itens.length === 0
-    const cabem = Math.min(ATIV_MAX, Math.floor((espaco - 3.5) / ATIV_LINHA))
-    const mostrados = vazias ? ['sem atividade registrada'] : itens.length > cabem ? [...itens.slice(0, cabem - 1), `+${itens.length - cabem + 1}`] : itens
+    const incertos = estados.filter(e => e.estado === 'desconhecido').length
+    const resumo = incertos > 0 ? `${ESTADOS.desconhecido.simbolo} ${incertos} ${incertos === 1 ? 'desconhecido' : 'desconhecidos'}` : null
+    const cabem = Math.min(ATIV_MAX, Math.floor((espaco - 3.5) / ATIV_LINHA)) - (resumo ? 1 : 0)
+    const lista = itens.length > cabem ? [...itens.slice(0, cabem - 1), `+${itens.length - cabem + 1}`] : itens
+    const mostrados = resumo ? [...lista, resumo] : lista.length === 0 ? ['sem atividade registrada'] : lista
     atividades = { x: 1, y: topoAtiv, largura: 46, altura: 3.5 + mostrados.length * ATIV_LINHA }
     rotulos.push(rotulo('telao', 'ATIVIDADES', 24, topoAtiv + 1.9, 2))
     mostrados.forEach((t, i) => rotulos.push(rotulo('atividade', t, 24, topoAtiv + 3.5 + (i + 0.5) * ATIV_LINHA, 2)))

@@ -1,6 +1,6 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { avisoDeDados, buildScene, GRADE, horario, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
+import { avisoDeDados, buildScene, GRADE, horario, OPACIDADE_LIVRE, TAM_NOME, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
 import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
 import type { EstadoDoMembro, Identidades } from './crew-visual'
@@ -455,7 +455,7 @@ test('ponte viva anima sem alterar estado', () => {
   // não há mais de seis em nenhum quadro da troca
   for (let t = ini; t <= ini + TRANSICAO_MS; t += 50) assert.ok(buildScene(base, [], t, undefined, IDS).personagens.length <= 6)
 })
-const OPAC_MAX = 0.4
+const OPAC_MAX = OPACIDADE_LIVRE
 
 test('ponte viva representa trabalho', () => {
   const ags = [doMembro('spock')]
@@ -490,7 +490,7 @@ test('ponte viva representa ociosidade', () => {
   assert.equal(data.pose, 'de-pe')
   assert.equal(data.brilho, null)
   assert.equal(data.quadro, 0)
-  assert.ok(data.opacidade <= 0.4)
+  assert.ok(data.opacidade <= OPACIDADE_LIVRE)
   assert.equal(data.tempo, null)
   assert.deepEqual(data.boneco, b.personagens.find(p => p.membro === 'data')!.boneco)
 })
@@ -526,7 +526,7 @@ test('ponte viva não inventa atividade', () => {
     assert.ok(cena.personagens.every(p => p.estado === 'desconhecido' && p.simbolo === '?' && p.textoEstado === 'desconhecido'))
     assert.equal(cena.ativos, 0)
     assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === 'tripulação em repouso'))
-    for (const p of cena.personagens) assert.ok(p.opacidade <= 0.4)
+    for (const p of cena.personagens) assert.ok(p.opacidade <= OPACIDADE_LIVRE)
   }
   // sem agente e sem count: ocioso, não trabalho
   assert.ok(buildScene(estado(), [], T(0)).personagens.every(p => p.estado === 'ocioso'))
@@ -753,4 +753,60 @@ test('ponte viva respeita movimento reduzido', () => {
   assert.ok(cena.personagens.every(p => p.transicao === null))
   const item = relacaoDaTripulacao(base, agentes, T(3), IDS, { ...r, selecionado: fora }).find(i => i.membro === fora)!
   assert.equal(item.presente, true)
+})
+
+test('ponte viva legibilidade: corpo apagado continua visível e o nome é maior que 10 px a 240 px', () => {
+  // ocioso ou desconhecido fica apagado, mas acima de 50%: na captura real a 40% o uniforme sumia no fundo
+  assert.ok(OPACIDADE_LIVRE > 0.5 && OPACIDADE_LIVRE < 1)
+  const cena = buildScene(estado(), [], T(0), undefined, IDS)
+  for (const p of cena.personagens) assert.ok(p.opacidade >= 0.5, `${p.membro} apagado demais`)
+  const nomes = cena.rotulos.filter(r => r.tipo === 'nome')
+  assert.ok(nomes.length > 6)
+  for (const n of nomes) {
+    assert.equal(n.tam, TAM_NOME)
+    assert.ok(Math.round(n.tam * 5) >= 11, `nome a 240 px: ${Math.round(n.tam * 5)} px`)
+  }
+  // as linhas de um mesmo nome não se tocam (a fonte maior pede mais espaço entre elas)
+  for (const p of cena.personagens) {
+    const linhas = nomes.filter(r => r.dono === p.membro)
+    for (let i = 1; i < linhas.length; i++) assert.ok(linhas[i].caixa.y >= linhas[i - 1].caixa.y + linhas[i - 1].caixa.altura)
+  }
+})
+
+test('ponte viva resume os sem prova em uma linha em vez de repetir desconhecido 12 vezes', () => {
+  const indisponivel = estado({ status: 'erro', stale: true, error: 'x' })
+  const atividades = (c: Cena) => c.rotulos.filter(r => r.tipo === 'atividade').map(r => r.texto)
+  // todos desconhecidos (dados antigos): uma linha só, com a contagem
+  const todos = buildScene(indisponivel, [], T(0), undefined, IDS)
+  assert.deepEqual(atividades(todos), ['? 12 desconhecidos'])
+  // um comprovado e os demais sem prova: a linha dele e o resumo dos outros, sem "+N" que esconda o resumo
+  const s = estado({}, Object.fromEntries(MEMBROS.map(m => [m, [1, '1970-01-01T00:00:00Z']])))
+  const misto = buildScene(s, [doMembro('spock')], T(0), undefined, IDS)
+  const linhas = atividades(misto)
+  assert.equal(linhas.length, 2)
+  assert.equal(linhas[0], '⚙ spock · trabalhando')
+  assert.equal(linhas[1], '? 11 desconhecidos')
+  // singular quando só um não tem prova
+  const um = estado({}, { ...Object.fromEntries(MEMBROS.map(m => [m, [0, null]])), q: [1, '1970-01-01T00:00:00Z'] })
+  assert.deepEqual(atividades(buildScene(um, [], T(0), undefined, IDS)), ['? 1 desconhecido'])
+})
+
+test('ponte viva dá a cada integrante um distintivo ou traje próprio', () => {
+  // o rodízio mostra seis por rodada: percorre as rodadas até cada integrante aparecer
+  const achar = (m: string) => {
+    for (let ciclo = 0; ciclo < 4; ciclo++) {
+      const p = buildScene(estado(), [], T(ciclo)).personagens.find(x => x.membro === m)
+      if (p) return p
+    }
+    throw new Error(`${m} nunca apareceu`)
+  }
+  const dourado = (p: ReturnType<typeof achar>) => p.pecas.some(x => x.cor === '#ffd24a')
+  for (const m of MEMBROS) {
+    // oficiais da Frota levam o distintivo no peito; Q, Troi e Guinan vestem trajes próprios
+    assert.equal(dourado(achar(m)), !['q', 'troi', 'guinan'].includes(m), `distintivo de ${m}`)
+  }
+  // Q usa manto carmim com debrum dourado e Worf a faixa prateada: silhuetas que não dependem só da cabeça
+  assert.notEqual(PERFIS.find(p => p.membro === 'q')!.cor, '#f2f2f2')
+  assert.ok(pecasDoPerfil('brilho', achar('q').boneco, 1).pecas.some(x => x.cor === '#d4a017'))
+  assert.ok(pecasDoPerfil('testa-craniana', achar('worf').boneco, 1).pecas.some(x => x.cor === '#c9ced6'))
 })
