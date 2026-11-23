@@ -49,3 +49,9 @@ O usuário autoriza carregar o `dist` e aprovar as quatro capacidades; então: `
 - Em 2026-11-23, após ser solicitado a usar teclado e leitor de tela para percorrer nomes, estados e presença e selecionar alguém fora da cena, o usuário respondeu: "teste ok". O relato confirma o roteiro solicitado em termos gerais; não registra separadamente o comportamento de Esc ou o anúncio de `role="status"`.
 - Na versão anterior, as capturas `orca-240.png`, `orca-360.png` e as `-revisada` foram obtidas com a pasta de desenvolvimento deste worktree carregada, e não com o plugin de `F:` como afirmado acima. Esses arquivos são anteriores à revisão de presença estável.
 - Uma sessão real de LaForge teve `sessionId` igual no hook e na Orca, mas o registro do hook instalado não continha worktree. O vínculo e a troca real de estados continuam pendentes; a causa observada foi um hook instalado anterior à SC-222.
+
+## Compatibilidade e vínculo real (SC-222)
+
+- Após a compatibilidade do commit `3ad479e`, uma sessão real de LaForge foi observada como `working` na Orca, no worktree em foco, com o mesmo `sessionId` do registro ativo do hook anterior. O registro do hook continuava sem worktree; o vínculo usa o escopo da resposta `agents.list` da Orca e a igualdade da sessão.
+- As capturas reais `vinculo-real-240.png` e `vinculo-real-360.png` mostram LaForge trabalhando, com as respectivas larguras confirmadas pela Orca. `vinculo-apos-360.png` mostra a cena após o fim da sessão, com estado desconhecido; os quadros não demonstram a animação intermediária nem uma troca entre dois integrantes.
+- Comparadas aos conceitos, as capturas mantêm fundo escuro, estações em arco, posto central e engenharia, mas apresentam personagens e cenários em pixel art bem mais simplificados. A legibilidade e a aparência devem ser julgadas nas larguras reais; as imagens não comprovam leitor de tela, movimento reduzido nem a trajetória animada.
