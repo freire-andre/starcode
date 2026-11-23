@@ -33,6 +33,7 @@ Executado em 2026-11-23 sobre `HEAD` 6510245 (T7 integrada). Resultado geral: **
 - **Reais (Orca, build antigo)**: `docs/aceite/ponte-viva/orca-240.png`, `orca-360.png` e as `-revisada` são capturas de `orca plugin shot` do plugin instalado a partir de `F:\Projetos\StarCode\dist\orca` (contentHash `98f39fb5…fd0b4`), anteriores a T5 a T7. Comprovam legibilidade e identidade daquele build, não deste `dist`.
 - **Sintéticas**: as renderizações de `orca plugin test` e `orca plugin check` (stand-in, sem o app) provam C15, C16, C17 por asserção, não por captura.
 - **Não comprovado**: capturas de 240 e 360 px do `dist` atual; troca real de presença (R4) e vínculo real de sessão e worktree (R21, R22) com agentes da Orca; verificação manual de teclado e de leitor de tela (R16). A comparação com `referencias/ponte-conceito.png` e `tripulacao-conceito.png` não foi refeita.
+- **Limitação da prova de acessibilidade (SC-216, achado 3)**: `scene.test.ts` exercita os ouvintes (teclado, `aria-pressed`, `role="status"`) em elementos simulados; isso prova a lógica, não a navegação real por Tab e Esc nem o anúncio por leitor de tela. Nenhuma dessas duas provas foi feita em ambiente real e nenhum resultado foi inventado: dependem do usuário carregar o `dist` na Orca e rodar o roteiro de teclado e leitor de tela abaixo.
 
 ### Por que não foi feito
 
