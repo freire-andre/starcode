@@ -1048,6 +1048,7 @@ function fakeClock() {
   globalThis.setInterval = ((fn: () => void, ms: number) => {
     const id = next++
     timers.set(id, { fn, ms, due: now + ms })
+    // SC-216: o relógio falso devolve um id numérico; o tipo do timer do host não é construível sem criar um timer real
     return id as unknown as ReturnType<typeof setInterval>
   }) as typeof setInterval
   globalThis.clearInterval = ((id: number) => void timers.delete(id)) as typeof clearInterval
@@ -1076,6 +1077,7 @@ async function waitFor(cond: () => boolean) {
 }
 
 const posts = (w: { posts: { event: string; payload: unknown }[] }) =>
+  // SC-216: os testes leem campos livres do estado publicado; tipar cada um deles repetiria o contrato de protocol.ts
   w.posts.filter((p) => p.event === 'ponte.state').map((p) => p.payload as any)
 
 const phased = (path: string, phase: string) =>

@@ -117,8 +117,15 @@ export function estadosDaTripulacao(estado: PonteState, ids: Identidades): Estad
   })
 }
 
-/** Caminho comparável: barra comum, sem barra final e sem diferença de caixa (Windows). */
-const caminho = (v: string): string => v.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
+/**
+ * Caminho comparável: barra comum e sem barra final. A caixa só é ignorada em caminho de Windows (letra de unidade ou
+ * UNC), onde o sistema não distingue; em caminho POSIX `/repo/Foo` e `/repo/foo` são worktrees distintos (SC-216, W3).
+ * Limite: volume insensível a caixa fora do Windows (macOS) é tratado como sensível: sem vínculo, nunca vínculo falso.
+ */
+const caminho = (v: string): string => {
+  const c = v.replaceAll('\\', '/').replace(/\/+$/, '')
+  return /^([a-z]:(\/|$)|\/\/)/i.test(c) ? c.toLowerCase() : c
+}
 
 /**
  * Vínculos `terminalId -> integrante` que o estado comprova (SC-222, R21): o agente vem de `agents.list` pedido

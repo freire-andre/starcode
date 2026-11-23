@@ -297,6 +297,15 @@ export function selecionaPresentes(estados: readonly EstadoDoMembro[], anteriore
   return ordem.filter(m => fica.includes(m))
 }
 
+/**
+ * Nova seleção ao acionar `membro`: o mesmo selecionado desmarca; quem já está na cena não troca a seleção (senão o
+ * integrante trazido antes sairia, R10/R20); só quem está fora da cena passa a ser o selecionado (SC-216, W1).
+ */
+export function alternaSelecao(atual: string | null, membro: string, presentes: readonly string[]): string | null {
+  if (atual === membro) return null
+  return presentes.includes(membro) ? atual : membro
+}
+
 export interface Presenca { membro: string; transicao: Transicao | null }
 
 /** Memória da presença entre atualizações: quem está, quem sai e quem entra, com o instante em que cada troca começou. */
@@ -795,5 +804,9 @@ export function avisoDeDados(estado: PonteState): string | null {
     : 'ainda sem atualização válida'
   if (estado.status === 'erro') return `Dados indisponíveis (${primeiraLinha(estado.error)}); ${ultima}`
   if (estado.status === 'ok' && estado.stale) return `Dados desatualizados; ${ultima}`
+  // sessions.json ilegível: as contagens chegam nulas e os estados ficam desconhecidos (SC-216, W2)
+  if (estado.status === 'ok' && estado.snapshot?.crew.some(c => c.count === null)) {
+    return 'Sessões da tripulação ilegíveis; estados desconhecidos'
+  }
   return null
 }

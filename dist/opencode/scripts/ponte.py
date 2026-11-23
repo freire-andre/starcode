@@ -93,7 +93,10 @@ def build_crew(snap: Snapshot, now: datetime) -> list[dict]:
         return []
     main = crew_live.main_worktree(snap.root) or snap.root
     sessions_path = main / crew_live.LIVE_DIR / crew_live.SESSIONS_FILE
-    sessions = snap.read_json(sessions_path, ".starcode/live/sessions.json") or {}
+    raw = snap.read_json(sessions_path, ".starcode/live/sessions.json")
+    # arquivo presente mas ilegível ou inválido: as contagens são desconhecidas (null), nunca zero (SC-216, W2)
+    unknown = raw is None and sessions_path.exists()
+    sessions = raw or {}
     counts = crew_live.count_members(sessions, now)
     links = crew_live.session_links(sessions, now)
     last: dict[str, tuple[datetime, str]] = {}
@@ -112,7 +115,7 @@ def build_crew(snap: Snapshot, now: datetime) -> list[dict]:
             "member": key,
             "emoji": m.get("emoji", ""),
             "name": m.get("name", key),
-            "count": counts.get(key, 0),
+            "count": None if unknown else counts.get(key, 0),
             "lastAt": last[key][1] if key in last else None,
             "sessions": links.get(key, []),
             "cliModel": f"{m.get('cli')} · {model}",

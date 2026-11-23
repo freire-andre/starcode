@@ -1,6 +1,6 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { avisoDeDados, buildScene, GRADE, horario, OPACIDADE_LIVRE, TAM_NOME, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, criaRastroPresenca, selecionaPresentes, TRANSICAO_MS } from './scene-model'
+import { avisoDeDados, buildScene, GRADE, horario, OPACIDADE_LIVRE, TAM_NOME, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, criaRastroPresenca, selecionaPresentes, alternaSelecao, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
 type Rastro = ReturnType<typeof criaRastroPresenca>
 import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
@@ -765,11 +765,35 @@ test('ponte viva permite selecionar integrante', () => {
   }
 })
 
+test('ponte viva mantém a seleção ao acionar quem já está na cena', () => {
+  // seis trabalhando; Q (ocioso, fora da cena) é trazido pela seleção e depois aciona-se o Picard, que já está presente
+  const base = estado()
+  const agentes = ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'].map(m => doMembro(m))
+  const presentes = (sel: string | null): string[] =>
+    relacaoDaTripulacao(base, agentes, 0, IDS, { selecionado: sel }).filter(i => i.presente).map(i => i.membro)
+  let sel: string | null = null
+  sel = alternaSelecao(sel, 'q', presentes(sel))
+  assert.equal(sel, 'q')
+  assert.ok(presentes(sel).includes('q'))
+  sel = alternaSelecao(sel, 'picard', presentes(sel))
+  assert.equal(sel, 'q') // acionar quem já está presente não troca a seleção
+  assert.ok(presentes(sel).includes('q') && presentes(sel).includes('picard'))
+  // a mesma seleção desmarca; outro integrante fora da cena substitui
+  assert.equal(alternaSelecao('q', 'q', presentes('q')), null)
+  assert.equal(alternaSelecao('q', 'guinan', presentes('q')), 'guinan')
+  assert.equal(alternaSelecao(null, 'picard', presentes(null)), null)
+})
+
 test('ponte viva informa dados desatualizados', () => {
   const lv = new Date(2026, 10, 22, 9, 5, 7).getTime()
   assert.equal(horario(lv), '09:05:07')
   assert.equal(avisoDeDados(estado()), null)
   assert.equal(avisoDeDados(estado({ status: 'sem-worktree', snapshot: null })), null)
+  // sessions.json ilegível: contagem nula avisa e nunca vira ocioso (SC-216, W2)
+  const ilegivel = estado()
+  ilegivel.snapshot!.crew = ilegivel.snapshot!.crew.map(c => ({ ...c, count: null, sessions: [] }))
+  assert.equal(avisoDeDados(ilegivel), 'Sessões da tripulação ilegíveis; estados desconhecidos')
+  assert.ok(estadosDaTripulacao(ilegivel, IDS).every(e => e.estado === 'desconhecido'))
   assert.equal(
     avisoDeDados(estado({ status: 'erro', stale: true, error: 'boom' + String.fromCharCode(10) + 'segunda', lastValidAt: lv })),
     'Dados indisponíveis (boom); última atualização válida às 09:05:07',

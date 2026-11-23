@@ -217,6 +217,16 @@ test('ponte viva vincula sessão ao worktree', () => {
   for (const wt of ['c:\\WT', 'C:/wt/', 'c:/WT']) {
     assert.deepEqual(identidadesDaSessao(comSessoes({ spock: [{ id: 'sess-1', worktree: wt }] })), { t1: 'spock' }, wt)
   }
+  // caminho POSIX distingue caixa: `/repo/Foo` e `/repo/foo` são worktrees distintos (SC-216, W3)
+  const posix = comSessoes({ spock: [{ id: 'sess-1', worktree: '/repo/foo' }] }, { agentsWorktree: '/repo/Foo' })
+  posix.snapshot!.worktree = '/repo/foo'
+  assert.deepEqual(identidadesDaSessao(posix), {})
+  const posix2 = comSessoes({ spock: [{ id: 'sess-1', worktree: '/repo/Foo' }] }, { agentsWorktree: '/repo/foo' })
+  posix2.snapshot!.worktree = '/repo/foo'
+  assert.deepEqual(identidadesDaSessao(posix2), {})
+  const igual = comSessoes({ spock: [{ id: 'sess-1', worktree: '/repo/foo' }] }, { agentsWorktree: '/repo/foo' })
+  igual.snapshot!.worktree = '/repo/foo'
+  assert.deepEqual(identidadesDaSessao(igual), { t1: 'spock' }) // igual byte a byte continua vinculando
   // dois worktrees: a sessão registrada em outro worktree não vincula no foco
   const dois = comSessoes({ worf: [{ id: 'sess-2', worktree: 'C:/outro' }], spock: [{ id: 'sess-1', worktree: 'C:/wt' }] }, {},
     [agenteSess('t1', 'sess-1'), agenteSess('t2', 'sess-2')])
