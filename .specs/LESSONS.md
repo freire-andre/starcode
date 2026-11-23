@@ -581,6 +581,24 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: .specs/features/versao-1-9-0/verification.md:achado 6
 - updated: 2026-11-22T20:22:55Z
 
+### L96 - Teste de estado vindo de texto externo deve incluir nomes herdados do protótipo (toString, constructor) e exigir propriedade própria ou mapa sem protótipo, porque 'toString' lançava exceção e interrompia a cena.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: verification.md:C8
+- updated: 2026-11-23T15:00:07Z
+
+### L97 - Ao provar vínculo de sessão e worktree por caminho, recuse caminho vazio em todas as fontes e teste o caso de caminhos vazios coincidentes, porque três vazios iguais comprovavam vínculo indevido.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: verification.md:C21
+- updated: 2026-11-23T15:00:07Z
+
+### L98 - Prova de acessibilidade que só aciona ouvintes em DOM simulado não prova teclado nem leitor de tela; rode a navegação real ou declare a prova como lógica, porque o teste passava sem Tab ou anúncio.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: verification.md:C16
+- updated: 2026-11-23T15:00:07Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.
