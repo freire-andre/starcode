@@ -130,7 +130,7 @@ export interface Cena {
 }
 
 /** Largura fixa da grade e o mínimo de linhas; a altura real acompanha a proporção do painel (R54). */
-export const GRADE = { largura: 48, altura: 120 } as const
+export const GRADE = { largura: 48, altura: 128 } as const
 /** Teto de linhas, para um painel muito alto não gerar uma grade absurda. */
 export const LINHAS_MAX = 400
 export const MAX_WORKERS = 6
@@ -173,29 +173,30 @@ const PICARD: Membro = { id: 'picard', nome: 'Picard', emoji: '🖖', divisao: '
 /**
  * As 11 estações em arco ao redor da cadeira do Picard, agrupadas numa ponte de proporção fixa (PONTE_ALTURA):
  * 3 no alto, 2 em cada lado (2 fileiras), 2 embaixo e 2 nos cantos baixos. `y` é a distância a partir do topo da
- * ponte. Duas áreas nunca se tocam: ou ficam a 11,4 células ou mais na horizontal, ou a 15,9 ou mais na vertical
+ * ponte. Duas áreas nunca se tocam: ou ficam a 11,4 células ou mais na horizontal, ou a 18,5 ou mais na vertical
  * (o teste confere todas as estações).
  */
 const ARCO: (Membro & { x: number; y: number })[] = [
   { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias', x: 10, y: 12 },
   { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes', x: 24, y: 8.5 },
   { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 38, y: 12 },
-  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 6.2, y: 29 },
-  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 41.8, y: 29 },
-  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 6.2, y: 45 },
-  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 41.8, y: 45 },
-  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 6.2, y: 61 },
-  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 41.8, y: 61 },
+  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 6.2, y: 30.5 },
+  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 41.8, y: 30.5 },
+  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 6.2, y: 49 },
+  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 41.8, y: 49 },
+  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 6.2, y: 67.5 },
+  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 41.8, y: 67.5 },
   { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 17.7, y: 57 },
   { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 30.3, y: 57 },
 ]
-const PICARD_Y = 33
+const PICARD_Y = 35
 const PICARD_ESCALA = 1.5
 /** Altura fixa da ponte: ela não estica com o painel; o espaço que sobra vai para as atividades. */
-export const PONTE_ALTURA = 71
+export const PONTE_ALTURA = 80.5
 /** Altura da área acima e abaixo do centro do boneco de escala `s` (cabeça e textos). */
 const acimaDe = (s: number): number => 7.9 * s
-const abaixoDe = (s: number): number => 2.72 * s + 5.3
+/** Nome em até duas linhas e, abaixo dele, o tempo. */
+const abaixoDe = (s: number): number => 2.72 * s + 7.8
 /** Distância do centro do boneco ao centro do nome. */
 const nomeDy = (s: number): number => 2.72 * s + 1.6
 /** Linha e margens da área de atividades. */
@@ -616,17 +617,19 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     const y = lerp(porta.y, ey, t)
     const ativo = apres.animaConsole && !andando
     const alerta = ALERTAS.includes(visual)
-    const nome = corta(c?.name || m.nome, 8)
+    // nome completo do perfil (R1), em até duas linhas para caber ao lado dos vizinhos; o `name` do snapshot é curto
+    const nome = perfil.nome
+    const linhasNome = quebra(nome, 10)
     const emoji = c?.emoji || m.emoji
     const tempo = ativo ? haQuanto(c?.lastAt, agoraMs) : null
     const q: 0 | 1 = ativo ? quadro : 0
     const yNome = y + nomeDy(s)
     const meus = [
       rotulo('emoji', emoji, x, y - 1.2 * s, s > 1 ? 2.6 : 2),
-      rotulo('nome', nome, x, yNome, 2),
+      ...linhasNome.map((l, i) => rotulo('nome', l, x, yNome + i * 2.5, 2)),
       rotulo('estado', apres.simbolo, x + 4.2 * s, y - 6.6 * s, 2),
     ]
-    if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.5, 2)) // folga contra o arredondamento
+    if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.5 * linhasNome.length, 2)) // folga contra o arredondamento
     if (alerta) meus.push(rotulo('balao', '!', x - 4.2 * s, y - 6.6 * s, 2))
     for (const r of meus) rotulos.push({ ...r, dono: m.id })
     const consoleR = fazConsole(ex, ey, s)
@@ -739,7 +742,7 @@ export function relacaoDaTripulacao(
     const visual = estados.find(e => e.membro === perfil.membro)?.estado ?? 'desconhecido'
     const apres = ESTADOS[visual]
     const c = estado.snapshot?.crew.find(x => x.member === perfil.membro)
-    const nome = c?.name || perfil.nome
+    const nome = perfil.nome // nome completo do perfil, também com snapshot real (o `name` dele é curto)
     const presente = naCena.has(perfil.membro)
     return {
       membro: perfil.membro, nome, emoji: c?.emoji || perfil.emoji, estado: visual, simbolo: apres.simbolo,

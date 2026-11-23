@@ -34,6 +34,9 @@ const doMembro = (m: string, state: PonteAgent['state'] = 'working'): PonteAgent
 const T = (ciclo: number, extra = 2000): number => ciclo * ROTACAO_MS + extra
 const membrosDe = (c: Cena): string[] => c.personagens.map(p => p.membro)
 const NOMES_CREW = ['Picard', 'Spock', 'Troi', 'Data', 'LaForge', 'McCoy', 'Q', 'Uhura', 'Scotty', 'Kirk', 'Worf', 'Guinan']
+const NOMES_COMPLETOS = ['Jean-Luc Picard', 'Spock', 'Deanna Troi', 'Data', 'Geordi La Forge', 'Leonard McCoy', 'Q', 'Nyota Uhura', 'Montgomery Scott', 'James T. Kirk', 'Worf', 'Guinan']
+/** Nome do integrante na cena: as linhas do nome (até duas) na ordem em que aparecem. */
+const nomeNaCena = (c: Cena, membro: string): string => c.rotulos.filter(r => r.tipo === 'nome' && r.dono === membro).map(r => r.texto).join(' ')
 const tocam = (a: { x: number; y: number; largura: number; altura: number }, b: typeof a) =>
   a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura
 
@@ -59,7 +62,7 @@ test('cena tem uma estação por tripulante e a engenharia', () => {
         vistos.add(p.membro)
         // cada personagem mostra o emoji e o nome da tripulação (crew.yaml)
         assert.ok(cs.rotulos.some(r => r.tipo === 'emoji' && r.dono === p.membro && r.texto === p.emoji), `emoji ${p.membro}`)
-        assert.ok(cs.rotulos.some(r => r.tipo === 'nome' && r.dono === p.membro && r.texto === p.nome), `nome ${p.membro}`)
+        assert.equal(nomeNaCena(cs, p.membro), p.nome, `nome ${p.membro}`)
         // todas as estações (LaForge incluído) ficam na ponte, e as áreas delas não se tocam
         assert.ok(p.caixa.y >= cs.ponte.y && p.caixa.y + p.caixa.altura <= cs.ponte.y + cs.ponte.altura, `fora da ponte: ${p.membro}`)
         assert.ok(p.caixa.x >= 0 && p.caixa.x + p.caixa.largura <= cs.grade.largura, `fora da grade: ${p.membro}`)
@@ -293,15 +296,16 @@ test('ponte viva identifica os 12 integrantes', async () => {
   for (let ciclo = 0; ciclo < 2; ciclo++) {
     const cena = buildScene(crewReal(), [], T(ciclo), undefined, IDS)
     for (const p of cena.personagens) vistos.set(p.membro, p)
-    for (const r of cena.rotulos) if (r.tipo === 'nome') rotulosNome.push(r.texto)
+    for (const p of cena.personagens) rotulosNome.push(nomeNaCena(cena, p.membro))
   }
   assert.deepEqual([...vistos.keys()].sort(), [...MEMBROS].sort())
-  // os nomes na cena são os de src/crew.yaml (lidos do arquivo) e da tripulação: Picard, LaForge, Scotty...
+  // src/crew.yaml (lido do arquivo) tem os nomes curtos; a cena mostra o nome completo do perfil (R1), também com
+  // snapshot real, cujo `name` é o curto (R1: Jean-Luc Picard, Geordi La Forge, Montgomery Scott...)
   const { readFileSync } = await import('node:fs')
   const { fileURLToPath } = await import('node:url')
   const yaml = readFileSync(fileURLToPath(new URL('../../crew.yaml', import.meta.url)), 'utf8')
   assert.deepEqual([...yaml.matchAll(/^\s+name:\s*(\S.*?)\s*$/gm)].map(m => m[1]), NOMES_CREW)
-  assert.deepEqual(NOMES_CREW.slice().sort(), rotulosNome.slice().sort())
+  assert.deepEqual(NOMES_COMPLETOS.slice().sort(), rotulosNome.slice().sort())
   const ordem = PERFIS.map(p => p.membro)
   // identidade visual própria: uniforme, cabeça, acessório e a assinatura das peças diferem entre os 12
   const lista = ordem.map(m => vistos.get(m)!)
@@ -332,10 +336,10 @@ test('ponte viva limita a seis integrantes', () => {
       const cena = buildScene(crewReal(), ags, t, undefined, IDS)
       assert.ok(cena.personagens.length <= 6, `${cena.personagens.length} em ${t} ms`)
       const nomes = cena.rotulos.filter(r => r.tipo === 'nome')
-      assert.ok(nomes.length <= 6)
-      // cada presente tem o nome junto de si, legível
-      assert.deepEqual(nomes.map(r => r.dono).sort(), membrosDe(cena).sort())
-      for (const p of cena.personagens) assert.equal(cena.rotulos.find(r => r.tipo === 'nome' && r.dono === p.membro)!.texto, p.nome)
+      assert.ok(nomes.length <= 12) // até duas linhas por presente
+      // cada presente tem o nome completo junto de si, legível, mesmo com o snapshot real (name curto)
+      assert.deepEqual([...new Set(nomes.map(r => r.dono))].sort(), membrosDe(cena).sort())
+      for (const p of cena.personagens) assert.equal(nomeNaCena(cena, p.membro), NOMES_COMPLETOS[MEMBROS.indexOf(p.membro)])
     }
     assert.equal(buildScene(crewReal(), ags, T(0), undefined, IDS).personagens.length, 6)
   }
@@ -633,8 +637,6 @@ test('ponte viva preserva transição em atualização repetida', () => {
   assert.ok(durante.every(p => p.transicao === null || p.transicao.fase === 'saindo'))
 })
 
-const NOMES_COMPLETOS = ['Jean-Luc Picard', 'Spock', 'Deanna Troi', 'Data', 'Geordi La Forge', 'Leonard McCoy', 'Q', 'Nyota Uhura', 'Montgomery Scott', 'James T. Kirk', 'Worf', 'Guinan']
-
 test('ponte viva lista os 12 integrantes', () => {
   const base = estado({}, { spock: [1, null] })
   const agentes = [doMembro('worf', 'blocked'), doMembro('kirk', 'done'), doMembro('spock')]
@@ -653,8 +655,13 @@ test('ponte viva lista os 12 integrantes', () => {
     assert.equal(i.presente, naCena.has(i.membro))
     assert.equal(i.descricao, `${i.nome}, ${ESTADOS[e.estado].texto}, ${i.presente ? 'na cena' : 'fora da cena'}`)
   }
-  assert.equal(itens.find(i => i.membro === 'worf')!.descricao, 'worf, bloqueado, na cena')
-  assert.equal(itens.find(i => i.membro === 'spock')!.descricao, 'spock, trabalhando, na cena')
+  assert.equal(itens.find(i => i.membro === 'worf')!.descricao, 'Worf, bloqueado, na cena')
+  assert.equal(itens.find(i => i.membro === 'spock')!.descricao, 'Spock, trabalhando, na cena')
+  // com snapshot real (name curto) a relação mostra o nome completo do perfil
+  const real = relacaoDaTripulacao(crewReal(), [doMembro('picard'), doMembro('laforge', 'blocked')], agora, IDS)
+  assert.deepEqual(real.map(i => i.nome), NOMES_COMPLETOS)
+  assert.equal(real.find(i => i.membro === 'picard')!.descricao, 'Jean-Luc Picard, trabalhando, na cena')
+  assert.equal(real.find(i => i.membro === 'laforge')!.descricao, 'Geordi La Forge, bloqueado, na cena')
   assert.equal(itens.find(i => i.membro === 'kirk')!.estado, 'concluido')
   assert.ok(itens.some(i => !i.presente), 'há integrantes fora da cena e eles continuam na relação')
   assert.equal(itens.filter(i => i.presente).length, 6)

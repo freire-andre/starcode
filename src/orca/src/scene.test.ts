@@ -54,12 +54,13 @@ test('pintura da cena só lê o modelo e não usa imagem', () => {
   paint(g.ctx, cena, 5)
   assert.ok(g.chamadas.every(c => ['fillRect', 'strokeRect', 'fillText'].includes(c)))
   assert.ok(g.chamadas.includes('fillRect') && g.chamadas.includes('strokeRect'))
-  for (const nome of ['spock', 'picard']) assert.ok(g.textos.includes(nome), nome)
+  // nomes completos do perfil, em até duas linhas: Spock numa, Jean-Luc Picard em duas
+  for (const nome of ['Spock', 'Jean-Luc', 'Picard']) assert.ok(g.textos.includes(nome), nome)
   assert.ok(g.textos.includes('⚙'))
   // o rodízio traz o resto da tripulação: Guinan aparece numa rodada seguinte
   const g2 = gravador()
   paint(g2.ctx, buildScene(estado(), [], T(1)), 5)
-  assert.ok(g2.textos.includes('guinan') && g2.textos.includes('💤'))
+  assert.ok(g2.textos.includes('Guinan') && g2.textos.includes('💤'))
   assert.ok(g.textos.includes('+2'))
   assert.ok(g.textos.includes('w0'))
   assert.ok(g.textos.includes('aceso = trabalhando · apagado = livre'))
@@ -121,7 +122,7 @@ test('cena acende o ativo e conta os ativos no telão', () => {
   assert.ok(spock.brilho!.largura > spock.console.largura)
   assert.equal(tempo('spock'), 'há 5 min')
   assert.equal(tempo('worf'), 'agora')
-  const nome = cena.rotulos.find(r => r.tipo === 'nome' && r.dono === 'spock')!
+  const nome = cena.rotulos.filter(r => r.tipo === 'nome' && r.dono === 'spock').at(-1)!
   assert.ok(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === 'spock')!.y > nome.y)
   // ocioso: corpo a no máximo 40% de opacidade, console apagado, sem tempo, nome ainda legível
   const data = por('data')
@@ -144,8 +145,8 @@ test('cena acende o ativo e conta os ativos no telão', () => {
   }
   paint(ctx, cena, 5)
   const corDoTexto = (t: string) => estilos.find(e => e.op === 'fillText' && e.texto === t)!.cor
-  assert.equal(alfa(corDoTexto('data')), data.opacidadeTexto)
-  assert.equal(alfa(corDoTexto('spock')), 1)
+  assert.equal(alfa(corDoTexto('Data')), data.opacidadeTexto)
+  assert.equal(alfa(corDoTexto('Spock')), 1)
   assert.equal(alfa(corDoTexto('há 5 min')), 1)
   const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(',')
   assert.ok(estilos.some(e => e.op === 'fillRect' && e.cor.replace(/\s/g, '').includes(rgb(spock.cor))), 'brilho na cor do uniforme')
@@ -364,7 +365,7 @@ test('ponte viva expõe lista acessível', () => {
     assert.equal(b.attrs['aria-pressed'], 'false')
     assert.equal(b.textContent, `${itens[i].emoji} ${itens[i].nome} ${itens[i].simbolo} ${itens[i].textoEstado} · ${itens[i].presente ? 'na cena' : 'fora da cena'}`)
   })
-  assert.equal(botoes.find(b => b.attrs['data-membro'] === 'worf')!.attrs['aria-label'], 'worf, bloqueado, na cena')
+  assert.equal(botoes.find(b => b.attrs['data-membro'] === 'worf')!.attrs['aria-label'], 'Worf, bloqueado, na cena')
   assert.equal(aviso.textContent, '')
 
   // Enter/Espaço num botão nativo vira click: a seleção chega a quem tratou e aria-pressed acompanha
@@ -375,7 +376,7 @@ test('ponte viva expõe lista acessível', () => {
   rel.atualiza(relacaoDaTripulacao(base, agentes, agora, IDS, { selecionado: 'guinan' }), null)
   assert.equal(botoes[11].attrs['aria-pressed'], 'true')
   assert.equal(botoes.filter(b => b.attrs['aria-pressed'] === 'true').length, 1)
-  assert.equal(botoes[11].attrs['aria-label'], 'guinan, ocioso, na cena')
+  assert.equal(botoes[11].attrs['aria-label'], 'Guinan, ocioso, na cena')
   // os mesmos 12 botões são reaproveitados: o foco do teclado não se perde numa atualização
   assert.equal(todos(lista).filter(e => e.tag === 'button').length, 12)
   assert.ok(todos(lista).filter(e => e.tag === 'button').every((b, i) => b === botoes[i]))
