@@ -1,7 +1,8 @@
 // Testes do modelo da cena da Ponte (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { avisoDeDados, buildScene, GRADE, horario, OPACIDADE_LIVRE, TAM_NOME, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
+import { avisoDeDados, buildScene, GRADE, horario, OPACIDADE_LIVRE, TAM_NOME, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, criaRastroPresenca, selecionaPresentes, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
+type Rastro = ReturnType<typeof criaRastroPresenca>
 import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
 import type { EstadoDoMembro, Identidades } from './crew-visual'
 import type { PonteAgent, PonteState, PonteWorker } from './protocol'
@@ -30,8 +31,8 @@ const agente = (state: PonteAgent['state'], title: string): PonteAgent => ({ ter
 const IDS: Identidades = Object.fromEntries(MEMBROS.map(m => [`t-${m}`, m]))
 const doMembro = (m: string, state: PonteAgent['state'] = 'working'): PonteAgent =>
   ({ terminalId: `t-${m}`, title: null, agent: 'claude', state, stateStartedAt: 0 })
-/** Instante estável (fora da troca) da rodada `ciclo`. */
-const T = (ciclo: number, extra = 2000): number => ciclo * ROTACAO_MS + extra
+/** Instante `extra` ms depois de `n` blocos de 10 s: a passagem do tempo nunca decide quem está presente (R3). */
+const T = (n: number, extra = 2000): number => n * 10_000 + extra
 const membrosDe = (c: Cena): string[] => c.personagens.map(p => p.membro)
 const NOMES_CREW = ['Picard', 'Spock', 'Troi', 'Data', 'LaForge', 'McCoy', 'Q', 'Uhura', 'Scotty', 'Kirk', 'Worf', 'Guinan']
 const NOMES_COMPLETOS = ['Jean-Luc Picard', 'Spock', 'Deanna Troi', 'Data', 'Geordi La Forge', 'Leonard McCoy', 'Q', 'Nyota Uhura', 'Montgomery Scott', 'James T. Kirk', 'Worf', 'Guinan']
@@ -73,7 +74,7 @@ test('cena tem uma estação por tripulante e a engenharia', () => {
         }
       }
     }
-    assert.equal(vistos.size, 12)
+    assert.equal(vistos.size, 6)
   }
 })
 
@@ -293,10 +294,11 @@ test('cena desenha a ponte em arco com bonecos', () => {
 test('ponte viva identifica os 12 integrantes', async () => {
   const vistos = new Map<string, Cena['personagens'][number]>()
   const rotulosNome: string[] = []
-  for (let ciclo = 0; ciclo < 2; ciclo++) {
-    const cena = buildScene(crewReal(), [], T(ciclo), undefined, IDS)
-    for (const p of cena.personagens) vistos.set(p.membro, p)
-    for (const p of cena.personagens) rotulosNome.push(nomeNaCena(cena, p.membro))
+  // a seleção manual (R10) traz cada integrante à cena: os 12 podem ser vistos
+  for (const m of MEMBROS) {
+    const cena = buildScene(crewReal(), [], T(0), undefined, IDS, { selecionado: m })
+    vistos.set(m, cena.personagens.find(p => p.membro === m)!)
+    rotulosNome.push(nomeNaCena(cena, m))
   }
   assert.deepEqual([...vistos.keys()].sort(), [...MEMBROS].sort())
   // src/crew.yaml (lido do arquivo) tem os nomes curtos; a cena mostra o nome completo do perfil (R1), também com
@@ -329,11 +331,26 @@ function crewReal(): PonteState {
   return s
 }
 
+/** Seis trabalhando (Q entre eles) e, depois, Q concluindo e Worf assumindo com identidade comprovada. */
+const SEIS = ['picard', 'spock', 'troi', 'data', 'laforge']
+const ANTES = [...SEIS, 'q'].map(m => doMembro(m))
+const DEPOIS = [...SEIS.map(m => doMembro(m)), doMembro('q', 'done'), doMembro('worf')]
+const noRastro = (rastro: Rastro, ags: PonteAgent[], t: number, extra: Record<string, unknown> = {}): Cena =>
+  buildScene(estado(), ags, t, undefined, IDS, { rastro, ...extra })
+const porMembro = (c: Cena, m: string) => c.personagens.find(p => p.membro === m)
+const estadosDe = (ags: PonteAgent[]): EstadoDoMembro[] => estadosDaTripulacao({ ...estado(), agents: ags }, IDS)
+const est = (alertas: number, trabalhando = 0): EstadoDoMembro[] => MEMBROS.map((membro, i) => ({
+  membro, motivo: '', estado: i < alertas ? 'bloqueado' : i < alertas + trabalhando ? 'trabalhando' : 'ocioso',
+}))
+
 test('ponte viva limita a seis integrantes', () => {
   const todos = MEMBROS.map(m => doMembro(m))
-  for (const ags of [[], todos]) {
-    for (let t = 0; t < 3 * ROTACAO_MS; t += 100) {
-      const cena = buildScene(crewReal(), ags, t, undefined, IDS)
+  // os agentes que trabalham mudam de tempos em tempos: nunca passa de seis, nem durante as trocas
+  const mudando = (t: number): PonteAgent[] => Array.from({ length: 5 }, (_, i) => doMembro(MEMBROS[(Math.floor(t / 1500) + i * 2) % 12], i % 2 ? 'blocked' : 'working'))
+  for (const ags of [(): PonteAgent[] => [], (): PonteAgent[] => todos, mudando]) {
+    const rastro = criaRastroPresenca()
+    for (let t = 0; t < 30_000; t += 100) {
+      const cena = buildScene(crewReal(), ags(t), t, undefined, IDS, { rastro })
       assert.ok(cena.personagens.length <= 6, `${cena.personagens.length} em ${t} ms`)
       const nomes = cena.rotulos.filter(r => r.tipo === 'nome')
       assert.ok(nomes.length <= 12) // até duas linhas por presente
@@ -341,121 +358,140 @@ test('ponte viva limita a seis integrantes', () => {
       assert.deepEqual([...new Set(nomes.map(r => r.dono))].sort(), membrosDe(cena).sort())
       for (const p of cena.personagens) assert.equal(nomeNaCena(cena, p.membro), NOMES_COMPLETOS[MEMBROS.indexOf(p.membro)])
     }
-    assert.equal(buildScene(crewReal(), ags, T(0), undefined, IDS).personagens.length, 6)
   }
+  assert.equal(buildScene(crewReal(), [], T(0), undefined, IDS).personagens.length, 6)
+  assert.equal(buildScene(crewReal(), todos, T(0), undefined, IDS).personagens.length, 6)
 })
 
-test('ponte viva alterna integrantes elegíveis', () => {
-  // sem prioridade: todos os 12 aparecem em duas rodadas, seis por vez
-  const vistos = new Set<string>()
-  for (let ciclo = 0; ciclo < 2; ciclo++) {
-    const m = membrosDe(buildScene(estado(), [], T(ciclo)))
-    assert.equal(m.length, 6)
-    m.forEach(x => vistos.add(x))
+test('ponte viva mantém presença sem rodízio', () => {
+  // estados iguais: os mesmos integrantes em qualquer instante, sem transição e sem trocar de lugar (R3)
+  for (const ags of [[], ANTES, MEMBROS.map(m => doMembro(m))]) {
+    const rastro = criaRastroPresenca()
+    const ref = noRastro(rastro, ags, 0)
+    assert.equal(ref.personagens.length, 6)
+    for (let t = 250; t <= 5 * 60_000; t += 4_750) {
+      const cena = noRastro(rastro, ags, t)
+      assert.deepEqual(membrosDe(cena), membrosDe(ref), `${t} ms`)
+      assert.ok(cena.personagens.every(p => p.transicao === null), `${t} ms`)
+      assert.deepEqual(cena.personagens.map(p => [p.x, p.y]), ref.personagens.map(p => [p.x, p.y]))
+    }
   }
-  assert.equal(vistos.size, 12)
-  // alertas e trabalhando ficam sempre; a vaga que sobra gira entre todos os demais elegíveis
-  const ags = [doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('q', 'blocked'), doMembro('spock'), doMembro('kirk')]
-  const fixos = ['data', 'worf', 'q', 'spock', 'kirk']
-  const sobra = new Set<string>()
-  for (let ciclo = 0; ciclo < 7; ciclo++) {
-    const m = membrosDe(buildScene(estado(), ags, T(ciclo), undefined, IDS))
-    assert.equal(m.length, 6)
-    for (const f of fixos) assert.ok(m.includes(f), `${f} sumiu na rodada ${ciclo}`)
-    m.filter(x => !fixos.includes(x)).forEach(x => sobra.add(x))
-  }
-  assert.deepEqual([...sobra].sort(), MEMBROS.filter(m => !fixos.includes(m)).sort())
-  // oito trabalhando: cada rodada tem cinco deles e um ocioso (acesso periódico); em oito rodadas todos aparecem
-  const oito = MEMBROS.slice(0, 8)
-  const alcance = new Set<string>()
-  const ociososVistos = new Set<string>()
-  for (let ciclo = 0; ciclo < 8; ciclo++) {
-    const m = membrosDe(buildScene(estado(), oito.map(x => doMembro(x)), T(ciclo), undefined, IDS))
-    assert.equal(m.length, 6)
-    assert.equal(m.filter(x => oito.includes(x)).length, 5, `trabalhando na rodada ${ciclo}: ${m}`)
-    m.forEach(x => (oito.includes(x) ? alcance : ociososVistos).add(x))
-  }
-  assert.equal(alcance.size, 8)
-  assert.deepEqual([...ociososVistos].sort(), MEMBROS.slice(8).sort())
-  // alerta ganha de trabalhando quando não cabem todos: ocupa quatro das seis vagas; o trabalhando e um ocioso ficam com uma cada
-  const sete = MEMBROS.slice(0, 7).map(x => doMembro(x, 'blocked'))
-  const m = membrosDe(buildScene(estado(), [...sete, doMembro('guinan')], T(0), undefined, IDS))
-  assert.deepEqual(m, ['picard', 'spock', 'troi', 'data', 'uhura', 'guinan'])
-  const est = (agentes: PonteAgent[]) => estadosDaTripulacao({ ...estado(), agents: agentes }, IDS)
-  assert.deepEqual(selecionaPresentes(est([]), 0), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
-  assert.deepEqual(selecionaPresentes(est([]), 1), ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'])
+  // sem estado guardado (cena avulsa) a escolha também não depende do relógio
+  const seis = ['picard', 'spock', 'troi', 'data', 'laforge', 'q']
+  assert.deepEqual(membrosDe(buildScene(estado(), ANTES, 0, undefined, IDS)), seis)
+  for (const n of [1, 2, 9, 1000]) assert.deepEqual(membrosDe(buildScene(estado(), ANTES, T(n), undefined, IDS)), seis)
+  // a escolha devolvida, usada como presença anterior, se repete
+  const e = estadosDe(ANTES)
+  const um = selecionaPresentes(e, [])
+  assert.deepEqual(um, seis)
+  assert.deepEqual(selecionaPresentes(e, um), um)
 })
 
-test('ponte viva dá acesso periódico aos demais mesmo com seis alertas', () => {
-  const est = (alertas: number, trabalhando = 0): EstadoDoMembro[] => MEMBROS.map((membro, i) => ({
-    membro, motivo: '', estado: i < alertas ? 'bloqueado' : i < alertas + trabalhando ? 'trabalhando' : 'ocioso',
+test('ponte viva prioriza presença estável', () => {
+  // sete alertas comprovados: seis vagas; os já presentes ficam em caso de mesma prioridade (R19)
+  const sete = est(7)
+  assert.deepEqual(selecionaPresentes(sete, []), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
+  assert.deepEqual(selecionaPresentes(sete, ['spock', 'troi', 'data', 'laforge', 'mccoy', 'q']), ['spock', 'troi', 'data', 'laforge', 'mccoy', 'q'])
+  // alerta (bloqueado ou aguardando) antes de trabalhando, e trabalhando antes dos demais
+  const mistos: EstadoDoMembro[] = MEMBROS.map((membro, i) => ({
+    membro, motivo: '', estado: i === 10 ? 'bloqueado' : i === 11 ? 'aguardando' : i >= 2 && i < 9 ? 'trabalhando' : 'ocioso',
   }))
-  // seis alertas e seis ociosos: cada rodada tem cinco alertas e um ocioso; em seis rodadas todos os ociosos aparecem
-  const e6 = est(6)
-  const alertas = MEMBROS.slice(0, 6)
-  const ociosos = MEMBROS.slice(6)
-  const rodadas = Array.from({ length: 6 }, (_, ciclo) => selecionaPresentes(e6, ciclo))
-  for (const r of rodadas) {
-    assert.equal(r.length, 6)
-    assert.equal(r.filter(x => alertas.includes(x)).length, 5, `alertas na rodada: ${r}`)
-    assert.equal(r.filter(x => ociosos.includes(x)).length, 1, `demais na rodada: ${r}`)
+  assert.deepEqual(selecionaPresentes(mistos, []), ['troi', 'data', 'laforge', 'mccoy', 'worf', 'guinan'])
+  // quem trabalha e já está presente permanece; o recém-chegado só entra se houver vaga ou prioridade maior
+  assert.deepEqual(selecionaPresentes(mistos, ['q', 'uhura', 'scotty', 'kirk']), ['troi', 'q', 'uhura', 'scotty', 'worf', 'guinan'])
+  // cabem todos: ociosos ocupam as vagas livres, e o ocioso presente é mantido contra outro ocioso
+  assert.deepEqual(selecionaPresentes(est(1, 1), []), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
+  assert.deepEqual(selecionaPresentes(est(1, 1), ['guinan', 'worf', 'kirk', 'scotty']), ['picard', 'spock', 'scotty', 'kirk', 'worf', 'guinan'])
+  // dados incertos: nada muda por causa deles, nem entrada nem saída
+  const incertos = estadosDaTripulacao(estado({ stale: true }, { spock: [1, null] }), IDS)
+  assert.ok(incertos.every(x => x.estado === 'desconhecido'))
+  assert.deepEqual(selecionaPresentes(incertos, ['guinan', 'q', 'kirk', 'worf', 'scotty', 'uhura']), ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'])
+  // Q conclui e Worf assume com identidade comprovada: só Q sai e só Worf entra, os outros cinco ficam
+  const rastro = criaRastroPresenca()
+  const antes = noRastro(rastro, ANTES, 0)
+  assert.deepEqual(membrosDe(antes), ['picard', 'spock', 'troi', 'data', 'laforge', 'q'])
+  const ini = 20_000
+  assert.deepEqual(membrosDe(noRastro(rastro, ANTES, ini - 1)), membrosDe(antes))
+  noRastro(rastro, DEPOIS, ini) // a mudança real começa aqui
+  const durante = noRastro(rastro, DEPOIS, ini + 300)
+  assert.deepEqual(membrosDe(durante), ['picard', 'spock', 'troi', 'data', 'laforge', 'q'])
+  for (const m of SEIS) assert.equal(porMembro(durante, m)!.transicao, null, m)
+  assert.deepEqual(porMembro(durante, 'q')!.transicao, { fase: 'saindo', progresso: 0.5 })
+  assert.deepEqual(membrosDe(noRastro(rastro, DEPOIS, ini + 5000)), ['picard', 'spock', 'troi', 'data', 'laforge', 'worf'])
+  // sem identidade comprovada o Worf não assume: o agente não vinculado não muda a presença (R22)
+  const solto = criaRastroPresenca()
+  noRastro(solto, ANTES, 0)
+  const semId = noRastro(solto, [...SEIS.map(m => doMembro(m)), doMembro('q'), { ...doMembro('worf'), terminalId: null }], 30_000)
+  assert.deepEqual(membrosDe(semId), ['picard', 'spock', 'troi', 'data', 'laforge', 'q'])
+  assert.ok(semId.personagens.every(p => p.transicao === null))
+})
+
+test('ponte viva mantém integrante já presente', () => {
+  const rastro = criaRastroPresenca()
+  const base = noRastro(rastro, ANTES, 0)
+  const rel = (sel: string | null) => relacaoDaTripulacao(estado(), ANTES, 5000, IDS, { rastro, selecionado: sel })
+  const sem = rel(null)
+  // acionar quem já está presente: mesma composição, sem transição e com o mesmo estado (R20)
+  for (const m of ['q', 'picard']) {
+    const cena = noRastro(rastro, ANTES, 5000, { selecionado: m })
+    assert.deepEqual(membrosDe(cena), membrosDe(base))
+    assert.ok(cena.personagens.every(p => p.transicao === null))
+    assert.equal(porMembro(cena, m)!.estado, 'trabalhando')
+    assert.deepEqual(cena.personagens.map(p => p.estado), base.personagens.map(p => p.estado))
+    const item = rel(m).find(i => i.membro === m)!
+    assert.equal(item.selecionado, true)
+    assert.equal(item.presente, true)
+    assert.equal(item.estado, 'trabalhando')
+    assert.deepEqual(rel(m).map(i => [i.membro, i.presente, i.estado]), sem.map(i => [i.membro, i.presente, i.estado]))
   }
-  assert.deepEqual(rodadas.map(r => r.find(x => ociosos.includes(x))), ociosos)
-  // os alertas também giram: nenhum fica de fora para sempre
-  assert.deepEqual([...new Set(rodadas.flat().filter(x => alertas.includes(x)))].sort(), [...alertas].sort())
-  assert.deepEqual([...new Set(Array.from({ length: 24 }, (_, c) => selecionaPresentes(e6, c)).flat())].sort(), [...MEMBROS].sort())
-  // menos alertas, mais prioridade para eles: três alertas ficam sempre; trabalhando e ocioso dividem o resto
-  const e3 = est(3, 6)
-  const r3 = Array.from({ length: 12 }, (_, ciclo) => selecionaPresentes(e3, ciclo))
-  for (const r of r3) assert.deepEqual(MEMBROS.slice(0, 3).filter(x => !r.includes(x)), [])
-  assert.deepEqual([...new Set(r3.flat())].sort(), [...MEMBROS].sort())
-  // movimento reduzido (rodada 0 fixa) segue só a prioridade: o rodízio continua sendo o único acesso aos demais
-  const todosAlerta = est(12)
-  assert.deepEqual(selecionaPresentes(todosAlerta, 0), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
+  // soltar a seleção também não mexe em quem está presente
+  assert.deepEqual(membrosDe(noRastro(rastro, ANTES, 9000)), membrosDe(base))
 })
 
 test('ponte viva anima sem alterar estado', () => {
-  const base = estado()
-  const estaveis = estadosDaTripulacao(base, IDS)
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t
-  const ini = ROTACAO_MS
-  // saída (primeira metade da troca): os seis da rodada 0 andam até o acesso
-  const saindo = buildScene(base, [], ini + TRANSICAO_MS / 4, undefined, IDS)
-  assert.equal(saindo.personagens.length, 6)
-  for (const p of saindo.personagens) {
-    assert.deepEqual(p.transicao, { fase: 'saindo', progresso: 0.5 })
-    assert.ok(Math.abs(p.x - lerp(p.estacao.x, saindo.porta.x, 0.5)) < 1e-9 && Math.abs(p.y - lerp(p.estacao.y, saindo.porta.y, 0.5)) < 1e-9)
-    assert.ok(p.opacidade < OPAC_MAX)
-  }
-  // entrada (segunda metade): os seis da rodada 1 saem do acesso
-  const entrando = buildScene(base, [], ini + (TRANSICAO_MS * 3) / 4, undefined, IDS)
-  assert.equal(entrando.personagens.length, 6)
-  for (const p of entrando.personagens) {
-    assert.deepEqual(p.transicao, { fase: 'entrando', progresso: 0.5 })
-    assert.ok(Math.abs(p.x - lerp(entrando.porta.x, p.estacao.x, 0.5)) < 1e-9)
-  }
-  assert.deepEqual(membrosDe(saindo), membrosDe(buildScene(base, [], T(0))))
-  assert.deepEqual(membrosDe(entrando), membrosDe(buildScene(base, [], T(1))))
-  // o estado real não muda em nenhum ponto da troca; depois dela a transição acaba
-  for (const cena of [saindo, entrando, buildScene(base, [], ini + TRANSICAO_MS, undefined, IDS)]) {
-    for (const p of cena.personagens) assert.equal(p.estado, estaveis.find(e => e.membro === p.membro)!.estado)
-  }
-  assert.ok(buildScene(base, [], ini + TRANSICAO_MS, undefined, IDS).personagens.every(p => p.transicao === null))
-  // trabalhando que entra anda de pé, sem animar o console, e senta ao chegar; o estado segue trabalhando
-  const oito = MEMBROS.slice(0, 8).map(m => doMembro(m))
-  const chegando = buildScene(base, oito, ini + (TRANSICAO_MS * 3) / 4, undefined, IDS).personagens.find(p => p.transicao?.fase === 'entrando')!
-  assert.equal(chegando.estado, 'trabalhando')
-  assert.equal(chegando.ativo, false)
-  assert.equal(chegando.pose, 'de-pe')
-  assert.equal(chegando.brilho, null)
-  const chegou = buildScene(base, oito, ini + TRANSICAO_MS, undefined, IDS).personagens.find(p => p.membro === chegando.membro)!
+  const rastro = criaRastroPresenca()
+  const inicial = noRastro(rastro, ANTES, 0)
+  // a primeira cena já nasce povoada, sem ninguém andando
+  assert.ok(inicial.personagens.every(p => p.transicao === null))
+  const ini = 20_000
+  noRastro(rastro, DEPOIS, ini) // a mudança real começa aqui
+  // saída (primeira metade): só Q anda até o acesso; os outros cinco seguem parados
+  const saindo = noRastro(rastro, DEPOIS, ini + TRANSICAO_MS / 4)
+  const q = porMembro(saindo, 'q')!
+  assert.deepEqual(q.transicao, { fase: 'saindo', progresso: 0.5 })
+  assert.ok(Math.abs(q.x - lerp(q.estacao.x, saindo.porta.x, 0.5)) < 1e-9 && Math.abs(q.y - lerp(q.estacao.y, saindo.porta.y, 0.5)) < 1e-9)
+  assert.ok(q.opacidade < 1)
+  assert.equal(saindo.personagens.filter(p => p.transicao !== null).length, 1)
+  assert.equal(porMembro(saindo, 'worf'), undefined)
+  // entrada (segunda metade): Worf sai do acesso até a estação; Q já saiu
+  const entrando = noRastro(rastro, DEPOIS, ini + (TRANSICAO_MS * 3) / 4)
+  const w = porMembro(entrando, 'worf')!
+  assert.deepEqual(w.transicao, { fase: 'entrando', progresso: 0.5 })
+  assert.ok(Math.abs(w.x - lerp(entrando.porta.x, w.estacao.x, 0.5)) < 1e-9 && Math.abs(w.y - lerp(entrando.porta.y, w.estacao.y, 0.5)) < 1e-9)
+  assert.equal(porMembro(entrando, 'q'), undefined)
+  // o estado real não muda em nenhum ponto: Q concluído e Worf trabalhando, só a posição anda
+  assert.equal(q.estado, 'concluido')
+  assert.equal(w.estado, 'trabalhando')
+  assert.equal(w.ativo, false)
+  assert.equal(w.pose, 'de-pe')
+  assert.equal(w.brilho, null)
+  const chegou = porMembro(noRastro(rastro, DEPOIS, ini + TRANSICAO_MS), 'worf')!
+  assert.equal(chegou.transicao, null)
   assert.equal(chegou.estado, 'trabalhando')
   assert.equal(chegou.ativo, true)
   assert.equal(chegou.pose, 'sentado')
-  // não há mais de seis em nenhum quadro da troca
-  for (let t = ini; t <= ini + TRANSICAO_MS; t += 50) assert.ok(buildScene(base, [], t, undefined, IDS).personagens.length <= 6)
+  assert.deepEqual([chegou.x, chegou.y], [chegou.estacao.x, chegou.estacao.y])
+  // não há mais de seis em nenhum quadro da troca, e uma troca simultânea de vários também respeita o limite
+  const r2 = criaRastroPresenca()
+  noRastro(r2, ANTES, 0)
+  const todosAlerta = MEMBROS.slice(6).map(m => doMembro(m, 'blocked'))
+  for (let t = ini; t <= ini + 4 * TRANSICAO_MS; t += 50) {
+    const c = noRastro(r2, todosAlerta, t)
+    assert.ok(c.personagens.length <= 6, `${c.personagens.length} em ${t - ini} ms`)
+  }
+  assert.deepEqual(membrosDe(noRastro(r2, todosAlerta, ini + 5 * TRANSICAO_MS)), ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'])
 })
-const OPAC_MAX = OPACIDADE_LIVRE
 
 test('ponte viva representa trabalho', () => {
   const ags = [doMembro('spock')]
@@ -569,21 +605,19 @@ test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
     assert.equal(cena.ativos, 3)
     assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === '3 tripulantes ativos'))
   }
-  // 12 agentes vinculados trabalhando: seis aparecem por vez e o rodízio alcança todos
+  // 12 agentes vinculados trabalhando: os mesmos seis ficam, em qualquer instante (R3)
   const todos: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
-  const vistos = new Set<string>()
-  for (let ciclo = 0; ciclo < 2; ciclo++) {
-    const cena = buildScene(estado({}, todos), MEMBROS.map(m => doMembro(m)), T(ciclo), undefined, IDS)
-    assert.equal(cena.personagens.length, 6)
+  for (const n of [0, 1, 7]) {
+    const cena = buildScene(estado({}, todos), MEMBROS.map(m => doMembro(m)), T(n), undefined, IDS)
+    assert.deepEqual(membrosDe(cena), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
     assert.ok(cena.personagens.every(p => p.ativo))
-    cena.personagens.forEach(p => vistos.add(p.membro))
   }
-  assert.equal(vistos.size, 12)
 })
 
 test('ponte viva mantém rótulos legíveis', () => {
   const mistos = [doMembro('spock'), doMembro('data', 'blocked'), doMembro('worf', 'waiting'), doMembro('kirk', 'done'), doMembro('guinan')]
-  const todos = MEMBROS.map(m => doMembro(m))
+  // quatro alertas novos tiram quatro dos seis presentes: saídas e entradas simultâneas
+  const troca = [...mistos, ...['laforge', 'mccoy', 'q', 'uhura'].map(m => doMembro(m, 'blocked'))]
   const lastAt = new Date(T(0) - 59 * 60_000).toISOString()
   const crew: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
   const fases = new Set<string>()
@@ -591,14 +625,17 @@ test('ponte viva mantém rótulos legíveis', () => {
     const e = Math.max(5, Math.floor(largura / GRADE.largura)) // pixels por célula
     for (const altura of [500, 900, 1400]) {
       const linhas = linhasDoPainel(largura, altura)
-      // estável (2000 ms) e as fases da troca: saindo (100 e 500 ms), meio (TRANSICAO_MS / 2) e entrando (700 e 1100 ms)
-      const instantes = [0, 1, 2, 3, 4].flatMap(ciclo => [2000, 100, 500, TRANSICAO_MS / 2, 700, 1100].map(extra => T(ciclo, extra)))
-      for (const agora of instantes) {
-        for (const ags of [[], mistos, todos]) {
-          const cena = buildScene(estado({}, crew, [worker('T1')]), ags, agora, linhas, IDS)
+      const instantes = [100, 500, TRANSICAO_MS / 2, 700, 1100, 1500, 2000, 5000] // em ordem: o relógio só avança
+      for (const [antes, depois] of [[[], []], [mistos, troca], [MEMBROS.map(m => doMembro(m)), MEMBROS.map(m => doMembro(m, 'blocked'))]] as PonteAgent[][][]) {
+        const rastro = criaRastroPresenca()
+        buildScene(estado({}, crew, [worker('T1')]), antes, 0, linhas, IDS, { rastro })
+        buildScene(estado({}, crew, [worker('T1')]), depois, 20_000, linhas, IDS, { rastro }) // a mudança real começa aqui
+        for (const extra of instantes) {
+          const cena = buildScene(estado({}, crew, [worker('T1')]), depois, 20_000 + extra, linhas, IDS, { rastro })
           for (const pe of cena.personagens) if (pe.transicao) fases.add(`${largura}:${pe.transicao.fase}`)
           assert.equal(cena.grade.altura, linhas)
-          assert.equal(cena.personagens.length, 6)
+          assert.ok(cena.personagens.length <= 6)
+          if (extra >= 1500 || antes.length === 0) assert.equal(cena.personagens.length, 6)
           for (const r of cena.rotulos) {
             assert.ok(Math.round(r.tam * e) >= 10, `${largura}px: fonte pequena em ${r.texto}`)
             assert.ok(r.caixa.x >= 0 && r.caixa.y >= 0 && r.caixa.x + r.caixa.largura <= cena.grade.largura && r.caixa.y + r.caixa.altura <= cena.grade.altura, `${largura}px: ${r.texto} cortado`)
@@ -622,25 +659,31 @@ test('ponte viva mantém rótulos legíveis', () => {
 })
 
 test('ponte viva preserva transição em atualização repetida', () => {
-  const ags = MEMBROS.slice(0, 8).map(m => doMembro(m))
-  const a = estado({}, {}, [worker('T1')])
-  const mesmo = (): PonteState => JSON.parse(JSON.stringify(estado({ updatedAt: 99, log: [{ at: 1, text: 'x' }] }, {}, [worker('T1')])))
-  for (const t of [ROTACAO_MS + 100, ROTACAO_MS + TRANSICAO_MS * 0.75, ROTACAO_MS + 1100, 2 * ROTACAO_MS + 800]) {
-    const um = buildScene(a, ags, t, undefined, IDS)
-    // atualização repetida (cópia nova, mesmos agentes recriados): a cena não muda, nem a transição
-    const dois = buildScene(mesmo(), ags.map(x => ({ ...x })), t, undefined, IDS)
-    assert.deepEqual(um.personagens.map(p => [p.membro, p.transicao, p.x, p.y, p.opacidade]), dois.personagens.map(p => [p.membro, p.transicao, p.x, p.y, p.opacidade]))
+  const ini = 20_000
+  const mesmo = (): PonteState => JSON.parse(JSON.stringify(estado({ updatedAt: 99, log: [{ at: 1, text: 'x' }] })))
+  const copia = (): PonteAgent[] => DEPOIS.map(x => ({ ...x }))
+  const instante = (c: Cena) => c.personagens.map(p => [p.membro, p.transicao, p.x, p.y, p.opacidade])
+  const rastro = criaRastroPresenca()
+  noRastro(rastro, ANTES, 0)
+  const vistos: number[] = []
+  buildScene(mesmo(), copia(), ini, undefined, IDS, { rastro }) // a mudança real começa aqui
+  for (const extra of [100, 300, 600, 700, 800, 900, 1000, 1100]) {
+    const t = ini + extra
+    // atualização repetida (cópia nova do estado, agentes recriados) no mesmo instante: a cena não muda, nem a transição
+    const um = buildScene(mesmo(), copia(), t, undefined, IDS, { rastro })
+    const dois = buildScene(mesmo(), copia(), t, undefined, IDS, { rastro })
+    assert.deepEqual(instante(um), instante(dois), `${extra} ms`)
+    const w = porMembro(um, 'worf')?.transicao
+    if (w) vistos.push(w.progresso)
   }
-  // a transição segue o relógio: o progresso só cresce enquanto o estado se repete (não volta a 0)
-  const prog = (t: number) => buildScene(mesmo(), ags, t, undefined, IDS).personagens.find(p => p.transicao?.fase === 'entrando')!.transicao!.progresso
-  const seq = [ROTACAO_MS + 700, ROTACAO_MS + 800, ROTACAO_MS + 900, ROTACAO_MS + 1000, ROTACAO_MS + 1100]
-  const ps = seq.map(prog)
-  for (let i = 1; i < ps.length; i++) assert.ok(ps[i] > ps[i - 1], `reiniciou: ${ps}`)
-  // quem fica não sai nem volta durante a troca
-  const antes = new Set(membrosDe(buildScene(a, ags, ROTACAO_MS - 100, undefined, IDS)))
-  const durante = buildScene(a, ags, ROTACAO_MS + 100, undefined, IDS).personagens
-  for (const p of durante) if (p.transicao === null) assert.ok(antes.has(p.membro))
-  assert.ok(durante.every(p => p.transicao === null || p.transicao.fase === 'saindo'))
+  // a entrada segue o relógio e não reinicia: de 600 a 1100 ms o progresso só cresce, a partir de 0
+  assert.equal(vistos.length, 6)
+  assert.equal(vistos[0], 0)
+  for (let i = 1; i < vistos.length; i++) assert.ok(vistos[i] > vistos[i - 1], `reiniciou: ${vistos}`)
+  assert.ok(Math.abs(vistos[5] - 5 / 6) < 1e-9)
+  assert.equal(porMembro(noRastro(rastro, DEPOIS, ini + 1200), 'worf')!.transicao, null)
+  // repetir o estado depois de assentar não inicia transição alguma
+  for (const extra of [1300, 4000, 9000]) assert.ok(noRastro(rastro, DEPOIS, ini + extra).personagens.every(p => p.transicao === null))
 })
 
 test('ponte viva lista os 12 integrantes', () => {
@@ -701,10 +744,24 @@ test('ponte viva permite selecionar integrante', () => {
   // selecionar quem já está na cena não muda nada; id desconhecido é ignorado
   assert.deepEqual(membrosDe(buildScene(base, agentes, agora, undefined, IDS, { selecionado: 'worf' })), membrosDe(buildScene(base, agentes, agora, undefined, IDS)))
   assert.deepEqual(membrosDe(buildScene(base, agentes, agora, undefined, IDS, { selecionado: 'nemo' })), membrosDe(buildScene(base, agentes, agora, undefined, IDS)))
-  assert.deepEqual(selecionaPresentes(estadosDaTripulacao(base, IDS), 0, 'guinan').includes('guinan'), true)
-  // a seleção continua valendo no rodízio, durante a troca incluída
-  for (const t of [T(1), T(2), ROTACAO_MS + TRANSICAO_MS / 4, ROTACAO_MS + (TRANSICAO_MS * 3) / 4]) {
-    assert.ok(membrosDe(buildScene(base, agentes, t, undefined, IDS, opcoes)).includes(fora.membro), String(t))
+  assert.deepEqual(selecionaPresentes(estadosDaTripulacao(base, IDS), [], 'guinan').includes('guinan'), true)
+  // com a cena em andamento, o selecionado entra pelo acesso no lugar de quem tem a menor prioridade (R10)
+  const rastro = criaRastroPresenca()
+  const sem = buildScene(base, agentes, T(0), undefined, IDS, { rastro })
+  assert.deepEqual(membrosDe(sem), ['picard', 'spock', 'troi', 'data', 'laforge', 'worf'])
+  const agoraSel = 20_000
+  const saindo = buildScene(base, agentes, agoraSel + 100, undefined, IDS, { rastro, selecionado: 'guinan' })
+  assert.deepEqual(saindo.personagens.find(p => p.transicao)!.membro, 'laforge')
+  assert.deepEqual(saindo.personagens.find(p => p.transicao)!.transicao!.fase, 'saindo')
+  assert.equal(saindo.personagens.some(p => p.membro === 'guinan'), false)
+  const entrando = buildScene(base, agentes, agoraSel + 900, undefined, IDS, { rastro, selecionado: 'guinan' })
+  const g = entrando.personagens.find(p => p.membro === 'guinan')!
+  assert.equal(g.transicao!.fase, 'entrando')
+  assert.equal(g.estado, 'ocioso') // a animação não toca no estado real
+  for (const n of [1, 5, 50]) {
+    const cena = buildScene(base, agentes, agoraSel + 5000 * n, undefined, IDS, { rastro, selecionado: 'guinan' })
+    assert.deepEqual(membrosDe(cena), ['picard', 'spock', 'troi', 'data', 'worf', 'guinan'])
+    assert.ok(cena.personagens.every(p => p.transicao === null))
   }
 })
 
@@ -732,27 +789,33 @@ test('ponte viva informa dados desatualizados', () => {
 })
 
 test('ponte viva respeita movimento reduzido', () => {
-  const base = estado()
-  const agentes = [doMembro('worf', 'blocked')]
   const r = { reduzido: true }
-  const fixo = membrosDe(buildScene(base, agentes, T(0), undefined, IDS, r))
-  // sem rodízio: o conjunto é o mesmo em qualquer rodada, e sem deslocamento: nenhuma transição em lugar nenhum
-  for (let t = 0; t <= ROTACAO_MS * 4; t += 250) {
-    const cena = buildScene(base, agentes, t, undefined, IDS, r)
-    assert.deepEqual(membrosDe(cena), fixo, String(t))
-    assert.ok(cena.personagens.every(p => p.transicao === null), String(t))
-    assert.ok(cena.personagens.every(p => p.quadro === 0), String(t))
+  const ini = 20_000
+  const rastro = criaRastroPresenca()
+  noRastro(rastro, ANTES, 0, r)
+  // sem deslocamento: Q conclui e Worf assume já na primeira atualização, sem ninguém andando (R17)
+  for (const extra of [0, 100, 300, 600, 900, 1100, 1300]) {
+    const cena = noRastro(rastro, DEPOIS, ini + extra, r)
+    assert.deepEqual(membrosDe(cena), ['picard', 'spock', 'troi', 'data', 'laforge', 'worf'], String(extra))
+    assert.ok(cena.personagens.every(p => p.transicao === null && p.opacidade >= 0.6), String(extra))
+    assert.ok(cena.personagens.every(p => p.quadro === 0), String(extra))
+    for (const p of cena.personagens) assert.deepEqual([p.x, p.y], [p.estacao.x, p.estacao.y])
+    assert.equal(porMembro(cena, 'worf')!.estado, 'trabalhando')
   }
-  // o rodízio normal, no mesmo instante, mudaria a cena e anima a troca
-  assert.notDeepEqual(membrosDe(buildScene(base, agentes, T(1), undefined, IDS)), fixo)
-  assert.ok(buildScene(base, agentes, ROTACAO_MS + TRANSICAO_MS / 4, undefined, IDS).personagens.some(p => p.transicao !== null))
-  // acesso manual preservado: a seleção traz o integrante mesmo com movimento reduzido
-  const fora = MEMBROS.find(m => !fixo.includes(m))!
-  const cena = buildScene(base, agentes, T(3), undefined, IDS, { ...r, selecionado: fora })
+  // a mesma troca com movimento normal anima
+  const normal = criaRastroPresenca()
+  noRastro(normal, ANTES, 0)
+  assert.ok(noRastro(normal, DEPOIS, ini + TRANSICAO_MS / 4).personagens.some(p => p.transicao !== null))
+  // acesso manual preservado: a seleção traz o integrante na hora, sem transição, com o estado dele intacto
+  const fora = 'guinan'
+  const cena = noRastro(rastro, DEPOIS, ini + 5000, { ...r, selecionado: fora })
   assert.ok(membrosDe(cena).includes(fora))
+  assert.equal(cena.personagens.length, 6)
   assert.ok(cena.personagens.every(p => p.transicao === null))
-  const item = relacaoDaTripulacao(base, agentes, T(3), IDS, { ...r, selecionado: fora }).find(i => i.membro === fora)!
+  assert.equal(porMembro(cena, fora)!.estado, 'ocioso')
+  const item = relacaoDaTripulacao(estado(), DEPOIS, ini + 5000, IDS, { ...r, rastro, selecionado: fora }).find(i => i.membro === fora)!
   assert.equal(item.presente, true)
+  assert.equal(item.selecionado, true)
 })
 
 test('ponte viva legibilidade: corpo apagado continua visível e o nome é maior que 10 px a 240 px', () => {
@@ -792,14 +855,8 @@ test('ponte viva resume os sem prova em uma linha em vez de repetir desconhecido
 })
 
 test('ponte viva dá a cada integrante um distintivo ou traje próprio', () => {
-  // o rodízio mostra seis por rodada: percorre as rodadas até cada integrante aparecer
-  const achar = (m: string) => {
-    for (let ciclo = 0; ciclo < 4; ciclo++) {
-      const p = buildScene(estado(), [], T(ciclo)).personagens.find(x => x.membro === m)
-      if (p) return p
-    }
-    throw new Error(`${m} nunca apareceu`)
-  }
+  // só seis aparecem por vez: a seleção manual traz cada integrante à cena
+  const achar = (m: string) => buildScene(estado(), [], T(0), undefined, IDS, { selecionado: m }).personagens.find(x => x.membro === m)!
   const dourado = (p: ReturnType<typeof achar>) => p.pecas.some(x => x.cor === '#ffd24a')
   for (const m of MEMBROS) {
     // oficiais da Frota levam o distintivo no peito; Q, Troi e Guinan vestem trajes próprios
