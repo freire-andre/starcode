@@ -1,6 +1,6 @@
 # ponte-viva proofs
 
-**HEAD**: 10ac744
+**HEAD**: e81ef12
 **Tree**: clean
 **Shell**: C:\Program Files\Git\bin\bash.exe
 **Result**: 21 pass, 0 fail
@@ -34,19 +34,19 @@
 `Run unit` - exit 0
 
 ```
-✔ ponte viva informa dados desatualizados (63.7613ms)
 [starcode-ponte] snapshot falhou: boom
 [starcode-ponte] snapshot falhou: boom
 [starcode-ponte] snapshot falhou: boom
-✔ ponte viva descarta resposta obsoleta (253.1189ms)
-✔ ponte viva preserva transição em atualização repetida (9.1192ms)
-ℹ tests 106
+[starcode-ponte] snapshot falhou: boom
+✔ ponte viva descarta resposta obsoleta (483.0593ms)
+✔ ponte viva preserva transição em atualização repetida (10.6473ms)
+ℹ tests 111
 ℹ suites 0
-ℹ pass 106
+ℹ pass 111
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 3804.0718
+ℹ duration_ms 4118.2468
 5 test file(s) passed (node).
 ```
