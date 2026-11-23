@@ -11,6 +11,8 @@ import type { PonteAgent, PonteIssue, PonteSnapshot, PonteState } from './protoc
 const DEBOUNCE_MS = 300
 const TIMEOUT_MS = 10_000
 const ISSUE_TTL_MS = 60_000
+// Reconciliação sem evento: o estado nunca fica mais de 30 s sem ser conferido.
+const RECONCILE_MS = 30_000
 const LOG_MAX = 20
 const LAUNCHABLE = ['claude', 'codex', 'antigravity', 'opencode']
 const STATE_PT: Record<string, string> = {
@@ -335,11 +337,23 @@ function pickFocus(ctx: FocusCtx, workspaces: FocusWs[]): { id: string; path: st
   return w ? { id: w.id, path: w.path } : null
 }
 
+let stopReconcile: (() => void) | null = null
+
+/** Para a reconciliação periódica; o host chama antes de parar o worker. */
+export function deactivate(): void {
+  stopReconcile?.()
+  stopReconcile = null
+}
+
 export default function activate(orca: OrcaWorkerApi): void {
+  stopReconcile?.()
   const issueCache = new Map<string, { at: number; result: IssueResult }>()
   let seq = 0
   let timer: ReturnType<typeof setTimeout> | null = null
   let lastGood: PonteState | null = null
+  // Última consulta iniciada: uma resposta superada devolve esta, nunca o próprio resultado.
+  let current: Promise<PonteState> | null = null
+  let inflight = 0
   const log: { at: number; text: string }[] = []
   let launching = false
   // Última falha registrada no diário por ação: a mesma mensagem não se repete até mudar ou haver sucesso.
@@ -394,12 +408,14 @@ export default function activate(orca: OrcaWorkerApi): void {
     return pickFocus(ctx, list.workspaces)
   }
 
-  async function listAgents(): Promise<PonteAgent[]> {
+  /** Agentes do host; null quando a consulta falha (o estado anterior vale, em vez de esvaziar a cena). */
+  async function listAgents(): Promise<PonteAgent[] | { failed: string }> {
     try {
       const res = (await orca.host.call('agents.list', {})) as { agents?: PonteAgent[] }
       return res?.agents ?? []
-    } catch {
-      return []
+    } catch (err) {
+      orca.log(`agents.list falhou: ${firstLine(err)}`)
+      return { failed: firstLine(err) }
     }
   }
 
@@ -432,11 +448,23 @@ export default function activate(orca: OrcaWorkerApi): void {
     return { issue: snapId ? { id: snapId, title: null, state: null, url: null } : null, note: why }
   }
 
-  async function refresh(force = false): Promise<PonteState> {
+  function refresh(force = false): Promise<PonteState> {
+    inflight++
+    const p = run(force).finally(() => {
+      inflight--
+    })
+    current = p
+    return p
+  }
+
+  async function run(force: boolean): Promise<PonteState> {
     const mine = ++seq
     const stale = () => mine !== seq
     const now = Date.now()
     const base = { updatedAt: now }
+    // Último estado bom do worktree em foco; o de outro worktree nunca serve de reserva.
+    const goodFor = (path: string | null) =>
+      lastGood && (path === null || lastGood.snapshot?.worktree === path) ? lastGood : null
     let state: PonteState
     try {
       const where = await focus()
@@ -444,29 +472,35 @@ export default function activate(orca: OrcaWorkerApi): void {
       if (!path) {
         state = {
           status: 'sem-worktree', stale: false, snapshot: null, issue: null,
-          issueNote: null, agents: [], error: null, log: [], ...base,
+          issueNote: null, agents: [], error: null, log: [], lastValidAt: now, ...base,
         }
       } else {
         try {
           const snap = await runSnapshot(path)
           ok('snapshot')
-          const [issueRes, agents] = await Promise.all([
+          const [issueRes, listed] = await Promise.all([
             snap.starcode ? issueFor(path, snap, force) : Promise.resolve<IssueResult>({ issue: null, note: null }),
             listAgents(),
           ])
+          const degraded = Array.isArray(listed) ? null : listed.failed
+          const agents = Array.isArray(listed) ? listed : (goodFor(path)?.agents ?? [])
           state = {
-            status: 'ok', stale: false, snapshot: snap, issue: issueRes.issue,
-            issueNote: issueRes.note, agents, error: null, log: [], ...base,
+            status: 'ok', stale: degraded !== null, snapshot: snap, issue: issueRes.issue,
+            issueNote: issueRes.note, agents, error: degraded === null ? null : `agents.list: ${degraded}`,
+            log: [], lastValidAt: degraded === null ? now : (goodFor(path)?.lastValidAt ?? null), ...base,
           }
-          if (!stale()) track(path, snap, agents)
-          lastGood = state
+          if (!stale()) {
+            track(path, snap, agents)
+            if (degraded === null) lastGood = state
+          }
         } catch (err) {
           const msg = firstLine(err)
           fail('snapshot', err)
+          const good = goodFor(path)
           state = {
-            status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
-            issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
-            agents: lastGood?.agents ?? [], error: msg, log: [], ...base,
+            status: 'erro', stale: true, snapshot: good?.snapshot ?? null,
+            issue: good?.issue ?? null, issueNote: good?.issueNote ?? null,
+            agents: good?.agents ?? [], error: msg, log: [], lastValidAt: good?.updatedAt ?? null, ...base,
           }
         }
       }
@@ -475,11 +509,11 @@ export default function activate(orca: OrcaWorkerApi): void {
       state = {
         status: 'erro', stale: true, snapshot: lastGood?.snapshot ?? null,
         issue: lastGood?.issue ?? null, issueNote: lastGood?.issueNote ?? null,
-        agents: lastGood?.agents ?? [], error: msg, log: [], ...base,
+        agents: lastGood?.agents ?? [], error: msg, log: [], lastValidAt: lastGood?.updatedAt ?? null, ...base,
       }
     }
     state.log = [...log]
-    if (stale()) return state
+    if (stale()) return current ?? state
     if (state.status === 'erro' && !state.snapshot) state.stale = false
     await updateBar(state.status === 'erro' && lastGood ? { ...lastGood, status: 'erro' } : state)
     if (!stale()) orca.panels.post('ponte.state', state)
@@ -496,6 +530,14 @@ export default function activate(orca: OrcaWorkerApi): void {
 
   orca.events.on('workspace.changed', schedule)
   orca.events.on('agent.status.changed', schedule)
+
+  // Rede de segurança contra evento perdido; não acumula: com consulta em andamento o tick não faz nada.
+  const reconcile = setInterval(() => {
+    if (inflight > 0) return
+    void refresh().catch((err) => orca.log(`reconciliação falhou: ${firstLine(err)}`))
+  }, RECONCILE_MS)
+  reconcile.unref?.()
+  stopReconcile = () => clearInterval(reconcile)
 
   orca.panels.handle('ponte.state', async (input) => refresh(!!input?.force))
   async function currentSnapshot(path: string): Promise<PonteSnapshot> {

@@ -1,5 +1,7 @@
 // Modelo da cena da Ponte: só dados, sem DOM e sem host. A pintura (canvas) lê este resultado.
 import type { PonteAgent, PonteState, PonteWorker } from './protocol.ts'
+import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual.ts'
+import type { EstadoDoMembro, EstadoVisual, Identidades } from './crew-visual.ts'
 
 export type Divisao = 'comando' | 'operacoes' | 'ciencias'
 export type Pose = 'sentado' | 'de-pe'
@@ -7,9 +9,16 @@ export type Pose = 'sentado' | 'de-pe'
 export interface Celula { x: number; y: number }
 export interface Retangulo { x: number; y: number; largura: number; altura: number }
 
-export interface Estacao extends Celula { membro: string }
+/** Estação fixa do arco: o console existe com ou sem personagem presente. */
+export interface Estacao extends Celula { membro: string; escala: number; console: Retangulo }
 
-export type TipoRotulo = 'telao' | 'emoji' | 'nome' | 'tempo' | 'worker' | 'marca' | 'balao' | 'legenda' | 'mensagem'
+/** Peça colorida do acessório ou do cabelo; o desenho só pinta o que o modelo entrega. */
+export interface Peca extends Retangulo { cor: string }
+
+/** Entrada ou saída pelo acesso da ponte; `progresso` (0 a 1) deriva só do relógio da cena (R4, R18). */
+export interface Transicao { fase: 'entrando' | 'saindo'; progresso: number }
+
+export type TipoRotulo = 'telao' | 'emoji' | 'nome' | 'tempo' | 'estado' | 'atividade' | 'worker' | 'marca' | 'balao' | 'legenda' | 'mensagem'
 
 /** Texto da cena com a caixa que ele ocupa (centro em x,y); o teste prova que nenhuma caixa se sobrepõe. */
 export interface Rotulo {
@@ -39,15 +48,29 @@ export interface Personagem extends Celula {
   divisao: Divisao
   cor: string
   pose: Pose
-  /** Trabalhando (count > 0): sentado digitando, console aceso. */
+  /** Estado confiável (R5 a R8): só `trabalhando` senta, digita e acende o console. */
+  estado: EstadoVisual
+  simbolo: string
+  textoEstado: string
+  /** Traço de silhueta do perfil visual e as peças que o desenham. */
+  acessorio: string
+  pele: string
+  pecas: Peca[]
+  /** Entrada ou saída em curso; null quando a presença é estável. */
+  transicao: Transicao | null
+  /** Estação de origem; x e y acompanham o personagem enquanto ele anda até ela ou até o acesso. */
+  estacao: Celula
+  /** Trabalhando e já na estação: sentado digitando, console aceso. */
   ativo: boolean
   /** Quadro da animação "trabalhando" (0 ou 1); 0 quando parado. */
   quadro: 0 | 1
   balao: boolean
   /** Tamanho do boneco (Picard é maior). */
   escala: number
-  /** 1 quando ativo; no máximo 0,4 quando livre (R52). */
+  /** 1 quando ativo; no máximo 0,4 quando ocioso ou desconhecido (R52); multiplicada pela transição. */
   opacidade: number
+  /** Opacidade dos textos do personagem: nome legível mesmo com o corpo apagado. */
+  opacidadeTexto: number
   boneco: Boneco
   console: Retangulo
   /** Brilho do console aceso, na cor da divisão; null quando livre. */
@@ -85,11 +108,15 @@ export interface Cena {
   progresso: Telao | null
   /** Quantos tripulantes estão ativos (o telão mostra). */
   ativos: number
-  /** Área da ponte entre o telão e a engenharia (cresce quando a engenharia encolhe). */
+  /** Sala da ponte, de altura fixa (PONTE_ALTURA), logo abaixo do telão. */
   ponte: Retangulo
+  /** Área de atividades e estados no espaço que sobra entre a engenharia e a legenda; null sem espaço. */
+  atividades: Retangulo | null
   /** Caixa do anel do console (elipse): ocupa a largura e a altura da ponte. */
   anel: Retangulo
   estacoes: Estacao[]
+  /** Acesso à ponte, de onde entram e saem os personagens. */
+  porta: Celula
   engenharia: Retangulo
   /** Uma vaga por worker desenhado (até 6); sem worker, nenhuma. */
   vagas: Retangulo[]
@@ -103,10 +130,16 @@ export interface Cena {
 }
 
 /** Largura fixa da grade e o mínimo de linhas; a altura real acompanha a proporção do painel (R54). */
-export const GRADE = { largura: 48, altura: 102 } as const
+export const GRADE = { largura: 48, altura: 120 } as const
 /** Teto de linhas, para um painel muito alto não gerar uma grade absurda. */
 export const LINHAS_MAX = 400
 export const MAX_WORKERS = 6
+/** Personagens presentes na ponte ao mesmo tempo (R2). */
+export const MAX_PERSONAGENS = 6
+/** Tempo de cada rodada do rodízio, em ms (R3). */
+export const ROTACAO_MS = 8000
+/** Duração da troca no início da rodada: metade para sair e metade para entrar, sem passar de seis (R4). */
+export const TRANSICAO_MS = 1200
 export const FRAME_MS = 250
 /** Menor largura do painel, em px, e escala inteira mínima que decorre dela. */
 export const LARGURA_MIN_PX = 240
@@ -125,7 +158,7 @@ const PONTE_Y = 14
 const ENG_MARGEM = 3
 const ENG_LINHA = 11
 /** Bonecos maiores (R54): fator sobre o desenho de escala 1. */
-const BONECO = 1.3
+const BONECO = 1.7
 
 export const CORES: Record<Divisao, string> = {
   comando: '#c0392b',
@@ -138,38 +171,43 @@ interface Membro { id: string; nome: string; emoji: string; divisao: Divisao }
 const PICARD: Membro = { id: 'picard', nome: 'Picard', emoji: '🖖', divisao: 'comando' }
 
 /**
- * As 11 estações no console em arco ao redor da cadeira do Picard: 3 no alto (o arco), 3 em cada lado e
- * 2 na frente. `y` é a distância vertical a partir do topo do arco, antes de esticar para a altura da ponte;
- * colunas distintas ficam a 11 células ou mais e a mesma coluna a 13 ou mais, então as áreas não se tocam.
+ * As 11 estações em arco ao redor da cadeira do Picard, agrupadas numa ponte de proporção fixa (PONTE_ALTURA):
+ * 3 no alto, 2 em cada lado (2 fileiras), 2 embaixo e 2 nos cantos baixos. `y` é a distância a partir do topo da
+ * ponte. Duas áreas nunca se tocam: ou ficam a 11,4 células ou mais na horizontal, ou a 15,9 ou mais na vertical
+ * (o teste confere todas as estações).
  */
 const ARCO: (Membro & { x: number; y: number })[] = [
-  { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias', x: 12, y: 1.5 },
-  { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes', x: 24, y: 0 },
-  { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 36, y: 1.5 },
-  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 5.5, y: 14.5 },
-  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 42.5, y: 14.5 },
-  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 5.5, y: 27.5 },
-  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 42.5, y: 27.5 },
-  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 5.5, y: 40.5 },
-  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 42.5, y: 40.5 },
-  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 16.5, y: 44 },
-  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 31.5, y: 44 },
+  { id: 'spock', nome: 'Spock', emoji: '🖖', divisao: 'ciencias', x: 10, y: 12 },
+  { id: 'data', nome: 'Data', emoji: '🤖', divisao: 'operacoes', x: 24, y: 8.5 },
+  { id: 'worf', nome: 'Worf', emoji: '🛡️', divisao: 'comando', x: 38, y: 12 },
+  { id: 'mccoy', nome: 'McCoy', emoji: '🧪', divisao: 'ciencias', x: 6.2, y: 29 },
+  { id: 'troi', nome: 'Troi', emoji: '💜', divisao: 'ciencias', x: 41.8, y: 29 },
+  { id: 'uhura', nome: 'Uhura', emoji: '📡', divisao: 'operacoes', x: 6.2, y: 45 },
+  { id: 'scotty', nome: 'Scotty', emoji: '⚙️', divisao: 'operacoes', x: 41.8, y: 45 },
+  { id: 'kirk', nome: 'Kirk', emoji: '🚀', divisao: 'comando', x: 6.2, y: 61 },
+  { id: 'laforge', nome: 'LaForge', emoji: '🔧', divisao: 'operacoes', x: 41.8, y: 61 },
+  { id: 'q', nome: 'Q', emoji: '✨', divisao: 'ciencias', x: 17.7, y: 57 },
+  { id: 'guinan', nome: 'Guinan', emoji: '🍸', divisao: 'ciencias', x: 30.3, y: 57 },
 ]
-const PICARD_Y = 22
-const ARCO_ALTURA = 44
+const PICARD_Y = 33
 const PICARD_ESCALA = 1.5
-/** Margens da área da estação acima e abaixo do centro do boneco (escala 1). */
-const ACIMA = 5.8
-const ABAIXO = 7.1
-/** Abaixo deste esticamento as áreas da mesma coluna se tocariam (13 x k >= ACIMA + ABAIXO). */
-const ESTICA_MIN = (ACIMA + ABAIXO) / 13
+/** Altura fixa da ponte: ela não estica com o painel; o espaço que sobra vai para as atividades. */
+export const PONTE_ALTURA = 71
+/** Altura da área acima e abaixo do centro do boneco de escala `s` (cabeça e textos). */
+const acimaDe = (s: number): number => 7.9 * s
+const abaixoDe = (s: number): number => 2.72 * s + 5.3
+/** Distância do centro do boneco ao centro do nome. */
+const nomeDy = (s: number): number => 2.72 * s + 1.6
+/** Linha e margens da área de atividades. */
+const ATIV_LINHA = 3
+const ATIV_MAX = 12
 
 function larguraTexto(texto: string, tam: number, emoji: boolean): number {
   return emoji ? tam * 1.3 : [...texto].length * 0.6 * tam
 }
 
 function rotulo(tipo: TipoRotulo, texto: string, x: number, y: number, tam: number): Rotulo {
-  const largura = larguraTexto(texto, tam, tipo === 'emoji')
+  const largura = larguraTexto(texto, tam, tipo === 'emoji' || tipo === 'estado')
   const altura = tam * 1.2
   return { tipo, texto, x, y, tam, caixa: { x: x - largura / 2, y: y - altura / 2, largura, altura } }
 }
@@ -220,6 +258,189 @@ function fazBoneco(x: number, y: number, s: number, sentado: boolean, quadro: 0 
 function fazConsole(x: number, y: number, s: number): Retangulo {
   const k = s * BONECO
   return { x: x - 2.6 * k, y: y + 0.4 * k, largura: 5.2 * k, altura: 0.8 * k }
+}
+
+/** Opções de apresentação: movimento reduzido (R17) e integrante escolhido na relação (R10). */
+export interface OpcoesCena { reduzido?: boolean; selecionado?: string | null }
+
+const ALERTAS: readonly EstadoVisual[] = ['bloqueado', 'aguardando']
+
+/**
+ * Quem está na ponte na rodada `ciclo` (no máximo MAX_PERSONAGENS), na ordem dos perfis (R2, R3). Todos os 12
+ * são elegíveis; alertas (bloqueado, aguardando) vêm primeiro, depois quem trabalha, depois os demais. Um grupo
+ * que não cabe inteiro gira em janelas contíguas e consecutivas da roda, então a rodada seguinte começa onde a
+ * anterior terminou e todos aparecem. `selecionado` (R10) é trazido à cena mesmo fora da rodada.
+ */
+export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: number, selecionado: string | null = null): string[] {
+  const grupos = [
+    estados.filter(e => ALERTAS.includes(e.estado)),
+    estados.filter(e => e.estado === 'trabalhando'),
+    estados.filter(e => !ALERTAS.includes(e.estado) && e.estado !== 'trabalhando'),
+  ]
+  const fica: string[] = []
+  for (const grupo of grupos) {
+    const livres = MAX_PERSONAGENS - fica.length
+    if (livres <= 0 || grupo.length === 0) continue
+    if (grupo.length <= livres) {
+      fica.push(...grupo.map(e => e.membro))
+      continue
+    }
+    const inicio = (Math.max(0, ciclo) * livres) % grupo.length
+    for (let i = 0; i < livres; i++) fica.push(grupo[(inicio + i) % grupo.length].membro)
+  }
+  // seleção manual (R10): o escolhido entra na cena no lugar do de menor prioridade; o estado dele não muda
+  if (selecionado !== null && PERFIS.some(p => p.membro === selecionado) && !fica.includes(selecionado)) {
+    if (fica.length >= MAX_PERSONAGENS) fica.pop()
+    fica.push(selecionado)
+  }
+  return PERFIS.map(p => p.membro).filter(m => fica.includes(m))
+}
+
+interface Presenca { membro: string; transicao: Transicao | null }
+
+/**
+ * Presenças no instante `agoraMs`, só pelo relógio e pelos estados: no início de cada rodada, quem sai anda até
+ * o acesso na primeira metade da troca e quem entra anda até a estação na segunda, então nunca há mais de seis.
+ * O progresso não depende de quando a atualização chegou, e estado repetido dá a mesma presença (R4, R18).
+ */
+export function presencas(estados: readonly EstadoDoMembro[], agoraMs: number, opcoes: OpcoesCena = {}): Presenca[] {
+  const sel = opcoes.selecionado ?? null
+  const estavel = (lista: string[]): Presenca[] => lista.map(membro => ({ membro, transicao: null }))
+  // movimento reduzido (R17): sem rodízio automático nem deslocamento; só a seleção manual muda quem aparece
+  if (opcoes.reduzido) return estavel(selecionaPresentes(estados, 0, sel))
+  const ciclo = Math.floor(Math.max(0, agoraMs) / ROTACAO_MS)
+  const dt = Math.max(0, agoraMs) - ciclo * ROTACAO_MS
+  const atual = selecionaPresentes(estados, ciclo, sel)
+  if (ciclo === 0 || dt >= TRANSICAO_MS) return estavel(atual)
+  const anterior = selecionaPresentes(estados, ciclo - 1, sel)
+  const metade = TRANSICAO_MS / 2
+  if (dt < metade) {
+    return anterior.map(membro => ({
+      membro,
+      transicao: atual.includes(membro) ? null : { fase: 'saindo', progresso: dt / metade },
+    }))
+  }
+  return atual.map(membro => ({
+    membro,
+    transicao: anterior.includes(membro) ? null : { fase: 'entrando', progresso: (dt - metade) / metade },
+  }))
+}
+
+const PELE_PADRAO = '#e0b48a'
+
+interface Estilo { pele: string; pecas: (c: Retangulo, b: Retangulo, k: number) => Peca[] }
+const peca = (cor: string, x: number, y: number, largura: number, altura: number): Peca => ({ cor, x, y, largura, altura })
+
+/**
+ * Silhueta própria de cada perfil, em pixel art gerada por código: o modelo só diz onde ficam as peças (cabelo,
+ * orelhas, visor, chapéu...) e a pintura as desenha. `c` é a cabeça, `b` o corpo e `k` a célula do boneco.
+ */
+const ESTILOS: Record<string, Estilo> = {
+  'cabeca-calva': { pele: '#e8c4a0', pecas: c => [peca('#fff4e0', c.x + c.largura * 0.2, c.y + c.altura * 0.05, c.largura * 0.3, c.altura * 0.12)] },
+  'orelhas-pontudas': {
+    pele: '#d9c27a',
+    pecas: c => [
+      peca('#1a1a1a', c.x, c.y - c.altura * 0.05, c.largura, c.altura * 0.28),
+      peca('#d9c27a', c.x - c.largura * 0.15, c.y + c.altura * 0.2, c.largura * 0.15, c.altura * 0.45),
+      peca('#d9c27a', c.x + c.largura, c.y + c.altura * 0.2, c.largura * 0.15, c.altura * 0.45),
+      peca('#1a1a1a', c.x + c.largura * 0.15, c.y + c.altura * 0.28, c.largura * 0.7, c.altura * 0.08),
+    ],
+  },
+  'cabelo-cacheado': {
+    pele: '#d9a679',
+    pecas: c => [
+      peca('#3a2416', c.x - c.largura * 0.2, c.y - c.altura * 0.2, c.largura * 1.4, c.altura * 0.45),
+      peca('#3a2416', c.x - c.largura * 0.2, c.y + c.altura * 0.25, c.largura * 0.25, c.altura * 0.7),
+      peca('#3a2416', c.x + c.largura * 0.95, c.y + c.altura * 0.25, c.largura * 0.25, c.altura * 0.7),
+    ],
+  },
+  'pele-palida': {
+    pele: '#eceed8',
+    pecas: c => [
+      peca('#1a1a1a', c.x, c.y - c.altura * 0.05, c.largura, c.altura * 0.22),
+      peca('#e8c030', c.x + c.largura * 0.2, c.y + c.altura * 0.4, c.largura * 0.2, c.altura * 0.2),
+      peca('#e8c030', c.x + c.largura * 0.6, c.y + c.altura * 0.4, c.largura * 0.2, c.altura * 0.2),
+    ],
+  },
+  visor: {
+    pele: '#8a5a3c',
+    pecas: c => [
+      peca('#c8ccd8', c.x - c.largura * 0.1, c.y + c.altura * 0.35, c.largura * 1.2, c.altura * 0.3),
+      peca('#ff3b30', c.x + c.largura * 0.2, c.y + c.altura * 0.4, c.largura * 0.6, c.altura * 0.2),
+    ],
+  },
+  'tricorder-medico': {
+    pele: '#e0b48a',
+    pecas: (c, b) => [
+      peca('#3a2a1a', c.x, c.y - c.altura * 0.05, c.largura, c.altura * 0.25),
+      peca('#d6f3f6', b.x + b.largura * 0.62, b.y + b.altura * 0.5, b.largura * 0.36, b.altura * 0.34),
+      peca('#1f6f7a', b.x + b.largura * 0.7, b.y + b.altura * 0.58, b.largura * 0.14, b.altura * 0.12),
+    ],
+  },
+  brilho: {
+    pele: '#f6e3cf',
+    pecas: c => [
+      peca('#fff7a8', c.x - c.largura * 0.5, c.y - c.altura * 0.45, c.largura * 0.22, c.altura * 0.22),
+      peca('#ffffff', c.x + c.largura * 0.4, c.y - c.altura * 0.6, c.largura * 0.2, c.altura * 0.2),
+      peca('#fff7a8', c.x + c.largura * 1.25, c.y - c.altura * 0.3, c.largura * 0.22, c.altura * 0.22),
+      peca('#ffffff', c.x - c.largura * 0.4, c.y + c.altura * 0.7, c.largura * 0.18, c.altura * 0.18),
+      peca('#fff7a8', c.x + c.largura * 1.2, c.y + c.altura * 0.75, c.largura * 0.18, c.altura * 0.18),
+    ],
+  },
+  'fone-de-ouvido': {
+    pele: '#9a6a48',
+    pecas: c => [
+      peca('#14100e', c.x, c.y - c.altura * 0.05, c.largura, c.altura * 0.28),
+      peca('#14100e', c.x + c.largura * 0.3, c.y - c.altura * 0.3, c.largura * 0.4, c.altura * 0.25),
+      peca('#f2f2f2', c.x - c.largura * 0.2, c.y + c.altura * 0.35, c.largura * 0.25, c.altura * 0.35),
+      peca('#f2f2f2', c.x - c.largura * 0.05, c.y + c.altura * 0.62, c.largura * 0.3, c.altura * 0.1),
+    ],
+  },
+  'chave-inglesa': {
+    pele: '#e3b894',
+    pecas: (c, b, k) => [
+      peca('#b4501e', c.x, c.y - c.altura * 0.05, c.largura, c.altura * 0.25),
+      peca('#c9ced6', b.x + b.largura + 0.7 * k, b.y + 0.2 * k, 0.3 * k, 2.2 * k),
+      peca('#c9ced6', b.x + b.largura + 0.45 * k, b.y, 0.8 * k, 0.5 * k),
+    ],
+  },
+  comunicador: {
+    pele: '#e5b98f',
+    pecas: (c, b, k) => [
+      peca('#6b4a2a', c.x, c.y - c.altura * 0.05, c.largura, c.altura * 0.28),
+      peca('#202020', b.x, b.y + b.altura * 0.78, b.largura, 0.25 * k),
+      peca('#d8d8d8', b.x + b.largura * 0.62, b.y + b.altura * 0.62, 0.8 * k, 0.55 * k),
+    ],
+  },
+  'testa-craniana': {
+    pele: '#8f6a54',
+    pecas: c => [
+      peca('#0e0e12', c.x - c.largura * 0.1, c.y - c.altura * 0.1, c.largura * 1.2, c.altura * 0.3),
+      peca('#0e0e12', c.x - c.largura * 0.1, c.y + c.altura * 0.2, c.largura * 0.2, c.altura * 0.8),
+      peca('#0e0e12', c.x + c.largura * 0.9, c.y + c.altura * 0.2, c.largura * 0.2, c.altura * 0.8),
+      peca('#5a3c2c', c.x + c.largura * 0.25, c.y + c.altura * 0.2, c.largura * 0.14, c.altura * 0.2),
+      peca('#5a3c2c', c.x + c.largura * 0.45, c.y + c.altura * 0.2, c.largura * 0.14, c.altura * 0.2),
+      peca('#5a3c2c', c.x + c.largura * 0.65, c.y + c.altura * 0.2, c.largura * 0.14, c.altura * 0.2),
+    ],
+  },
+  'chapeu-largo': {
+    pele: '#6e4a36',
+    pecas: c => [
+      peca('#7a2f66', c.x - c.largura * 0.6, c.y - c.altura * 0.1, c.largura * 2.2, c.altura * 0.22),
+      peca('#7a2f66', c.x + c.largura * 0.15, c.y - c.altura * 0.55, c.largura * 0.7, c.altura * 0.5),
+    ],
+  },
+}
+
+/** Peças do perfil para um boneco; o acessório vem de `PERFIS` e cada um tem o próprio desenho. */
+export function pecasDoPerfil(acessorio: string, boneco: Boneco, escala: number): { pele: string; pecas: Peca[] } {
+  const estilo = ESTILOS[acessorio]
+  if (!estilo) return { pele: PELE_PADRAO, pecas: [] }
+  return { pele: estilo.pele, pecas: estilo.pecas(boneco.cabeca, boneco.corpo, escala * BONECO) }
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t
 }
 
 /** Linhas da grade para um palco de `largura` x `altura` px: mesma proporção, entre GRADE.altura e LINHAS_MAX. */
@@ -276,8 +497,10 @@ function cenaVazia(mensagem: string, alturaGrade: number): Cena {
     progresso: null,
     ativos: 0,
     ponte,
+    atividades: null,
     anel: anelDa(ponte),
     estacoes: [],
+    porta: { x: GRADE.largura / 2, y: fundo - 1.5 },
     engenharia: { x: 1, y: fundo, largura: 46, altura: 0 },
     vagas: [],
     personagens: [],
@@ -308,15 +531,17 @@ function mensagemDoEstado(estado: PonteState): string | null {
  * Monta a cena (função pura). `linhas` é a altura da grade em células, tirada da proporção do palco
  * (`linhasDoPainel`); a largura é sempre GRADE.largura e a ponte, com o anel, ocupa a altura que sobra.
  */
-export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: number, linhas?: number): Cena {
+export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: number, linhas?: number, ids: Identidades = {}, opcoes: OpcoesCena = {}): Cena {
   const alturaGrade = normalizaLinhas(linhas)
   const mensagem = mensagemDoEstado(estado)
   if (mensagem !== null || !estado.snapshot) return cenaVazia(mensagem ?? MSG_SEM_WORKTREE, alturaGrade)
 
   const snap = estado.snapshot
-  const quadro = (Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
+  const quadro = (opcoes.reduzido ? 0 : Math.floor(agoraMs / FRAME_MS) % 2) as 0 | 1
   const porMembro = new Map(snap.crew.map(c => [c.member, c]))
-  const ativos = snap.crew.filter(c => c.count > 0).length
+  const estados = estadosDaTripulacao({ ...estado, agents: agentes }, ids)
+  const porEstado = new Map(estados.map(e => [e.membro, e.estado]))
+  const ativos = estados.filter(e => e.estado === 'trabalhando').length
   const rotulos: Rotulo[] = []
 
   // Telão: slug, fase, progresso da feature e quantos tripulantes estão ativos.
@@ -338,7 +563,8 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
   const visiveis = snap.workers.slice(0, MAX_WORKERS)
   const linhasEng = Math.ceil(visiveis.length / 3)
   const engAltura = linhasEng === 0 ? 4 : 4 + linhasEng * ENG_LINHA
-  const engenharia: Retangulo = { x: 1, y: alturaGrade - ENG_MARGEM - engAltura, largura: 46, altura: engAltura }
+  const ponte: Retangulo = { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: PONTE_ALTURA }
+  const engenharia: Retangulo = { x: 1, y: ponte.y + ponte.altura + 1, largura: 46, altura: engAltura }
   const workers: WorkerCena[] = visiveis.map((w, i) => {
     const x = 9 + (i % 3) * 15
     const y = engenharia.y + 9.2 + Math.floor(i / 3) * ENG_LINHA
@@ -353,67 +579,71 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     }
   })
 
-  const balaoMembros = new Set<string>()
+  // Balão dos workers: só quando o agente casa com o worker (a identidade dos tripulantes vem de `ids`).
   for (const agente of agentes) {
     if (agente.state !== 'blocked' && agente.state !== 'waiting') continue
     const i = visiveis.findIndex(w => casaWorker(agente, w))
-    if (i >= 0) {
-      workers[i].balao = true
-      continue
-    }
-    if (snap.workers.some(w => casaWorker(agente, w))) {
-      balaoMembros.add('laforge') // worker fora dos 6 desenhados: o balão vai ao LaForge
-      continue
-    }
-    let alvo = 'picard'
-    let maisRecente = -Infinity
-    for (const c of snap.crew) {
-      if (c.count <= 0 || !c.lastAt) continue
-      const t = Date.parse(c.lastAt)
-      if (Number.isFinite(t) && t > maisRecente) {
-        maisRecente = t
-        alvo = c.member
-      }
-    }
-    balaoMembros.add(alvo)
+    if (i >= 0) workers[i].balao = true
   }
 
-  // Ponte: o arco estica para ocupar toda a altura que sobra (R54); o anel acompanha a ponte.
-  const ponte: Retangulo = { x: 0, y: PONTE_Y, largura: GRADE.largura, altura: engenharia.y - 1 - PONTE_Y }
-  const util = ponte.altura - ACIMA - ABAIXO
-  const k = Math.max(ESTICA_MIN, (util - 0.01) / ARCO_ALTURA) // 0,01 de folga contra o arredondamento
-  const topo = ponte.y + ACIMA + (util - k * ARCO_ALTURA) / 2
+  // Ponte: proporção fixa (R54 trocou o esticamento por uma área de atividades abaixo da engenharia).
+  const topo = ponte.y
 
   const lugares: { m: Membro; x: number; y: number; s: number }[] = [
-    { m: PICARD, x: GRADE.largura / 2, y: topo + PICARD_Y * k, s: PICARD_ESCALA },
-    ...ARCO.map(m => ({ m, x: m.x, y: topo + m.y * k, s: 1 })),
+    { m: PICARD, x: GRADE.largura / 2, y: topo + PICARD_Y, s: PICARD_ESCALA },
+    ...ARCO.map(m => ({ m, x: m.x, y: topo + m.y, s: 1 })),
   ]
-  const personagens: Personagem[] = lugares.map(({ m, x, y, s }) => {
-    const c = porMembro.get(m.id)
-    const ativo = (c?.count ?? 0) > 0
+  const porta: Celula = { x: GRADE.largura / 2, y: ponte.y + ponte.altura - 1.5 }
+  const lugarDe = new Map(lugares.map(l => [l.m.id, l]))
+  const perfilDe = new Map(PERFIS.map(p => [p.membro, p]))
+  const personagens: Personagem[] = presencas(estados, agoraMs, opcoes).map(({ membro, transicao }) => {
+    const { m, x: ex, y: ey, s } = lugarDe.get(membro)!
+    const perfil = perfilDe.get(membro)!
+    const c = porMembro.get(membro)
+    const visual = porEstado.get(membro) ?? 'desconhecido'
+    const apres = ESTADOS[visual]
+    const andando = transicao !== null
+    // andando até a estação (entrando) ou até o acesso (saindo): só a posição muda, nunca o estado
+    const t = transicao ? (transicao.fase === 'entrando' ? transicao.progresso : 1 - transicao.progresso) : 1
+    const x = lerp(porta.x, ex, t)
+    const y = lerp(porta.y, ey, t)
+    const ativo = apres.animaConsole && !andando
+    const alerta = ALERTAS.includes(visual)
     const nome = corta(c?.name || m.nome, 8)
     const emoji = c?.emoji || m.emoji
-    const balao = balaoMembros.has(m.id)
     const tempo = ativo ? haQuanto(c?.lastAt, agoraMs) : null
     const q: 0 | 1 = ativo ? quadro : 0
-    const yNome = y + 2.2 * s + 1.2
-    const meus = [rotulo('emoji', emoji, x, y - 1.2 * s, s > 1 ? 2.6 : 2), rotulo('nome', nome, x, yNome, 2)]
+    const yNome = y + nomeDy(s)
+    const meus = [
+      rotulo('emoji', emoji, x, y - 1.2 * s, s > 1 ? 2.6 : 2),
+      rotulo('nome', nome, x, yNome, 2),
+      rotulo('estado', apres.simbolo, x + 4.2 * s, y - 6.6 * s, 2),
+    ]
     if (tempo) meus.push(rotulo('tempo', tempo, x, yNome + 2.5, 2)) // folga contra o arredondamento
-    if (balao) meus.push(rotulo('balao', '!', x + 3 * s, y - 4.6 * s, 2))
+    if (alerta) meus.push(rotulo('balao', '!', x - 4.2 * s, y - 6.6 * s, 2))
     for (const r of meus) rotulos.push({ ...r, dono: m.id })
-    const consoleR = fazConsole(x, y, s)
-    const acima = ACIMA + (s - 1) * 4.8
-    const abaixo = ABAIXO + (s - 1) * 2.2
+    const consoleR = fazConsole(ex, ey, s)
+    const acima = acimaDe(s)
+    const abaixo = abaixoDe(s)
+    const meia = 5.7 + (s - 1) * 4
+    const boneco = fazBoneco(x, y, s, ativo, q)
+    const mult = transicao ? (transicao.fase === 'entrando' ? transicao.progresso : 1 - transicao.progresso) : 1
+    const base = visual === 'ocioso' || visual === 'desconhecido' ? OPACIDADE_LIVRE : 1
+    const estilo = pecasDoPerfil(perfil.acessorio, boneco, s)
     return {
-      membro: m.id, nome, emoji, divisao: m.divisao, cor: CORES[m.divisao],
-      pose: ativo ? 'sentado' : 'de-pe', ativo, quadro: q, x, y, balao,
+      membro: m.id, nome, emoji, divisao: m.divisao, cor: perfil.cor,
+      estado: visual, simbolo: apres.simbolo, textoEstado: apres.texto,
+      acessorio: perfil.acessorio, pele: estilo.pele, pecas: estilo.pecas,
+      transicao, estacao: { x: ex, y: ey },
+      pose: ativo ? 'sentado' : 'de-pe', ativo, quadro: q, x, y, balao: alerta,
       escala: s,
-      opacidade: ativo ? 1 : OPACIDADE_LIVRE,
-      boneco: fazBoneco(x, y, s, ativo, q),
+      opacidade: base * mult,
+      opacidadeTexto: (base === 1 ? 1 : 0.85) * mult,
+      boneco,
       console: consoleR,
       brilho: ativo ? { x: consoleR.x - 0.6, y: consoleR.y - 0.6, largura: consoleR.largura + 1.2, altura: consoleR.altura + 1.2 } : null,
       tempo,
-      caixa: { x: x - 5.5, y: y - acima, largura: 11, altura: acima + abaixo },
+      caixa: { x: ex - meia, y: ey - acima, largura: meia * 2, altura: acima + abaixo },
     }
   })
 
@@ -430,6 +660,21 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     if (w.concluido) rotulos.push(rotulo('marca', '✓', w.x - 2.6, w.y - 1, 2))
     if (w.balao) rotulos.push(rotulo('balao', '!', w.x + 2.6, w.y - 1, 2))
   }
+  // Atividades: o espaço vertical que sobra vira uma lista dos estados reais (nada de dado inventado).
+  const topoAtiv = engenharia.y + engenharia.altura + 1
+  const espaco = alturaGrade - 3.5 - topoAtiv
+  let atividades: Retangulo | null = null
+  if (espaco >= ATIV_LINHA * 2 + 3.5) {
+    const itens = estados
+      .filter(e => e.estado !== 'ocioso')
+      .map(e => `${ESTADOS[e.estado].simbolo} ${corta(porMembro.get(e.membro)?.name || e.membro, 8)} · ${ESTADOS[e.estado].texto}`)
+    const vazias = itens.length === 0
+    const cabem = Math.min(ATIV_MAX, Math.floor((espaco - 3.5) / ATIV_LINHA))
+    const mostrados = vazias ? ['sem atividade registrada'] : itens.length > cabem ? [...itens.slice(0, cabem - 1), `+${itens.length - cabem + 1}`] : itens
+    atividades = { x: 1, y: topoAtiv, largura: 46, altura: 3.5 + mostrados.length * ATIV_LINHA }
+    rotulos.push(rotulo('telao', 'ATIVIDADES', 24, topoAtiv + 1.9, 2))
+    mostrados.forEach((t, i) => rotulos.push(rotulo('atividade', t, 24, topoAtiv + 3.5 + (i + 0.5) * ATIV_LINHA, 2)))
+  }
   rotulos.push(rotulo('legenda', LEGENDA, 24, alturaGrade - 1.4, 2))
 
   return {
@@ -438,8 +683,10 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     progresso,
     ativos,
     ponte,
+    atividades,
     anel: anelDa(ponte),
-    estacoes: lugares.map(l => ({ membro: l.m.id, x: l.x, y: l.y })),
+    estacoes: lugares.map(l => ({ membro: l.m.id, x: l.x, y: l.y, escala: l.s, console: fazConsole(l.x, l.y, l.s) })),
+    porta,
     engenharia,
     vagas: workers.map(w => ({ ...w.caixa })),
     personagens,
@@ -449,4 +696,58 @@ export function buildScene(estado: PonteState, agentes: PonteAgent[], agoraMs: n
     vazia: false,
     mensagem: null,
   }
+}
+
+/** Um integrante na relação acessível: nome, estado e presença na cena (R9, R16). */
+export interface ItemRelacao {
+  membro: string
+  nome: string
+  emoji: string
+  estado: EstadoVisual
+  simbolo: string
+  textoEstado: string
+  presente: boolean
+  selecionado: boolean
+  /** Texto para leitor de tela: nome, estado e presença. */
+  descricao: string
+}
+
+/** Horário local HH:MM:SS de um instante em ms. */
+export function horario(ms: number): string {
+  const d = new Date(ms)
+  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':')
+}
+
+/**
+ * Relação dos 12 integrantes, sempre na ordem dos perfis e mesmo sem cena (sem worktree, erro). O estado vem
+ * de `estadosDaTripulacao`, o mesmo que a cena usa; só diz o que a fonte garante, sem escopo de worktree.
+ */
+export function relacaoDaTripulacao(
+  estado: PonteState, agentes: PonteAgent[], agoraMs: number, ids: Identidades = {}, opcoes: OpcoesCena = {},
+): ItemRelacao[] {
+  const estados = estadosDaTripulacao({ ...estado, agents: agentes }, ids)
+  const naCena = new Set(mensagemDoEstado(estado) === null ? presencas(estados, agoraMs, opcoes).map(p => p.membro) : [])
+  const sel = opcoes.selecionado ?? null
+  return PERFIS.map(perfil => {
+    const visual = estados.find(e => e.membro === perfil.membro)?.estado ?? 'desconhecido'
+    const apres = ESTADOS[visual]
+    const c = estado.snapshot?.crew.find(x => x.member === perfil.membro)
+    const nome = c?.name || perfil.nome
+    const presente = naCena.has(perfil.membro)
+    return {
+      membro: perfil.membro, nome, emoji: c?.emoji || perfil.emoji, estado: visual, simbolo: apres.simbolo,
+      textoEstado: apres.texto, presente, selecionado: sel === perfil.membro,
+      descricao: `${nome}, ${apres.texto}, ${presente ? 'na cena' : 'fora da cena'}`,
+    }
+  })
+}
+
+/** Aviso de falha ou de dados antigos com o horário da última atualização válida (R13); null quando está tudo em dia. */
+export function avisoDeDados(estado: PonteState): string | null {
+  const ultima = estado.lastValidAt != null
+    ? `última atualização válida às ${horario(estado.lastValidAt)}`
+    : 'ainda sem atualização válida'
+  if (estado.status === 'erro') return `Dados indisponíveis (${primeiraLinha(estado.error)}); ${ultima}`
+  if (estado.status === 'ok' && estado.stale) return `Dados desatualizados; ${ultima}`
+  return null
 }

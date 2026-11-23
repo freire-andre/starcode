@@ -185,7 +185,7 @@ def ts_balanced(text: str) -> bool:
             while i < n and text[i] not in (c, "\n"):
                 i += 2 if text[i] == "\\" else 1
             i += 1
-        elif c == "/" and prev in "(,=:[!&|?{;" + "\n":  # literal de regex: pula até a barra de fechamento
+        elif c == "/" and prev in "(,=:[!&|?{;>" + "\n":  # literal de regex (inclusive depois de `=>`): pula até a barra de fechamento
             i += 1
             in_class = False
             while i < n and text[i] != "\n" and (in_class or text[i] != "/"):
