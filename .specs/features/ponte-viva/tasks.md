@@ -98,8 +98,8 @@ Adicionar relação acessível dos 12 membros e estados, seleção manual, aviso
 Spec: `.specs/features/ponte-viva/spec.md` (R9, R10, R13, R16, R17). Checks: C9, C10, C13, C16, C17. `scene.ts` cria a página e o canvas; preservar nomes e estado real mesmo quando fora da cena.
 
 #### BOUNDARIES
-May change: `src/orca/src/scene.ts`, `src/orca/src/scene.test.ts`, `src/orca/src/scene-model.ts`, `src/orca/src/scene-model.test.ts`, `src/orca/src/worker.ts`, `src/orca/src/worker.test.ts`, `DECISIONS.md`
-Do not touch: perfis visuais e arquivos de outras tarefas.
+May change: `src/orca/src/scene.ts`, `src/orca/src/scene.test.ts`, `src/orca/src/scene-model.ts`, `src/orca/src/scene-model.test.ts`, `src/orca/src/worker.ts`, `src/orca/src/worker.test.ts`, `src/orca/src/crew-visual.ts`, `src/orca/src/crew-visual.test.ts`, `DECISIONS.md`
+Do not touch: arquivos de outras tarefas.
 
 #### RULES
 Leia AGENTS.md. TDD; gates verdes antes do commit. Modo Git: 3. Commit convencional em PT-BR com `Refs SC-<n>` no corpo; use a issue vinculada (modelo do gate: Refs: <ID-LINEAR>). Sem segredos, deploy ou push.
@@ -178,12 +178,12 @@ Proof: run unit | ponte viva preserva transição em atualização repetida
 **Size:** LARGE
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** integrar T3 e corrigir teste instável
+**Next:** integrar T4
 **Linear:** SC-216; T1 SC-217; T2 SC-218; T3 SC-219; T4 SC-220; T5 SC-221
 **Integration branch:** feature/ponte-viva
-**Last integrated:** eb6c763a0822d2cc707b0f20ecfa3a9aa5bac137
+**Last integrated:** 94bcbe04d5d571720b5f536f824518aec736d481
 **Dispatched:** none
 **Settled:** 2026-11-22: aprovado; 2026-11-22: sim
 **Attempts:** none
-**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c
+**Reports:** 2026-11-22: T1: perfis e estados implementados; 79 testes Orca passaram; commit 0c06273; dist será gerado em T5; 2026-11-22: T2: reconciliação automática, recuperação e concorrência; 84 testes Orca passaram; commit 33d0524; dist pendente de T5; 2026-11-22: T3 revisão: ampliar limites para corrigir estados por sessões ativas e melhorar composição; capturas requeridas; 2026-11-22: T3 revisão: atividade por count corrigida; prévia sintética 360 distante do mockup; devolvida para melhorar composição; 2026-11-22: T3: cena revisada e estados por sessões; 97 testes Orca passaram; prévias sintéticas verificadas; teste de T2 oscilou; commits 84164ec, e225444 e d16ba0c; 2026-11-22: T4: acessibilidade implementada e flakiness corrigida, 103 testes Orca; corrigir escopo e incerteza de atividade antes de integrar; 2026-11-22: T4: acessibilidade, flakiness e ambiguidade de estados corrigidas; 104 testes Orca; commits f3e7522 e 86faf81
 **Breaker:** closed
