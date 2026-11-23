@@ -131,15 +131,17 @@ const caminho = (v: string): string => v.replaceAll('\\', '/').replace(/\/+$/, '
 export function identidadesDaSessao(estado: PonteState, agentes: PonteAgent[] = estado.agents): Identidades {
   const snap = estado.snapshot
   if (estado.status !== 'ok' || estado.stale || snap === null || !snap.starcode) return {}
-  if (typeof estado.agentsWorktree !== 'string' || caminho(estado.agentsWorktree) !== caminho(snap.worktree)) return {}
+  // caminho vazio (ausente, só espaços de barra) não prova escopo: vazio igual a vazio não é vínculo
+  if (typeof estado.agentsWorktree !== 'string' || typeof snap.worktree !== 'string') return {}
   const foco = caminho(snap.worktree)
+  if (foco === '' || caminho(estado.agentsWorktree) !== foco) return {}
   // sessão -> integrantes que a reivindicam neste worktree
   const donos = new Map<string, Set<string>>()
   for (const c of snap.crew) {
     if (!MEMBROS.includes(c.member) || !Array.isArray(c.sessions)) continue
     for (const s of c.sessions as unknown[]) {
       const r = s as { id?: unknown; worktree?: unknown } | null
-      if (typeof r?.id !== 'string' || r.id === '' || typeof r.worktree !== 'string' || caminho(r.worktree) !== foco) continue
+      if (typeof r?.id !== 'string' || r.id === '' || typeof r.worktree !== 'string' || caminho(r.worktree) === '' || caminho(r.worktree) !== foco) continue
       donos.set(r.id, (donos.get(r.id) ?? new Set()).add(c.member))
     }
   }

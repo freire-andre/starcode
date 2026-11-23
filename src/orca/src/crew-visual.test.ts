@@ -301,3 +301,28 @@ test('ponte viva trata estado herdado do protótipo como fora do contrato', () =
   const ok = estadosDaTripulacao(estado({}, [agente('t', 'working')]), { t: 'spock' })
   assert.deepEqual(de(ok, 'spock'), { membro: 'spock', estado: 'trabalhando', motivo: 'agente vinculado trabalhando' })
 })
+
+test('ponte viva recusa caminhos vazios como prova de worktree', () => {
+  const sess = { spock: [{ id: 'sess-1', worktree: 'C:/wt' }] }
+  // positivo: com caminhos iguais e não vazios há vínculo
+  assert.deepEqual(identidadesDaSessao(comSessoes(sess)), { t1: 'spock' })
+  const vazios = ['', '/', '\\']
+  for (const v of vazios) {
+    // as três fontes vazias e coincidentes
+    const todas = comSessoes({ spock: [{ id: 'sess-1', worktree: v }] }, { agentsWorktree: v })
+    todas.snapshot!.worktree = v
+    assert.deepEqual(identidadesDaSessao(todas), {})
+    const res = estadosDaTripulacao(todas, identidadesDaSessao(todas))
+    assert.notEqual(de(res, 'spock').estado, 'trabalhando')
+    const cena = buildScene(todas, todas.agents, 2000, undefined, identidadesDaSessao(todas))
+    assert.deepEqual(cena.personagens.filter(p => p.estado === 'trabalhando').map(p => p.membro), [])
+    // cada fonte vazia sozinha, as outras válidas
+    const soAgents = comSessoes(sess, { agentsWorktree: v })
+    assert.deepEqual(identidadesDaSessao(soAgents), {})
+    const soSnap = comSessoes(sess)
+    soSnap.snapshot!.worktree = v
+    assert.deepEqual(identidadesDaSessao(soSnap), {})
+    const soSessao = comSessoes({ spock: [{ id: 'sess-1', worktree: v }] })
+    assert.deepEqual(identidadesDaSessao(soSessao), {})
+  }
+})
