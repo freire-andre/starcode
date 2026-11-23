@@ -267,9 +267,10 @@ const ALERTAS: readonly EstadoVisual[] = ['bloqueado', 'aguardando']
 
 /**
  * Quem está na ponte na rodada `ciclo` (no máximo MAX_PERSONAGENS), na ordem dos perfis (R2, R3). Todos os 12
- * são elegíveis; alertas (bloqueado, aguardando) vêm primeiro, depois quem trabalha, depois os demais. Um grupo
- * que não cabe inteiro gira em janelas contíguas e consecutivas da roda, então a rodada seguinte começa onde a
- * anterior terminou e todos aparecem. `selecionado` (R10) é trazido à cena mesmo fora da rodada.
+ * são elegíveis; alertas (bloqueado, aguardando) vêm primeiro, depois quem trabalha, depois os demais. Quando nem
+ * todos cabem, cada grupo seguinte que tem gente reserva uma vaga, então os alertas ocupam o resto (prioridade
+ * proporcional ao número deles) sem esgotar a ponte. Um grupo que não cabe inteiro gira em janelas contíguas e
+ * consecutivas da roda, então a rodada seguinte começa onde a anterior terminou e todos aparecem. `selecionado` (R10) é trazido à cena mesmo fora da rodada.
  */
 export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: number, selecionado: string | null = null): string[] {
   const grupos = [
@@ -278,15 +279,21 @@ export function selecionaPresentes(estados: readonly EstadoDoMembro[], ciclo: nu
     estados.filter(e => !ALERTAS.includes(e.estado) && e.estado !== 'trabalhando'),
   ]
   const fica: string[] = []
-  for (const grupo of grupos) {
-    const livres = MAX_PERSONAGENS - fica.length
-    if (livres <= 0 || grupo.length === 0) continue
-    if (grupo.length <= livres) {
+  for (let g = 0; g < grupos.length; g++) {
+    const grupo = grupos[g]
+    // cada grupo seguinte que tem gente reserva uma vaga: alertas têm prioridade, mas não esgotam a ponte
+    const reservadas = grupos.slice(g + 1).filter(x => x.length > 0).length
+    const livres = Math.min(MAX_PERSONAGENS - fica.length, Math.max(1, MAX_PERSONAGENS - fica.length - reservadas))
+    const sobra = grupos.slice(g + 1).reduce((n, x) => n + x.length, 0)
+    // cabe tudo que falta (este grupo e os seguintes): sem reserva, ocupa o que precisar
+    const vagas = grupo.length + sobra <= MAX_PERSONAGENS - fica.length ? grupo.length : livres
+    if (vagas <= 0 || grupo.length === 0) continue
+    if (grupo.length <= vagas) {
       fica.push(...grupo.map(e => e.membro))
       continue
     }
-    const inicio = (Math.max(0, ciclo) * livres) % grupo.length
-    for (let i = 0; i < livres; i++) fica.push(grupo[(inicio + i) % grupo.length].membro)
+    const inicio = (Math.max(0, ciclo) * vagas) % grupo.length
+    for (let i = 0; i < vagas; i++) fica.push(grupo[(inicio + i) % grupo.length].membro)
   }
   // seleção manual (R10): o escolhido entra na cena no lugar do de menor prioridade; o estado dele não muda
   if (selecionado !== null && PERFIS.some(p => p.membro === selecionado) && !fica.includes(selecionado)) {

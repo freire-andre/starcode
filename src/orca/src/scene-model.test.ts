@@ -3,7 +3,7 @@ import { assert, test } from 'orca/testing'
 import { avisoDeDados, buildScene, GRADE, horario, LEGENDA, PONTE_ALTURA, linhasDoPainel, pecasDoPerfil, relacaoDaTripulacao, ROTACAO_MS, selecionaPresentes, TRANSICAO_MS } from './scene-model'
 import type { Cena } from './scene-model'
 import { ESTADOS, PERFIS, estadosDaTripulacao } from './crew-visual'
-import type { Identidades } from './crew-visual'
+import type { EstadoDoMembro, Identidades } from './crew-visual'
 import type { PonteAgent, PonteState, PonteWorker } from './protocol'
 
 const MEMBROS = ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy', 'q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan']
@@ -361,22 +361,53 @@ test('ponte viva alterna integrantes elegíveis', () => {
     m.filter(x => !fixos.includes(x)).forEach(x => sobra.add(x))
   }
   assert.deepEqual([...sobra].sort(), MEMBROS.filter(m => !fixos.includes(m)).sort())
-  // oito trabalhando: seis por vez, os oito alcançados; nenhum ocioso entra
+  // oito trabalhando: cada rodada tem cinco deles e um ocioso (acesso periódico); em oito rodadas todos aparecem
   const oito = MEMBROS.slice(0, 8)
   const alcance = new Set<string>()
-  for (let ciclo = 0; ciclo < 4; ciclo++) {
+  const ociososVistos = new Set<string>()
+  for (let ciclo = 0; ciclo < 8; ciclo++) {
     const m = membrosDe(buildScene(estado(), oito.map(x => doMembro(x)), T(ciclo), undefined, IDS))
     assert.equal(m.length, 6)
-    m.forEach(x => { assert.ok(oito.includes(x)); alcance.add(x) })
+    assert.equal(m.filter(x => oito.includes(x)).length, 5, `trabalhando na rodada ${ciclo}: ${m}`)
+    m.forEach(x => (oito.includes(x) ? alcance : ociososVistos).add(x))
   }
   assert.equal(alcance.size, 8)
-  // alerta ganha de trabalhando quando não cabem todos
+  assert.deepEqual([...ociososVistos].sort(), MEMBROS.slice(8).sort())
+  // alerta ganha de trabalhando quando não cabem todos: ocupa quatro das seis vagas; o trabalhando e um ocioso ficam com uma cada
   const sete = MEMBROS.slice(0, 7).map(x => doMembro(x, 'blocked'))
   const m = membrosDe(buildScene(estado(), [...sete, doMembro('guinan')], T(0), undefined, IDS))
-  assert.ok(m.every(x => MEMBROS.slice(0, 7).includes(x)) && !m.includes('guinan'))
+  assert.deepEqual(m, ['picard', 'spock', 'troi', 'data', 'uhura', 'guinan'])
   const est = (agentes: PonteAgent[]) => estadosDaTripulacao({ ...estado(), agents: agentes }, IDS)
   assert.deepEqual(selecionaPresentes(est([]), 0), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
   assert.deepEqual(selecionaPresentes(est([]), 1), ['q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan'])
+})
+
+test('ponte viva dá acesso periódico aos demais mesmo com seis alertas', () => {
+  const est = (alertas: number, trabalhando = 0): EstadoDoMembro[] => MEMBROS.map((membro, i) => ({
+    membro, motivo: '', estado: i < alertas ? 'bloqueado' : i < alertas + trabalhando ? 'trabalhando' : 'ocioso',
+  }))
+  // seis alertas e seis ociosos: cada rodada tem cinco alertas e um ocioso; em seis rodadas todos os ociosos aparecem
+  const e6 = est(6)
+  const alertas = MEMBROS.slice(0, 6)
+  const ociosos = MEMBROS.slice(6)
+  const rodadas = Array.from({ length: 6 }, (_, ciclo) => selecionaPresentes(e6, ciclo))
+  for (const r of rodadas) {
+    assert.equal(r.length, 6)
+    assert.equal(r.filter(x => alertas.includes(x)).length, 5, `alertas na rodada: ${r}`)
+    assert.equal(r.filter(x => ociosos.includes(x)).length, 1, `demais na rodada: ${r}`)
+  }
+  assert.deepEqual(rodadas.map(r => r.find(x => ociosos.includes(x))), ociosos)
+  // os alertas também giram: nenhum fica de fora para sempre
+  assert.deepEqual([...new Set(rodadas.flat().filter(x => alertas.includes(x)))].sort(), [...alertas].sort())
+  assert.deepEqual([...new Set(Array.from({ length: 24 }, (_, c) => selecionaPresentes(e6, c)).flat())].sort(), [...MEMBROS].sort())
+  // menos alertas, mais prioridade para eles: três alertas ficam sempre; trabalhando e ocioso dividem o resto
+  const e3 = est(3, 6)
+  const r3 = Array.from({ length: 12 }, (_, ciclo) => selecionaPresentes(e3, ciclo))
+  for (const r of r3) assert.deepEqual(MEMBROS.slice(0, 3).filter(x => !r.includes(x)), [])
+  assert.deepEqual([...new Set(r3.flat())].sort(), [...MEMBROS].sort())
+  // movimento reduzido (rodada 0 fixa) segue só a prioridade: o rodízio continua sendo o único acesso aos demais
+  const todosAlerta = est(12)
+  assert.deepEqual(selecionaPresentes(todosAlerta, 0), ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy'])
 })
 
 test('ponte viva anima sem alterar estado', () => {
