@@ -287,3 +287,17 @@ test('ponte viva não infere troca sem vínculo', () => {
   assert.deepEqual(cOutro.personagens.map(p => p.membro), cVazio.personagens.map(p => p.membro))
   assert.ok(cOutro.personagens.every(p => p.estado === 'desconhecido'))
 })
+
+test('ponte viva trata estado herdado do protótipo como fora do contrato', () => {
+  for (const herdado of ['toString', 'constructor', 'hasOwnProperty', '__proto__', 'valueOf']) {
+    const e = estado({}, [agente('t', herdado as never)])
+    const res = estadosDaTripulacao(e, { t: 'spock' })
+    assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'desconhecido', motivo: 'estado de agente fora do contrato' })
+    // a cena não quebra e ninguém aparece trabalhando
+    const cena = buildScene(e, e.agents, 2000, undefined, { t: 'spock' })
+    assert.ok(cena.personagens.every(p => p.estado !== 'trabalhando'))
+  }
+  // caso positivo: estado próprio do contrato continua valendo
+  const ok = estadosDaTripulacao(estado({}, [agente('t', 'working')]), { t: 'spock' })
+  assert.deepEqual(de(ok, 'spock'), { membro: 'spock', estado: 'trabalhando', motivo: 'agente vinculado trabalhando' })
+})

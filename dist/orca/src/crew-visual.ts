@@ -104,7 +104,7 @@ export function estadosDaTripulacao(estado: PonteState, ids: Identidades): Estad
     if (!snap.crew.some(c => c.member === membro)) return desconhecido('integrante ausente do snapshot')
     const seus = estado.agents.filter(a => vinculado(a, membro, ids))
     if (seus.length > 0) {
-      const estados = seus.map(a => DO_AGENTE[a.state])
+      const estados = seus.map(a => (typeof a.state === 'string' && tem(DO_AGENTE, a.state) ? DO_AGENTE[a.state] : undefined))
       if (estados.some(e => e === undefined)) return desconhecido('estado de agente fora do contrato')
       if (new Set(estados).size > 1) return desconhecido('mais de um agente vinculado com estados diferentes')
       return { membro, estado: estados[0], motivo: `agente vinculado ${ESTADOS[estados[0]].texto}` }
