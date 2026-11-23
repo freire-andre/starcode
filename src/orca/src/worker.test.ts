@@ -1102,6 +1102,11 @@ test('ponte viva atualiza por evento', async () => {
   await waitFor(() => posts(worker).length === 3)
   assert.deepEqual(posts(worker)[2].agents, [WORKING])
   assert.equal(posts(worker)[2].snapshot.worktree, 'C:/wt/b')
+  // SC-222 (R11, R21): os agentes são pedidos ao host com o workspaceId do worktree em foco e o estado diz de qual
+  // worktree vieram: A (ws-a) na primeira atualização, B (ws-b) nas seguintes
+  const pedidos = host.callsOf('agents.list')
+  assert.deepEqual(pedidos.slice(0, 3), [{ workspaceId: 'ws-a' }, { workspaceId: 'ws-b' }, { workspaceId: 'ws-b' }])
+  assert.deepEqual(posts(worker).map((p) => p.agentsWorktree), ['C:/wt/a', 'C:/wt/b', 'C:/wt/b'])
   await worker.deactivate()
 })
 
@@ -1292,6 +1297,9 @@ test('ponte viva preserva transição em atualização repetida', async () => {
   assert.deepEqual(failed.agents, [WORKING])
   assert.equal(failed.stale, true)
   assert.equal(failed.snapshot.worktree, 'C:/wt/a')
+  // SC-222: os agentes mantidos continuam sendo os do mesmo worktree, e o escopo não some nem muda
+  assert.equal(first.agentsWorktree, 'C:/wt/a')
+  assert.equal(failed.agentsWorktree, 'C:/wt/a')
 
   host.respond('agents.list', { agents: [WORKING] })
   const back: any = await worker.request('ponte.state', {})

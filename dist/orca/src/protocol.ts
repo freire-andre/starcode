@@ -9,6 +9,8 @@ export interface PonteCrew {
   count: number
   lastAt: string | null
   cliModel: string | null
+  /** Sessões ativas do integrante com o worktree que o hook registrou (null: registro antigo ou sem prova). Ausente em snapshot antigo. */
+  sessions?: { id: string; worktree: string | null }[]
 }
 
 export interface PonteFeature {
@@ -70,6 +72,8 @@ export interface PonteAgent {
   agent: string | null
   state: 'working' | 'blocked' | 'waiting' | 'done'
   stateStartedAt: number
+  /** ID da sessão do agente (`agents.list`); é o que se compara com o registro do hook. Ausente ou nulo: sem identidade. */
+  sessionId?: string | null
 }
 
 /** Estado enviado ao painel. */
@@ -83,6 +87,8 @@ export interface PonteState {
   issue: PonteIssue | null
   issueNote: string | null
   agents: PonteAgent[]
+  /** Worktree (caminho) cujos agentes `agents` listam: `agents.list` pedido com o `workspaceId` dele. Ausente/null: sem escopo comprovado. */
+  agentsWorktree?: string | null
   log: { at: number; text: string }[]
   error: string | null
 }

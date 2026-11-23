@@ -1,7 +1,8 @@
 // Testes dos perfis visuais e do estado confiável da tripulação (módulo puro, sem host).
 import { assert, test } from 'orca/testing'
-import { ESTADOS, MEMBROS, PERFIS, estadosDaTripulacao } from './crew-visual'
+import { ESTADOS, MEMBROS, PERFIS, estadosDaTripulacao, identidadesDaSessao } from './crew-visual'
 import type { EstadoVisual, Identidades } from './crew-visual'
+import { buildScene } from './scene-model'
 import type { PonteAgent, PonteState } from './protocol'
 
 const ORDEM = ['picard', 'spock', 'troi', 'data', 'laforge', 'mccoy', 'q', 'uhura', 'scotty', 'kirk', 'worf', 'guinan']
@@ -24,6 +25,14 @@ function estado(over: Partial<PonteState> = {}, agents: PonteAgent[] = []): Pont
 }
 const agente = (terminalId: string | null, state: PonteAgent['state'], title = 'qualquer'): PonteAgent =>
   ({ terminalId, title, agent: 'claude', state, stateStartedAt: 0 })
+type Sessao = { id: string; worktree: string | null }
+const AG1: PonteAgent = { terminalId: 't1', title: 'qualquer', agent: 'claude', state: 'working', stateStartedAt: 0, sessionId: 'sess-1' }
+/** Estado com agentes escopados ao worktree 'C:/wt' (agents.list com workspaceId) e sessões registradas por integrante. */
+function comSessoes(sessoes: Record<string, Sessao[]>, over: Partial<PonteState> = {}, agents: PonteAgent[] = [AG1]): PonteState {
+  const base = estado({ agents, agentsWorktree: 'C:/wt' })
+  base.snapshot!.crew = base.snapshot!.crew.map(c => ({ ...c, sessions: sessoes[c.member] ?? [] }))
+  return { ...base, ...over }
+}
 type Res = ReturnType<typeof estadosDaTripulacao>
 const de = (res: Res, membro: string) => res.find(r => r.membro === membro)!
 const todos = (res: Res, e: EstadoVisual) => res.length === 12 && res.every(r => r.estado === e)
@@ -165,6 +174,13 @@ test('ponte viva não inventa atividade', () => {
   const faltando = estado()
   faltando.snapshot!.crew = faltando.snapshot!.crew.filter(c => c.member !== 'guinan')
   assert.deepEqual(de(estadosDaTripulacao(faltando, {}), 'guinan'), { membro: 'guinan', estado: 'desconhecido', motivo: 'integrante ausente do snapshot' })
+  // sessão que não prova o worktree em foco não vira vínculo: o agente fica sem identidade e tudo é desconhecido
+  for (const sessions of [[{ id: 'sess-1', worktree: null }], [{ id: 'sess-1', worktree: 'C:/outro' }], [{ id: 'sess-9', worktree: 'C:/wt' }]]) {
+    const e = comSessoes({ spock: sessions })
+    const res = estadosDaTripulacao(e, identidadesDaSessao(e))
+    assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'desconhecido', motivo: 'agente ativo sem identidade confiável' })
+    assert.ok(res.every(r => r.estado === 'desconhecido'))
+  }
   // estado de agente fora do contrato vira desconhecido
   const estranho = estadosDaTripulacao(estado({}, [agente('a', 'dormindo' as PonteAgent['state'])]), { a: 'q' })
   assert.equal(de(estranho, 'q').estado, 'desconhecido')
@@ -185,4 +201,89 @@ test('ponte viva não afirma escopo de worktree nos dados agregados', () => {
   assert.equal(de(comVinculo, 'worf').estado, 'bloqueado')
   assert.equal(de(comVinculo, 'spock').estado, 'desconhecido')
   assert.equal(de(comVinculo, 'data').estado, 'ocioso')
+})
+
+const agenteSess = (terminalId: string | null, sessionId: string | null | undefined, state: PonteAgent['state'] = 'working', title: string | null = null): PonteAgent =>
+  ({ terminalId, title, agent: 'claude', state, stateStartedAt: 0, ...(sessionId === undefined ? {} : { sessionId }) })
+
+test('ponte viva vincula sessão ao worktree', () => {
+  const sess = { spock: [{ id: 'sess-1', worktree: 'C:/wt' }] }
+  // sessão do agente registrada pelo integrante no worktree em foco: vínculo comprovado e o estado do agente vale
+  const e = comSessoes(sess)
+  assert.deepEqual(identidadesDaSessao(e), { t1: 'spock' })
+  assert.deepEqual(de(estadosDaTripulacao(e, identidadesDaSessao(e)), 'spock'),
+    { membro: 'spock', estado: 'trabalhando', motivo: 'agente vinculado trabalhando' })
+  // o mesmo worktree escrito de outro jeito (barra invertida, caixa, barra final) é o mesmo worktree
+  for (const wt of ['c:\\WT', 'C:/wt/', 'c:/WT']) {
+    assert.deepEqual(identidadesDaSessao(comSessoes({ spock: [{ id: 'sess-1', worktree: wt }] })), { t1: 'spock' }, wt)
+  }
+  // dois worktrees: a sessão registrada em outro worktree não vincula no foco
+  const dois = comSessoes({ worf: [{ id: 'sess-2', worktree: 'C:/outro' }], spock: [{ id: 'sess-1', worktree: 'C:/wt' }] }, {},
+    [agenteSess('t1', 'sess-1'), agenteSess('t2', 'sess-2')])
+  assert.deepEqual(identidadesDaSessao(dois), { t1: 'spock' })
+  const res = estadosDaTripulacao(dois, identidadesDaSessao(dois))
+  assert.equal(de(res, 'spock').estado, 'trabalhando')
+  assert.equal(de(res, 'worf').estado, 'desconhecido')
+  // o foco muda para o outro worktree: o mesmo registro vincula o agente de lá
+  const b = comSessoes({ worf: [{ id: 'sess-2', worktree: 'C:/outro' }] }, { agentsWorktree: 'C:/outro' }, [agenteSess('t2', 'sess-2', 'blocked')])
+  b.snapshot!.worktree = 'C:/outro'
+  assert.deepEqual(identidadesDaSessao(b), { t2: 'worf' })
+  assert.equal(de(estadosDaTripulacao(b, identidadesDaSessao(b)), 'worf').estado, 'bloqueado')
+  // sem prova da sessão ou do worktree: nenhum vínculo
+  const semVinculo: [string, PonteState][] = [
+    ['worktree do registro diferente', comSessoes({ spock: [{ id: 'sess-1', worktree: 'C:/outro' }] })],
+    ['registro antigo sem worktree', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] })],
+    ['sessão sem registro', comSessoes({ spock: [{ id: 'sess-9', worktree: 'C:/wt' }] })],
+    ['sem sessions no snapshot', estado({ agents: [AG1], agentsWorktree: 'C:/wt' })],
+    ['agentes sem escopo de worktree', comSessoes(sess, { agentsWorktree: undefined })],
+    ['agentes de outro worktree', comSessoes(sess, { agentsWorktree: 'C:/outro' })],
+    ['agentes com worktree nulo', comSessoes(sess, { agentsWorktree: null })],
+    ['agente sem sessionId', comSessoes(sess, {}, [agenteSess('t1', undefined, 'working', 'spock')])],
+    ['agente com sessionId nulo', comSessoes(sess, {}, [agenteSess('t1', null)])],
+    ['agente com sessionId vazio', comSessoes(sess, {}, [agenteSess('t1', '')])],
+    ['agente sem terminal', comSessoes(sess, {}, [agenteSess(null, 'sess-1')])],
+    ['dados antigos', comSessoes(sess, { stale: true })],
+    ['erro', comSessoes(sess, { status: 'erro', error: 'x' })],
+    ['sem worktree em foco', comSessoes(sess, { status: 'sem-worktree' })],
+    ['sem snapshot', comSessoes(sess, { snapshot: null })],
+    ['projeto sem StarCode', (() => { const x = comSessoes(sess); x.snapshot!.starcode = false; return x })()],
+  ]
+  for (const [nome, e2] of semVinculo) assert.deepEqual(identidadesDaSessao(e2), {}, nome)
+  // a mesma sessão reivindicada por dois integrantes é ambígua: ninguém recebe o agente
+  assert.deepEqual(identidadesDaSessao(comSessoes({ spock: [{ id: 'sess-1', worktree: 'C:/wt' }], worf: [{ id: 'sess-1', worktree: 'C:/wt' }] })), {})
+  // duas sessões no mesmo terminal com integrantes diferentes: ambíguo
+  const mesmoTerminal = comSessoes({ spock: [{ id: 'sess-1', worktree: 'C:/wt' }], worf: [{ id: 'sess-2', worktree: 'C:/wt' }] }, {},
+    [agenteSess('t1', 'sess-1'), agenteSess('t1', 'sess-2')])
+  assert.deepEqual(identidadesDaSessao(mesmoTerminal), {})
+  // integrante fora da tripulação do snapshot não vira vínculo
+  assert.deepEqual(identidadesDaSessao(comSessoes({ riker: [{ id: 'sess-1', worktree: 'C:/wt' }] })), {})
+  // `sessions` malformado não vincula e não quebra
+  const ruim = comSessoes({})
+  ruim.snapshot!.crew[1] = { ...ruim.snapshot!.crew[1], sessions: 'sess-1' as never }
+  ruim.snapshot!.crew[2] = { ...ruim.snapshot!.crew[2], sessions: [null, { worktree: 'C:/wt' }, { id: 7, worktree: 'C:/wt' }] as never }
+  assert.deepEqual(identidadesDaSessao(ruim), {})
+  // título nunca é identidade: com título de outro integrante, vale a sessão
+  assert.deepEqual(identidadesDaSessao(comSessoes(sess, {}, [agenteSess('t1', 'sess-1', 'working', 'worf')])), { t1: 'spock' })
+})
+
+test('ponte viva não infere troca sem vínculo', () => {
+  // Q concluído com vínculo comprovado; Worf "trabalhando" só por título e contagem: sem vínculo, sem troca
+  const agents = [agenteSess('tq', 'sess-q', 'done', 'Q'), agenteSess('tw', 'sess-w', 'working', 'worf revisando')]
+  const e = comSessoes({ q: [{ id: 'sess-q', worktree: 'C:/wt' }] }, {}, agents)
+  e.snapshot!.crew.find(c => c.member === 'worf')!.count = 1
+  const ids = identidadesDaSessao(e)
+  assert.deepEqual(ids, { tq: 'q' })
+  const res = estadosDaTripulacao(e, ids)
+  assert.deepEqual(de(res, 'q'), { membro: 'q', estado: 'concluido', motivo: 'agente vinculado concluído' })
+  assert.deepEqual(de(res, 'worf'), { membro: 'worf', estado: 'desconhecido', motivo: 'atividade no repositório, sem prova de que é deste worktree' })
+  const cena = buildScene(e, e.agents, 2000, undefined, ids)
+  assert.deepEqual(cena.personagens.filter(p => p.estado === 'trabalhando').map(p => p.membro), [])
+  // sessão registrada em outro worktree: sem vínculo, os presentes são os mesmos de uma cena sem esse agente
+  const outro = comSessoes({ worf: [{ id: 'sess-w', worktree: 'C:/outro' }] }, {}, [agenteSess('tw', 'sess-w', 'working', 'worf')])
+  const vazio = comSessoes({}, {}, [])
+  assert.deepEqual(identidadesDaSessao(outro), {})
+  const cOutro = buildScene(outro, outro.agents, 2000, undefined, identidadesDaSessao(outro))
+  const cVazio = buildScene(vazio, vazio.agents, 2000, undefined, identidadesDaSessao(vazio))
+  assert.deepEqual(cOutro.personagens.map(p => p.membro), cVazio.personagens.map(p => p.membro))
+  assert.ok(cOutro.personagens.every(p => p.estado === 'desconhecido'))
 })

@@ -143,6 +143,30 @@ def count_members(sessions: dict, now: datetime) -> dict[str, int]:
     return counts
 
 
+def worktree_of(cwd: str | Path | None) -> str | None:
+    """Root of the worktree `cwd` belongs to, as a resolved posix path; None outside Git (SC-222: R21)."""
+    root = sc.repo_root(cwd)
+    return root.resolve().as_posix() if root is not None else None
+
+
+def session_links(sessions: dict, now: datetime) -> dict[str, list[dict]]:
+    """{member: [{"id": <session id>, "worktree": <root or None>}]} from the valid active `hook` entries.
+
+    Only a hook entry carries an agent session id (its key); `cli` entries (`cli:<member>`) prove no session.
+    A `worktree` that is missing (record from before SC-222), empty or not text is None: the link is not proven.
+    Read-only; the order is the one of sessions.json."""
+    links: dict[str, list[dict]] = {}
+    for sid, entry in sessions.items():
+        if not entry_active(entry, now) or entry.get("source") != "hook":
+            continue
+        member = entry.get("member")
+        if not isinstance(sid, str) or not sid or not isinstance(member, str):
+            continue
+        wt = entry.get("worktree")
+        links.setdefault(member, []).append({"id": sid, "worktree": wt if isinstance(wt, str) and wt else None})
+    return links
+
+
 def _norm(k: str, v: object) -> int:  # only laforge may count 0..10 (active workers); everyone else is 0/1
     if k == "laforge":
         return v if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10 else 0
