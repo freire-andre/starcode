@@ -70,7 +70,8 @@ const DO_AGENTE: Readonly<Record<string, EstadoVisual>> = {
 
 const tem = (obj: object, chave: string): boolean => Object.prototype.hasOwnProperty.call(obj, chave)
 
-const comContagem = (n: unknown): boolean => typeof n === 'number' && Number.isFinite(n) && n > 0
+/** Contagem do snapshot que o `ponte.py` pode produzir: inteiro de 0 a 10 (`crew_live.count_members`). Outra coisa não prova nada. */
+const contagemValida = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 10
 
 function vinculado(agente: PonteAgent, membro: string, ids: Identidades): boolean {
   return agente.terminalId !== null && tem(ids, agente.terminalId) && ids[agente.terminalId] === membro
@@ -81,20 +82,21 @@ function semVinculo(agente: PonteAgent, ids: Identidades): boolean {
 }
 
 /**
- * Estado dos 12 integrantes, sempre na ordem de `PERFIS`. Só conta o que é comprovado: agente vinculado por
- * `ids` (o estado dele vale, inclusive espera, bloqueio e conclusão) ou `count` > 0 no snapshot, que o
- * `ponte.py` tira de `crew_live.count_members`: sessões `active` válidas, dentro do TTL (hook 15 min, cli
- * 60 min), então `count` > 0 é trabalho atual e 0 é livre. Dado indisponível ou antigo (erro, `stale`, sem
- * worktree, sem snapshot, sem StarCode), integrante fora do snapshot, vínculos conflitantes e estado de agente
- * fora do contrato dão `desconhecido`, nunca `trabalhando`. Agente ativo sem identidade só impede afirmar
- * ocioso: o `count` agrega as sessões do repositório (`sessions.json` do worktree principal), então nem um
- * `count` positivo de outro integrante explica o agente sem vínculo; quem tem `count` > 0 segue trabalhando e
- * os demais ficam `desconhecido`. Título nunca é identidade.
+ * Estado dos 12 integrantes, sempre na ordem de `PERFIS`. Só conta o que é comprovado no worktree em foco:
+ * agente vinculado por `ids` (o estado dele vale, inclusive espera, bloqueio e conclusão). O `count` do snapshot
+ * vem de `crew_live.count_members` sobre o `sessions.json` do worktree principal, que agrega as sessões de TODOS
+ * os worktrees do repositório e não registra de qual veio cada uma: `count` > 0 prova atividade no repositório,
+ * não neste worktree, então dá `desconhecido` (nunca `trabalhando`). `count` 0 prova que não há sessão ativa em
+ * lugar nenhum, logo o integrante está livre aqui também (`ocioso`); `count` ausente, nulo ou inválido (fora de
+ * 0 a 10, não inteiro, texto) não prova nada e dá `desconhecido`. Dado indisponível ou antigo (erro, `stale`,
+ * sem worktree, sem snapshot, sem StarCode), integrante fora do snapshot, vínculos conflitantes e estado de
+ * agente fora do contrato também dão `desconhecido`. Agente ativo sem identidade só impede afirmar ocioso.
+ * Título nunca é identidade.
  */
 export function estadosDaTripulacao(estado: PonteState, ids: Identidades): EstadoDoMembro[] {
   const snap = estado.snapshot
   const utilizavel = estado.status === 'ok' && !estado.stale && snap !== null && snap.starcode
-  // o count agrega as sessões do repositório: não explica um agente sem vínculo, então não prova ocioso em ninguém
+  // agente ativo sem vínculo pode ser de qualquer integrante: não se afirma ocioso em ninguém
   const ativoSemIdentidade = utilizavel && estado.agents.some(a => a.state !== 'done' && semVinculo(a, ids))
   return MEMBROS.map((membro): EstadoDoMembro => {
     const desconhecido = (motivo: string): EstadoDoMembro => ({ membro, estado: 'desconhecido', motivo })
@@ -107,9 +109,9 @@ export function estadosDaTripulacao(estado: PonteState, ids: Identidades): Estad
       if (new Set(estados).size > 1) return desconhecido('mais de um agente vinculado com estados diferentes')
       return { membro, estado: estados[0], motivo: `agente vinculado ${ESTADOS[estados[0]].texto}` }
     }
-    if (comContagem(snap.crew.find(c => c.member === membro)?.count)) {
-      return { membro, estado: 'trabalhando', motivo: 'sessão ativa no snapshot (count > 0)' }
-    }
+    const contagem: unknown = snap.crew.find(c => c.member === membro)?.count
+    if (!contagemValida(contagem)) return desconhecido('contagem de sessões ausente ou inválida no snapshot')
+    if (contagem > 0) return desconhecido('atividade no repositório, sem prova de que é deste worktree')
     if (ativoSemIdentidade) return desconhecido('agente ativo sem identidade confiável')
     return { membro, estado: 'ocioso', motivo: 'sem sessão ativa no snapshot do repositório' }
   })

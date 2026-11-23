@@ -505,12 +505,17 @@ test('ponte viva não inventa atividade', () => {
 })
 
 test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
-  // snapshot como o ponte.py entrega: count > 0 = sessão active válida (crew_live.count_members, TTL)
+  // snapshot como o ponte.py entrega: count agrega as sessões do repositório; só agente vinculado prova trabalho no foco
   const lastAt = new Date(T(0) - 2 * 60_000).toISOString()
   const crew: Record<string, [number, string]> = { picard: [1, lastAt], laforge: [3, lastAt], spock: [1, lastAt] }
-  const agenteDoPicard = agente('working', 'claude') // o agente do próprio Picard, sem vínculo confiável
-  for (const ags of [[], [agenteDoPicard]]) {
-    const cena = buildScene(estado({}, crew), ags, T(0))
+  // só o count: atividade do repositório sem prova neste worktree, ninguém se destaca como trabalhando
+  const semVinculo = buildScene(estado({}, crew), [], T(0))
+  assert.equal(semVinculo.ativos, 0)
+  assert.ok(semVinculo.personagens.every(p => !p.ativo && p.estado !== 'trabalhando' && p.brilho === null))
+  for (const m of ['picard', 'laforge', 'spock']) assert.equal(semVinculo.personagens.find(p => p.membro === m)!.estado, 'desconhecido')
+  const agenteSemVinculo = agente('working', 'claude') // agente sem vínculo confiável
+  for (const ags of [[], [agenteSemVinculo]]) {
+    const cena = buildScene(estado({}, crew), [...ags, doMembro('picard'), doMembro('laforge'), doMembro('spock')], T(0), undefined, IDS)
     const ativos = cena.personagens.filter(p => p.ativo)
     // pelo menos um se destaca: sentado, console aceso, símbolo de trabalho e "há 2 min"
     assert.ok(ativos.length > 0, 'ninguém se destaca')
@@ -523,18 +528,17 @@ test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
       assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === '⚙'))
       assert.equal(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === p.membro)?.texto, 'há 2 min')
     }
-    // sem agente sem vínculo, quem não tem sessão ativa é ocioso; com ele, o count agregado não o explica e
-    // os demais ficam desconhecidos, nunca ociosos sem evidência (e nunca trabalhando)
+    // quem não tem agente vinculado nem count positivo é ocioso; com agente sem vínculo ninguém é ocioso sem evidência
     const esperado = ags.length === 0 ? 'ocioso' : 'desconhecido'
     assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === esperado && p.brilho === null))
     assert.equal(cena.ativos, 3)
     assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === '3 tripulantes ativos'))
   }
-  // 12 sessões ativas: seis aparecem por vez e o rodízio alcança todos
+  // 12 agentes vinculados trabalhando: seis aparecem por vez e o rodízio alcança todos
   const todos: Record<string, [number, string]> = Object.fromEntries(MEMBROS.map(m => [m, [1, lastAt]]))
   const vistos = new Set<string>()
   for (let ciclo = 0; ciclo < 2; ciclo++) {
-    const cena = buildScene(estado({}, todos), [], T(ciclo))
+    const cena = buildScene(estado({}, todos), MEMBROS.map(m => doMembro(m)), T(ciclo), undefined, IDS)
     assert.equal(cena.personagens.length, 6)
     assert.ok(cena.personagens.every(p => p.ativo))
     cena.personagens.forEach(p => vistos.add(p.membro))
@@ -602,7 +606,7 @@ const NOMES_COMPLETOS = ['Jean-Luc Picard', 'Spock', 'Deanna Troi', 'Data', 'Geo
 
 test('ponte viva lista os 12 integrantes', () => {
   const base = estado({}, { spock: [1, null] })
-  const agentes = [doMembro('worf', 'blocked'), doMembro('kirk', 'done')]
+  const agentes = [doMembro('worf', 'blocked'), doMembro('kirk', 'done'), doMembro('spock')]
   const agora = T(0)
   const itens = relacaoDaTripulacao(base, agentes, agora, IDS)
   assert.deepEqual(itens.map(i => i.membro), MEMBROS)
