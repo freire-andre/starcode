@@ -39,3 +39,4 @@ Executado nesta rodada:
 nenhuma superfície externa: as correções não tocam dependência nem API externa.
 
 Arquivos gerados em `dist/` foram excluídos da análise de código.
+**Posted**: 2026-11-23 - https://github.com/freire-andre/starcode/pull/84#pullrequestreview-6027022756
