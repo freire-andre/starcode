@@ -42,3 +42,10 @@ Executado em 2026-11-23 sobre `HEAD` 6510245 (T7 integrada). Resultado geral: **
 ### Para fechar
 
 O usuário autoriza carregar o `dist` e aprovar as quatro capacidades; então: `orca plugin shot local.starcode-ponte --panel ponte-cena --width 240` e `--width 360` antes e depois de uma troca real de estado de agente, salvos em `docs/aceite/ponte-viva/`, e um roteiro de teclado e leitor de tela (Tab, Esc, `aria-pressed`, anúncio de `role="status"`).
+
+## Aceite real da revisão de presença estável
+
+- A pasta de desenvolvimento `dist/orca` deste worktree foi carregada com autorização do usuário. As capturas reais da Orca `presenca-estavel-240.png` e `presenca-estavel-360.png` são dessa revisão (contentHash inspecionado `03e75bf26a274a502d37b79b3d8d5b52fd1761a26f055d8ee4b41ec2f08210ad`), não de uma renderização sintética.
+- Em 2026-11-23, após ser solicitado a usar teclado e leitor de tela para percorrer nomes, estados e presença e selecionar alguém fora da cena, o usuário respondeu: "teste ok". O relato confirma o roteiro solicitado em termos gerais; não registra separadamente o comportamento de Esc ou o anúncio de `role="status"`.
+- Na versão anterior, as capturas `orca-240.png`, `orca-360.png` e as `-revisada` foram obtidas com a pasta de desenvolvimento deste worktree carregada, e não com o plugin de `F:` como afirmado acima. Esses arquivos são anteriores à revisão de presença estável.
+- Uma sessão real de LaForge teve `sessionId` igual no hook e na Orca, mas o registro do hook instalado não continha worktree. O vínculo e a troca real de estados continuam pendentes; a causa observada foi um hook instalado anterior à SC-222.
