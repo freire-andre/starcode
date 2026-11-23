@@ -109,8 +109,8 @@ class SnapshotDaSessaoTests(IdentidadeCase):
         self.assertEqual(crew["worf"]["sessions"], [{"id": "sess-antiga", "worktree": None}])
         for sem in ("troi", "kirk", "laforge", "picard"):
             self.assertEqual(crew[sem]["sessions"], [], sem)
-        self.assertEqual(crew["data"]["sessions"], [{"id": "sess-vazio", "worktree": None}])
-        self.assertEqual(crew["uhura"]["sessions"], [{"id": "sess-tipo", "worktree": None}])
+        self.assertEqual(crew["data"]["sessions"], [{"id": "sess-vazio", "worktree": ""}])
+        self.assertEqual(crew["uhura"]["sessions"], [{"id": "sess-tipo", "worktree": ""}])
         # o count agregado continua o mesmo (compatibilidade)
         self.assertEqual((crew["spock"]["count"], crew["worf"]["count"], crew["laforge"]["count"]), (1, 1, 1))
 

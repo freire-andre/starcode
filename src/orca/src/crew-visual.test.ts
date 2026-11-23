@@ -175,7 +175,7 @@ test('ponte viva não inventa atividade', () => {
   faltando.snapshot!.crew = faltando.snapshot!.crew.filter(c => c.member !== 'guinan')
   assert.deepEqual(de(estadosDaTripulacao(faltando, {}), 'guinan'), { membro: 'guinan', estado: 'desconhecido', motivo: 'integrante ausente do snapshot' })
   // sessão que não prova o worktree em foco não vira vínculo: o agente fica sem identidade e tudo é desconhecido
-  for (const sessions of [[{ id: 'sess-1', worktree: null }], [{ id: 'sess-1', worktree: 'C:/outro' }], [{ id: 'sess-9', worktree: 'C:/wt' }]]) {
+  for (const sessions of [[{ id: 'sess-1', worktree: '' }], [{ id: 'sess-1', worktree: 'C:/outro' }], [{ id: 'sess-9', worktree: 'C:/wt' }]]) {
     const e = comSessoes({ spock: sessions })
     const res = estadosDaTripulacao(e, identidadesDaSessao(e))
     assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'desconhecido', motivo: 'agente ativo sem identidade confiável' })
@@ -232,7 +232,18 @@ test('ponte viva vincula sessão ao worktree', () => {
   // sem prova da sessão ou do worktree: nenhum vínculo
   const semVinculo: [string, PonteState][] = [
     ['worktree do registro diferente', comSessoes({ spock: [{ id: 'sess-1', worktree: 'C:/outro' }] })],
-    ['registro antigo sem worktree', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] })],
+    ['registro com worktree vazio', comSessoes({ spock: [{ id: 'sess-1', worktree: '' }] })],
+    ['registro com worktree só de barras', comSessoes({ spock: [{ id: 'sess-1', worktree: '//' }] })],
+    ['registro com worktree de tipo errado', comSessoes({ spock: [{ id: 'sess-1', worktree: 7 as never }] })],
+    ['registro antigo e registro de outro worktree', comSessoes({ spock: [{ id: 'sess-1', worktree: null }, { id: 'sess-1', worktree: 'C:/outro' }] })],
+    ['antigo de um integrante, outro worktree de outro', comSessoes({ spock: [{ id: 'sess-1', worktree: null }], worf: [{ id: 'sess-1', worktree: 'C:/outro' }] })],
+    ['antigo reivindicado por dois integrantes', comSessoes({ spock: [{ id: 'sess-1', worktree: null }], worf: [{ id: 'sess-1', worktree: null }] })],
+    ['antigo de um e do foco de outro', comSessoes({ spock: [{ id: 'sess-1', worktree: null }], worf: [{ id: 'sess-1', worktree: 'C:/wt' }] })],
+    ['antigo sem escopo de agentes', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, { agentsWorktree: null })],
+    ['antigo com agentes de outro worktree', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, { agentsWorktree: 'C:/outro' })],
+    ['antigo com foco vazio', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, { agentsWorktree: '/', })],
+    ['antigo com sessão ausente da Orca', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, {}, [agenteSess('t1', 'sess-9')])],
+    ['antigo com dados antigos', comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, { stale: true })],
     ['sessão sem registro', comSessoes({ spock: [{ id: 'sess-9', worktree: 'C:/wt' }] })],
     ['sem sessions no snapshot', estado({ agents: [AG1], agentsWorktree: 'C:/wt' })],
     ['agentes sem escopo de worktree', comSessoes(sess, { agentsWorktree: undefined })],
@@ -264,6 +275,25 @@ test('ponte viva vincula sessão ao worktree', () => {
   assert.deepEqual(identidadesDaSessao(ruim), {})
   // título nunca é identidade: com título de outro integrante, vale a sessão
   assert.deepEqual(identidadesDaSessao(comSessoes(sess, {}, [agenteSess('t1', 'sess-1', 'working', 'worf')])), { t1: 'spock' })
+})
+
+test('ponte viva aceita registro antigo só com a sessão provada pela Orca', () => {
+  // hook 1.9.0, anterior à SC-222: sessions com worktree null; a Orca listou o sessionId no worktree em foco
+  for (const antigo of [null, undefined]) {
+    const e = comSessoes({ spock: [{ id: 'sess-1', worktree: antigo as never }] })
+    assert.deepEqual(identidadesDaSessao(e), { t1: 'spock' })
+    assert.equal(de(estadosDaTripulacao(e, identidadesDaSessao(e)), 'spock').estado, 'trabalhando')
+  }
+  // só o agente com a sessão registrada é vinculado; título e contagem nunca valem
+  const e = comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, {}, [agenteSess('t1', 'sess-1', 'working', 'worf'), agenteSess('t2', 'sess-2', 'working', 'spock')])
+  assert.deepEqual(identidadesDaSessao(e), { t1: 'spock' })
+  assert.equal(de(estadosDaTripulacao(e, identidadesDaSessao(e)), 'worf').estado, 'desconhecido')
+  // antigo e explícito no foco do mesmo integrante: vale
+  assert.deepEqual(identidadesDaSessao(comSessoes({ spock: [{ id: 'sess-1', worktree: null }, { id: 'sess-1', worktree: 'C:/wt' }] })), { t1: 'spock' })
+  // outro foco: o agente listado no outro worktree vincula lá, e a sessão do foco não vincula agente que a Orca não listou nele
+  const b = comSessoes({ spock: [{ id: 'sess-1', worktree: null }] }, { agentsWorktree: 'C:/outro' }, [agenteSess('t9', 'sess-1')])
+  b.snapshot!.worktree = 'C:/outro'
+  assert.deepEqual(identidadesDaSessao(b), { t9: 'spock' })
 })
 
 test('ponte viva não infere troca sem vínculo', () => {

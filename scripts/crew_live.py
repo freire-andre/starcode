@@ -153,7 +153,9 @@ def session_links(sessions: dict, now: datetime) -> dict[str, list[dict]]:
     """{member: [{"id": <session id>, "worktree": <root or None>}]} from the valid active `hook` entries.
 
     Only a hook entry carries an agent session id (its key); `cli` entries (`cli:<member>`) prove no session.
-    A `worktree` that is missing (record from before SC-222), empty or not text is None: the link is not proven.
+    A `worktree` that is missing or null (record from before SC-222) stays None: the hook proved nothing there and
+    only the Orca can vouch for the session. A `worktree` that is present but empty or not text is malformed: it is
+    reported as "" so it never passes for a legacy record.
     Read-only; the order is the one of sessions.json."""
     links: dict[str, list[dict]] = {}
     for sid, entry in sessions.items():
@@ -163,7 +165,9 @@ def session_links(sessions: dict, now: datetime) -> dict[str, list[dict]]:
         if not isinstance(sid, str) or not sid or not isinstance(member, str):
             continue
         wt = entry.get("worktree")
-        links.setdefault(member, []).append({"id": sid, "worktree": wt if isinstance(wt, str) and wt else None})
+        if wt is not None and not (isinstance(wt, str) and wt):
+            wt = ""
+        links.setdefault(member, []).append({"id": sid, "worktree": wt})
     return links
 
 
