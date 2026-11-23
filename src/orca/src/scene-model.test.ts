@@ -523,8 +523,10 @@ test('ponte viva destaca quem trabalha no fluxo snapshot para cena', () => {
       assert.ok(cena.rotulos.some(r => r.tipo === 'estado' && r.dono === p.membro && r.texto === '⚙'))
       assert.equal(cena.rotulos.find(r => r.tipo === 'tempo' && r.dono === p.membro)?.texto, 'há 2 min')
     }
-    // quem não tem sessão ativa segue ocioso (não desconhecido, não trabalhando)
-    assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === 'ocioso' && p.brilho === null))
+    // sem agente sem vínculo, quem não tem sessão ativa é ocioso; com ele, o count agregado não o explica e
+    // os demais ficam desconhecidos, nunca ociosos sem evidência (e nunca trabalhando)
+    const esperado = ags.length === 0 ? 'ocioso' : 'desconhecido'
+    assert.ok(cena.personagens.filter(p => !p.ativo).every(p => p.estado === esperado && p.brilho === null))
     assert.equal(cena.ativos, 3)
     assert.ok(cena.rotulos.some(r => r.tipo === 'telao' && r.texto === '3 tripulantes ativos'))
   }

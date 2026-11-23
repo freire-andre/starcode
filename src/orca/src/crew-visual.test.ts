@@ -63,10 +63,19 @@ test('ponte viva representa trabalho pelo count do snapshot', () => {
   assert.equal(de(res, 'laforge').estado, 'trabalhando')
   assert.equal(res.filter(r => r.estado === 'trabalhando').length, 2)
   assert.equal(res.filter(r => r.estado === 'ocioso').length, 10)
-  // o agente do próprio Picard, sem vínculo, não derruba os outros para desconhecido quando o count explica
+  // agente ativo sem vínculo: o count agregado de outro integrante não o explica; quem tem count segue
+  // trabalhando e ninguém mais é rotulado ocioso sem evidência
   const comAgente = estadosDaTripulacao({ ...e, agents: [agente('t', 'working', 'claude')] }, {})
-  assert.equal(de(comAgente, 'spock').estado, 'ocioso')
-  assert.equal(de(comAgente, 'picard').estado, 'trabalhando')
+  assert.deepEqual(de(comAgente, 'picard'), { membro: 'picard', estado: 'trabalhando', motivo: 'sessão ativa no snapshot (count > 0)' })
+  assert.equal(de(comAgente, 'laforge').estado, 'trabalhando')
+  assert.deepEqual(de(comAgente, 'spock'), { membro: 'spock', estado: 'desconhecido', motivo: 'agente ativo sem identidade confiável' })
+  assert.equal(comAgente.filter(r => r.estado === 'desconhecido').length, 10)
+  assert.equal(comAgente.filter(r => r.estado === 'ocioso').length, 0)
+  // agente sem vínculo já concluído não impede o ocioso; agente vinculado a outro continua sendo dele
+  const concluidoSemVinculo = estadosDaTripulacao({ ...e, agents: [agente('t', 'done', 'claude')] }, {})
+  assert.equal(de(concluidoSemVinculo, 'spock').estado, 'ocioso')
+  const vinculado = estadosDaTripulacao({ ...e, agents: [agente('a', 'working')] }, { a: 'picard' })
+  assert.equal(de(vinculado, 'spock').estado, 'ocioso')
   // o estado do agente vinculado vence o count (esperando fica esperando)
   const espera = estadosDaTripulacao({ ...e, agents: [agente('a', 'waiting')] }, { a: 'picard' })
   assert.equal(de(espera, 'picard').estado, 'aguardando')
@@ -74,7 +83,7 @@ test('ponte viva representa trabalho pelo count do snapshot', () => {
 
 test('ponte viva representa ociosidade', () => {
   const res = estadosDaTripulacao(estado(), {})
-  assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'ocioso', motivo: 'sem agente ativo no worktree' })
+  assert.deepEqual(de(res, 'spock'), { membro: 'spock', estado: 'ocioso', motivo: 'sem sessão ativa no snapshot do repositório' })
   assert.deepEqual(ESTADOS.ocioso, { estado: 'ocioso', simbolo: '💤', texto: 'ocioso', animaConsole: false })
   // agente concluído não conta como atividade: os outros seguem ociosos
   const comConcluido = estadosDaTripulacao(estado({}, [agente('term-1', 'done')]), { 'term-1': 'data' })
@@ -140,4 +149,21 @@ test('ponte viva não inventa atividade', () => {
   // estado de agente fora do contrato vira desconhecido
   const estranho = estadosDaTripulacao(estado({}, [agente('a', 'dormindo' as PonteAgent['state'])]), { a: 'q' })
   assert.equal(de(estranho, 'q').estado, 'desconhecido')
+})
+
+test('ponte viva não afirma escopo de worktree nos dados agregados', () => {
+  // sessions.json agrega a tripulação do repositório: nenhum motivo diz "worktree" nem inventa correspondência
+  const e = estado()
+  e.snapshot!.crew.find(c => c.member === 'spock')!.count = 1
+  for (const agentes of [[], [agente('t', 'working', 'spock implementando')], [agente('a', 'blocked')]]) {
+    const res = estadosDaTripulacao({ ...e, agents: agentes }, {})
+    for (const r of res) assert.ok(!/worktree/i.test(r.motivo), r.motivo)
+    // o count do Spock vale como trabalho, mas o agente sem vínculo não é atribuído a ele nem a ninguém
+    assert.equal(de(res, 'spock').estado, 'trabalhando')
+  }
+  // agente vinculado ao Worf: o Worf segue o agente; sem count o agente não é atribuído ao Spock
+  const comVinculo = estadosDaTripulacao({ ...e, agents: [agente('a', 'blocked')] }, { a: 'worf' })
+  assert.equal(de(comVinculo, 'worf').estado, 'bloqueado')
+  assert.equal(de(comVinculo, 'spock').estado, 'trabalhando')
+  assert.equal(de(comVinculo, 'data').estado, 'ocioso')
 })
