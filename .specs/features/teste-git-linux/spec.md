@@ -14,11 +14,11 @@ Proof: `python -m unittest discover -s tests -p "test_falhas_start_settle.py" -k
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** SMALL
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** PR e Worf
+**Next:** CI do PR #86 e Worf
 **Linear:** SC-225
 **Integration branch:** feature/teste-git-linux
 **Last integrated:** 4ab0195
