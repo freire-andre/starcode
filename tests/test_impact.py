@@ -150,6 +150,13 @@ class TestImpact(ImpactCase):
         res = impact.select(self.repo, changed=["pkg/core.py"])
         self.assertEqual(res["reason"], "grafo incompleto: big.py: arquivo acima de 1 MiB")
 
+    def test_regex_depois_de_seta_nao_desbalanceia(self) -> None:
+        self.assertTrue(impact.ts_balanced("assert.ok(bs.every(b => / desconhecido, /.test(b.label)))\n"))
+        self.assertTrue(impact.ts_balanced("const f = x => /\\(/.test(x)\n"))
+        self.assertTrue(impact.ts_balanced("const ok = a > b / 2\nf(a)\n"))
+        self.assertFalse(impact.ts_balanced("assert.ok(bs.every(b => b.x)\n"))
+        self.assertFalse(impact.ts_balanced("f(x => / a /.test(x)\n"))
+
     def test_nenhum_teste_alcanca_roda_tudo(self) -> None:
         self.chain_repo()
         write(self.repo, {"lonely.py": "Z = 1\n"})

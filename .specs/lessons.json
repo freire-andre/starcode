@@ -1575,6 +1575,126 @@
       "scope": "",
       "created": "2026-11-22T20:22:55Z",
       "updated": "2026-11-22T20:22:55Z"
+    },
+    {
+      "id": "L96",
+      "text": "Teste de estado vindo de texto externo deve incluir nomes herdados do protótipo (toString, constructor) e exigir propriedade própria ou mapa sem protótipo, porque 'toString' lançava exceção e interrompia a cena.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "verification.md:C8"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T15:00:07Z",
+      "updated": "2026-11-23T15:00:07Z"
+    },
+    {
+      "id": "L97",
+      "text": "Ao provar vínculo de sessão e worktree por caminho, recuse caminho vazio em todas as fontes e teste o caso de caminhos vazios coincidentes, porque três vazios iguais comprovavam vínculo indevido.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "verification.md:C21"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T15:00:07Z",
+      "updated": "2026-11-23T15:00:07Z"
+    },
+    {
+      "id": "L98",
+      "text": "Prova de acessibilidade que só aciona ouvintes em DOM simulado não prova teclado nem leitor de tela; rode a navegação real ou declare a prova como lógica, porque o teste passava sem Tab ou anúncio.",
+      "signal": "weak_test",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "verification.md:C16"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T15:00:07Z",
+      "updated": "2026-11-23T15:00:07Z"
+    },
+    {
+      "id": "L99",
+      "text": "Ao tratar clique em item já presente, use a mesma função de alternância de seleção e teste que a seleção se mantém, porque o clique trocava a seleção de quem já estava na cena.",
+      "signal": "review_finding",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "review.md:W1"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T16:56:34Z",
+      "updated": "2026-11-23T16:56:34Z"
+    },
+    {
+      "id": "L100",
+      "text": "Trate arquivo de estado presente mas ilegível ou inválido como desconhecido, nunca como contagem zero, e teste os três casos (ausente, válido, inválido), porque o JSON inválido virava integrante ocioso.",
+      "signal": "review_finding",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "review.md:W2"
+      ],
+      "scope": "scripts",
+      "created": "2026-11-23T16:56:34Z",
+      "updated": "2026-11-23T16:56:34Z"
+    },
+    {
+      "id": "L101",
+      "text": "Ignore a caixa ao comparar caminhos só quando houver letra de unidade ou UNC; em POSIX compare exato e teste os dois sentidos com nomes que diferem só na caixa, porque /repo/Foo vinculava a /repo/foo.",
+      "signal": "review_finding",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "review.md:W3"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T16:56:34Z",
+      "updated": "2026-11-23T16:56:34Z"
+    },
+    {
+      "id": "L102",
+      "text": "Remova conversões de tipo desnecessárias quando o valor já satisfaz a interface esperada, porque a conversão dupla de document para Pagina escondia a compatibilidade real.",
+      "signal": "review_finding",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "review.md:W4"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T16:56:34Z",
+      "updated": "2026-11-23T16:56:34Z"
+    },
+    {
+      "id": "L103",
+      "text": "Não suprima tipo em dublê de teste sem justificativa: tipe o dublê com a forma real ou mantenha a conversão com a justificativa e a issue na linha anterior, porque dublês contornavam tipos sem registro.",
+      "signal": "review_finding",
+      "status": "candidate",
+      "features": [
+        "ponte-viva"
+      ],
+      "sources": [
+        "review.md:W5"
+      ],
+      "scope": "src/orca",
+      "created": "2026-11-23T16:56:34Z",
+      "updated": "2026-11-23T16:56:34Z"
     }
   ]
 }

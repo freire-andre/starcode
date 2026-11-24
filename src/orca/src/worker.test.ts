@@ -1032,3 +1032,281 @@ test('nome do worktree com barra invertida', async () => {
     await worker.deactivate()
   }
 })
+
+// ---- Ponte viva (T2): sincronização automática, falha, concorrência e transição ----
+
+const T0 = 1_700_000_000_000
+const RECONCILE_MAX_MS = 30_000
+
+/** Relógio controlado: Date.now fixo e os setInterval do teste só disparam quando o teste avança. */
+function fakeClock() {
+  const real = { now: Date.now, si: globalThis.setInterval, ci: globalThis.clearInterval }
+  let now = T0
+  let next = 1
+  const timers = new Map<number, { fn: () => void; ms: number; due: number }>()
+  Date.now = () => now
+  globalThis.setInterval = ((fn: () => void, ms: number) => {
+    const id = next++
+    timers.set(id, { fn, ms, due: now + ms })
+    // SC-216: o relógio falso devolve um id numérico; o tipo do timer do host não é construível sem criar um timer real
+    return id as unknown as ReturnType<typeof setInterval>
+  }) as typeof setInterval
+  globalThis.clearInterval = ((id: number) => void timers.delete(id)) as typeof clearInterval
+  return {
+    intervals: () => [...timers.values()].map((t) => t.ms),
+    advance(ms: number) {
+      now += ms
+      for (const t of [...timers.values()]) {
+        while (t.due <= now) {
+          t.due += t.ms
+          t.fn()
+        }
+      }
+    },
+    restore() {
+      Date.now = real.now
+      globalThis.setInterval = real.si
+      globalThis.clearInterval = real.ci
+    },
+  }
+}
+
+async function waitFor(cond: () => boolean) {
+  for (let i = 0; i < 300 && !cond(); i++) await new Promise((r) => setTimeout(r, 10))
+  assert.ok(cond(), 'condição não atendida')
+}
+
+const posts = (w: { posts: { event: string; payload: unknown }[] }) =>
+  // SC-216: os testes leem campos livres do estado publicado; tipar cada um deles repetiria o contrato de protocol.ts
+  w.posts.filter((p) => p.event === 'ponte.state').map((p) => p.payload as any)
+
+const phased = (path: string, phase: string) =>
+  ({ stdout: JSON.stringify(snapshot(path, { feature: { ...(snapshot(path).feature as object), phase } })) })
+
+const WORKING = { terminalId: 't1', title: 'LaForge', agent: 'claude', state: 'working', stateStartedAt: 100 }
+
+test('ponte viva atualiza por evento', async () => {
+  install()
+  const host = hostFor(CTX_A)
+  const worker = await mount(host)
+  await worker.emit('workspace.changed', { context: CTX_A })
+  await waitFor(() => posts(worker).length === 1)
+  assert.equal(posts(worker)[0].snapshot.worktree, 'C:/wt/a')
+
+  host.respond('workspace.readContext', CTX_B)
+  await worker.emit('workspace.changed', { context: CTX_B })
+  await waitFor(() => posts(worker).length === 2)
+  assert.equal(posts(worker)[1].status, 'ok')
+  assert.equal(posts(worker)[1].snapshot.worktree, 'C:/wt/b')
+
+  host.respond('agents.list', { agents: [WORKING] })
+  await worker.emit('agent.status.changed', { ...AGENT_EVT, workspaceId: 'ws-b' })
+  await waitFor(() => posts(worker).length === 3)
+  assert.deepEqual(posts(worker)[2].agents, [WORKING])
+  assert.equal(posts(worker)[2].snapshot.worktree, 'C:/wt/b')
+  // SC-222 (R11, R21): os agentes são pedidos ao host com o workspaceId do worktree em foco e o estado diz de qual
+  // worktree vieram: A (ws-a) na primeira atualização, B (ws-b) nas seguintes
+  const pedidos = host.callsOf('agents.list')
+  assert.deepEqual(pedidos.slice(0, 3), [{ workspaceId: 'ws-a' }, { workspaceId: 'ws-b' }, { workspaceId: 'ws-b' }])
+  assert.deepEqual(posts(worker).map((p) => p.agentsWorktree), ['C:/wt/a', 'C:/wt/b', 'C:/wt/b'])
+  await worker.deactivate()
+})
+
+test('ponte viva reconcilia automaticamente', async () => {
+  const clock = fakeClock()
+  try {
+    const fake = install()
+    const worker = await mount(hostFor(CTX_A))
+    assert.equal(clock.intervals().length, 1)
+    assert.ok(clock.intervals()[0] <= RECONCILE_MAX_MS)
+    assert.equal(fake.snaps().length, 0)
+
+    // sem nenhum evento: o intervalo sozinho atualiza
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => posts(worker).length === 1)
+    assert.equal(posts(worker)[0].snapshot.feature.phase, 'build')
+    assert.equal(posts(worker)[0].updatedAt, T0 + RECONCILE_MAX_MS)
+
+    // evento perdido: a fase mudou e ninguém avisou
+    fake.python = (p) => phased(p, 'review')
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => posts(worker).length === 2)
+    assert.equal(posts(worker)[1].snapshot.feature.phase, 'review')
+
+    // não acumula: com uma consulta em andamento os ticks seguintes não disparam outra
+    let release: () => void = () => {}
+    const gate = new Promise<void>((r) => (release = r))
+    fake.python = async (p) => {
+      await gate
+      return phased(p, 'verify')
+    }
+    const before = fake.snaps().length
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => fake.snaps().length === before + 1)
+    clock.advance(RECONCILE_MAX_MS)
+    clock.advance(RECONCILE_MAX_MS)
+    await sleep(50)
+    assert.equal(fake.snaps().length, before + 1)
+    release()
+    await waitFor(() => posts(worker).length === 3)
+    assert.equal(posts(worker)[2].snapshot.feature.phase, 'verify')
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => fake.snaps().length === before + 2)
+
+    await worker.deactivate()
+    const after = fake.snaps().length
+    clock.advance(RECONCILE_MAX_MS * 2)
+    await sleep(50)
+    assert.equal(fake.snaps().length, after)
+  } finally {
+    clock.restore()
+  }
+})
+
+test('ponte viva informa dados desatualizados', async () => {
+  const clock = fakeClock()
+  try {
+    const fake = install()
+    fake.python = () => new Error('boom')
+    const worker = await mount(hostFor(CTX_A))
+    // sem nenhuma atualização válida ainda
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => posts(worker).length === 1)
+    assert.equal(posts(worker)[0].status, 'erro')
+    assert.equal(posts(worker)[0].snapshot, null)
+    assert.equal(posts(worker)[0].lastValidAt, null)
+
+    fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p)) })
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => posts(worker).length === 2)
+    assert.equal(posts(worker)[1].status, 'ok')
+    assert.equal(posts(worker)[1].lastValidAt, T0 + 2 * RECONCILE_MAX_MS)
+
+    // falha depois de um estado bom: mostra o último válido, marca antigo e o horário dele
+    fake.python = () => new Error('boom\nsegunda linha')
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => posts(worker).length === 3)
+    const bad = posts(worker)[2]
+    assert.equal(bad.status, 'erro')
+    assert.equal(bad.stale, true)
+    assert.equal(bad.error, 'boom')
+    assert.equal(bad.snapshot.worktree, 'C:/wt/a')
+    assert.equal(bad.updatedAt, T0 + 3 * RECONCILE_MAX_MS)
+    assert.equal(bad.lastValidAt, T0 + 2 * RECONCILE_MAX_MS)
+
+    // recuperação automática: volta ao normal sem intervenção
+    fake.python = (p) => ({ stdout: JSON.stringify(snapshot(p)) })
+    clock.advance(RECONCILE_MAX_MS)
+    await waitFor(() => posts(worker).length === 4)
+    const back = posts(worker)[3]
+    assert.equal(back.status, 'ok')
+    assert.equal(back.stale, false)
+    assert.equal(back.error, null)
+    assert.equal(back.lastValidAt, T0 + 4 * RECONCILE_MAX_MS)
+    await worker.deactivate()
+  } finally {
+    clock.restore()
+  }
+})
+
+test('ponte viva descarta resposta obsoleta', async () => {
+  const fake = install()
+  const releases: Record<string, () => void> = {}
+  const gates: Record<string, Promise<void>> = {}
+  const hold = (key: string) => (gates[key] = new Promise<void>((r) => (releases[key] = r)))
+  hold('a')
+  fake.python = async (path) => {
+    if (path === 'C:/wt/a') await gates.a
+    return phased(path, path === 'C:/wt/a' ? 'antiga' : 'nova')
+  }
+  const host = hostFor(CTX_A)
+  const worker = await mount(host)
+
+  // troca de foco: a resposta lenta do worktree antigo chega depois e não aparece
+  const slow = worker.request('ponte.state', {})
+  await waitFor(() => fake.snaps().length === 1)
+  host.respond('workspace.readContext', CTX_B)
+  const fast: any = await worker.request('ponte.state', {})
+  assert.equal(fast.snapshot.worktree, 'C:/wt/b')
+  releases.a()
+  const late: any = await slow
+  assert.equal(late.snapshot.worktree, 'C:/wt/b')
+  assert.equal(late.snapshot.feature.phase, 'nova')
+  assert.ok(posts(worker).every((p) => p.snapshot.worktree === 'C:/wt/b'))
+
+  // o último estado bom não é sobrescrito pela resposta velha: a falha seguinte mostra o do worktree em foco
+  fake.python = () => new Error('boom')
+  const bad: any = await worker.request('ponte.state', {})
+  assert.equal(bad.status, 'erro')
+  assert.equal(bad.snapshot.worktree, 'C:/wt/b')
+  assert.equal(bad.snapshot.feature.phase, 'nova')
+
+  // mesmo foco, fora de ordem: a consulta mais antiga termina por último e não vence a mais nova
+  // Causa da oscilação: eventos do host disparam atualizações em segundo plano (debounce de 300 ms) que também
+  // chamam o snapshot; contar chamadas (`calls === 1`) deixava essa atualização ocupar a vaga da consulta
+  // retida. Espera o worker ficar quieto e só então arma a retenção, atribuída à consulta `first`.
+  let quieto = fake.snaps().length
+  for (let i = 0; i < 100; i++) {
+    await new Promise((r) => setTimeout(r, 100))
+    const agora = fake.snaps().length
+    if (agora === quieto) break
+    quieto = agora
+  }
+  hold('old')
+  let calls = 0
+  fake.python = async (path) => {
+    if (++calls === 1) {
+      await gates.old
+      return phased(path, 'velha')
+    }
+    return phased(path, 'recente')
+  }
+  let firstDone = false
+  const first = worker.request('ponte.state', {})
+  void first.then(() => { firstDone = true }, () => { firstDone = true })
+  await waitFor(() => calls >= 1)
+  assert.equal(firstDone, false, 'a consulta mais antiga deve continuar retida')
+  const second: any = await worker.request('ponte.state', {})
+  assert.equal(second.snapshot.feature.phase, 'recente')
+  const countBefore = posts(worker).length
+  releases.old()
+  const stale: any = await first
+  assert.equal(stale.snapshot.feature.phase, 'recente')
+  assert.ok(posts(worker).slice(countBefore - 1).every((p) => p.snapshot.feature.phase === 'recente'))
+  fake.python = () => new Error('boom')
+  const after: any = await worker.request('ponte.state', {})
+  assert.equal(after.snapshot.feature.phase, 'recente')
+  await worker.deactivate()
+})
+
+test('ponte viva preserva transição em atualização repetida', async () => {
+  install()
+  const host = hostFor(CTX_A, [WS_A, WS_B], [WORKING])
+  const worker = await mount(host)
+  const first: any = await worker.request('ponte.state', {})
+  assert.deepEqual(first.agents, [WORKING])
+  const logAfterFirst = first.log.length
+
+  // estado repetido: mesma representação, nenhuma entrada nova no diário
+  const again: any = await worker.request('ponte.state', {})
+  assert.deepEqual(again.agents, [WORKING])
+  assert.equal(again.agents[0].stateStartedAt, 100)
+  assert.equal(again.log.length, logAfterFirst)
+
+  // a consulta de agentes falha: o agente não some (sairia e entraria de novo na cena)
+  host.respond('agents.list', () => { throw hostError('internal', 'agents fora do ar') })
+  const failed: any = await worker.request('ponte.state', {})
+  assert.deepEqual(failed.agents, [WORKING])
+  assert.equal(failed.stale, true)
+  assert.equal(failed.snapshot.worktree, 'C:/wt/a')
+  // SC-222: os agentes mantidos continuam sendo os do mesmo worktree, e o escopo não some nem muda
+  assert.equal(first.agentsWorktree, 'C:/wt/a')
+  assert.equal(failed.agentsWorktree, 'C:/wt/a')
+
+  host.respond('agents.list', { agents: [WORKING] })
+  const back: any = await worker.request('ponte.state', {})
+  assert.deepEqual(back.agents, [WORKING])
+  assert.equal(back.stale, false)
+  assert.equal(back.log.length, logAfterFirst)
+  await worker.deactivate()
+})

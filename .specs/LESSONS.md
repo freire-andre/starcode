@@ -581,6 +581,54 @@ Vistas uma vez. Em observação, não entram nos briefs.
 - sources: .specs/features/versao-1-9-0/verification.md:achado 6
 - updated: 2026-11-22T20:22:55Z
 
+### L96 - Teste de estado vindo de texto externo deve incluir nomes herdados do protótipo (toString, constructor) e exigir propriedade própria ou mapa sem protótipo, porque 'toString' lançava exceção e interrompia a cena.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: verification.md:C8
+- updated: 2026-11-23T15:00:07Z
+
+### L97 - Ao provar vínculo de sessão e worktree por caminho, recuse caminho vazio em todas as fontes e teste o caso de caminhos vazios coincidentes, porque três vazios iguais comprovavam vínculo indevido.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: verification.md:C21
+- updated: 2026-11-23T15:00:07Z
+
+### L98 - Prova de acessibilidade que só aciona ouvintes em DOM simulado não prova teclado nem leitor de tela; rode a navegação real ou declare a prova como lógica, porque o teste passava sem Tab ou anúncio.
+- signal: `weak_test` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: verification.md:C16
+- updated: 2026-11-23T15:00:07Z
+
+### L99 - Ao tratar clique em item já presente, use a mesma função de alternância de seleção e teste que a seleção se mantém, porque o clique trocava a seleção de quem já estava na cena.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W1
+- updated: 2026-11-23T16:56:34Z
+
+### L100 - Trate arquivo de estado presente mas ilegível ou inválido como desconhecido, nunca como contagem zero, e teste os três casos (ausente, válido, inválido), porque o JSON inválido virava integrante ocioso.
+- signal: `review_finding` · features: 1 · scope: `scripts`
+- features: ponte-viva
+- sources: review.md:W2
+- updated: 2026-11-23T16:56:34Z
+
+### L101 - Ignore a caixa ao comparar caminhos só quando houver letra de unidade ou UNC; em POSIX compare exato e teste os dois sentidos com nomes que diferem só na caixa, porque /repo/Foo vinculava a /repo/foo.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W3
+- updated: 2026-11-23T16:56:34Z
+
+### L102 - Remova conversões de tipo desnecessárias quando o valor já satisfaz a interface esperada, porque a conversão dupla de document para Pagina escondia a compatibilidade real.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W4
+- updated: 2026-11-23T16:56:34Z
+
+### L103 - Não suprima tipo em dublê de teste sem justificativa: tipe o dublê com a forma real ou mantenha a conversão com a justificativa e a issue na linha anterior, porque dublês contornavam tipos sem registro.
+- signal: `review_finding` · features: 1 · scope: `src/orca`
+- features: ponte-viva
+- sources: review.md:W5
+- updated: 2026-11-23T16:56:34Z
+
 ## Quarantined
 
 Confirmadas que falharam ao serem aplicadas. Ignorar.

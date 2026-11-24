@@ -1,0 +1,58 @@
+{
+  "round": 2,
+  "verdict": "APPROVE",
+  "summary": "TL;DR: APPROVE — os achados W1 a W5 da rodada 1 estão resolvidos no HEAD f51f55f, cada um com teste ou justificativa vinculada a SC-216; nenhum blocker novo.",
+  "findings": [],
+  "carryover": {
+    "W1": {
+      "state": "resolvido",
+      "severity": "should-fix",
+      "path": "src/orca/src/scene.ts",
+      "line": 400,
+      "note": "O clique passa por alternaSelecao com a lista de presentes do último desenho; quem já está na cena não troca a seleção. Teste: Q e depois Picard mantém Q selecionado e presente.",
+      "evidence": ["src/orca/src/scene.ts:400", "src/orca/src/scene.ts:439", "src/orca/src/scene-model.ts:304", "src/orca/src/scene-model.test.ts:768"]
+    },
+    "W2": {
+      "state": "resolvido",
+      "severity": "should-fix",
+      "path": "scripts/ponte.py",
+      "line": 98,
+      "note": "sessions.json presente e ilegível ou inválido grava count null e sessions vazio; arquivo ausente segue 0. contagemValida recusa null e o integrante fica desconhecido; avisoDeDados mostra o aviso mesmo com status ok.",
+      "evidence": ["scripts/ponte.py:98", "scripts/ponte.py:118", "src/orca/src/crew-visual.ts:113", "src/orca/src/scene-model.ts:808", "src/orca/src/scene-model.test.ts:795"]
+    },
+    "W3": {
+      "state": "resolvido",
+      "severity": "should-fix",
+      "path": "src/orca/src/crew-visual.ts",
+      "line": 125,
+      "note": "A caixa só é ignorada em caminho com letra de unidade ou UNC; POSIX compara exato. Teste cobre /repo/Foo contra /repo/foo nos dois sentidos, igual byte a byte e C:/wt contra c:\\WT. Limite registrado: volume insensível a caixa fora do Windows fica sem vínculo, nunca vínculo falso.",
+      "evidence": ["src/orca/src/crew-visual.ts:125", "src/orca/src/crew-visual.ts:127", "src/orca/src/crew-visual.test.ts:220"]
+    },
+    "W4": {
+      "state": "resolvido",
+      "severity": "should-fix",
+      "path": "src/orca/src/scene.ts",
+      "line": 603,
+      "note": "criaRelacao(document) sem conversão. Pagina pede getElementById com retorno unknown, createElement com retorno any, body.appendChild em sintaxe de método e documentElement opcional; Document satisfaz cada membro. Typecheck não executado nesta rodada (sem .orca/types nem tsc local); a leitura estrutural sustenta a compatibilidade.",
+      "evidence": ["src/orca/src/scene.ts:603", "src/orca/src/scene.ts:448"]
+    },
+    "W5": {
+      "state": "resolvido",
+      "severity": "should-fix",
+      "path": "src/orca/src/scene.test.ts",
+      "line": 317,
+      "note": "filhos passou a unknown[]; as duas conversões restantes em worker.test.ts ganharam justificativa com a issue SC-216 na linha anterior, o que as torna supressões aceitas pela regra de bypass. As anotações any dos dublês não são candidatas do scanner e não fizeram parte da evidência original.",
+      "evidence": ["src/orca/src/scene.test.ts:317", "src/orca/src/worker.test.ts:1051", "src/orca/src/worker.test.ts:1080"]
+    }
+  },
+  "research": [],
+  "ladder": [
+    "python tools/build.py --check: passou (HEAD f51f55f, informado pelo coordenador)",
+    "python -m unittest discover -s tests -v: passou, 1116 testes, 1 ignorado (informado pelo coordenador)",
+    "python scripts/check_decisions.py: passou (informado pelo coordenador)",
+    "claude plugin validate dist/claude --strict: passou (informado pelo coordenador)",
+    "orca plugin test src/orca: 118 de 118 (informado pelo coordenador)",
+    "run_gates.py proofs ponte-viva e done --strict: verde (informado pelo coordenador)",
+    "scan_bypasses (git diff main...HEAD): 2 candidatos, src/orca/src/worker.test.ts:1052 e :1081, ambos com justificativa SC-216 na linha anterior; aceitos, sem achado"
+  ]
+}
