@@ -67,11 +67,11 @@ Proof: run unit | test_varredura_pega_cada_forma (test_versao_1_9_0.Versao190Tes
 
 ## Handoff
 
-**Phase:** pr-review
+**Phase:** done
 **Size:** MEDIUM
 **Git mode:** 3
 **Plugin:** 1.8.0
-**Next:** autorização do merge na main
+**Next:** reinstalar nos 5 agentes; depois passo 5 (a pausa)
 **Linear:** SC-214
 **Integration branch:** feature/versao-1-9-0
 **Last integrated:** 118b5f77968b644f9d7e9f262dd462e23f1c97d4
