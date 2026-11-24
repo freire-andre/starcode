@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -388,7 +389,15 @@ class FalhasStartSettleTests(TempRepoCase):
 
     # C5 (achado 2: argumentos e ambiente inválidos)
     def test_run_git_argumentos_invalidos(self):
-        esperado = (126, "", "argumentos inválidos para o git: environment can only contain strings")
+        # a frase do TypeError muda com o sistema (Windows x Linux): pede-a ao subprocess do Python da máquina
+        try:
+            subprocess.run(["git", "status"], cwd=str(self.repo), capture_output=True, stdin=subprocess.DEVNULL,
+                           env={**os.environ, "BAD": 1})
+        except TypeError as exc:
+            frase = str(exc)
+        else:
+            self.fail("o subprocess deveria levantar TypeError para env={'BAD': 1}")
+        esperado = (126, "", "argumentos inválidos para o git: " + frase)
         self.assertEqual(sc.run_git(["status"], self.repo, env={"BAD": 1}), esperado)
         self.assertEqual(sc.run_git(["status"], self.repo, env={"BAD": 1}, binary=True),
                          (126, b"", esperado[2].encode("utf-8")))

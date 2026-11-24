@@ -1,0 +1,17 @@
+**Round**: 1
+**Verdict**: APPROVE
+**Reviewer**: claude · claude-opus-5-5
+
+## TL;DR
+APPROVE. O teste passa a obter a frase do `TypeError` com a mesma chamada que `run_git` faz (`scripts/starcode_common.py:90-92`, `env` mesclado com `os.environ`). Ele mantém a comparação da tupla inteira, em str e em bytes, e falha de forma explícita se o subprocess não levantar o erro. O CI do PR confirma: o job ubuntu está verde. As 9 falhas do job windows vêm do caminho curto (`RUNNER~1`) e do config local, em arquivos que este PR não toca. Sem achados.
+
+| ID | Severity | Where | Finding | Evidence | State |
+|---|---|---|---|---|---|
+
+## Escada determinística
+- CI do PR #86: `checks (ubuntu-latest)` verde; `checks (windows-latest)` com 9 falhas fora do diff (`test_versao_e_retro`, `test_dispatch`, `test_config_local_worktree`, `test_timeout_chega_aos_chamadores`).
+- `run_gates.py` ticket, proofs e done: verdes.
+- `scan_bypasses.py`: 0 candidatos.
+
+## Pesquisa
+Nenhuma superfície externa: só `subprocess` e `os` da biblioteca padrão.
