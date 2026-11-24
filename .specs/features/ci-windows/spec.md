@@ -14,11 +14,11 @@ Proof: `python -m unittest discover -s tests -p "test_helpers_tmp.py"`
 
 ## Handoff
 
-**Phase:** review
+**Phase:** pr-review
 **Size:** SMALL
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** PR e Worf
+**Next:** CI do PR #87 e Worf
 **Linear:** SC-226
 **Integration branch:** feature/ci-windows
 **Last integrated:** 0bf4f5e
