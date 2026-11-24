@@ -14,14 +14,14 @@ Proof: `python -m unittest discover -s tests -p "test_helpers_tmp.py"`
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** SMALL
 **Git mode:** 3
-**Plugin:** none yet
-**Next:** LaForge corrige o TempRepoCase
+**Plugin:** 1.9.0
+**Next:** PR e Worf
 **Linear:** SC-226
 **Integration branch:** feature/ci-windows
-**Last integrated:** none
+**Last integrated:** 0bf4f5e
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
