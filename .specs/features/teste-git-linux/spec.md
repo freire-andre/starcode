@@ -20,7 +20,7 @@ Proof: `python -m unittest discover -s tests -p "test_falhas_start_settle.py" -k
 **Plugin:** none yet
 **Next:** LaForge corrige o teste
 **Linear:** SC-225
-**Integration branch:** not created
+**Integration branch:** fix/teste-git-linux
 **Last integrated:** none
 **Dispatched:** none
 **Settled:** none
