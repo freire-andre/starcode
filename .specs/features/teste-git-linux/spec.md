@@ -14,14 +14,14 @@ Proof: `python -m unittest discover -s tests -p "test_falhas_start_settle.py" -k
 
 ## Handoff
 
-**Phase:** spec-approved
+**Phase:** review
 **Size:** SMALL
 **Git mode:** 3
-**Plugin:** none yet
-**Next:** LaForge corrige o teste
+**Plugin:** 1.9.0
+**Next:** PR e Worf
 **Linear:** SC-225
 **Integration branch:** feature/teste-git-linux
-**Last integrated:** none
+**Last integrated:** 4ab0195
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
