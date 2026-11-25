@@ -18,12 +18,12 @@ Proof: `python -m unittest discover -s tests -p "test_helpers_tmp.py"`
 **Size:** SMALL
 **Git mode:** 3
 **Plugin:** 1.9.0
-**Next:** CI do PR #87 e Worf
+**Next:** merge do PR #87
 **Linear:** SC-226
 **Integration branch:** feature/ci-windows
 **Last integrated:** 0bf4f5e
 **Dispatched:** none
 **Settled:** none
 **Attempts:** none
-**Reports:** none
+**Reports:** 2026-11-24: Worf r1: APPROVE, sem achados; publicado
 **Breaker:** closed
