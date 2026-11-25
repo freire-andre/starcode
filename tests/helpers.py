@@ -27,7 +27,7 @@ class TempRepoCase(unittest.TestCase):
 
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory(prefix="starcode-test-")
-        self.tmp = Path(self._tmp.name)
+        self.tmp = Path(self._tmp.name).resolve()
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
         run_git(self.repo, "init", "-q", "-b", "main")
